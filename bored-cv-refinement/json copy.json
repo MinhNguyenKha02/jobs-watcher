@@ -1,0 +1,132 @@
+{
+  "name": "Minh Nguyen Kha",
+  "email": "minhnguyen.kha@proton.me",
+  "phone": "(+84) 39 679 6034",
+  "location": "District 7, Ho Chi Minh City, Vietnam",
+  "title": "Software Engineer (Backend)",
+  "summary": [
+    "Backend-focused software engineer with hands-on experience building RESTful APIs and microservices in Go and TypeScript.",
+    "Strong foundation in data structures, networking, concurrency, and database design.",
+    "Practical understanding of backend security principles, testing, and clean architecture.",
+    "Comfortable working across the stack when needed, with experience in Vue/Nuxt frontend integration.",
+    "Fast learner with a growth mindset, seeking to grow into scalable backend and distributed systems."
+  ],
+  "professional_skills":{
+    "programming_languages": ["Go (Golang)", "TypeScript", "Node.js", "C", "PHP", "Bash"],
+    "backend": [
+      "REST APIs",
+      "Express.js",
+      "Gin",
+      "NestJS",    
+      "Fiber",
+      "GraphQL",
+      "Laravel",
+      "MVC",
+      "Microservices",
+      "Clean Architecture",
+      "API Gateway",
+      "Modular service design", 
+      "Scalable backend system",
+      "Non-blocking I/O",
+      "Concurrency"
+    ],
+    "Security":[
+      "Authentication","Authorization","OAuth", "JWT"
+      ,"Session management","RBAC","Role-Based Access Control"
+      ,"CORS","Rate limiting","Abuse prevention","Input validation","Input sanitization"
+      ,"Encryption", "Secure logging", "Application-level monitoring and logging", "Secure defaults", "Least privilege", "Trust boundaries"
+    ],
+    "networking":["TLS","HTTP","HTTPS","gRPC","WebSocket","WebRTC", "TCP/IP networking", "Application-layer protocols", "Transport-layer protocols", "Basic understanding of NIC interfaces and network driver interaction"],
+    "database":["PostgreSQL", "MongoDB", "Redis","SQLite","Schema design","Database design"],
+    "devops":["Docker","CI/CD","Git","GitLab","GitHub","GitHub Actions","AWS","Azure","Ubuntu","Linux","Bash scripting","Environment variable management"],
+    "frontend": [
+      "Nuxt.js", "Vue.js", "React.js",
+      "ESbuild", "Webpack", "Vite",
+      "Backend integration", "Frontend rendering optimization",
+      "State management",
+      "Component-based UI development"
+    ],
+    "tooling":["VSCode", "AI-assisted development tools (GitHub Copilot, ChatGPT)", "Git", "Ubuntu", "Linux", "Docker", "Figma"]
+    ,"methodologies": ["Agile", "Scrum"],"others":["External service integration"],
+    "soft_skills": ["Problem-solving"
+    , "Collaboration","Communication"
+    , "Adaptability", "Continuous Learning"
+    , "Critical Thinking"]
+  },
+  "projects": [
+    {
+      "name": "Microservices demo (TS + Go)",
+      "period": "2024-12–2025-03",
+      "summary": "Small services communicating over REST; containerized with Docker; focus on modular boundaries and error handling.",
+      "tech": ["TypeScript", "Go", "Express", "Gin", "Docker"]
+    },
+    {
+      "name": "Networking/traffic prototypes",
+      "period": "2025-01–2025-03",
+      "summary": "Experiments with TCP/IP handling, concurrency, and request shaping; emphasis on OS processes/resources.",
+      "tech": ["Go", "TypeScript", "Linux", "Shell"]
+    },
+    {
+      "name": "AWS EC2 sandbox",
+      "period": "2024-11–present",
+      "summary": "Practice deployments on EC2, security groups, Dockerized services, basic monitoring.",
+      "tech": ["AWS EC2", "Docker", "Ubuntu"]
+    },
+    {
+      "name": "Blockchain API prototype",
+      "period": "2025-02–2025-03",
+      "summary": "Go API with SQLite; experimented with Solidity contracts and FE Web3 integration; paused after initial week.",
+      "tech": ["Go", "SQLite", "Solidity (basic)", "Web3 (basic)"],
+      "status": "Paused"
+    },
+    {
+      "name": "Shell automation scripts",
+      "period": "2024-10–present",
+      "summary": "Bash scripts for setup, deployment, and local tooling; fallback utilities.",
+      "tech": ["Bash", "Linux"]
+    }
+  ],
+  "experience": [
+    {
+      "company": "Golive Dev JSC",
+      "position": "Full-Stack Developer",
+      "location": "Remote",
+      "startDate": "2024-10",
+      "endDate": "2025-01",
+      "description": [
+        "Built and optimized Vue/Nuxt product modules, improving navigation flow and responsiveness",
+        "Integrated REST APIs end-to-end and tightened error handling to reduce regression risk",
+        "Collaborated with designers on UI states and accessibility, increasing clarity of user interactions",
+        "Used Git feature branches and reviews to keep changes scoped and traceable"
+      ]
+    },
+    {
+      "company": "Mevivu Co., Ltd",
+      "position": "Web Developer",
+      "location": "Ho Chi Minh City, Vietnam",
+      "startDate": "2023-08",
+      "endDate": "2023-11",
+      "description": [
+        "Maintained and customized WordPress sites, ensuring stable releases and timely content updates",
+        "Created UI/UX prototypes in Figma to validate flows with stakeholders before build",
+        "Produced marketing assets and landing content aligned with campaign timelines"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Ho Chi Minh City Open University",
+      "degree": "Bachelor of Information Technology",
+      "field": "Software Technology",
+      "startDate": "2020",
+      "endDate": "2025",
+      "gpa": "3.0/4.0"
+    }
+  ],
+  "links": {
+    "linkedin": "https://linkedin.com/in/minh-nguyen-kha",
+    "github": "https://github.com/MinhNguyenKha02",
+    "portfolio": "https://your-portfolio.com",
+    "website": ""
+  }
+}

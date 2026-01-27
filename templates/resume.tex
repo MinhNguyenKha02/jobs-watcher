@@ -1,0 +1,72 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\pagestyle{empty}
+
+\begin{document}
+
+% Header
+\begin{center}
+  {\huge \textbf{ {{name}} }}\\[0.3cm]
+  {\large {{title}} }\\[0.2cm]
+  {{email}} | {{phone}} | {{location}}\\
+  {{#if links.linkedin}}\href{ {{links.linkedin}} }{LinkedIn}{{/if}}
+  {{#if links.github}} | \href{ {{links.github}} }{GitHub}{{/if}}
+  {{#if links.portfolio}} | \href{ {{links.portfolio}} }{Portfolio}{{/if}}
+\end{center}
+
+\vspace{0.3cm}
+
+% Summary
+\section*{Summary}
+{{summary}} Seeking the {{job.position}} role at {{job.company}} to leverage my skills and contribute to innovative projects.
+
+\vspace{0.2cm}
+
+% Core Competencies
+\section*{Core Competencies}
+\begin{itemize}[leftmargin=*,noitemsep,itemsep=0pt,label=$\bullet$,labelsep=0.5em]
+{{#each skills}}
+  \item {{this}}
+{{/each}}
+\end{itemize}
+
+\vspace{0.2cm}
+
+% Professional Experience
+\section*{Professional Experience}
+
+{{#each experience}}
+\noindent
+\textbf{ {{company}} } \hfill {{location}}\\
+\textit{ {{position}} } \hfill {{startDate}} -- {{endDate}}
+\begin{itemize}[leftmargin=*,noitemsep,itemsep=2pt]
+{{#each description}}
+  \item {{this}}
+{{/each}}
+\end{itemize}
+\vspace{0.15cm}
+{{/each}}
+
+% Education
+\section*{Education}
+
+{{#each education}}
+\noindent
+\textbf{ {{institution}} } \hfill {{location}}\\
+{{degree}} in {{field}}{{#if gpa}} | GPA: {{gpa}}{{/if}} \hfill {{startDate}} -- {{endDate}}
+\vspace{0.15cm}
+{{/each}}
+
+\vspace{0.3cm}
+
+\hrule
+\vspace{0.2cm}
+\begin{center}
+\textit{Resume customized for {{job.position}} at {{job.company}} | Generated on {{date}}\}
+\end{center}
+
+\end{document}

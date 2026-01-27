@@ -1,0 +1,156 @@
+{
+  "name": "Minh Nguyen Kha",
+  "email": "minhnguyen.kha@proton.me",
+  "phone": "(+84) 39 679 6034",
+  "location": "District 7, Ho Chi Minh City, Vietnam",
+  "title": "Software Engineer (Backend)",
+  "summary": [
+    "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+    "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+    "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+    "Committed to writing clean, maintainable code and following best practices in security and testing.",
+    "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+  ],
+  "software_fundamentals": {
+      "programming_language": {
+        "solid": ["Go", "TypeScript"],
+        "familiar": ["JavaScript", "C", "PHP", "Bash"]
+      },
+      "dsa": ["Data structures & algorithms fundamentals"],
+      "os": ["Linux/Ubuntu fundamentals", "Shell automation", "Processes and resource control"],
+      "oop": ["OOP fundamentals", "SOLID principles", "Design patterns familiarity"],
+      "database": ["Relational/NoSQL fundamentals", "Schema design", "SQL queries"],
+      "networking": ["TCP/IP (L3-L4)", "Networking programming fundamentals"],
+      "security": ["Secure defaults", "Threat-model awareness", "Trust boundaries & Least privilege", "Authentication/Authorization fundamentals"],
+      "test": ["Unit & Integration & End-To-End test"],
+      "ai": ["ML fundamentals and familiarity", "Familiarity with AI tools and integration, data labeling, datasets on training or fine-tuned"]
+  },
+  "skills": {
+    "backend": {
+      "architecture": ["MVC", "Microservices", "Clean Architecture (learning)"],
+      "frameworks": {
+        "solid": ["Express.js", "Gin"],
+        "familiar": ["Laravel", "Fiber" ]
+      },
+      "api": {
+        "solid": ["REST", "TLS/HTTP/gRPC/WebSocket/WebRTC"],
+        "familiar": ["GraphQL", "External Service Integration"]
+      },
+      "database": {
+        "solid": ["PostgreSQL", "MongoDB"],
+        "familiar": ["SQLite", "Redis", "Supabase"]
+      },
+      "Authentication\/Authorization":
+      [ "OAuth, JWT, MFA practices"
+      , "Session management"
+      , "CORS configuration"
+      , "Role-Based Access Control(RBAC)"
+      ],
+      "security":
+      [ "Input validation, sanitization and encryption"
+      , "Secure API gateway configuration best practices"
+      , "Rate-limitation and abuse control"
+      , "Secure logging and monitoring"
+      , "Environment variable management best practices"]
+    },
+    "frontend": {
+      "frameworks": {
+        "solid": ["Vue.js", "Nuxt.js"],
+        "familiar": ["React", "Web3 integration"]
+      },
+      "comfort": ["Component-based UI development", "State management", "Backend integration", "Rendering optimization"]
+    },
+    "devops": {
+      "containerization": {
+        "familiar": ["Docker"]
+      },
+      "ci_cd": ["GitHub Actions", "Git"],
+      "cloud": {
+        "solid": ["AWS/Azure fundamentals"],
+        "familiar": ["Cloud deployment best practices"]
+      }
+    },
+    "tooling": ["Git", "Figma", "WordPress", "VSCode"],
+    "methodologies": ["Agile fundamentals"],
+    "soft_skills": ["Problem-solving"
+    , "Collaboration and Communication"
+    , "Adaptability and Continuous Learning"
+    , "Discussion and Critical Thinking"]
+  },
+  "projects": [
+    {
+      "name": "Microservices demo (TS + Go)",
+      "period": "2024-12–2025-03",
+      "summary": "Small services communicating over REST; containerized with Docker; focus on modular boundaries and error handling.",
+      "tech": ["TypeScript", "Go", "Express", "Gin", "Docker"]
+    },
+    {
+      "name": "Networking/traffic prototypes",
+      "period": "2025-01–2025-03",
+      "summary": "Experiments with TCP/IP handling, concurrency, and request shaping; emphasis on OS processes/resources.",
+      "tech": ["Go", "TypeScript", "Linux", "Shell"]
+    },
+    {
+      "name": "AWS EC2 sandbox",
+      "period": "2024-11–present",
+      "summary": "Practice deployments on EC2, security groups, Dockerized services, basic monitoring.",
+      "tech": ["AWS EC2", "Docker", "Ubuntu"]
+    },
+    {
+      "name": "Blockchain API prototype",
+      "period": "2025-02–2025-03",
+      "summary": "Go API with SQLite; experimented with Solidity contracts and FE Web3 integration; paused after initial week.",
+      "tech": ["Go", "SQLite", "Solidity (basic)", "Web3 (basic)"],
+      "status": "Paused"
+    },
+    {
+      "name": "Shell automation scripts",
+      "period": "2024-10–present",
+      "summary": "Bash scripts for setup, deployment, and local tooling; fallback utilities.",
+      "tech": ["Bash", "Linux"]
+    }
+  ],
+  "experience": [
+    {
+      "company": "Golive Dev JSC",
+      "position": "Full-Stack Developer",
+      "location": "Remote",
+      "startDate": "2024-10",
+      "endDate": "2025-01",
+      "description": [
+        "Built and optimized Vue/Nuxt product modules, improving navigation flow and responsiveness",
+        "Integrated REST APIs end-to-end and tightened error handling to reduce regression risk",
+        "Collaborated with designers on UI states and accessibility, increasing clarity of user interactions",
+        "Used Git feature branches and reviews to keep changes scoped and traceable"
+      ]
+    },
+    {
+      "company": "Mevivu Co., Ltd",
+      "position": "Web Developer",
+      "location": "Ho Chi Minh City, Vietnam",
+      "startDate": "2023-08",
+      "endDate": "2023-11",
+      "description": [
+        "Maintained and customized WordPress sites, ensuring stable releases and timely content updates",
+        "Created UI/UX prototypes in Figma to validate flows with stakeholders before build",
+        "Produced marketing assets and landing content aligned with campaign timelines"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Ho Chi Minh City Open University",
+      "degree": "Bachelor of Information Technology",
+      "field": "Software Technology",
+      "startDate": "2020",
+      "endDate": "2025",
+      "gpa": "3.0/4.0"
+    }
+  ],
+  "links": {
+    "linkedin": "https://linkedin.com/in/minh-nguyen-kha",
+    "github": "https://github.com/MinhNguyenKha02",
+    "portfolio": "https://your-portfolio.com",
+    "website": ""
+  }
+}

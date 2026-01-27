@@ -1,0 +1,78 @@
+{
+  "name": "Minh Nguyen Kha",
+  "email": "minhnguyen.kha@proton.me",
+  "phone": "(+84) 39 679 6034",
+  "location": "District 7, Ho Chi Minh City, Vietnam",
+  "title": "Junior Full-Stack Developer",
+  "summary": "Fresh graduate (GPA 3.0/4.0) with 6 months of professional experience in full-stack web development across 2 companies. Proficient in TypeScript, Go, PHP, React, Vue, and backend frameworks (Express, Laravel, Fiber). Experience with REST/GraphQL APIs, PostgreSQL, MongoDB, Docker, and Git workflows. Seeking Full-Stack, Frontend, or Backend developer roles with learning opportunities.",
+  "skills": [
+    "TypeScript",
+    "JavaScript",
+    "Go",
+    "PHP",
+    "React",
+    "Vue.js",
+    "Nuxt",
+    "Express.js",
+    "Laravel",
+    "Fiber",
+    "Gin",
+    "REST APIs",
+    "GraphQL",
+    "PostgreSQL",
+    "MongoDB",
+    "SQLite",
+    "Redis",
+    "Supabase",
+    "AWS",
+    "Docker",
+    "Git",
+    "Ubuntu/Linux",
+    "API Security",
+    "Networking (L4-L3-L2, TCP/IP)",
+    "WordPress"
+  ],
+  "experience": [
+    {
+      "company": "Golive Dev JSC",
+      "position": "Full-Stack Developer",
+      "location": "Remote",
+      "startDate": "2024-10",
+      "endDate": "2025-01",
+      "description": [
+        "Developed and optimized product modules, improving system efficiency",
+        "Led API integration and front-end development, reducing development time",
+        "Strengthened skills in Vue.js, Nuxt.js, and Git workflows",
+        "Collaborated with UI/UX designers to enhance user experience"
+      ]
+    },
+    {
+      "company": "Mevivu Co., Ltd",
+      "position": "Web Developer",
+      "location": "Ho Chi Minh City, Vietnam",
+      "startDate": "2023-08",
+      "endDate": "2023-11",
+      "description": [
+        "Maintained WordPress websites, increasing customer engagement",
+        "Developed UI/UX prototypes in Figma, improving user experience",
+        "Created promotional content, contributing to revenue growth"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Ho Chi Minh City Open University",
+      "degree": "Bachelor of Information Technology",
+      "field": "Software Technology",
+      "startDate": "2020",
+      "endDate": "2025",
+      "gpa": "3.0/4.0"
+    }
+  ],
+  "links": {
+    "linkedin": "https://linkedin.com/in/minh-nguyen-kha",
+    "github": "https://github.com/MinhNguyenKha02",
+    "portfolio": "https://your-portfolio.com",
+    "website": ""
+  }
+}
