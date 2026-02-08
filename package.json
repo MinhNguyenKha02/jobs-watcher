@@ -18,12 +18,16 @@
     "test:integration": "jest tests/integration --coverage",
     "test:e2e": "jest tests/e2e --coverage",
     "test:watch": "jest --watch",
-    "lint": "tsc --noEmit",
-    "format": "tsc --noEmit",
-    "validate": "tsx scripts/validate.ts",
-    "staging:test": "tsx scripts/staging-integration.ts",
+    "lint": "tsc --noEmit && eslint \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "pubsub:subscribe": "tsx src/cli/pubsub-subscribe.ts",
-    "pubsub:unsubscribe": "tsx src/cli/pubsub-unsubscribe.ts"
+    "pubsub:unsubscribe": "tsx src/cli/pubsub-unsubscribe.ts",
+    "fetch:raw-emails": "tsx scripts/fetch-raw-emails.ts",
+    "analyze:raw-emails": "tsx scripts/analyze-raw-emails.ts",
+    "data-testing": "OPERATIONAL_MODE=data-testing DATA_SOURCE_TYPE=db tsx src/cli/data-testing.ts",
+    "data-testing:no-browser": "AUTO_OPEN_BROWSER=false OPERATIONAL_MODE=data-testing DATA_SOURCE_TYPE=db tsx src/cli/data-testing.ts",
+    "data-listening": "OPERATIONAL_MODE=data-listening DATA_SOURCE_TYPE=webhook tsx src/index.ts"
   },
   "keywords": [
     "gmail",
@@ -60,6 +64,16 @@
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "typescript": "5.5.4",
+    "eslint": "^8.57.1",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-react": "^7.34.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-jest": "^27.6.3",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-import-resolver-typescript": "^3.6.1",
+    "prettier": "^3.2.5"
   }
 }

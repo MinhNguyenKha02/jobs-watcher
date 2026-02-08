@@ -65,6 +65,16 @@ const ConfigSchema = z.object({
     tui: z.boolean().default(true),
     logging: z.boolean().default(true),
   }),
+
+  // Operational mode
+  mode: z.enum(['data-testing', 'data-listening']).default('data-listening'),
+  
+  // Input source (for data-testing mode)
+  dataSource: z.object({
+    type: z.enum(['db', 'webhook']).default('webhook'),
+    dbPath: z.string().optional(),
+    batchSize: z.number().int().min(1).default(10),
+  }),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -106,6 +116,14 @@ export function loadConfig(): Config {
       notifications: process.env.FEATURE_NOTIFICATIONS !== 'false',
       tui: process.env.FEATURE_TUI !== 'false',
       logging: process.env.FEATURE_LOGGING !== 'false',
+    },
+
+    mode: (process.env.OPERATIONAL_MODE as 'data-testing' | 'data-listening') || 'data-listening',
+    
+    dataSource: {
+      type: (process.env.DATA_SOURCE_TYPE as 'db' | 'webhook') || 'webhook',
+      dbPath: process.env.DATA_SOURCE_DB_PATH || path.join(projectRoot, 'src', 'db', 'emails'),
+      batchSize: parseInt(process.env.DATA_SOURCE_BATCH_SIZE || '10', 10),
     },
   };
 

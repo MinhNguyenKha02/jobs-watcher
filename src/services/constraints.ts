@@ -269,36 +269,47 @@ function extractJobSkills(position: string, description: string, profile: Profil
 
 /**
  * Filter job based on profile compatibility
- * Returns: { passes: boolean; reason?: string; matchedSkills?: string[] }
+ * Returns: { passed: boolean; reasons?: string[]; matchedSkills?: string[] }
  */
 export function filterJobCompatibility(
   job: ParsedEmail,
   profile: Profile = loadProfile()
-): { passes: boolean; reason?: string; matchedSkills?: string[] } {
+): {
+  passed: boolean;
+  passes: boolean;
+  reasons?: string[];
+  reason?: string;
+  matchedSkills?: string[];
+} {
   // 1) Reject non-software roles (match whole keywords in position/description)
-  const roleText = `${job.position || ''} ${job.description || ''}`;
+  const jobTitle = job.jobTitle || job.position || '';
+  const roleText = `${jobTitle} ${job.description || ''}`;
   const nonSoftwarePatterns = NON_SOFTWARE_ROLE_KEYWORDS.map(k =>
     new RegExp(`\\b${escapeRegExp(k).replace(/\\s+/g, '\\s+')}\\b`, 'i')
   );
   if (nonSoftwarePatterns.some(p => p.test(roleText))) {
-    return { passes: false, reason: 'Non-software role' };
+    const reasons = ['Non-software role'];
+    return { passed: false, passes: false, reasons, reason: reasons[0] };
   }
 
   // 2) Check experience level: must return 'junior' (accept) or null (reject)
-  const expLevel = detectJobExperienceLevel(job.description || '', job.position || '');
+  const expLevel = detectJobExperienceLevel(job.description || '', jobTitle);
   if (expLevel !== 'junior') {
     // detectJobExperienceLevel returns null for mid/senior/any years requirement
-    return { passes: false, reason: 'Requires experience beyond junior level' };
+    const reasons = ['Requires experience beyond junior level'];
+    return { passed: false, passes: false, reasons, reason: reasons[0] };
   }
 
   // 3) Skills relevance (non-blocking): collect overlaps using flexible matching
-  const extracted = extractJobSkills(job.position || '', job.description || '', profile);
+  const extracted = extractJobSkills(jobTitle, job.description || '', profile);
   const matchedSkills = extracted.filter(skill => skillMatchesProfile(skill, profile.skills || []));
+  const normalizedMatchedSkills = unique(matchedSkills.map(skill => normalizeSkill(skill)));
 
   // Skills are advisory only (no scoring, no blocking); favor junior opportunity
   return {
+    passed: true,
     passes: true,
-    matchedSkills,
+    matchedSkills: normalizedMatchedSkills,
   };
 }
 

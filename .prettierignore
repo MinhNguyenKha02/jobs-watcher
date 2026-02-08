@@ -1,0 +1,8 @@
+node_modules
+coverage
+dist
+logs
+test-output
+src/db/emails
+src/db/emails/enriched
+.generated

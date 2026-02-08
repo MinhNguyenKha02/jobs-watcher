@@ -1,13 +1,14 @@
 import express, { Request, Response } from 'express';
 import { GmailService } from './gmail.js';
-import { EmailParser } from './parser.js';
-import { SmartGenerator } from './smart-generator.js';
-import { showJobPopup } from '../ui/JobPopup.js';
+import { EmailParser } from './parsers/email-parser.js';
+import { SmartGenerator } from './generators/smart-generator.js';
+import { showJobPopup, type EnrichedJobData, type ActionType } from '../ui/JobPopup.js';
 import { config } from '../config.js';
 import { notifyUser } from './notifications.js';
 import { getLogger } from './logger.js';
 import type { Job, Profile, Features } from '../types.js';
 import fs from 'fs';
+import { promises as fsPromises } from 'fs';
 import path from 'path';
 
 const logger = getLogger();
@@ -84,7 +85,7 @@ class CircuitBreaker {
  * Allows pluggable job action implementations
  */
 export interface ActionHandler {
-  handle(job: Job, action: 'apply' | 'skip' | 'queue'): Promise<void>;
+  handle(job: Job, action: ActionType, enrichedData?: EnrichedJobData): Promise<void>;
 }
 
 /**
@@ -97,10 +98,25 @@ class DefaultActionHandler implements ActionHandler {
     private features: Features
   ) {}
 
-  async handle(job: Job, action: 'apply' | 'skip' | 'queue'): Promise<void> {
-    if (action === 'apply') {
-      const outputDir = await this.smartGenerator.generateForJob(job);
+  async handle(job: Job, action: ActionType, enrichedData?: EnrichedJobData): Promise<void> {
+    // Merge enriched data into job
+    const enrichedJob: Job = {
+      ...job,
+    };
+
+    // Log action with enrichment metadata
+    await this.logAction(enrichedJob, action, enrichedData);
+
+    if (action.startsWith('apply')) {
+      const outputDir = await this.smartGenerator.generateForJob(enrichedJob);
       logger.info(`✅ Materials generated: ${outputDir}`);
+      
+      if (action === 'apply-edit') {
+        logger.info('📝 Opening materials for editing...');
+        // TODO: Open editor with generated files
+      } else if (action === 'apply-custom') {
+        logger.info('🎨 Manual application mode - materials ready for review');
+      }
       
       if (this.features.notifications) {
         await this.notify({
@@ -108,8 +124,6 @@ class DefaultActionHandler implements ActionHandler {
           message: `${job.position} - Check generated/ folder`,
         });
       }
-    } else if (action === 'skip') {
-      logger.info(`⏭️  Skipped ${job.company}`);
     } else if (action === 'queue') {
       logger.info(`⏰ Queued ${job.company} - review later`);
       
@@ -119,6 +133,33 @@ class DefaultActionHandler implements ActionHandler {
           message: `${job.position}`,
         });
       }
+    }
+  }
+
+  private async logAction(job: Job, action: ActionType, enrichedData?: EnrichedJobData): Promise<void> {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      messageId: job.messageId,
+      action,
+      company: job.company,
+      position: job.position,
+      url: job.url,
+      enriched: Boolean(enrichedData?.htmlContent),
+      urlOpened: enrichedData?.urlOpened,
+      matchScore: job.matchScore,
+    };
+
+    const logDir = path.join(process.cwd(), 'logs');
+    const logFile = path.join(logDir, 'filtered-jobs.json');
+
+    try {
+      await fsPromises.mkdir(logDir, { recursive: true });
+      
+      // Append to JSONL format
+      const logLine = JSON.stringify(logEntry) + '\n';
+      await fsPromises.appendFile(logFile, logLine, 'utf-8');
+    } catch (error: any) {
+      logger.warn(`Failed to log action: ${error.message}`);
     }
   }
 }
@@ -140,6 +181,7 @@ export class EventDrivenWebhook {
   private server: any = null;
   private parserCircuitBreaker = new CircuitBreaker();
   private generatorCircuitBreaker = new CircuitBreaker();
+  private rawEmailBaseDir = path.join(config.logsPath, 'raw-emails');
 
   constructor(
     gmailService: GmailService,
@@ -303,6 +345,13 @@ export class EventDrivenWebhook {
       const subject = this.gmailService.extractHeader(message, 'Subject');
       const from = this.gmailService.extractHeader(message, 'From');
       const body = this.gmailService.extractBody(message);
+      // Persist raw email content for later parsing/experimentation
+      await this.logRawEmailSafe({
+        messageId,
+        subject,
+        from,
+        body,
+      });
 
       // Parse job details
       const parsed = this.parser.parse({
@@ -345,16 +394,20 @@ export class EventDrivenWebhook {
       }
 
       // Show TUI popup and get user action (only if TUI is enabled)
-      let action: 'apply' | 'skip' | 'queue';
+      let action: ActionType;
+      let enrichedData: EnrichedJobData | undefined;
+      
       if (config.features.tui) {
-        action = await this.showPopup(job);
+        const result = await this.showPopup(job);
+        action = result.action;
+        enrichedData = result.enrichedData;
       } else {
         // Default to queue if TUI is disabled
         action = 'queue';
       }
 
       // Handle action via pluggable handler
-      await this.actionHandler.handle(job, action);
+      await this.actionHandler.handle(job, action, enrichedData);
     } catch (error: any) {
       logger.error(`Error processing job: ${error.message}`);
     }
@@ -383,5 +436,29 @@ export class EventDrivenWebhook {
         resolve();
       }
     });
+  }
+
+  /**
+   * Best-effort raw email logger: writes JSONL rows to logs/raw-emails/YYYY-MM-DD/{messageId}.jsonl
+   * Useful for offline parsing experiments without blocking the flow.
+   */
+  private async logRawEmailSafe(opts: { messageId: string; subject: string; from: string; body: string }): Promise<void> {
+    const dateKey = new Date().toISOString().split('T')[0];
+    const dir = path.join(this.rawEmailBaseDir, dateKey);
+    const file = path.join(dir, `${opts.messageId}.jsonl`);
+    const entry = {
+      timestamp: new Date().toISOString(),
+      gmail_message_id: opts.messageId,
+      from: opts.from,
+      subject: opts.subject,
+      body: opts.body,
+    };
+
+    try {
+      await fsPromises.mkdir(dir, { recursive: true });
+      await fsPromises.appendFile(file, JSON.stringify(entry) + '\n', 'utf-8');
+    } catch (err) {
+      logger.warn(`Could not log raw email ${opts.messageId}: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 }

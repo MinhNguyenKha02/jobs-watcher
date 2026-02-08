@@ -363,7 +363,8 @@ export class SmartGenerator {
     }
 
     // Create output directory
-    const outputDir = path.join(process.cwd(), 'generated', this.sanitizeFilename(job.id));
+    const jobId = job.id ?? job.messageId ?? 'unknown';
+    const outputDir = path.join(process.cwd(), 'generated', this.sanitizeFilename(jobId));
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }

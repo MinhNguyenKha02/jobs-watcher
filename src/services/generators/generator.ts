@@ -61,7 +61,8 @@ export class DocumentGenerator {
     }
 
     try {
-      const jobDir = path.join(this.outputDir, this.sanitizeFilename(job.id));
+      const jobId = job.id ?? job.messageId ?? 'unknown';
+      const jobDir = path.join(this.outputDir, this.sanitizeFilename(jobId));
       
       if (!fs.existsSync(jobDir)) {
         fs.mkdirSync(jobDir, { recursive: true });
@@ -130,6 +131,7 @@ export class DocumentGenerator {
           year: 'numeric',
           month: 'long',
           day: 'numeric',
+          
         }),
       };
 

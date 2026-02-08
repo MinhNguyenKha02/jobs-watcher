@@ -2,7 +2,7 @@ import { filterJobCompatibility } from '../../src/services/constraints.js';
 import type { ParsedEmail, Profile } from '../../src/types.js';
 
 // Mock Html parser to avoid any side effects when importing parser-related modules
-jest.mock('../../src/services/html-parser.js', () => ({
+jest.mock('../../src/services/parsers/html-job-parser.js', () => ({
   HtmlJobParser: class {
     parseJobFromHtml() { return null; }
   },

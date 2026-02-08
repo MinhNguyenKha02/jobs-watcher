@@ -1,7 +1,7 @@
 import { EventDrivenWebhook } from '../../src/services/event-webhook.js';
 import { mockPubSubMessage, mockGmailMessage } from '../__fixtures__/pubsub-messages.js';
 import { showJobPopup } from '../../src/ui/JobPopup.js';
-import { SmartGenerator } from '../../src/services/smart-generator.js';
+import { SmartGenerator } from '../../src/services/generators/smart-generator.js';
 import { notifyUser } from '../../src/services/notifications.js';
 
 jest.mock('../../src/ui/JobPopup.js', () => ({
@@ -14,7 +14,7 @@ jest.mock('../../src/services/notifications.js', () => ({
   getMonitoringStats: jest.fn(),
 }));
 
-jest.mock('../../src/services/smart-generator.js');
+jest.mock('../../src/services/generators/smart-generator.js');
 
 describe('EventDrivenWebhook - Headless Flow', () => {
   let gmailService: any;
@@ -43,7 +43,7 @@ describe('EventDrivenWebhook - Headless Flow', () => {
       extractBody: jest.fn(() => 'Job description...'),
     };
 
-    (showJobPopup as jest.Mock).mockResolvedValue('apply');
+    (showJobPopup as jest.Mock).mockResolvedValue({ action: 'apply-generate', enrichedData: undefined });
     (notifyUser as jest.Mock).mockResolvedValue(undefined);
 
     webhook = new EventDrivenWebhook(gmailService as any);
