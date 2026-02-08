@@ -6,3 +6,7 @@ data/
 credentials.json
 token.json
 generated/
+src/db/emails/
+logs/
+coverage/
+test-output/
