@@ -1,0 +1,48 @@
+[
+  {
+    "parseLogId": "699063a9e1089a406c146a05",
+    "rawIngestId": "699063a90020f02b5352c894",
+    "source": "UNKNOWN",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "url": null,
+      "description": null
+    },
+    "error": null,
+    "rawContent": "",
+    "timestamp": "2026-02-14T11:59:37.765Z"
+  },
+  {
+    "parseLogId": "699063a9e1089a406c146a04",
+    "rawIngestId": "699063a90020f02b5352c894",
+    "source": "UNKNOWN",
+    "stage": "METADATA",
+    "success": true,
+    "extracted": {
+      "company": null,
+      "position": null,
+      "salary": null,
+      "location": null
+    },
+    "error": null,
+    "rawContent": "",
+    "timestamp": "2026-02-14T11:59:37.762Z"
+  },
+  {
+    "parseLogId": "698fc3ca6f9ba770c9f41987",
+    "rawIngestId": "698fc3ca0020f02b5352ae8a",
+    "source": "UNKNOWN",
+    "stage": "METADATA",
+    "success": true,
+    "extracted": {
+      "company": "Senior Full Stack Developer",
+      "title": "Senior Full Stack Developer",
+      "salary": null,
+      "location": "San Francisco, CA (Remote Available)"
+    },
+    "error": null,
+    "rawContent": "",
+    "timestamp": "2026-02-14T00:37:30.669Z"
+  }
+]
