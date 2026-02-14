@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import Handlebars from 'handlebars';
-import { config } from '../config.js';
-import type { Job, Profile } from '../types.js';
+import { config } from '../../config.js';
+import type { Job, Profile } from '../../types.js';
 
 export interface GeneratorResult {
   success: boolean;

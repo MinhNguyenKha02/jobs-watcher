@@ -7,11 +7,11 @@
 import fs from 'fs';
 import path from 'path';
 
-import type { EnrichedJobMetadata, EnrichedJobRecord, EnrichedJobRecordFile } from '../types.js';
+import type { EnrichedJobMetadata, EnrichedJobRecord, EnrichedJobRecordFile } from '../../types.js';
 
-import { getLogger } from './logger.js';
+import { getLogger } from '../logger.js';
 
-export type { EnrichedJobMetadata, EnrichedJobRecord, EnrichedJobRecordFile } from '../types.js';
+export type { EnrichedJobMetadata, EnrichedJobRecord, EnrichedJobRecordFile } from '../../types.js';
 
 const logger = getLogger();
 

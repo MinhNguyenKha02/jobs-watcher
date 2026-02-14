@@ -59,6 +59,12 @@ const ConfigSchema = z.object({
     path: z.string().startsWith('/'),
   }),
 
+  // MongoDB storage (for audit trail and analytics)
+  mongodb: z.object({
+    uri: z.string().min(1, 'MONGODB_URI required'),
+    dbName: z.string().min(1).default('jobs_watcher'),
+  }),
+
   // Feature flags
   features: z.object({
     notifications: z.boolean().default(true),
@@ -110,6 +116,11 @@ export function loadConfig(): Config {
     webhook: {
       port: parseInt(process.env.WEBHOOK_PORT || '3000', 10),
       path: process.env.WEBHOOK_PATH || '/webhook/gmail',
+    },
+
+    mongodb: {
+      uri: process.env.MONGODB_URI || 'mongodb://localhost:27017',
+      dbName: process.env.MONGODB_DB_NAME || 'jobs_watcher',
     },
 
     features: {

@@ -2,10 +2,13 @@ import express, { Request, Response } from 'express';
 import { GmailService } from './gmail.js';
 import { EmailParser } from './parsers/email-parser.js';
 import { SmartGenerator } from './generators/smart-generator.js';
-import { showJobPopup, type EnrichedJobData, type ActionType } from '../ui/JobPopup.js';
+import { type EnrichedJobData, type ActionType } from '../ui/JobPopup.js';
+import { JobProcessor, type JobPresenter, type JobActionHandler } from '../application/job-processor.js';
+import { TuiJobPresenter } from '../ui/TuiJobPresenter.js';
 import { config } from '../config.js';
 import { notifyUser } from './notifications.js';
 import { getLogger } from './logger.js';
+import { createMongoDBStorageAdapter, type MongoDBStorageAdapter } from './storage/index.js';
 import type { Job, Profile, Features } from '../types.js';
 import fs from 'fs';
 import { promises as fsPromises } from 'fs';
@@ -84,9 +87,7 @@ class CircuitBreaker {
  * Action handler abstraction
  * Allows pluggable job action implementations
  */
-export interface ActionHandler {
-  handle(job: Job, action: ActionType, enrichedData?: EnrichedJobData): Promise<void>;
-}
+export interface ActionHandler extends JobActionHandler<ActionType, EnrichedJobData> {}
 
 /**
  * Default action handler
@@ -175,9 +176,10 @@ export class EventDrivenWebhook {
   private profile: Profile;
   private processedJobs = new Set<string>(); // In-memory dedup during runtime
   private smartGenerator: SmartGenerator;
-  private showPopup: typeof showJobPopup;
   private notify: typeof notifyUser;
   private actionHandler: ActionHandler;
+  private jobProcessor: JobProcessor<ActionType, EnrichedJobData>;
+  private storage: MongoDBStorageAdapter | null = null;
   private server: any = null;
   private parserCircuitBreaker = new CircuitBreaker();
   private generatorCircuitBreaker = new CircuitBreaker();
@@ -189,9 +191,10 @@ export class EventDrivenWebhook {
       parser?: EmailParser;
       profile?: Profile;
       smartGenerator?: SmartGenerator;
-      showJobPopupFn?: typeof showJobPopup;
+      presenter?: JobPresenter<ActionType, EnrichedJobData>;
       notifyFn?: typeof notifyUser;
       actionHandler?: ActionHandler;
+      storage?: MongoDBStorageAdapter;
     }
   ) {
     this.app = express();
@@ -199,10 +202,19 @@ export class EventDrivenWebhook {
     this.parser = options?.parser || new EmailParser();
     this.profile = options?.profile || this.loadProfile();
     this.smartGenerator = options?.smartGenerator || new SmartGenerator(this.profile);
-    this.showPopup = options?.showJobPopupFn || showJobPopup;
     this.notify = options?.notifyFn || notifyUser;
-    this.actionHandler = options?.actionHandler || 
+    this.actionHandler = options?.actionHandler ||
       new DefaultActionHandler(this.smartGenerator, this.notify, config.features);
+    const presenter = options?.presenter || new TuiJobPresenter();
+    this.jobProcessor = new JobProcessor(presenter, this.actionHandler);
+    
+    // Initialize MongoDB storage adapter
+    this.storage = options?.storage || createMongoDBStorageAdapter(
+      config.mongodb.uri,
+      config.mongodb.dbName,
+      logger
+    );
+    
     this.setupRoutes();
   }
 
@@ -266,16 +278,15 @@ export class EventDrivenWebhook {
       const message = body.message;
       if (!message?.data) return;
 
-      // Wrap in timeout (30 seconds)
-      const result = await withTimeout(
-        this._processNotificationWithCircuitBreaker(message),
-        30000,
-        'handleJobNotification'
-      );
-
-      if (result === null) {
-        logger.warn('⏱️  Notification processing timeout - Pub/Sub will retry');
-      }
+      // Fire-and-forget job processing (don't await)
+      // This allows webhook to respond immediately to Pub/Sub
+      // while job processing (including TUI) happens in the background
+      this._processNotificationWithCircuitBreaker(message).catch((err) => {
+        logger.error(`🔥 Background job processing error: ${err instanceof Error ? err.message : String(err)}`);
+        if (err instanceof Error && err.stack) {
+          logger.debug(`Stack trace: ${err.stack}`);
+        }
+      });
     } catch (error: any) {
       logger.error(`Error handling notification: ${error.message}`);
     }
@@ -285,9 +296,21 @@ export class EventDrivenWebhook {
     // Decode Pub/Sub message
     const data = JSON.parse(Buffer.from(message.data, 'base64').toString());
     const historyId: string | undefined = data.historyId;
+    const messageId: string | undefined = data.messageId;
     
     if (config.features.logging) {
       logger.info('📬 New job alert received');
+    }
+
+    // If direct messageId provided (e.g., from simulate-webhook), use it
+    if (messageId) {
+      if (this.processedJobs.has(messageId)) {
+        logger.info(`ℹ️  Message ${messageId} already processed, skipping`);
+        return;
+      }
+      await this.processJobWithCircuitBreaker(messageId);
+      this.processedJobs.add(messageId);
+      return;
     }
 
     // Prefer precise message IDs from Gmail History API when available
@@ -333,7 +356,6 @@ export class EventDrivenWebhook {
     // listMessagesByLabel returns message objects with 'id' field
     return messages || [];
   }
-
   private async processJob(messageId: string) {
     try {
       if (config.features.logging) {
@@ -344,7 +366,20 @@ export class EventDrivenWebhook {
       const message = await this.gmailService.getMessage(messageId);
       const subject = this.gmailService.extractHeader(message, 'Subject');
       const from = this.gmailService.extractHeader(message, 'From');
+      const to = this.gmailService.extractHeader(message, 'To');
+      const date = this.gmailService.extractHeader(message, 'Date');
       const body = this.gmailService.extractBody(message);
+      
+      // Log detailed email information
+      if (config.features.logging) {
+        logger.info(`📧 Email Details:`);
+        logger.info(`   From: ${from}`);
+        logger.info(`   To: ${to}`);
+        logger.info(`   Subject: ${subject}`);
+        logger.info(`   Date: ${date}`);
+        logger.info(`   Body Length: ${body.length} characters`);
+      }
+      
       // Persist raw email content for later parsing/experimentation
       await this.logRawEmailSafe({
         messageId,
@@ -353,7 +388,132 @@ export class EventDrivenWebhook {
         body,
       });
 
-      // Parse job details
+      // Save raw email to MongoDB (immutable storage)
+      let rawIngestId: string | undefined;
+      try {
+        if (this.storage) {
+          logger.info(`💾 Saving raw email to MongoDB...`);
+          rawIngestId = await this.storage.saveRawIngest({
+            source: 'GMAIL_WEBHOOK',
+            mode: 'production',
+            rawContent: body,
+            gmailMeta: {
+              messageId,
+              threadId: message.threadId,
+              labelIds: message.labelIds,
+              snippet: message.snippet,
+              internalDate: parseInt(message.internalDate || '0'),
+              from,
+              to,
+              subject,
+            },
+            ingestedAt: new Date(),
+            createdAt: new Date(),
+          });
+          logger.info(`✅ Raw email saved to MongoDB with ID: ${rawIngestId}`);
+        } else {
+          logger.warn(`⚠️  Storage adapter not initialized - skipping MongoDB save`);
+        }
+      } catch (error: any) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : '';
+        logger.error(`❌ Failed to save raw email to MongoDB: ${errorMsg}`);
+        if (errorStack) {
+          logger.debug(`Error stack: ${errorStack}`);
+        }
+      }
+
+      // Stage 1: Parse metadata
+      const metadataStartTime = Date.now();
+      const metadataResult = this.parser.parseMetadata({
+        emailId: messageId,
+        subject,
+        from,
+        body,
+        receivedAt: new Date(parseInt(message.internalDate || '0')),
+      });
+      const metadataEndTime = Date.now();
+
+      // Log metadata parse attempt to MongoDB
+      if (rawIngestId && this.storage) {
+        try {
+          const metadataSuccess = !metadataResult.errors.some(e => !e.includes('HTML parsing'));
+          await this.storage.logParseAttempt({
+            rawIngestId,
+            stage: 'METADATA',
+            success: metadataSuccess,
+            extracted: metadataSuccess
+              ? {
+                  company: metadataResult.company,
+                  position: metadataResult.position,
+                  salary: metadataResult.salary,
+                  location: metadataResult.location,
+                }
+              : undefined,
+            error: !metadataSuccess
+              ? {
+                  code: 'METADATA_PARSE_FAILED',
+                  message: metadataResult.errors.join('; '),
+                }
+              : undefined,
+            executionMs: metadataEndTime - metadataStartTime,
+            timestamp: new Date(),
+          });
+          logger.debug(`📊 METADATA stage: ${metadataSuccess ? 'SUCCESS' : 'FAILED'}`, {
+            company: metadataResult.company,
+            position: metadataResult.position,
+            errors: metadataResult.errors,
+          });
+        } catch (error: any) {
+          logger.warn(`Failed to log METADATA parse attempt: ${error.message}`);
+        }
+      }
+
+      // Stage 2: Parse job details
+      const detailStartTime = Date.now();
+      const detailResult = this.parser.parseJobDetail({
+        emailId: messageId,
+        subject,
+        from,
+        body,
+        receivedAt: new Date(parseInt(message.internalDate || '0')),
+      });
+      const detailEndTime = Date.now();
+
+      // Log job detail parse attempt to MongoDB
+      if (rawIngestId && this.storage) {
+        try {
+          const detailSuccess = !detailResult.errors.some(e => !e.includes('HTML parsing'));
+          await this.storage.logParseAttempt({
+            rawIngestId,
+            stage: 'JOB_DETAIL',
+            success: detailSuccess,
+            extracted: detailSuccess
+              ? {
+                  url: detailResult.url,
+                  description: detailResult.description ? detailResult.description.substring(0, 500) : undefined,
+                }
+              : undefined,
+            error: !detailSuccess
+              ? {
+                  code: 'DETAIL_PARSE_FAILED',
+                  message: detailResult.errors.join('; '),
+                }
+              : undefined,
+            executionMs: detailEndTime - detailStartTime,
+            timestamp: new Date(),
+          });
+          logger.debug(`📊 JOB_DETAIL stage: ${detailSuccess ? 'SUCCESS' : 'FAILED'}`, {
+            url: detailResult.url,
+            hasDescription: !!detailResult.description,
+            errors: detailResult.errors,
+          });
+        } catch (error: any) {
+          logger.warn(`Failed to log JOB_DETAIL parse attempt: ${error.message}`);
+        }
+      }
+
+      // Merge both stages for job creation
       const parsed = this.parser.parse({
         emailId: messageId,
         subject,
@@ -394,28 +554,53 @@ export class EventDrivenWebhook {
       }
 
       // Show TUI popup and get user action (only if TUI is enabled)
-      let action: ActionType;
-      let enrichedData: EnrichedJobData | undefined;
-      
       if (config.features.tui) {
-        const result = await this.showPopup(job);
-        action = result.action;
-        enrichedData = result.enrichedData;
+        await this.jobProcessor.process(job);
       } else {
         // Default to queue if TUI is disabled
-        action = 'queue';
+        await this.actionHandler.handle(job, 'queue');
       }
-
-      // Handle action via pluggable handler
-      await this.actionHandler.handle(job, action, enrichedData);
     } catch (error: any) {
       logger.error(`Error processing job: ${error.message}`);
     }
   }
 
+  /**
+   * Connect to MongoDB for audit trail storage
+   */
+  async connect(): Promise<void> {
+    if (this.storage) {
+      try {
+        await this.storage.connect();
+        if (config.features.logging) {
+          logger.info('✅ MongoDB storage connected');
+        }
+      } catch (error: any) {
+        logger.error(`Failed to connect MongoDB: ${error.message}`);
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Disconnect from MongoDB
+   */
+  async disconnect(): Promise<void> {
+    if (this.storage) {
+      try {
+        await this.storage.disconnect();
+        if (config.features.logging) {
+          logger.info('🔌 MongoDB storage disconnected');
+        }
+      } catch (error: any) {
+        logger.error(`Failed to disconnect MongoDB: ${error.message}`);
+      }
+    }
+  }
+
   async start(port: number): Promise<void> {
     return new Promise((resolve) => {
-      this.server = this.app.listen(port, () => {
+      this.server = this.app.listen(port, '127.0.0.1', () => {
         if (config.features.logging) {
           logger.info(`🌐 Event-driven webhook listening on port ${port}`);
           logger.info(`📡 Endpoint: http://localhost:${port}${config.webhook.path}`);

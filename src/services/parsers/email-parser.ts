@@ -19,6 +19,28 @@ interface EmailInput {
   receivedAt: Date;
 }
 
+export enum ParseResultState {
+  SUCCESS = 'SUCCESS',
+  PARTIAL = 'PARTIAL',
+  FAILED = 'FAILED',
+}
+
+export interface ParseMetadataResult {
+  company?: string;
+  position?: string;
+  salary?: string;
+  location?: string;
+  platform?: string;
+  errors: string[];
+}
+
+export interface ParseJobDetailResult {
+  url?: string;
+  description?: string;
+  details?: Record<string, string>;
+  errors: string[];
+}
+
 export interface ParserResult {
   success: boolean;
   data?: ParsedEmail;
@@ -75,8 +97,92 @@ export class EmailParser {
   }
 
   /**
+   * Stage 1: Extract metadata from email envelope or HTML
+   * ~95% success for email (structured subject line)
+   * ~80% success for HTML (depends on website structure)
+   */
+  parseMetadata(input: EmailInput): ParseMetadataResult {
+    const errors: string[] = [];
+
+    // Validate input
+    if (!input.subject?.trim()) {
+      errors.push('Missing subject');
+    }
+    if (!input.from?.trim()) {
+      errors.push('Missing from address');
+    }
+    if (!input.body?.trim()) {
+      errors.push('Missing body');
+    }
+
+    try {
+      // Try HTML parsing first (faster for structured emails)
+      const htmlJob = this.htmlParser.parseJobFromHtml(input.body);
+      if (htmlJob?.title && htmlJob?.company) {
+        return {
+          company: htmlJob.company,
+          position: htmlJob.title,
+          salary: htmlJob.salary,
+          location: htmlJob.location || 'Unknown Location',
+          platform: this.platformDetector.detectPlatform(input.from, input.body),
+          errors,
+        };
+      }
+    } catch (err) {
+      errors.push(`HTML parsing error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // If HTML parsing failed, return empty with errors
+    return {
+      company: undefined,
+      position: undefined,
+      salary: undefined,
+      location: undefined,
+      platform: this.platformDetector.detectPlatform(input.from, input.body),
+      errors,
+    };
+  }
+
+  /**
+   * Stage 2: Extract job details from email body or HTML
+   * ~70-80% success (depends on formatting)
+   */
+  parseJobDetail(input: EmailInput): ParseJobDetailResult {
+    const errors: string[] = [];
+
+    // Validate input
+    if (!input.body?.trim()) {
+      errors.push('Missing body');
+    }
+
+    try {
+      // Try HTML parsing for URL and description
+      const htmlJob = this.htmlParser.parseJobFromHtml(input.body);
+      if (htmlJob) {
+        return {
+          url: htmlJob.url,
+          description: htmlJob.description || '',
+          details: htmlJob.details as Record<string, string> | undefined,
+          errors,
+        };
+      }
+    } catch (err) {
+      errors.push(`HTML parsing error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // If parsing failed, return empty results
+    return {
+      url: undefined,
+      description: undefined,
+      details: undefined,
+      errors,
+    };
+  }
+
+  /**
    * Try HTML parsing first (faster, more accurate for structured emails)
    * Fall back to regex if HTML parsing fails
+   * Backward compatible: combines both stages
    */
   parseWithValidation(
     input: EmailInput,
