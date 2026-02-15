@@ -29,6 +29,7 @@
     "export-fixtures": "tsx scripts/export-fixtures.ts",
     "seed-test-db": "tsx scripts/seed-test-db.ts",
     "phase-2-validate": "bash scripts/phase-2-validate.sh",
+    "hash:profile": "tsx scripts/generate-profile-hash.ts",
     "data-testing": "OPERATIONAL_MODE=data-testing DATA_SOURCE_TYPE=db tsx src/cli/data-testing.ts",
     "data-testing:no-browser": "AUTO_OPEN_BROWSER=false OPERATIONAL_MODE=data-testing DATA_SOURCE_TYPE=db tsx src/cli/data-testing.ts",
     "data-listening": "OPERATIONAL_MODE=data-listening DATA_SOURCE_TYPE=webhook tsx src/cli/data-listening.ts"

@@ -49,6 +49,19 @@
 **Start Date**: February 15, 2026
 **Target Gate**: March 3-5, 2026
 
+### Phase 3A (Core Features - 2 weeks)
+**Gate**: User can generate tailored PDF/DOCX for any job
+- Sprint 1 (3A.1): Application Customizer ✅ (Week 1)
+- Sprint 2 (3A.2): Template Editor ✅ (Week 1)
+- Sprint 3 (3A.3): Document Generators ✅ (Week 2)
+
+**Micro Plan**: See [docs/PHASE_3A_MICRO_PLAN.md](docs/PHASE_3A_MICRO_PLAN.md)
+
+### Phase 3B (Automation - 1 week, optional)
+**Gate**: User can auto-send applications + track metrics
+- Sprint 4 (3B.1): Application Sender ✅ (Week 3)
+- Sprint 5 (3B.2): Metrics Recorder ✅ (Week 3)
+
 ### Prerequisites Met ✅
 - ✅ MongoDB integration tested end-to-end (raw_ingest + parse_log collections)
 - ✅ Two-stage parser refactored and verified (METADATA + JOB_DETAIL stages)

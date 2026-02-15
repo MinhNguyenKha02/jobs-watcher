@@ -5,53 +5,77 @@
   "location": "District 7, Ho Chi Minh City, Vietnam",
   "title": "Software Engineer (Backend)",
   "summary": [
-    "Backend-focused software engineer with hands-on experience building RESTful APIs and microservices in Go and TypeScript.",
-    "Strong foundation in data structures, networking, concurrency, and database design.",
-    "Practical understanding of backend security principles, testing, and clean architecture.",
-    "Comfortable working across the stack when needed, with experience in Vue/Nuxt frontend integration.",
-    "Fast learner with a growth mindset, seeking to grow into scalable backend and distributed systems."
+    "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+    "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+    "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+    "Committed to writing clean, maintainable code and following best practices in security and testing.",
+    "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
   ],
-  "professional_skills":{
-    "programming_languages": ["Go (Golang)", "TypeScript", "Node.js", "C", "PHP", "Bash"],
-    "backend": [
-      "REST APIs",
-      "Express.js",
-      "Gin",
-      "NestJS",    
-      "Fiber",
-      "GraphQL",
-      "Laravel",
-      "MVC",
-      "Microservices",
-      "Clean Architecture",
-      "API Gateway",
-      "Modular service design", 
-      "Scalable backend system",
-      "Non-blocking I/O",
-      "Concurrency"
-    ],
-    "Security":[
-      "Authentication","Authorization","OAuth", "JWT"
-      ,"Session management","RBAC","Role-Based Access Control"
-      ,"CORS","Rate limiting","Abuse prevention","Input validation","Input sanitization"
-      ,"Encryption", "Secure logging", "Application-level monitoring and logging", "Secure defaults", "Least privilege", "Trust boundaries"
-    ],
-    "networking":["TLS","HTTP","HTTPS","gRPC","WebSocket","WebRTC", "TCP/IP networking", "Application-layer protocols", "Transport-layer protocols", "Basic understanding of NIC interfaces and network driver interaction"],
-    "database":["PostgreSQL", "MongoDB", "Redis","SQLite","Schema design","Database design"],
-    "devops":["Docker","CI/CD","Git","GitLab","GitHub","GitHub Actions","AWS","Azure","Ubuntu","Linux","Bash scripting","Environment variable management"],
-    "frontend": [
-      "Nuxt.js", "Vue.js", "React.js",
-      "ESbuild", "Webpack", "Vite",
-      "Backend integration", "Frontend rendering optimization",
-      "State management",
-      "Component-based UI development"
-    ],
-    "tooling":["VSCode", "AI-assisted development tools (GitHub Copilot, ChatGPT)", "Git", "Ubuntu", "Linux", "Docker", "Figma"]
-    ,"methodologies": ["Agile", "Scrum"],"others":["External service integration"],
+  "software_fundamentals": {
+      "programming_language": {
+        "solid": ["Go", "TypeScript"],
+        "familiar": ["JavaScript", "C", "PHP", "Bash"]
+      },
+      "dsa": ["Data structures & algorithms fundamentals"],
+      "os": ["Linux/Ubuntu fundamentals", "Shell automation", "Processes and resource control"],
+      "oop": ["OOP fundamentals", "SOLID principles", "Design patterns familiarity"],
+      "database": ["Relational/NoSQL fundamentals", "Schema design", "SQL queries"],
+      "networking": ["TCP/IP (L3-L4)", "Networking programming fundamentals"],
+      "security": ["Secure defaults", "Threat-model awareness", "Trust boundaries & Least privilege", "Authentication/Authorization fundamentals"],
+      "test": ["Unit & Integration & End-To-End test"],
+      "ai": ["ML fundamentals and familiarity", "Familiarity with AI tools and integration, data labeling, datasets on training or fine-tuned"]
+  },
+  "skills": {
+    "backend": {
+      "architecture": ["MVC", "Microservices", "Clean Architecture (learning)"],
+      "frameworks": {
+        "solid": ["Express.js", "Gin"],
+        "familiar": ["Laravel", "Fiber" ]
+      },
+      "api": {
+        "solid": ["REST", "TLS/HTTP/gRPC/WebSocket/WebRTC"],
+        "familiar": ["GraphQL", "External Service Integration"]
+      },
+      "database": {
+        "solid": ["PostgreSQL", "MongoDB"],
+        "familiar": ["SQLite", "Redis", "Supabase"]
+      },
+      "Authentication\/Authorization":
+      [ "OAuth, JWT, MFA practices"
+      , "Session management"
+      , "CORS configuration"
+      , "Role-Based Access Control(RBAC)"
+      ],
+      "security":
+      [ "Input validation, sanitization and encryption"
+      , "Secure API gateway configuration best practices"
+      , "Rate-limitation and abuse control"
+      , "Secure logging and monitoring"
+      , "Environment variable management best practices"]
+    },
+    "frontend": {
+      "frameworks": {
+        "solid": ["Vue.js", "Nuxt.js"],
+        "familiar": ["React", "Web3 integration"]
+      },
+      "comfort": ["Component-based UI development", "State management", "Backend integration", "Rendering optimization"]
+    },
+    "devops": {
+      "containerization": {
+        "familiar": ["Docker"]
+      },
+      "ci_cd": ["GitHub Actions", "Git"],
+      "cloud": {
+        "solid": ["AWS/Azure fundamentals"],
+        "familiar": ["Cloud deployment best practices"]
+      }
+    },
+    "tooling": ["Git", "Figma", "WordPress", "VSCode"],
+    "methodologies": ["Agile fundamentals"],
     "soft_skills": ["Problem-solving"
-    , "Collaboration","Communication"
-    , "Adaptability", "Continuous Learning"
-    , "Critical Thinking"]
+    , "Collaboration and Communication"
+    , "Adaptability and Continuous Learning"
+    , "Discussion and Critical Thinking"]
   },
   "projects": [
     {
