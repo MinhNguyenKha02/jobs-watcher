@@ -9,6 +9,7 @@ import { config } from '../config.js';
 import { notifyUser } from './notifications.js';
 import { getLogger } from './logger.js';
 import { createMongoDBStorageAdapter, type MongoDBStorageAdapter } from './storage/index.js';
+import { calculateJobScore, DEFAULT_SCORING_CONFIG } from './scoring/score-matcher.js';
 import type { Job, Profile, Features } from '../types.js';
 import fs from 'fs';
 import { promises as fsPromises } from 'fs';
@@ -551,6 +552,50 @@ export class EventDrivenWebhook {
       if (config.features.logging) {
         logger.info(`🏢 ${job.company} - ${job.position}`);
         logger.info(`📍 ${job.location || 'Remote'} • ${job.platform}`);
+      }
+
+      // Stage 3: Calculate match score using profile
+      const scoringStartTime = Date.now();
+      const scoreBreakdown = calculateJobScore(job, this.profile, DEFAULT_SCORING_CONFIG);
+      const scoringEndTime = Date.now();
+
+      // Attach score to job object
+      job.matchScore = scoreBreakdown.finalScore;
+      job.matchedSkills = scoreBreakdown.details.jobSkillsFound;
+
+      // Log scoring to MongoDB
+      if (rawIngestId && this.storage) {
+        try {
+          await this.storage.logParseAttempt({
+            rawIngestId,
+            stage: 'SCORING',
+            success: true,
+            extracted: {
+              finalScore: scoreBreakdown.finalScore,
+              skillsScore: scoreBreakdown.skillsScore,
+              salaryScore: scoreBreakdown.salaryScore,
+              locationScore: scoreBreakdown.locationScore,
+              matchedSkills: scoreBreakdown.details.jobSkillsFound,
+              details: {
+                userSkills: scoreBreakdown.details.userSkills,
+                jobSkillsFound: scoreBreakdown.details.jobSkillsFound.slice(0, 10), // Truncate for logs
+                userSalaryRange: scoreBreakdown.details.userSalaryRange,
+                jobSalary: scoreBreakdown.details.jobSalary,
+                userLocations: scoreBreakdown.details.userLocations,
+                jobLocation: scoreBreakdown.details.jobLocation,
+              },
+            },
+            executionMs: scoringEndTime - scoringStartTime,
+            timestamp: new Date(),
+          });
+          if (config.features.logging) {
+            logger.info(
+              `✨ Match Score: ${scoreBreakdown.finalScore}% (Skills: ${scoreBreakdown.skillsScore}%, Salary: ${scoreBreakdown.salaryScore}%, Location: ${scoreBreakdown.locationScore}%)`
+            );
+          }
+        } catch (error: any) {
+          logger.warn(`Failed to log SCORING stage: ${error.message}`);
+        }
       }
 
       // Show TUI popup and get user action (only if TUI is enabled)

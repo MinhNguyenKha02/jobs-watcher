@@ -165,7 +165,7 @@ function JobPopupComponent({ job: initialJob, onAction }: Props) {
         <Text>
           <Text bold color={theme.label}>Match:    </Text>
           <Text color={scoreColor(state.matchScore)}>
-            {state.matchScore > 0 ? `${state.matchScore} skills` : 'No skills matched'}
+            {state.matchScore > 0 ? `${Math.round(state.matchScore)}%` : 'No match'}
           </Text>
         </Text>
         <Text>
@@ -187,7 +187,7 @@ function JobPopupComponent({ job: initialJob, onAction }: Props) {
         <Box marginTop={1} flexDirection="column">
           <Text bold color={theme.accent}>✨ HTML Enrichment</Text>
           <Text color={theme.accent}>• Job data reparsed from website HTML</Text>
-          <Text color={theme.accent}>• Match score recalculated: {state.matchScore} skills</Text>
+          <Text color={theme.accent}>• Match score: {Math.round(state.matchScore)}%</Text>
         </Box>
       )}
 

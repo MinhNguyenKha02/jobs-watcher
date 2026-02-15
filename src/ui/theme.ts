@@ -10,9 +10,9 @@ export const theme = {
 };
 
 export function scoreColor(score: number): string {
-  if (score >= 3) return '#22c55e';
-  if (score >= 1) return '#f59e0b';
-  return '#f87171';
+  if (score >= 70) return '#22c55e';  // Green: 70%+
+  if (score >= 50) return '#f59e0b';  // Amber: 50-69%
+  return '#f87171';  // Red: <50%
 }
 
 export function decisionColor(decision: string): string {
