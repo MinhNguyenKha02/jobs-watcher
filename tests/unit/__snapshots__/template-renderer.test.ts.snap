@@ -1,0 +1,52 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TemplateRenderer CV Rendering should render a complete CV snapshot: cv-full 1`] = `
+"# John Doe
+john@example.com | +1 (555) 123-4567 | San Francisco, CA
+
+## Professional Summary
+
+Experienced full-stack developer with 5+ years in TypeScript and cloud technologies.
+
+## Technical Skills
+
+- TypeScript
+- Node.js
+- React
+- PostgreSQL
+
+## Professional Experience
+
+### Senior Engineer at Previous Corp
+2023-01 - 2026-02
+
+Led development of microservices architecture using Node.js and TypeScript.
+
+## Education
+
+### B.S. in Computer Science
+State University
+2018"
+`;
+
+exports[`TemplateRenderer Cover Letter Rendering should render a complete cover letter snapshot: cover-letter-full 1`] = `
+"February 16, 2026
+
+Jane Smith
+TechCorp Inc
+123 Tech Street, San Francisco, CA 94102
+
+Dear Jane Smith,
+
+I am thrilled to apply for the Senior TypeScript Developer role at TechCorp Inc.
+
+My expertise in TypeScript, Node.js, and React directly aligns with your requirements. I have successfully delivered several high-impact projects...
+
+Thank you for your consideration. I look forward to discussing this opportunity.
+
+Best regards,
+
+John Doe
++1 (555) 123-4567
+john@example.com"
+`;
