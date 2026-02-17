@@ -19,8 +19,7 @@
  * - Missing location → neutral (0.5)
  */
 
-import type { Job } from '../../types.js';
-import type { Profile } from '../../types.js';
+import type { Job, Profile } from '../../types.js';
 import { getLogger } from '../logger.js';
 
 const logger = getLogger();
@@ -72,10 +71,17 @@ function extractUserSkills(profile: Profile | null): string[] {
   if (!profile) return [];
 
   // Try multiple profile property names for robustness
-  const skillsRaw: string | string[] | undefined =
-    (profile as Record<string, unknown>).skills ||
-    (profile as Record<string, unknown>).profile_skills ||
-    (profile as Record<string, unknown>).coreSkills;
+  const skillsRaw =
+    (typeof profile.skills === 'string' || Array.isArray(profile.skills)
+      ? profile.skills
+      : undefined) ||
+    (typeof (profile as any).profile_skills === 'string' ||
+    Array.isArray((profile as any).profile_skills)
+      ? (profile as any).profile_skills
+      : undefined) ||
+    (typeof (profile as any).coreSkills === 'string' || Array.isArray((profile as any).coreSkills)
+      ? (profile as any).coreSkills
+      : undefined);
 
   if (!skillsRaw) return [];
 
@@ -85,9 +91,7 @@ function extractUserSkills(profile: Profile | null): string[] {
       ? skillsRaw.split(',').map((s) => s.trim())
       : [];
 
-  return skillsArray
-    .filter((s): s is string => typeof s === 'string' && s.length > 0)
-    .slice(0, 10); // Top 10 skills
+  return skillsArray.filter((s): s is string => typeof s === 'string' && s.length > 0).slice(0, 10); // Top 10 skills
 }
 
 /**
@@ -96,10 +100,10 @@ function extractUserSkills(profile: Profile | null): string[] {
 function extractSalaryRange(profile: Profile | null): { min: number; max: number } | null {
   if (!profile) return null;
 
-  const minSalary = (profile as Record<string, unknown>).min_salary ||
-    (profile as Record<string, unknown>).minSalary;
-  const maxSalary = (profile as Record<string, unknown>).max_salary ||
-    (profile as Record<string, unknown>).maxSalary;
+  const minSalary =
+    typeof (profile as any).minSalary === 'number' ? (profile as any).minSalary : undefined;
+  const maxSalary =
+    typeof (profile as any).maxSalary === 'number' ? (profile as any).maxSalary : undefined;
 
   if (typeof minSalary === 'number' && typeof maxSalary === 'number') {
     return { min: minSalary, max: maxSalary };
@@ -114,10 +118,14 @@ function extractSalaryRange(profile: Profile | null): { min: number; max: number
 function extractUserLocations(profile: Profile | null): string[] {
   if (!profile) return [];
 
-  const locationsRaw: string | string[] | undefined =
-    (profile as Record<string, unknown>).locations ||
-    (profile as Record<string, unknown>).preferred_locations ||
-    (profile as Record<string, unknown>).location;
+  const locationsRaw =
+    (typeof (profile as any).preferred_locations === 'string' ||
+    Array.isArray((profile as any).preferred_locations)
+      ? (profile as any).preferred_locations
+      : undefined) ||
+    (typeof (profile as any).location === 'string' || Array.isArray((profile as any).location)
+      ? (profile as any).location
+      : undefined);
 
   if (!locationsRaw) return [];
 
@@ -144,7 +152,8 @@ function calculateSkillsScore(
     return { score: 50, matched: [] };
   }
 
-  const jobDescription = `${job.position || ''} ${job.company || ''} ${job.description || ''} ${JSON.stringify(job.details || {})}`.toLowerCase();
+  const jobDescription =
+    `${job.position || ''} ${job.company || ''} ${job.description || ''} ${JSON.stringify(job.details || {})}`.toLowerCase();
 
   const matched: string[] = [];
 
@@ -232,10 +241,7 @@ function calculateSalaryScore(
  * - Not in excluded list but unmatched: 40
  * - Excluded list: 0
  */
-function calculateLocationScore(
-  userLocations: string[],
-  jobLocation: string | null
-): number {
+function calculateLocationScore(userLocations: string[], jobLocation: string | null): number {
   if (!jobLocation || userLocations.length === 0) {
     return 50; // Neutral
   }

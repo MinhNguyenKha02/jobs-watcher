@@ -1,10 +1,14 @@
 /**
  * Template Renderer Snapshot Tests
- * 
+ *
  * Verifies that rendered templates are consistent and deterministic.
  */
 
-import { TemplateRenderer, TemplateType, createDefaultTemplateConfig } from '../../src/services/templates/index.js';
+import {
+  TemplateRenderer,
+  TemplateType,
+  createDefaultTemplateConfig,
+} from '../../src/services/templates/index.js';
 import type { ApplicationDraft } from '../../src/types/profile-normalized.js';
 
 describe('TemplateRenderer', () => {
@@ -17,17 +21,15 @@ describe('TemplateRenderer', () => {
     skillGaps: [],
     relevanceScore: 0.85,
     profileHash: 'abc123',
-    timestamp: new Date('2026-02-15'),
-    
+    evidenceMappings: [],
+    draftedAt: '2026-02-15T00:00:00Z',
     // Profile info for rendering
     firstName: 'John',
     lastName: 'Doe',
     email: 'john@example.com',
     phone: '+1 (555) 123-4567',
     location: 'San Francisco, CA',
-    title: 'Software Engineer',
     summary: 'Experienced full-stack developer with 5+ years in TypeScript and cloud technologies.',
-    
     // Experience
     experience: [
       {
@@ -38,17 +40,15 @@ describe('TemplateRenderer', () => {
         description: 'Led development of microservices architecture using Node.js and TypeScript.',
       },
     ],
-    
     // Education
     education: [
       {
         degree: 'B.S.',
         field: 'Computer Science',
         school: 'State University',
-        year: 2018,
+        year: '2018',
       },
     ],
-    
     // Projects
     projects: [
       {
@@ -56,13 +56,15 @@ describe('TemplateRenderer', () => {
         description: 'Built real-time job alert system using Node.js, React, and PostgreSQL.',
       },
     ],
-    
     // Cover letter fields
     hireManagerName: 'Jane Smith',
     companyAddress: '123 Tech Street, San Francisco, CA 94102',
-    openingParagraph: 'I am thrilled to apply for the Senior TypeScript Developer role at TechCorp Inc.',
-    bodyParagraph: 'My expertise in TypeScript, Node.js, and React directly aligns with your requirements. I have successfully delivered several high-impact projects...',
-    closingParagraph: 'Thank you for your consideration. I look forward to discussing this opportunity.',
+    openingParagraph:
+      'I am thrilled to apply for the Senior TypeScript Developer role at TechCorp Inc.',
+    bodyParagraph:
+      'My expertise in TypeScript, Node.js, and React directly aligns with your requirements. I have successfully delivered several high-impact projects...',
+    closingParagraph:
+      'Thank you for your consideration. I look forward to discussing this opportunity.',
   };
 
   describe('CV Rendering', () => {
@@ -123,7 +125,8 @@ describe('TemplateRenderer', () => {
         skillGaps: [],
         relevanceScore: 0.5,
         profileHash: 'def456',
-        timestamp: new Date(),
+        evidenceMappings: [],
+        draftedAt: '2026-02-15T00:00:00Z',
         firstName: 'Jane',
         lastName: 'Smith',
         email: 'jane@example.com',
@@ -183,24 +186,26 @@ describe('TemplateRenderer', () => {
   describe('Snapshot Integrity', () => {
     it('should produce consistent CV across multiple renders', () => {
       const config = createDefaultTemplateConfig(TemplateType.CV);
-      const renders = Array.from({ length: 5 }, () =>
-        TemplateRenderer.renderCV(sampleDraft, config).content
+      const renders = Array.from(
+        { length: 5 },
+        () => TemplateRenderer.renderCV(sampleDraft, config).content
       );
 
       const firstRender = renders[0];
-      renders.forEach(render => {
+      renders.forEach((render) => {
         expect(render).toBe(firstRender);
       });
     });
 
     it('should produce consistent cover letter across multiple renders', () => {
       const config = createDefaultTemplateConfig(TemplateType.COVER_LETTER);
-      const renders = Array.from({ length: 5 }, () =>
-        TemplateRenderer.renderCoverLetter(sampleDraft, config).content
+      const renders = Array.from(
+        { length: 5 },
+        () => TemplateRenderer.renderCoverLetter(sampleDraft, config).content
       );
 
       const firstRender = renders[0];
-      renders.forEach(render => {
+      renders.forEach((render) => {
         expect(render).toBe(firstRender);
       });
     });

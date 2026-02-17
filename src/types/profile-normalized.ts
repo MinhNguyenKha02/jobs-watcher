@@ -1,6 +1,6 @@
 /**
  * Normalized Profile Types for Application Customizer (Phase 3A.1)
- * 
+ *
  * Based on canonical profile format (json.json) with strict typing
  * and validation support for deterministic draft generation.
  */
@@ -103,7 +103,7 @@ export interface EducationEntry {
 
 /**
  * Normalized Profile - Single Source of Truth
- * 
+ *
  * This is the validated, normalized representation of the canonical
  * profile (json.json) used for deterministic draft generation.
  */
@@ -151,12 +151,7 @@ export interface ProfileValidationResult {
 /**
  * Draft section types
  */
-export type DraftSectionType = 
-  | 'summary' 
-  | 'skills' 
-  | 'experience' 
-  | 'projects' 
-  | 'education';
+export type DraftSectionType = 'summary' | 'skills' | 'experience' | 'projects' | 'education';
 
 /**
  * Draft section with content
@@ -176,23 +171,61 @@ export interface ApplicationDraft {
   jobId: string;
   jobTitle: string;
   company: string;
-  
+
   // Ordered sections based on job fit
   sections: DraftSection[];
-  
+
   // Matching metadata
   matchedSkills: string[];
   skillGaps: string[];
   relevanceScore: number;
-  
+
   // Evidence trail
   evidenceMappings: {
     skill: string;
     tier: SkillTier;
     evidence: string[]; // Project/experience references
   }[];
-  
+
   // Metadata
   draftedAt: string;
   profileHash: string;
+
+  // Optional fields for template rendering
+  summary?: string;
+  experience?: Array<{
+    title?: string;
+    company?: string;
+    startDate?: string;
+    endDate?: string;
+    description?: string;
+    [key: string]: any;
+  }>;
+  education?: Array<{
+    degree?: string;
+    field?: string;
+    school?: string;
+    year?: string;
+    [key: string]: any;
+  }>;
+  projects?: Array<{
+    title?: string;
+    description?: string;
+    [key: string]: any;
+  }>;
+  certifications?: Array<{
+    name?: string;
+    year?: string;
+    [key: string]: any;
+  }>;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  hireManagerName?: string;
+  openingParagraph?: string;
+  bodyParagraph?: string;
+  closingParagraph?: string;
+  companyAddress?: string;
 }

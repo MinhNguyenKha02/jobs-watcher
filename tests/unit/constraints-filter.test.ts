@@ -1,12 +1,18 @@
-import { filterJobCompatibility } from '../../src/services/constraints.js';
+let filterJobCompatibility: typeof import('../../src/services/constraints.js').filterJobCompatibility;
 import type { ParsedEmail, Profile } from '../../src/types.js';
 
-// Mock Html parser to avoid any side effects when importing parser-related modules
-jest.mock('../../src/services/parsers/html-job-parser.js', () => ({
-  HtmlJobParser: class {
-    parseJobFromHtml() { return null; }
-  },
-}));
+// ESM-compatible mock for HtmlJobParser
+beforeAll(async () => {
+  const { jest } = await import('@jest/globals');
+  jest.unstable_mockModule('../../src/services/parsers/html-job-parser.js', () => ({
+    HtmlJobParser: class {
+      parseJobFromHtml() {
+        return null;
+      }
+    },
+  }));
+  ({ filterJobCompatibility } = await import('../../src/services/constraints.js'));
+});
 
 const freshGradProfile: Profile = {
   name: 'Test User',
@@ -216,7 +222,8 @@ describe('constraints filter compatibility - ultra-junior focus', () => {
     const job = makeJob({
       position: 'Junior Full-Stack Developer',
       location: 'Remote',
-      description: 'We are looking for a junior developer with TypeScript, React, and Node.js experience. HTML and CSS knowledge required.',
+      description:
+        'We are looking for a junior developer with TypeScript, React, and Node.js experience. HTML and CSS knowledge required.',
     });
 
     const res = filterJobCompatibility(job, freshGradProfile);
@@ -228,7 +235,8 @@ describe('constraints filter compatibility - ultra-junior focus', () => {
     const job = makeJob({
       position: 'Junior iOS Developer',
       location: 'Remote',
-      description: 'Looking for Swift, Objective-C, and Xcode experience. iOS development required.',
+      description:
+        'Looking for Swift, Objective-C, and Xcode experience. iOS development required.',
     });
 
     const res = filterJobCompatibility(job, freshGradProfile);
@@ -280,4 +288,5 @@ describe('constraints filter compatibility - ultra-junior focus', () => {
     expect(res.passes).toBe(true);
     // Should match "React" from profile with "ReactJS" from job (substring match)
     expect(res.matchedSkills?.length).toBeGreaterThan(0);
-  });});
+  });
+});

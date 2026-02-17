@@ -1,0 +1,12 @@
+{
+  "name": "Test User",
+  "email": "2051052080minh@ou.edu.vn",
+  "skills": ["TypeScript", "Node.js"],
+  "experience": [
+    {
+      "company": "Zalo",
+      "position": "Developer",
+      "description": ["Worked on backend services."]
+    }
+  ]
+}

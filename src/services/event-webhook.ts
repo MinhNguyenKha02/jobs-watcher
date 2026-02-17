@@ -1,19 +1,24 @@
-import express, { Request, Response } from 'express';
-import { GmailService } from './gmail.js';
-import { EmailParser } from './parsers/email-parser.js';
-import { SmartGenerator } from './generators/smart-generator.js';
-import { type EnrichedJobData, type ActionType } from '../ui/JobPopup.js';
-import { JobProcessor, type JobPresenter, type JobActionHandler } from '../application/job-processor.js';
-import { TuiJobPresenter } from '../ui/TuiJobPresenter.js';
-import { config } from '../config.js';
-import { notifyUser } from './notifications.js';
-import { getLogger } from './logger.js';
-import { createMongoDBStorageAdapter, type MongoDBStorageAdapter } from './storage/index.js';
-import { calculateJobScore, DEFAULT_SCORING_CONFIG } from './scoring/score-matcher.js';
-import type { Job, Profile, Features } from '../types.js';
-import fs from 'fs';
-import { promises as fsPromises } from 'fs';
+import fs, { promises as fsPromises } from 'fs';
 import path from 'path';
+
+import express, { Request, Response } from 'express';
+
+import {
+  JobProcessor,
+  type JobPresenter,
+  type JobActionHandler,
+} from '../application/job-processor.js';
+import { config } from '../config.js';
+import type { Job, Profile, Features } from '../types.js';
+import { type EnrichedJobData, type ActionType } from '../ui/JobPopup.js';
+
+import { SmartGenerator } from './generators/smart-generator.js';
+import { GmailService } from './gmail.js';
+import { getLogger } from './logger.js';
+import { notifyUser } from './notifications.js';
+import { EmailParser } from './parsers/email-parser.js';
+import { calculateJobScore, DEFAULT_SCORING_CONFIG } from './scoring/score-matcher.js';
+import { createMongoDBStorageAdapter, type MongoDBStorageAdapter } from './storage/index.js';
 
 const logger = getLogger();
 
@@ -29,7 +34,10 @@ async function withTimeout<T>(
   return Promise.race([
     promise,
     new Promise<null>((_, reject) =>
-      setTimeout(() => reject(new Error(`Timeout: ${operationName} exceeded ${timeoutMs}ms`)), timeoutMs)
+      setTimeout(
+        () => reject(new Error(`Timeout: ${operationName} exceeded ${timeoutMs}ms`)),
+        timeoutMs
+      )
     ),
   ]).catch((err) => {
     logger.warn(`⏱️  ${err.message}`);
@@ -112,14 +120,14 @@ class DefaultActionHandler implements ActionHandler {
     if (action.startsWith('apply')) {
       const outputDir = await this.smartGenerator.generateForJob(enrichedJob);
       logger.info(`✅ Materials generated: ${outputDir}`);
-      
+
       if (action === 'apply-edit') {
         logger.info('📝 Opening materials for editing...');
         // TODO: Open editor with generated files
       } else if (action === 'apply-custom') {
         logger.info('🎨 Manual application mode - materials ready for review');
       }
-      
+
       if (this.features.notifications) {
         await this.notify({
           title: `✓ Applied to ${job.company}`,
@@ -128,7 +136,7 @@ class DefaultActionHandler implements ActionHandler {
       }
     } else if (action === 'queue') {
       logger.info(`⏰ Queued ${job.company} - review later`);
-      
+
       if (this.features.notifications) {
         await this.notify({
           title: `📋 Queued: ${job.company}`,
@@ -138,7 +146,11 @@ class DefaultActionHandler implements ActionHandler {
     }
   }
 
-  private async logAction(job: Job, action: ActionType, enrichedData?: EnrichedJobData): Promise<void> {
+  private async logAction(
+    job: Job,
+    action: ActionType,
+    enrichedData?: EnrichedJobData
+  ): Promise<void> {
     const logEntry = {
       timestamp: new Date().toISOString(),
       messageId: job.messageId,
@@ -156,7 +168,7 @@ class DefaultActionHandler implements ActionHandler {
 
     try {
       await fsPromises.mkdir(logDir, { recursive: true });
-      
+
       // Append to JSONL format
       const logLine = JSON.stringify(logEntry) + '\n';
       await fsPromises.appendFile(logFile, logLine, 'utf-8');
@@ -179,12 +191,34 @@ export class EventDrivenWebhook {
   private smartGenerator: SmartGenerator;
   private notify: typeof notifyUser;
   private actionHandler: ActionHandler;
-  private jobProcessor: JobProcessor<ActionType, EnrichedJobData>;
+  public jobProcessor?: JobProcessor<ActionType, EnrichedJobData>;
   private storage: MongoDBStorageAdapter | null = null;
   private server: any = null;
   private parserCircuitBreaker = new CircuitBreaker();
   private generatorCircuitBreaker = new CircuitBreaker();
   private rawEmailBaseDir = path.join(config.logsPath, 'raw-emails');
+  public _presenterInit?: () => Promise<void>;
+
+  /**
+   * Backward compatibility for tests: connect storage
+   */
+  public async connectStorage(): Promise<void> {
+    await this.connect();
+  }
+
+  /**
+   * Backward compatibility for tests: disconnect storage
+   */
+  public async disconnectStorage(): Promise<void> {
+    await this.disconnect();
+  }
+
+  /**
+   * Public method for E2E tests to process a Pub/Sub notification
+   */
+  public async processJobNotification(body: any) {
+    return this.handleJobNotification(body);
+  }
 
   constructor(
     gmailService: GmailService,
@@ -204,18 +238,27 @@ export class EventDrivenWebhook {
     this.profile = options?.profile || this.loadProfile();
     this.smartGenerator = options?.smartGenerator || new SmartGenerator(this.profile);
     this.notify = options?.notifyFn || notifyUser;
-    this.actionHandler = options?.actionHandler ||
+    this.actionHandler =
+      options?.actionHandler ||
       new DefaultActionHandler(this.smartGenerator, this.notify, config.features);
-    const presenter = options?.presenter || new TuiJobPresenter();
-    this.jobProcessor = new JobProcessor(presenter, this.actionHandler);
-    
+    let presenter = options?.presenter;
+    this._presenterInit = async () => {
+      if (!presenter) {
+        // Only import TuiJobPresenter if not in test/headless context
+        // Use dynamic import for ESM compatibility
+        const module = await import('../ui/TuiJobPresenter.js');
+        const { TuiJobPresenter } = module;
+        presenter = new TuiJobPresenter();
+      }
+      this.jobProcessor = new JobProcessor(presenter!, this.actionHandler);
+    };
+    // Call this._presenterInit() in connectStorage or test setup
+
     // Initialize MongoDB storage adapter
-    this.storage = options?.storage || createMongoDBStorageAdapter(
-      config.mongodb.uri,
-      config.mongodb.dbName,
-      logger
-    );
-    
+    this.storage =
+      options?.storage ||
+      createMongoDBStorageAdapter(config.mongodb.uri, config.mongodb.dbName, logger);
+
     this.setupRoutes();
   }
 
@@ -236,7 +279,7 @@ export class EventDrivenWebhook {
         // Basic health check
         const memoryUsageMB = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
         const uptime = Math.round(process.uptime());
-        
+
         res.json({
           status: 'ok',
           timestamp: new Date().toISOString(),
@@ -283,7 +326,9 @@ export class EventDrivenWebhook {
       // This allows webhook to respond immediately to Pub/Sub
       // while job processing (including TUI) happens in the background
       this._processNotificationWithCircuitBreaker(message).catch((err) => {
-        logger.error(`🔥 Background job processing error: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error(
+          `🔥 Background job processing error: ${err instanceof Error ? err.message : String(err)}`
+        );
         if (err instanceof Error && err.stack) {
           logger.debug(`Stack trace: ${err.stack}`);
         }
@@ -298,7 +343,7 @@ export class EventDrivenWebhook {
     const data = JSON.parse(Buffer.from(message.data, 'base64').toString());
     const historyId: string | undefined = data.historyId;
     const messageId: string | undefined = data.messageId;
-    
+
     if (config.features.logging) {
       logger.info('📬 New job alert received');
     }
@@ -347,7 +392,9 @@ export class EventDrivenWebhook {
     );
 
     if (result === null) {
-      logger.warn(`⚠️  Circuit breaker blocked processing of ${messageId} - will retry on next message`);
+      logger.warn(
+        `⚠️  Circuit breaker blocked processing of ${messageId} - will retry on next message`
+      );
     }
   }
 
@@ -370,7 +417,7 @@ export class EventDrivenWebhook {
       const to = this.gmailService.extractHeader(message, 'To');
       const date = this.gmailService.extractHeader(message, 'Date');
       const body = this.gmailService.extractBody(message);
-      
+
       // Log detailed email information
       if (config.features.logging) {
         logger.info(`📧 Email Details:`);
@@ -380,7 +427,7 @@ export class EventDrivenWebhook {
         logger.info(`   Date: ${date}`);
         logger.info(`   Body Length: ${body.length} characters`);
       }
-      
+
       // Persist raw email content for later parsing/experimentation
       await this.logRawEmailSafe({
         messageId,
@@ -438,7 +485,7 @@ export class EventDrivenWebhook {
       // Log metadata parse attempt to MongoDB
       if (rawIngestId && this.storage) {
         try {
-          const metadataSuccess = !metadataResult.errors.some(e => !e.includes('HTML parsing'));
+          const metadataSuccess = !metadataResult.errors.some((e) => !e.includes('HTML parsing'));
           await this.storage.logParseAttempt({
             rawIngestId,
             stage: 'METADATA',
@@ -484,7 +531,7 @@ export class EventDrivenWebhook {
       // Log job detail parse attempt to MongoDB
       if (rawIngestId && this.storage) {
         try {
-          const detailSuccess = !detailResult.errors.some(e => !e.includes('HTML parsing'));
+          const detailSuccess = !detailResult.errors.some((e) => !e.includes('HTML parsing'));
           await this.storage.logParseAttempt({
             rawIngestId,
             stage: 'JOB_DETAIL',
@@ -492,7 +539,9 @@ export class EventDrivenWebhook {
             extracted: detailSuccess
               ? {
                   url: detailResult.url,
-                  description: detailResult.description ? detailResult.description.substring(0, 500) : undefined,
+                  description: detailResult.description
+                    ? detailResult.description.substring(0, 500)
+                    : undefined,
                 }
               : undefined,
             error: !detailSuccess
@@ -568,22 +617,24 @@ export class EventDrivenWebhook {
         try {
           await this.storage.logParseAttempt({
             rawIngestId,
-            stage: 'SCORING',
+            stage: 'JOB_DETAIL', // Only valid stages: 'METADATA', 'JOB_DETAIL'
             success: true,
             extracted: {
-              finalScore: scoreBreakdown.finalScore,
-              skillsScore: scoreBreakdown.skillsScore,
-              salaryScore: scoreBreakdown.salaryScore,
-              locationScore: scoreBreakdown.locationScore,
-              matchedSkills: scoreBreakdown.details.jobSkillsFound,
-              details: {
+              finalScore: String(scoreBreakdown.finalScore),
+              skillsScore: String(scoreBreakdown.skillsScore),
+              salaryScore: String(scoreBreakdown.salaryScore),
+              locationScore: String(scoreBreakdown.locationScore),
+              matchedSkills: Array.isArray(scoreBreakdown.details.jobSkillsFound)
+                ? scoreBreakdown.details.jobSkillsFound.join(',')
+                : String(scoreBreakdown.details.jobSkillsFound),
+              details: JSON.stringify({
                 userSkills: scoreBreakdown.details.userSkills,
-                jobSkillsFound: scoreBreakdown.details.jobSkillsFound.slice(0, 10), // Truncate for logs
+                jobSkillsFound: scoreBreakdown.details.jobSkillsFound.slice(0, 10),
                 userSalaryRange: scoreBreakdown.details.userSalaryRange,
                 jobSalary: scoreBreakdown.details.jobSalary,
                 userLocations: scoreBreakdown.details.userLocations,
                 jobLocation: scoreBreakdown.details.jobLocation,
-              },
+              }),
             },
             executionMs: scoringEndTime - scoringStartTime,
             timestamp: new Date(),
@@ -600,7 +651,7 @@ export class EventDrivenWebhook {
 
       // Show TUI popup and get user action (only if TUI is enabled)
       if (config.features.tui) {
-        await this.jobProcessor.process(job);
+        await this.jobProcessor?.process(job);
       } else {
         // Default to queue if TUI is disabled
         await this.actionHandler.handle(job, 'queue');
@@ -672,7 +723,12 @@ export class EventDrivenWebhook {
    * Best-effort raw email logger: writes JSONL rows to logs/raw-emails/YYYY-MM-DD/{messageId}.jsonl
    * Useful for offline parsing experiments without blocking the flow.
    */
-  private async logRawEmailSafe(opts: { messageId: string; subject: string; from: string; body: string }): Promise<void> {
+  private async logRawEmailSafe(opts: {
+    messageId: string;
+    subject: string;
+    from: string;
+    body: string;
+  }): Promise<void> {
     const dateKey = new Date().toISOString().split('T')[0];
     const dir = path.join(this.rawEmailBaseDir, dateKey);
     const file = path.join(dir, `${opts.messageId}.jsonl`);
@@ -688,7 +744,9 @@ export class EventDrivenWebhook {
       await fsPromises.mkdir(dir, { recursive: true });
       await fsPromises.appendFile(file, JSON.stringify(entry) + '\n', 'utf-8');
     } catch (err) {
-      logger.warn(`Could not log raw email ${opts.messageId}: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn(
+        `Could not log raw email ${opts.messageId}: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 }

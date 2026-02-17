@@ -5,9 +5,9 @@
  */
 
 import type { JobDetails } from '../../types.js';
-import type { IHtmlJobParser, ParsedJobData } from './parser-ports.js';
-
 import { getLogger } from '../logger.js';
+
+import type { IHtmlJobParser, ParsedJobData } from './parser-ports.js';
 
 const logger = getLogger();
 
@@ -28,7 +28,9 @@ function stripHtml(input: string): string {
 }
 
 function cleanText(input: string): string {
-  return stripHtml(input).replace(/[\s\n]+/g, ' ').trim();
+  return stripHtml(input)
+    .replace(/[\s\n]+/g, ' ')
+    .trim();
 }
 
 function extractMetaUrl(html: string): string {
@@ -45,7 +47,7 @@ function extractSectionByHeading(html: string, headingPatterns: string[]): strin
   const sections = extractHeadingSections(html);
   for (const headingPattern of headingPatterns) {
     const patternRegex = new RegExp(headingPattern, 'i');
-    const match = sections.find(section => patternRegex.test(section.title));
+    const match = sections.find((section) => patternRegex.test(section.title));
     if (match?.content) {
       return match.content;
     }
@@ -67,7 +69,7 @@ function extractSectionByInlineLabel(html: string, labelPatterns: string[]): str
     const rest = html.slice(start);
     const nextLabelIndex = rest.search(/<(?:p|div)[^>]*>\s*<(?:b|strong|i)[^>]*>/i);
     const nextHeadingIndex = rest.search(/<h[23][^>]*>/i);
-    const stopIndexCandidates = [nextLabelIndex, nextHeadingIndex].filter(i => i >= 0);
+    const stopIndexCandidates = [nextLabelIndex, nextHeadingIndex].filter((i) => i >= 0);
     const stopIndex = stopIndexCandidates.length ? Math.min(...stopIndexCandidates) : -1;
     const sectionHtml = stopIndex >= 0 ? rest.slice(0, stopIndex) : rest;
     const text = cleanText(sectionHtml);
@@ -158,9 +160,10 @@ function extractHeadingSections(html: string): TopCvSection[] {
     if (!title) continue;
 
     const start = match.index + match[0].length;
-    const end = i + 1 < matches.length && matches[i + 1].index !== undefined
-      ? matches[i + 1].index
-      : html.length;
+    const end =
+      i + 1 < matches.length && matches[i + 1].index !== undefined
+        ? matches[i + 1].index
+        : html.length;
     const sectionHtml = html.slice(start, end);
     const content = cleanText(sectionHtml);
     if (content) {
@@ -172,7 +175,10 @@ function extractHeadingSections(html: string): TopCvSection[] {
 }
 
 function extractHeadingSectionsByClass(html: string, classPattern: string): TopCvSection[] {
-  const headingRegex = new RegExp(`<h[23][^>]*class=["'][^"']*(?:${classPattern})[^"']*["'][^>]*>([\\s\\S]*?)<\\/h[23]>`, 'gi');
+  const headingRegex = new RegExp(
+    `<h[23][^>]*class=["'][^"']*(?:${classPattern})[^"']*["'][^>]*>([\\s\\S]*?)<\\/h[23]>`,
+    'gi'
+  );
   const matches = Array.from(html.matchAll(headingRegex));
   const sections: TopCvSection[] = [];
 
@@ -183,9 +189,10 @@ function extractHeadingSectionsByClass(html: string, classPattern: string): TopC
     if (!title) continue;
 
     const start = match.index + match[0].length;
-    const end = i + 1 < matches.length && matches[i + 1].index !== undefined
-      ? matches[i + 1].index
-      : html.length;
+    const end =
+      i + 1 < matches.length && matches[i + 1].index !== undefined
+        ? matches[i + 1].index
+        : html.length;
     const sectionHtml = html.slice(start, end);
     const content = cleanText(sectionHtml);
     if (content) {
@@ -197,7 +204,10 @@ function extractHeadingSectionsByClass(html: string, classPattern: string): TopC
 }
 
 function extractElementByClass(html: string, className: string): string {
-  const openTagRegex = new RegExp(`<([a-z0-9]+)[^>]*class=["'][^"']*${className}[^"']*["'][^>]*>`, 'i');
+  const openTagRegex = new RegExp(
+    `<([a-z0-9]+)[^>]*class=["'][^"']*${className}[^"']*["'][^>]*>`,
+    'i'
+  );
   const match = openTagRegex.exec(html);
   if (!match || match.index === undefined) return '';
 
@@ -224,7 +234,10 @@ function extractElementByClass(html: string, className: string): string {
   return html.slice(startIndex);
 }
 
-function mergeDescription(base: string, sections: Array<{ label: string; value?: string }>): string {
+function mergeDescription(
+  base: string,
+  sections: Array<{ label: string; value?: string }>
+): string {
   const parts: string[] = [];
   const initial = base?.trim();
   if (initial) parts.push(initial);
@@ -241,7 +254,7 @@ function mergeDescription(base: string, sections: Array<{ label: string; value?:
 
 function mergePipeText(...values: Array<string | undefined>): string {
   return values
-    .map(value => value?.trim())
+    .map((value) => value?.trim())
     .filter((value): value is string => Boolean(value))
     .reduce((acc, value) => {
       if (!value) return acc;
@@ -252,10 +265,13 @@ function mergePipeText(...values: Array<string | undefined>): string {
 }
 
 function extractTopCvInfoPairs(html: string, itemClass: string): string {
-  const itemRegex = new RegExp(`${itemClass}[^>]*>[\\s\\S]*?item-title[^>]*>([\\s\\S]*?)<\\/div>[\\s\\S]*?item-value[^>]*>([\\s\\S]*?)<\\/div>`, 'gi');
+  const itemRegex = new RegExp(
+    `${itemClass}[^>]*>[\\s\\S]*?item-title[^>]*>([\\s\\S]*?)<\\/div>[\\s\\S]*?item-value[^>]*>([\\s\\S]*?)<\\/div>`,
+    'gi'
+  );
   const pairs = Array.from(html.matchAll(itemRegex))
-    .map(match => `${cleanText(match[1] || '')}: ${cleanText(match[2] || '')}`)
-    .filter(text => text && !text.endsWith(':'));
+    .map((match) => `${cleanText(match[1] || '')}: ${cleanText(match[2] || '')}`)
+    .filter((text) => text && !text.endsWith(':'));
 
   return pairs.join(' | ');
 }
@@ -266,23 +282,25 @@ type TopCvSection = {
 };
 
 function extractTopCvJobDescriptionSections(html: string): TopCvSection[] {
-  const itemRegex = /<div class="job-description__item[^"']*"[^>]*>[\s\S]*?<h3[^>]*>([\s\S]*?)<\/h3>[\s\S]*?<div class="job-description__item--content"[^>]*>([\s\S]*?)<\/div>/gi;
+  const itemRegex =
+    /<div class="job-description__item[^"']*"[^>]*>[\s\S]*?<h3[^>]*>([\s\S]*?)<\/h3>[\s\S]*?<div class="job-description__item--content"[^>]*>([\s\S]*?)<\/div>/gi;
   return Array.from(html.matchAll(itemRegex))
-    .map(match => ({
+    .map((match) => ({
       title: cleanText(match[1] || ''),
       content: cleanText(match[2] || ''),
     }))
-    .filter(section => section.title && section.content);
+    .filter((section) => section.title && section.content);
 }
 
 function extractTopCvCustomFormSections(html: string): TopCvSection[] {
-  const itemRegex = /custom-form-job__item[^>]*>[\s\S]*?custom-form-job__item--title[^>]*>([\s\S]*?)<\/h3>[\s\S]*?custom-form-job__item--content[^>]*>([\s\S]*?)<\/div>/gi;
+  const itemRegex =
+    /custom-form-job__item[^>]*>[\s\S]*?custom-form-job__item--title[^>]*>([\s\S]*?)<\/h3>[\s\S]*?custom-form-job__item--content[^>]*>([\s\S]*?)<\/div>/gi;
   return Array.from(html.matchAll(itemRegex))
-    .map(match => ({
+    .map((match) => ({
       title: cleanText(match[1] || ''),
       content: cleanText(match[2] || ''),
     }))
-    .filter(section => section.title && section.content);
+    .filter((section) => section.title && section.content);
 }
 
 function extractTopCvJobTags(html: string): Record<string, string> {
@@ -297,7 +315,7 @@ function extractTopCvJobTags(html: string): Record<string, string> {
 
     const tagMatches = block.matchAll(/class="item[^"']*"[^>]*>([^<]+)</gi);
     const tags = Array.from(tagMatches)
-      .map(tagMatch => cleanText(tagMatch[1] || ''))
+      .map((tagMatch) => cleanText(tagMatch[1] || ''))
       .filter(Boolean);
 
     if (tags.length) {
@@ -309,10 +327,11 @@ function extractTopCvJobTags(html: string): Record<string, string> {
 }
 
 function extractTopCvGeneralInfo(html: string): string {
-  const itemRegex = /box-general-group-info-title[^>]*>([\s\S]*?)<\/div>[\s\S]*?box-general-group-info-value[^>]*>([\s\S]*?)<\/div>/gi;
+  const itemRegex =
+    /box-general-group-info-title[^>]*>([\s\S]*?)<\/div>[\s\S]*?box-general-group-info-value[^>]*>([\s\S]*?)<\/div>/gi;
   const pairs = Array.from(html.matchAll(itemRegex))
-    .map(match => `${cleanText(match[1] || '')}: ${cleanText(match[2] || '')}`)
-    .filter(text => text && !text.endsWith(':'));
+    .map((match) => `${cleanText(match[1] || '')}: ${cleanText(match[2] || '')}`)
+    .filter((text) => text && !text.endsWith(':'));
 
   return pairs.join(' | ');
 }
@@ -412,7 +431,10 @@ export class HtmlJobParser implements IHtmlJobParser {
     // Title: TopCV detail page <h1 class="job-detail__info--title">...</h1>
     const detailTitleMatch = html.match(/job-detail__info--title[^>]*>([\s\S]*?)<\/h1>/i);
     if (detailTitleMatch) {
-      const rawTitle = (detailTitleMatch[1] || '').replace(/<span[^>]*icon-verified-employer[\s\S]*?<\/span>/i, '');
+      const rawTitle = (detailTitleMatch[1] || '').replace(
+        /<span[^>]*icon-verified-employer[\s\S]*?<\/span>/i,
+        ''
+      );
       title = cleanText(rawTitle);
     }
 
@@ -423,21 +445,29 @@ export class HtmlJobParser implements IHtmlJobParser {
     }
 
     // Company: TopCV detail page company block
-    const detailCompanyMatch = html.match(/company-name-label[\s\S]*?<a[^>]*class="name"[^>]*>([\s\S]*?)<\/a>/i);
+    const detailCompanyMatch = html.match(
+      /company-name-label[\s\S]*?<a[^>]*class="name"[^>]*>([\s\S]*?)<\/a>/i
+    );
     if (detailCompanyMatch) company = cleanText(detailCompanyMatch[1] || '');
 
     if (!company) {
-      const companyNameMatch = html.match(/company-name-label[\s\S]*?class="company-name"[^>]*>([\s\S]*?)<\/span>/i);
+      const companyNameMatch = html.match(
+        /company-name-label[\s\S]*?class="company-name"[^>]*>([\s\S]*?)<\/span>/i
+      );
       if (companyNameMatch) company = cleanText(companyNameMatch[1] || '');
     }
 
     if (!company) {
-      const companyInfoMatch = html.match(/job-detail__company--information-item\s+company-name[\s\S]*?<a[^>]*class="name"[^>]*>([\s\S]*?)<\/a>/i);
+      const companyInfoMatch = html.match(
+        /job-detail__company--information-item\s+company-name[\s\S]*?<a[^>]*class="name"[^>]*>([\s\S]*?)<\/a>/i
+      );
       if (companyInfoMatch) company = cleanText(companyInfoMatch[1] || '');
     }
 
     if (!company) {
-      const companyInfoSpanMatch = html.match(/job-detail__company--information-item\s+company-name[\s\S]*?<span[^>]*>([\s\S]*?)<\/span>/i);
+      const companyInfoSpanMatch = html.match(
+        /job-detail__company--information-item\s+company-name[\s\S]*?<span[^>]*>([\s\S]*?)<\/span>/i
+      );
       if (companyInfoSpanMatch) company = cleanText(companyInfoSpanMatch[1] || '');
     }
 
@@ -448,9 +478,13 @@ export class HtmlJobParser implements IHtmlJobParser {
     }
 
     // Location: TopCV detail page location block
-    const detailLocationMatch = html.match(/section-location[\s\S]*?job-detail__info--section-content-value[^>]*>([\s\S]*?)<\/div>/i);
+    const detailLocationMatch = html.match(
+      /section-location[\s\S]*?job-detail__info--section-content-value[^>]*>([\s\S]*?)<\/div>/i
+    );
     if (detailLocationMatch) {
-      location = cleanText(detailLocationMatch[1] || '').replace(/\s*\(mới\)\s*/g, '').trim();
+      location = cleanText(detailLocationMatch[1] || '')
+        .replace(/\s*\(mới\)\s*/g, '')
+        .trim();
     }
 
     // Fallback Location: look for city names in text
@@ -465,7 +499,9 @@ export class HtmlJobParser implements IHtmlJobParser {
     }
 
     // Salary: TopCV detail page salary block
-    const detailSalaryMatch = html.match(/section-salary[\s\S]*?job-detail__info--section-content-value[^>]*>([\s\S]*?)<\/div>/i);
+    const detailSalaryMatch = html.match(
+      /section-salary[\s\S]*?job-detail__info--section-content-value[^>]*>([\s\S]*?)<\/div>/i
+    );
     if (detailSalaryMatch) salary = cleanText(detailSalaryMatch[1] || '');
 
     // Fallback Salary: inside <div class="*text-primary"><b>...</b></div>
@@ -493,53 +529,80 @@ export class HtmlJobParser implements IHtmlJobParser {
 
     // Description: TopCV detail page job description
     let description = '';
-    const detailDescMatch = html.match(/<h3>\s*Mô tả công việc\s*<\/h3>[\s\S]*?<div[^>]*class="job-description__item--content"[^>]*>([\s\S]*?)<\/div>/i);
+    const detailDescMatch = html.match(
+      /<h3>\s*Mô tả công việc\s*<\/h3>[\s\S]*?<div[^>]*class="job-description__item--content"[^>]*>([\s\S]*?)<\/div>/i
+    );
     if (detailDescMatch) description = cleanText(detailDescMatch[1] || '');
 
     const sections = extractTopCvJobDescriptionSections(html);
     const sectionByTitle = (matcher: (title: string) => boolean): string => {
-      const found = sections.find(section => matcher(section.title.toLowerCase()));
+      const found = sections.find((section) => matcher(section.title.toLowerCase()));
       return found?.content || '';
     };
 
-    const responsibilities = extractSectionByHeading(html, [
-      'Mô tả công việc',
-      'Job Description',
-      'Nội dung công việc',
-    ]) || sectionByTitle(title => title.includes('mô tả') || title.includes('job description'));
+    const responsibilities =
+      extractSectionByHeading(html, ['Mô tả công việc', 'Job Description', 'Nội dung công việc']) ||
+      sectionByTitle((title) => title.includes('mô tả') || title.includes('job description'));
 
-    const requirements = extractSectionByHeading(html, [
-      'Yêu cầu ứng viên',
-      'Yêu cầu công việc',
-      'Requirements',
-      'Kinh nghiệm',
-    ]) || sectionByTitle(title => title.includes('yêu cầu') || title.includes('requirements') || title.includes('kinh nghiệm'));
+    // Try to extract <strong>Requirements:</strong> and <strong>Benefits:</strong> blocks from job description
+    let requirements = '';
+    let benefits = '';
+    const descBlockMatch = html.match(
+      /<div[^>]*class="job-description__item--content"[^>]*>([\s\S]*?)<\/div>/i
+    );
+    if (descBlockMatch) {
+      const descHtml = descBlockMatch[1];
+      const reqMatch = descHtml.match(
+        /<strong>Requirements:<\/strong>([\s\S]*?)(<strong>|<\/div>)/i
+      );
+      if (reqMatch) requirements = cleanText(reqMatch[1]);
+      const benMatch = descHtml.match(/<strong>Benefits:<\/strong>([\s\S]*?)(<strong>|<\/div>)/i);
+      if (benMatch) benefits = cleanText(benMatch[1]);
+    }
+    // Fallback to heading/section extraction if not found
+    if (!requirements) {
+      requirements =
+        extractSectionByHeading(html, [
+          'Yêu cầu ứng viên',
+          'Yêu cầu công việc',
+          'Requirements',
+          'Kinh nghiệm',
+        ]) ||
+        sectionByTitle(
+          (title) =>
+            title.includes('yêu cầu') ||
+            title.includes('requirements') ||
+            title.includes('kinh nghiệm')
+        );
+    }
+    if (!benefits) {
+      benefits =
+        extractSectionByHeading(html, ['Quyền lợi', 'Quyền lợi được hưởng', 'Benefits']) ||
+        sectionByTitle((title) => title.includes('quyền lợi') || title.includes('benefit'));
+    }
 
-    const benefits = extractSectionByHeading(html, [
-      'Quyền lợi',
-      'Quyền lợi được hưởng',
-      'Benefits',
-    ]) || sectionByTitle(title => title.includes('quyền lợi') || title.includes('benefit'));
+    const applicationProcess =
+      extractSectionByHeading(html, [
+        'Cách thức ứng tuyển',
+        'Cách ứng tuyển',
+        'Application Process',
+      ]) || sectionByTitle((title) => title.includes('ứng tuyển') || title.includes('apply'));
 
-    const applicationProcess = extractSectionByHeading(html, [
-      'Cách thức ứng tuyển',
-      'Cách ứng tuyển',
-      'Application Process',
-    ]) || sectionByTitle(title => title.includes('ứng tuyển') || title.includes('apply'));
+    const companyInfo =
+      extractSectionByHeading(html, ['Thông tin công ty', 'Giới thiệu công ty', 'About Company']) ||
+      sectionByTitle(
+        (title) =>
+          title.includes('thông tin công ty') ||
+          title.includes('giới thiệu') ||
+          title.includes('about company')
+      );
 
-    const companyInfo = extractSectionByHeading(html, [
-      'Thông tin công ty',
-      'Giới thiệu công ty',
-      'About Company',
-    ]) || sectionByTitle(title => title.includes('thông tin công ty') || title.includes('giới thiệu') || title.includes('about company'));
+    const contact =
+      extractSectionByHeading(html, ['Thông tin liên hệ', 'Contact Information']) ||
+      sectionByTitle((title) => title.includes('liên hệ') || title.includes('contact'));
 
-    const contact = extractSectionByHeading(html, [
-      'Thông tin liên hệ',
-      'Contact Information',
-    ]) || sectionByTitle(title => title.includes('liên hệ') || title.includes('contact'));
-
-    const workLocation = sectionByTitle(title => title.includes('địa điểm'));
-    const workingTime = sectionByTitle(title => title.includes('thời gian'));
+    const workLocation = sectionByTitle((title) => title.includes('địa điểm'));
+    const workingTime = sectionByTitle((title) => title.includes('thời gian'));
 
     const tagGroups = extractTopCvJobTags(html);
     const requirementsFromTags = tagGroups['Yêu cầu'] || tagGroups['Yêu cầu ứng viên'] || '';
@@ -566,12 +629,12 @@ export class HtmlJobParser implements IHtmlJobParser {
 
     const customFormSections = extractTopCvCustomFormSections(html);
     const customBenefitsText = customFormSections
-      .filter(section => /quyền lợi|phụ cấp|benefit/i.test(section.title))
-      .map(section => `${section.title}: ${section.content}`)
+      .filter((section) => /quyền lợi|phụ cấp|benefit/i.test(section.title))
+      .map((section) => `${section.title}: ${section.content}`)
       .join(' | ');
     const customOtherText = customFormSections
-      .filter(section => !/quyền lợi|phụ cấp|benefit/i.test(section.title))
-      .map(section => `${section.title}: ${section.content}`)
+      .filter((section) => !/quyền lợi|phụ cấp|benefit/i.test(section.title))
+      .map((section) => `${section.title}: ${section.content}`)
       .join(' | ');
 
     const requirementsResolved = requirements || requirementsFromTags;
@@ -580,8 +643,8 @@ export class HtmlJobParser implements IHtmlJobParser {
 
     const details: JobDetails = {
       responsibilities: responsibilities || undefined,
-      requirements: requirementsResolved || undefined,
-      benefits: benefitsResolved || undefined,
+      requirements: requirementsResolved ?? '',
+      benefits: benefitsResolved ?? '',
       companyInfo: companyInfoResolved || undefined,
       contact: contactResolved || undefined,
       applicationProcess: applicationProcess || undefined,
@@ -632,9 +695,11 @@ export class HtmlJobParser implements IHtmlJobParser {
     let description = '';
 
     // Title: Indeed detail page <h1 data-testid="jobsearch-JobInfoHeader-title">
-      const detailTitleMatch = html.match(/jobsearch-JobInfoHeader-title[^>]*>[\s\S]*?<span[^>]*>([^<]+)<\/span>/i);
+    const detailTitleMatch = html.match(
+      /jobsearch-JobInfoHeader-title[^>]*>[\s\S]*?<span[^>]*>([^<]+)<\/span>/i
+    );
     if (detailTitleMatch) title = detailTitleMatch[1]?.trim() || '';
-      if (title) title = title.replace(/\s*-\s*job post\s*$/i, '').trim();
+    if (title) title = title.replace(/\s*-\s*job post\s*$/i, '').trim();
 
     // Fallback Title: inside <h2><a>...</a></h2>
     if (!title) {
@@ -648,7 +713,9 @@ export class HtmlJobParser implements IHtmlJobParser {
     if (!title) return null;
 
     // Company: Indeed detail page company name (nested tags supported)
-    const detailCompanyMatch = html.match(/data-testid="inlineHeader-companyName"[^>]*>([\s\S]*?)<\/div>/i);
+    const detailCompanyMatch = html.match(
+      /data-testid="inlineHeader-companyName"[^>]*>([\s\S]*?)<\/div>/i
+    );
     if (detailCompanyMatch) company = cleanText(detailCompanyMatch[1] || '');
 
     if (!company) {
@@ -657,11 +724,15 @@ export class HtmlJobParser implements IHtmlJobParser {
     }
 
     // Location: Indeed detail page location (nested tags supported)
-    const detailLocationMatch = html.match(/data-testid="inlineHeader-companyLocation"[^>]*>([\s\S]*?)<\/div>/i);
+    const detailLocationMatch = html.match(
+      /data-testid="inlineHeader-companyLocation"[^>]*>([\s\S]*?)<\/div>/i
+    );
     if (detailLocationMatch) location = cleanText(detailLocationMatch[1] || '');
 
     // Salary: Indeed detail page salary block
-    const detailSalaryMatch = html.match(/id="salaryInfoAndJobType"[\s\S]*?<span[^>]*>([^<]+)<\/span>/i);
+    const detailSalaryMatch = html.match(
+      /id="salaryInfoAndJobType"[\s\S]*?<span[^>]*>([^<]+)<\/span>/i
+    );
     if (detailSalaryMatch) salary = detailSalaryMatch[1]?.trim() || '';
 
     // Description: Indeed detail page job description
@@ -673,68 +744,93 @@ export class HtmlJobParser implements IHtmlJobParser {
     const descriptionSections = extractHeadingSectionsByClass(descriptionHtml, 'jobSectionHeader');
     const strongSections = extractInlineStrongSections(descriptionHtml);
     const sectionByTitle = (matcher: (title: string) => boolean): string => {
-      const found = descriptionSections.find(section => matcher(section.title.toLowerCase()));
+      const found = descriptionSections.find((section) => matcher(section.title.toLowerCase()));
       return found?.content || '';
     };
     const strongByTitle = (matcher: (title: string) => boolean): string => {
-      const found = strongSections.find(section => matcher(section.title.toLowerCase()));
+      const found = strongSections.find((section) => matcher(section.title.toLowerCase()));
       return found?.content || '';
     };
 
-    const responsibilities = sectionByTitle(title =>
-      title.includes('responsibilities') ||
-      title.includes('what you will do') ||
-      title.includes("what you'll do") ||
-      title.includes('key contributions') ||
-      title.includes('job description')
+    const responsibilities = sectionByTitle(
+      (title) =>
+        title.includes('responsibilities') ||
+        title.includes('what you will do') ||
+        title.includes("what you'll do") ||
+        title.includes('key contributions') ||
+        title.includes('job description')
     );
-    const requirements = sectionByTitle(title =>
-      title.includes('requirements') ||
-      title.includes('qualifications') ||
-      title.includes("what you'll need") ||
-      title.includes('what you will need') ||
-      title.includes('skills and experience') ||
-      title.includes("what you'll bring")
+    // Try to extract <h2>Required Qualifications</h2> and <h2>Benefits</h2> blocks from job description
+    let requirements = '';
+    let benefits = '';
+    if (descriptionHtml) {
+      const reqMatch = descriptionHtml.match(
+        /<h2>Required Qualifications<\/h2>([\s\S]*?)(<h2>|$)/i
+      );
+      if (reqMatch) requirements = cleanText(reqMatch[1]);
+      const benMatch = descriptionHtml.match(/<h2>Benefits<\/h2>([\s\S]*?)(<h2>|$)/i);
+      if (benMatch) benefits = cleanText(benMatch[1]);
+    }
+    // Fallback to heading/section extraction if not found
+    if (!requirements) {
+      requirements = sectionByTitle(
+        (title) =>
+          title.includes('requirements') ||
+          title.includes('qualifications') ||
+          title.includes("what you'll need") ||
+          title.includes('what you will need') ||
+          title.includes('skills and experience') ||
+          title.includes("what you'll bring")
+      );
+    }
+    if (!benefits) {
+      benefits = sectionByTitle(
+        (title) =>
+          title.includes('benefits') ||
+          title.includes('what we offer') ||
+          title.includes('perks') ||
+          title.includes("why you'll love") ||
+          title.includes('reasons to join')
+      );
+    }
+    const applicationProcess = sectionByTitle(
+      (title) =>
+        title.includes('application process') ||
+        title.includes('how to apply') ||
+        title.includes('recruitment process')
     );
-    const benefits = sectionByTitle(title =>
-      title.includes('benefits') ||
-      title.includes('what we offer') ||
-      title.includes('perks') ||
-      title.includes("why you'll love") ||
-      title.includes('reasons to join')
+    const companyInfo = sectionByTitle(
+      (title) => title.includes('about') || title.includes('company')
     );
-    const applicationProcess = sectionByTitle(title =>
-      title.includes('application process') ||
-      title.includes('how to apply') ||
-      title.includes('recruitment process')
+    const contact = sectionByTitle(
+      (title) => title.includes('contact') || title.includes('hiring team')
     );
-    const companyInfo = sectionByTitle(title =>
-      title.includes('about') || title.includes('company')
-    );
-    const contact = sectionByTitle(title => title.includes('contact') || title.includes('hiring team'));
 
-    const strongResponsibilities = strongByTitle(title =>
-      title.includes('responsibilities') ||
-      title.includes('key responsibilities') ||
-      title.includes('job description') ||
-      title === 'roles' ||
-      title.includes('role')
+    const strongResponsibilities = strongByTitle(
+      (title) =>
+        title.includes('responsibilities') ||
+        title.includes('key responsibilities') ||
+        title.includes('job description') ||
+        title === 'roles' ||
+        title.includes('role')
     );
-    const strongRequirements = strongByTitle(title =>
-      title.includes('requirements') ||
-      title.includes('qualifications') ||
-      title.includes('skills') ||
-      title.includes('education')
+    const strongRequirements = strongByTitle(
+      (title) =>
+        title.includes('requirements') ||
+        title.includes('qualifications') ||
+        title.includes('skills') ||
+        title.includes('education')
     );
-    const strongBenefits = strongByTitle(title =>
-      title.includes('benefits') ||
-      title.includes('additional information') ||
-      title.includes('how we look after you') ||
-      title.includes("why you'll love") ||
-      title.includes('reasons to join')
+    const strongBenefits = strongByTitle(
+      (title) =>
+        title.includes('benefits') ||
+        title.includes('additional information') ||
+        title.includes('how we look after you') ||
+        title.includes("why you'll love") ||
+        title.includes('reasons to join')
     );
-    const strongCompanyInfo = strongByTitle(title =>
-      title.includes('company') || title.includes('overview') || title.includes('about')
+    const strongCompanyInfo = strongByTitle(
+      (title) => title.includes('company') || title.includes('overview') || title.includes('about')
     );
 
     const inlineResponsibilities = extractSectionByInlineLabel(descriptionHtml, [
@@ -765,28 +861,71 @@ export class HtmlJobParser implements IHtmlJobParser {
       'The team',
     ]);
 
-    const detailsSections = extractHeadingSectionsByClass(html, 'js-match-insights-provider-1xuczfq');
+    const detailsSections = extractHeadingSectionsByClass(
+      html,
+      'js-match-insights-provider-1xuczfq'
+    );
     const detailsByTitle = (matcher: (title: string) => boolean): string => {
-      const found = detailsSections.find(section => matcher(section.title.toLowerCase()));
+      const found = detailsSections.find((section) => matcher(section.title.toLowerCase()));
       return found?.content || '';
     };
-    const pay = detailsByTitle(title => title.includes('pay') || title.includes('salary') || title.includes('compensation'));
-    const jobType = detailsByTitle(title => title.includes('job type') || title.includes('employment type') || title.includes('loại hình'));
+    const pay = detailsByTitle(
+      (title) => title.includes('pay') || title.includes('salary') || title.includes('compensation')
+    );
+    const jobType = detailsByTitle(
+      (title) =>
+        title.includes('job type') ||
+        title.includes('employment type') ||
+        title.includes('loại hình')
+    );
 
-    const responsibilitiesResolved = responsibilities || inlineResponsibilities || strongResponsibilities || sectionByTitle(title => title.includes('responsibilities') || title.includes('key contributions') || title.includes('job description'));
-    const requirementsResolved = requirements || inlineRequirements || strongRequirements || sectionByTitle(title => title.includes('requirements') || title.includes("you'll bring") || title.includes('skills'));
-    const benefitsResolved = benefits || inlineBenefits || strongBenefits || sectionByTitle(title => title.includes('benefits') || title.includes("why you'll love") || title.includes('reasons to join'));
-    const companyInfoResolved = companyInfo || inlineCompanyInfo || strongCompanyInfo || sectionByTitle(title => title.includes('about'));
+    const responsibilitiesResolved =
+      responsibilities ||
+      inlineResponsibilities ||
+      strongResponsibilities ||
+      sectionByTitle(
+        (title) =>
+          title.includes('responsibilities') ||
+          title.includes('key contributions') ||
+          title.includes('job description')
+      );
+    const requirementsResolved =
+      requirements ||
+      inlineRequirements ||
+      strongRequirements ||
+      sectionByTitle(
+        (title) =>
+          title.includes('requirements') ||
+          title.includes("you'll bring") ||
+          title.includes('skills')
+      );
+    const benefitsResolved =
+      benefits ||
+      inlineBenefits ||
+      strongBenefits ||
+      sectionByTitle(
+        (title) =>
+          title.includes('benefits') ||
+          title.includes("why you'll love") ||
+          title.includes('reasons to join')
+      );
+    const companyInfoResolved =
+      companyInfo ||
+      inlineCompanyInfo ||
+      strongCompanyInfo ||
+      sectionByTitle((title) => title.includes('about'));
 
     const extraSections: Record<string, string> = {};
-    const skipContent = new Set([
-      responsibilitiesResolved,
-      requirementsResolved,
-      benefitsResolved,
-      companyInfoResolved,
-      contact,
-      applicationProcess,
-    ].filter(Boolean));
+    const skipContent = new Set(
+      [
+        responsibilitiesResolved,
+        requirementsResolved,
+        benefitsResolved,
+        companyInfoResolved,
+        contact,
+        applicationProcess,
+      ].filter(Boolean)
+    );
 
     const addExtraSection = (title: string, content: string): void => {
       if (!title || !content) return;
@@ -807,8 +946,8 @@ export class HtmlJobParser implements IHtmlJobParser {
 
     const details: JobDetails = {
       responsibilities: responsibilitiesResolved || undefined,
-      requirements: requirementsResolved || undefined,
-      benefits: benefitsResolved || undefined,
+      requirements: requirementsResolved ?? '',
+      benefits: benefitsResolved ?? '',
       companyInfo: companyInfoResolved || undefined,
       contact: contact || undefined,
       applicationProcess: applicationProcess || undefined,
@@ -900,9 +1039,11 @@ export class HtmlJobParser implements IHtmlJobParser {
    * LinkedIn job detail parsing using class selectors
    */
   private parseLinkedIn(html: string): ParsedJobData | null {
-    if (!html.includes('jobs-search__job-details--wrapper') &&
-        !html.includes('jobs-description__content') &&
-        !html.includes('job-details-jobs-unified-top-card__job-title')) {
+    if (
+      !html.includes('jobs-search__job-details--wrapper') &&
+      !html.includes('jobs-description__content') &&
+      !html.includes('job-details-jobs-unified-top-card__job-title')
+    ) {
       return null;
     }
 
@@ -911,50 +1052,66 @@ export class HtmlJobParser implements IHtmlJobParser {
     let location = '';
     let description = '';
 
-    const ariaTitleMatch = html.match(/jobs-search__job-details--container[\s\S]*?aria-label="([^"]+)"/i);
+    const ariaTitleMatch = html.match(
+      /jobs-search__job-details--container[\s\S]*?aria-label="([^"]+)"/i
+    );
     if (ariaTitleMatch) title = cleanText(ariaTitleMatch[1] || '');
 
-    const titleMatch = html.match(/job-details-jobs-unified-top-card__job-title[\s\S]*?<h1[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i);
+    const titleMatch = html.match(
+      /job-details-jobs-unified-top-card__job-title[\s\S]*?<h1[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i
+    );
     if (titleMatch) title = cleanText(titleMatch[1] || '');
 
     if (!title) {
-      const fallbackTitle = html.match(/job-details-jobs-unified-top-card__job-title[\s\S]*?<h1[^>]*>([\s\S]*?)<\/h1>/i);
+      const fallbackTitle = html.match(
+        /job-details-jobs-unified-top-card__job-title[\s\S]*?<h1[^>]*>([\s\S]*?)<\/h1>/i
+      );
       if (fallbackTitle) title = cleanText(fallbackTitle[1] || '');
     }
 
     if (!title) {
-      const stickyTitle = html.match(/job-details-jobs-unified-top-card__title-container[\s\S]*?<h2[^>]*>([\s\S]*?)<\/h2>/i);
+      const stickyTitle = html.match(
+        /job-details-jobs-unified-top-card__title-container[\s\S]*?<h2[^>]*>([\s\S]*?)<\/h2>/i
+      );
       if (stickyTitle) title = cleanText(stickyTitle[1] || '');
     }
 
-    const companyMatch = html.match(/job-details-jobs-unified-top-card__company-name[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i);
+    const companyMatch = html.match(
+      /job-details-jobs-unified-top-card__company-name[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i
+    );
     if (companyMatch) company = cleanText(companyMatch[1] || '');
 
-    const locationMatch = html.match(/job-details-jobs-unified-top-card__tertiary-description-container[\s\S]*?<span[^>]*tvm__text--low-emphasis[^>]*>([\s\S]*?)<\/span>/i);
+    const locationMatch = html.match(
+      /job-details-jobs-unified-top-card__tertiary-description-container[\s\S]*?<span[^>]*tvm__text--low-emphasis[^>]*>([\s\S]*?)<\/span>/i
+    );
     if (locationMatch) location = cleanText(locationMatch[1] || '');
 
     if (!location) {
-      const stickyMeta = html.match(/job-details-jobs-unified-top-card__title-container[\s\S]*?<div class="t-14 truncate">([\s\S]*?)<\/div>/i);
+      const stickyMeta = html.match(
+        /job-details-jobs-unified-top-card__title-container[\s\S]*?<div class="t-14 truncate">([\s\S]*?)<\/div>/i
+      );
       if (stickyMeta) {
         const metaText = cleanText(stickyMeta[1] || '');
-        const parts = metaText.split('·').map(part => part.trim());
+        const parts = metaText.split('·').map((part) => part.trim());
         if (parts.length > 1) {
           location = parts.slice(1).join(' · ');
         }
       }
     }
 
-    const descriptionHtml = extractElementById(html, 'job-details') || extractElementByClass(html, 'jobs-description__content');
+    const descriptionHtml =
+      extractElementById(html, 'job-details') ||
+      extractElementByClass(html, 'jobs-description__content');
     if (descriptionHtml) description = cleanText(descriptionHtml);
 
     const linkedInSections = extractHeadingSectionsByClass(descriptionHtml, 'text-heading-large');
     const strongSections = extractInlineStrongSections(descriptionHtml);
     const sectionByTitle = (matcher: (title: string) => boolean): string => {
-      const found = linkedInSections.find(section => matcher(section.title.toLowerCase()));
+      const found = linkedInSections.find((section) => matcher(section.title.toLowerCase()));
       return found?.content || '';
     };
     const strongByTitle = (matcher: (title: string) => boolean): string => {
-      const found = strongSections.find(section => matcher(section.title.toLowerCase()));
+      const found = strongSections.find((section) => matcher(section.title.toLowerCase()));
       return found?.content || '';
     };
 
@@ -975,44 +1132,55 @@ export class HtmlJobParser implements IHtmlJobParser {
       'Perks',
     ]);
 
-    const strongResponsibilities = strongByTitle(title =>
-      title.includes('responsibilities') || title.includes('key responsibilities')
+    const strongResponsibilities = strongByTitle(
+      (title) => title.includes('responsibilities') || title.includes('key responsibilities')
     );
-    const strongRequirements = strongByTitle(title =>
-      title.includes('requirements') ||
-      title.includes('qualifications') ||
-      title.includes('education') ||
-      title.includes('technical skills') ||
-      title.includes('soft skills')
+    const strongRequirements = strongByTitle(
+      (title) =>
+        title.includes('requirements') ||
+        title.includes('qualifications') ||
+        title.includes('education') ||
+        title.includes('technical skills') ||
+        title.includes('soft skills')
     );
-    const strongBenefits = strongByTitle(title =>
-      title.includes('benefits') || title.includes('additional information')
+    const strongBenefits = strongByTitle(
+      (title) => title.includes('benefits') || title.includes('additional information')
     );
-    const strongCompanyInfo = strongByTitle(title =>
-      title.includes('company') || title.includes('overview')
+    const strongCompanyInfo = strongByTitle(
+      (title) => title.includes('company') || title.includes('overview')
     );
 
     const companyInfoBlock = extractElementByClass(html, 'jobs-company__company-description');
     const companyInfo = companyInfoBlock
       ? cleanText(companyInfoBlock)
-      : strongCompanyInfo || sectionByTitle(title => title.includes('about the company'));
+      : strongCompanyInfo || sectionByTitle((title) => title.includes('about the company'));
 
     const jobTypeMatch = html.match(/job type is\s*([^.<]+)/i);
-    const jobType = jobTypeMatch ? cleanText(jobTypeMatch[1] || '') : cleanText(
-      html.match(/job-details-fit-level-preferences[\s\S]*?<strong[^>]*>([\s\S]*?)<\/strong>/i)?.[1] || ''
-    );
+    const jobType = jobTypeMatch
+      ? cleanText(jobTypeMatch[1] || '')
+      : cleanText(
+          html.match(
+            /job-details-fit-level-preferences[\s\S]*?<strong[^>]*>([\s\S]*?)<\/strong>/i
+          )?.[1] || ''
+        );
 
-    const responsibilitiesResolved = responsibilities || strongResponsibilities || sectionByTitle(title => title.includes('responsibilities'));
-    const requirementsResolved = requirements || strongRequirements || sectionByTitle(title => title.includes('requirements') || title.includes('qualifications'));
-    const benefitsResolved = benefits || strongBenefits || sectionByTitle(title => title.includes('benefits'));
+    const responsibilitiesResolved =
+      responsibilities ||
+      strongResponsibilities ||
+      sectionByTitle((title) => title.includes('responsibilities'));
+    const requirementsResolved =
+      requirements ||
+      strongRequirements ||
+      sectionByTitle((title) => title.includes('requirements') || title.includes('qualifications'));
+    const benefitsResolved =
+      benefits || strongBenefits || sectionByTitle((title) => title.includes('benefits'));
 
     const extraSections: Record<string, string> = {};
-    const skipContent = new Set([
-      responsibilitiesResolved,
-      requirementsResolved,
-      benefitsResolved,
-      companyInfo,
-    ].filter(Boolean));
+    const skipContent = new Set(
+      [responsibilitiesResolved, requirementsResolved, benefitsResolved, companyInfo].filter(
+        Boolean
+      )
+    );
 
     const addExtraSection = (title: string, content: string): void => {
       if (!title || !content) return;

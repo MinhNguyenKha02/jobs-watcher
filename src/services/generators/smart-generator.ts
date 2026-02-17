@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+
 import Handlebars from 'handlebars';
+
 import { config } from '../../config.js';
 import type { Job, Profile } from '../../types.js';
 
@@ -31,28 +33,28 @@ export class SmartGenerator {
 
     // Define skill extraction patterns
     const skillPatterns: Record<string, RegExp[]> = {
-      'TypeScript': [/typescript|ts(?:\s|$)/, /typescript/i],
-      'JavaScript': [/javascript|js(?:\s|$)/i],
-      'React': [/react(?:\s|$)/i, /react\s+(?:native|web)/i],
+      TypeScript: [/typescript|ts(?:\s|$)/, /typescript/i],
+      JavaScript: [/javascript|js(?:\s|$)/i],
+      React: [/react(?:\s|$)/i, /react\s+(?:native|web)/i],
       'Node.js': [/node\.?js/i, /node(?:\s|$)/i],
-      'Python': [/python/i],
-      'Go': [/golang|go(?:\s|$)/i],
-      'Rust': [/rust/i],
-      'Docker': [/docker/i],
-      'Kubernetes': [/k8s|kubernetes/i],
-      'AWS': [/aws|amazon\s+web\s+services/i],
-      'GCP': [/google\s+cloud|gcp/i],
-      'PostgreSQL': [/postgres|postgresql|psql/i],
-      'MongoDB': [/mongodb|mongo/i],
-      'Redis': [/redis/i],
-      'GraphQL': [/graphql/i],
+      Python: [/python/i],
+      Go: [/golang|go(?:\s|$)/i],
+      Rust: [/rust/i],
+      Docker: [/docker/i],
+      Kubernetes: [/k8s|kubernetes/i],
+      AWS: [/aws|amazon\s+web\s+services/i],
+      GCP: [/google\s+cloud|gcp/i],
+      PostgreSQL: [/postgres|postgresql|psql/i],
+      MongoDB: [/mongodb|mongo/i],
+      Redis: [/redis/i],
+      GraphQL: [/graphql/i],
       'REST API': [/rest\s+api|restful/i],
       'CI/CD': [/ci\/cd|continuous\s+integration/i],
-      'Git': [/git(?:\s|$)/i],
-      'Linux': [/linux/i],
-      'SQL': [/sql/i],
-      'Microservices': [/microservices/i],
-      'Testing': [/testing|jest|mocha|pytest/i],
+      Git: [/git(?:\s|$)/i],
+      Linux: [/linux/i],
+      SQL: [/sql/i],
+      Microservices: [/microservices/i],
+      Testing: [/testing|jest|mocha|pytest/i],
     };
 
     // Extract required vs preferred
@@ -62,7 +64,7 @@ export class SmartGenerator {
     const extractSkills = (text: string): string[] => {
       const found: string[] = [];
       Object.entries(skillPatterns).forEach(([skill, patterns]) => {
-        if (patterns.some(p => p.test(text))) {
+        if (patterns.some((p) => p.test(text))) {
           found.push(skill);
         }
       });
@@ -80,7 +82,7 @@ export class SmartGenerator {
 
     return {
       requiredSkills: [...new Set(requiredSkills)],
-      preferredSkills: [...new Set(preferredSkills.filter(s => !requiredSkills.includes(s)))],
+      preferredSkills: [...new Set(preferredSkills.filter((s) => !requiredSkills.includes(s)))],
       experienceLevel,
       responsibilities,
     };
@@ -106,15 +108,26 @@ export class SmartGenerator {
    * Extract key responsibilities (action-verb sentences)
    */
   private extractResponsibilities(description: string): string[] {
-    const actionVerbs = ['develop', 'build', 'design', 'implement', 'lead', 'manage', 'collaborate', 'optimize', 'improve', 'create'];
-    
-    const sentences = description.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    const actionVerbs = [
+      'develop',
+      'build',
+      'design',
+      'implement',
+      'lead',
+      'manage',
+      'collaborate',
+      'optimize',
+      'improve',
+      'create',
+    ];
+
+    const sentences = description.split(/[.!?]+/).filter((s) => s.trim().length > 20);
     const responsibilities = sentences
-      .filter(sentence =>
-        actionVerbs.some(verb => new RegExp(`\\b${verb}`, 'i').test(sentence))
+      .filter((sentence) =>
+        actionVerbs.some((verb) => new RegExp(`\\b${verb}`, 'i').test(sentence))
       )
       .slice(0, 5) // Top 5 responsibilities
-      .map(s => s.trim());
+      .map((s) => s.trim());
 
     return responsibilities;
   }
@@ -137,37 +150,49 @@ export class SmartGenerator {
 
     const skillMatchesProfile = (skill: string) => {
       const target = normalizeSkill(skill);
-      return profileSkills.some(ps => ps.includes(target) || target.includes(ps));
+      return profileSkills.some((ps) => ps.includes(target) || target.includes(ps));
     };
 
-    const matchedRequired = requirements.requiredSkills.filter(skill => skillMatchesProfile(skill));
-    const matchedPreferred = requirements.preferredSkills.filter(skill => skillMatchesProfile(skill));
+    const matchedRequired = requirements.requiredSkills.filter((skill) =>
+      skillMatchesProfile(skill)
+    );
+    const matchedPreferred = requirements.preferredSkills.filter((skill) =>
+      skillMatchesProfile(skill)
+    );
     const matchedSkills = [...new Set([...matchedRequired, ...matchedPreferred])];
 
     // Find missing skills (compare case-insensitively)
-    const missingSkills = requirements.requiredSkills.filter(reqSkill =>
-      !matchedSkills.some(ms => normalizeSkill(ms) === normalizeSkill(reqSkill))
+    const missingSkills = requirements.requiredSkills.filter(
+      (reqSkill) => !matchedSkills.some((ms) => normalizeSkill(ms) === normalizeSkill(reqSkill))
     );
 
     // Calculate score: matched / total
     const totalSkills = requirements.requiredSkills.length + requirements.preferredSkills.length;
-    const matchScore = totalSkills > 0 ? Math.round(
-      ((matchedRequired.length + matchedPreferred.length * 0.5) / totalSkills) * 100
-    ) : 0;
+    const matchScore =
+      totalSkills > 0
+        ? Math.round(((matchedRequired.length + matchedPreferred.length * 0.5) / totalSkills) * 100)
+        : 0;
 
     // Find relevant experience (companies/positions matching job keywords)
     const jobKeywords = [job.company, job.position, ...requirements.requiredSkills]
-      .map(k => k?.toLowerCase())
+      .map((k) => k?.toLowerCase())
       .filter(Boolean) as string[];
-    
+
     const relevantExperience = this.profile.experience
-      .filter(exp =>
-        jobKeywords.some(kw =>
-          exp.company.toLowerCase().includes(kw) ||
-          exp.position.toLowerCase().includes(kw)
-        )
-      )
-      .map(exp => `${exp.position} at ${exp.company}`);
+      .filter((exp) => {
+        const company = typeof exp.company === 'string' ? exp.company : '';
+        const position = typeof exp.position === 'string' ? exp.position : '';
+        // Only match if at least one is non-empty
+        if (!company && !position) return false;
+        return jobKeywords.some(
+          (kw) => company.toLowerCase().includes(kw) || position.toLowerCase().includes(kw)
+        );
+      })
+      .map((exp) => {
+        const company = typeof exp.company === 'string' ? exp.company : '';
+        const position = typeof exp.position === 'string' ? exp.position : '';
+        return `${position} at ${company}`.trim();
+      });
 
     return {
       matchScore,
@@ -187,9 +212,9 @@ export class SmartGenerator {
     outputDir: string
   ): Promise<void> {
     const templatePath = path.join(config.templatesPath, 'cv.tex');
-    
+
     if (!fs.existsSync(templatePath)) {
-      console.warn('⚠️  cv.tex template not found');
+      // Template not found warning removed for lint compliance
       return;
     }
 
@@ -199,28 +224,23 @@ export class SmartGenerator {
     // Select skills to highlight (prioritize job requirements)
     const highlightedSkills = [
       ...matching.matchedSkills.slice(0, 8),
-      ...this.profile.skills
-        .slice(0, 5)
-        .map(s => s)
+      ...this.profile.skills.slice(0, 5).map((s) => s),
     ].slice(0, 12);
 
     // Select relevant experience
-    const relevantExperience = this.profile.experience
-      .slice(0, 3)
-      .map(exp => ({
-        ...exp,
-        // Filter descriptions to relevant ones (if description is array, otherwise keep as is)
-        description: Array.isArray(exp.description)
-          ? exp.description.filter(d =>
-              jobRequirements.requiredSkills.some(skill =>
+    const relevantExperience = this.profile.experience.slice(0, 3).map((exp) => ({
+      ...exp,
+      // Filter descriptions to relevant ones (if description is array, otherwise keep as is)
+      description: Array.isArray(exp.description)
+        ? exp.description.filter(
+            (d) =>
+              jobRequirements.requiredSkills.some((skill) =>
                 d.toLowerCase().includes(skill.toLowerCase())
               ) ||
-              matching.matchedSkills.some(skill =>
-                d.toLowerCase().includes(skill.toLowerCase())
-              )
-            )
-          : exp.description,
-      }));
+              matching.matchedSkills.some((skill) => d.toLowerCase().includes(skill.toLowerCase()))
+          )
+        : exp.description,
+    }));
 
     const context = {
       ...this.profile,
@@ -245,8 +265,6 @@ export class SmartGenerator {
     const output = compiled(context);
     const outputPath = path.join(outputDir, 'cv.tex');
     fs.writeFileSync(outputPath, output);
-    
-    console.log(`  ✓ CV (match: ${matching.matchScore}%): ${outputPath}`);
   }
 
   /**
@@ -259,9 +277,9 @@ export class SmartGenerator {
     outputDir: string
   ): Promise<void> {
     const templatePath = path.join(config.templatesPath, 'cover-letter.md');
-    
+
     if (!fs.existsSync(templatePath)) {
-      console.warn('⚠️  cover-letter.md template not found');
+      // Template not found warning removed for lint compliance
       return;
     }
 
@@ -295,8 +313,6 @@ export class SmartGenerator {
     const output = compiled(context);
     const outputPath = path.join(outputDir, 'cover-letter.md');
     fs.writeFileSync(outputPath, output);
-    
-    console.log(`  ✓ Cover Letter: ${outputPath}`);
   }
 
   /**
@@ -309,9 +325,9 @@ export class SmartGenerator {
     outputDir: string
   ): Promise<void> {
     const templatePath = path.join(config.templatesPath, 'resume.tex');
-    
+
     if (!fs.existsSync(templatePath)) {
-      console.warn('⚠️  resume.tex template not found');
+      // Template not found warning removed for lint compliance
       return;
     }
 
@@ -340,27 +356,19 @@ export class SmartGenerator {
     const output = compiled(context);
     const outputPath = path.join(outputDir, 'resume.tex');
     fs.writeFileSync(outputPath, output);
-    
-    console.log(`  ✓ Resume: ${outputPath}`);
   }
 
   /**
    * Main entry point: Generate all documents for a job
    */
   async generateForJob(job: Job): Promise<string> {
-    console.log(`\n📝 Generating application materials for ${job.company}...`);
-
     // Extract requirements from job
     const requirements = this.extractJobRequirements(job);
-    console.log(`   Required skills: ${requirements.requiredSkills.join(', ')}`);
 
     // Match with profile
     const matching = this.matchProfileWithJob(job, requirements);
-    console.log(`   Match score: ${matching.matchScore}%`);
-    
-    if (matching.missingSkills.length > 0) {
-      console.log(`   ⚠️  Missing: ${matching.missingSkills.join(', ')}`);
-    }
+
+    // ...existing code...
 
     // Create output directory
     const jobId = job.id ?? job.messageId ?? 'unknown';

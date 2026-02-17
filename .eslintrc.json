@@ -56,13 +56,7 @@
       }
     ],
     "no-console": [
-      "warn",
-      {
-        "allow": [
-          "warn",
-          "error"
-        ]
-      }
+      "off"
     ],
     "prefer-const": "warn",
     "no-constant-condition": "warn",

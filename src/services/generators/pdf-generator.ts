@@ -5,6 +5,7 @@
 
 import fs from 'fs';
 import path from 'path';
+
 import puppeteer from 'puppeteer';
 
 export interface PdfGenerationOptions {
@@ -41,7 +42,7 @@ export class PdfGenerator {
       '/snap/bin/chromium',
     ];
 
-    return candidates.find(candidate => fs.existsSync(candidate));
+    return candidates.find((candidate) => fs.existsSync(candidate));
   }
 
   static async generateFromText(
@@ -51,7 +52,9 @@ export class PdfGenerator {
   ): Promise<string> {
     const executablePath = options.executablePath || PdfGenerator.resolveExecutablePath();
     if (!executablePath) {
-      throw new Error('No Chrome/Chromium executable found. Set PUPPETEER_EXECUTABLE_PATH to continue.');
+      throw new Error(
+        'No Chrome/Chromium executable found. Set PUPPETEER_EXECUTABLE_PATH to continue.'
+      );
     }
 
     const html = PdfGenerator.renderTextToHtml(content);
@@ -59,7 +62,7 @@ export class PdfGenerator {
 
     const browser = await puppeteer.launch({
       executablePath,
-      headless: 'new',
+      headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
 

@@ -1,0 +1,4054 @@
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'TypeScript Developer',
+      finalScore: 60,
+      breakdown: { skillsScore: 57, salaryScore: 50, locationScore: 80 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Developer',
+      finalScore: 43,
+      breakdown: { skillsScore: 16, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Chef',
+      finalScore: 35,
+      breakdown: { skillsScore: 0, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Developer',
+      finalScore: 64,
+      breakdown: { skillsScore: 57, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Developer',
+      finalScore: 43,
+      breakdown: { skillsScore: 16, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Full Stack Developer',
+      finalScore: 85,
+      breakdown: { skillsScore: 100, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 100,
+      breakdown: { skillsScore: 100, salaryScore: 100, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 72,
+      breakdown: { skillsScore: 100, salaryScore: 5, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 76,
+      breakdown: { skillsScore: 100, salaryScore: 20, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 85,
+      breakdown: { skillsScore: 100, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 100,
+      breakdown: { skillsScore: 100, salaryScore: 100, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 81,
+      breakdown: { skillsScore: 100, salaryScore: 50, locationScore: 80 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 85,
+      breakdown: { skillsScore: 100, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 85,
+      breakdown: { skillsScore: 100, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 81,
+      breakdown: { skillsScore: 100, salaryScore: 50, locationScore: 80 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 73,
+      breakdown: { skillsScore: 100, salaryScore: 50, locationScore: 40 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 65,
+      breakdown: { skillsScore: 100, salaryScore: 50, locationScore: 0 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 96,
+      breakdown: { skillsScore: 100, salaryScore: 100, locationScore: 80 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 50,
+      breakdown: { skillsScore: 50, salaryScore: 50, locationScore: 50 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 35,
+      breakdown: { skillsScore: 0, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 96,
+      breakdown: { skillsScore: 100, salaryScore: 100, locationScore: 80 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 60,
+      breakdown: { skillsScore: 57, salaryScore: 50, locationScore: 80 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'A',
+      position: 'Role1',
+      finalScore: 23,
+      breakdown: { skillsScore: 0, salaryScore: 50, locationScore: 40 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+          at Array.forEach (<anonymous>)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'B',
+      position: 'Role2',
+      finalScore: 81,
+      breakdown: { skillsScore: 100, salaryScore: 50, locationScore: 80 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+          at Array.forEach (<anonymous>)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 64,
+      breakdown: { skillsScore: 100, salaryScore: 100, locationScore: 40 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: '',
+      position: '',
+      finalScore: 25,
+      breakdown: { skillsScore: 0, salaryScore: 50, locationScore: 50 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 60,
+      breakdown: { skillsScore: 50, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 85,
+      breakdown: { skillsScore: 100, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 43,
+      breakdown: { skillsScore: 16, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+          at Array.forEach (<anonymous>)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 43,
+      breakdown: { skillsScore: 16, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+          at Array.forEach (<anonymous>)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 43,
+      breakdown: { skillsScore: 16, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+          at Array.forEach (<anonymous>)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 43,
+      breakdown: { skillsScore: 16, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+          at Array.forEach (<anonymous>)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 43,
+      breakdown: { skillsScore: 16, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+          at Array.forEach (<anonymous>)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 43,
+      breakdown: { skillsScore: 16, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+          at Array.forEach (<anonymous>)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 81,
+      breakdown: { skillsScore: 100, salaryScore: 50, locationScore: 80 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'TechCorp',
+      position: 'Engineer',
+      finalScore: 64,
+      breakdown: { skillsScore: 57, salaryScore: 50, locationScore: 100 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+(node:1168589) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/unit/scoring.test.ts
+  scoreMatcherEngine - calculateJobScore
+    skill matching (ordered, word boundary)
+      ✓ should match exact skill words in description (44 ms)
+      ✓ should not partially match skill words (6 ms)
+      ✓ should return 0 skills score when no skills match (5 ms)
+      ✓ should handle case-insensitive matching (6 ms)
+      ✓ should apply minimum threshold (30% of skills) (5 ms)
+      ✓ should apply 0.5 weight to skills score (4 ms)
+    salary range scoring (range-based)
+      ✓ should score 100 when job salary is in user range (5 ms)
+      ✓ should score 50+ when job salary is below user range (17 ms)
+      ✓ should score 20-50 when job salary is above user range (5 ms)
+      ✓ should return 50 (neutral) when no salary provided (2 ms)
+      ✓ should apply 0.3 weight to salary score (3 ms)
+    location fuzzy matching
+      ✓ should score 100 for exact location match (2 ms)
+      ✓ should score 100 for remote position (2 ms)
+      ✓ should score 80 for same city match (5 ms)
+      ✓ should score 80 for substring location match (4 ms)
+      ✓ should score 40 for unmatched location (5 ms)
+      ✓ should score 0 for excluded location (4 ms)
+      ✓ should apply 0.2 weight to location score (3 ms)
+    neutral fallbacks (missing data)
+      ✓ should return 50 for missing profile (4 ms)
+      ✓ should return 50 for missing job (3 ms)
+      ✓ should return 50 for missing description and salary (5 ms)
+    weighted probability calculation
+      ✓ should correctly weight components (0.5 skills, 0.3 salary, 0.2 location) (1 ms)
+      ✓ should calculate mixed scores correctly (2 ms)
+      ✓ should return score in 0-100 range (10 ms)
+    config and customization
+      ✓ should use custom config weights (2 ms)
+    edge cases
+      ✓ should handle empty strings gracefully (1 ms)
+      ✓ should handle profile with no skills (2 ms)
+      ✓ should handle very long description (2 ms)
+      ✓ should handle salary with various formats (9 ms)
+    breakdown data
+      ✓ should return detailed breakdown (2 ms)
+      ✓ should include matched skills in result (2 ms)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Senior Backend Engineer',
+      company: 'TechCorp Vietnam',
+      location: 'Hà Nội',
+      salary: '15-25 triệu VND',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Quality Analyst ( QA Night Shift)',
+      company: 'Gear Inc VN',
+      location: '',
+      salary: '',
+      hasUrl: false,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Test Position',
+      company: 'Test Company',
+      location: '',
+      salary: '',
+      hasUrl: false,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Full Stack Developer',
+      company: 'StartUp XYZ',
+      location: 'Ho Chi Minh City, Vietnam',
+      salary: '$2,000 - $3,000 per month',
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Test Developer',
+      company: 'Unknown Company',
+      location: 'Unknown Location',
+      salary: undefined,
+      hasUrl: false,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Test Developer',
+      company: 'Test Co',
+      location: 'Unknown Location',
+      salary: undefined,
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Labelled Developer',
+      company: 'Label Co',
+      location: 'Unknown Location',
+      salary: undefined,
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Full-stack Python Developer (AI Agent)',
+      company: 'AnyWork (itworks.asia)',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: '75,000,000 VNĐ - 104,000,000 VNĐ a month',
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Data Engineer Fresher',
+      company: 'Cigro Inc.',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: LinkedIn format detected {
+      title: 'Research Engineer Intern',
+      company: 'Qualcomm',
+      location: 'Ho Chi Minh City Metropolitan Area',
+      salary: undefined,
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: LinkedIn format detected {
+      title: 'Software Developers',
+      company: 'Netcompany',
+      location: 'Củ Chi, Ho Chi Minh City, Vietnam',
+      salary: undefined,
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: '[Hybrid] Fresher / Junior Sofware Engineer ( Yêu Cầu Tiếng Nhật Từ N3) [Salary Up To 20M]',
+      company: 'CÔNG TY TNHH GMO-Z.COM VIỆT NAM LAB CENTER',
+      location: 'Đà Nẵng',
+      salary: '12 - 20 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: '(Senior) Frontend Developer (ReactJS) – Zalo Mini App',
+      company: 'Zalo',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Fresher Manual Test ( Có Tiếng Nhật Là Lợi Thế )',
+      company: 'Splus Software',
+      location: 'Hồ Chí Minh',
+      salary: 'Thoả thuận',
+      hasUrl: true,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Fresher Manual Test ( Có Tiếng Nhật Là Lợi Thế )',
+      company: 'Splus Software',
+      location: 'Hồ Chí Minh',
+      salary: 'Thoả thuận',
+      hasUrl: true,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Fresher Manual Test ( Có Tiếng Nhật Là Lợi Thế )',
+      company: 'Splus Software',
+      location: 'Hồ Chí Minh',
+      salary: 'Thoả thuận',
+      hasUrl: true,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Mid/ Senior Frontend Developer (Angular JS)',
+      company: 'Hitachi Digital Services',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Nhân viên giặt ủi - Việc làm gần đây',
+      company: 'Goodlife Laundry',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Android Fresher Mobile App (Kotlin)',
+      company: 'UMAXSOFT JOINT STOCK COMPANY',
+      location: 'Hà Nội',
+      salary: '7 - 12 triệu',
+      hasUrl: true,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Android Fresher Mobile App (Kotlin)',
+      company: 'UMAXSOFT JOINT STOCK COMPANY',
+      location: 'Hà Nội',
+      salary: '7 - 12 triệu',
+      hasUrl: true,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Android Fresher Mobile App (Kotlin)',
+      company: 'UMAXSOFT JOINT STOCK COMPANY',
+      location: 'Hà Nội',
+      salary: '7 - 12 triệu',
+      hasUrl: true,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Frontend Software Engineer (Middle/Senior/Lead)',
+      company: 'Floating Cube Studios',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Nhân viên giặt ủi - Việc làm gần đây',
+      company: 'Goodlife Laundry',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Middle Frontend Developer (React.js, Next.js)',
+      company: 'CÔNG TY CỔ PHẦN CITICS',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'CUSTOMER SERVICE STAFF (HCM763)',
+      company: 'Easily apply',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: '[Hybrid] Fresher / Junior Sofware Engineer ( Yêu Cầu Tiếng Nhật Từ N3) [Salary Up To 20M]',
+      company: 'CÔNG TY TNHH GMO-Z.COM VIỆT NAM LAB CENTER',
+      location: 'Đà Nẵng',
+      salary: '12 - 20 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: '(Senior) Frontend Developer (ReactJS) – Zalo Mini App',
+      company: 'Zalo',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'CUSTOMER SERVICE STAFF (HCM763)',
+      company: 'Chi nhánh công ty CP kết nốt nhân lực Worklink tại HCM',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: '15,000,000 VNĐ - 20,000,000 VNĐ a month',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Fresher Developer ( Tiếng Nhật Từ N4 Đến N2)',
+      company: 'CÔNG TY CỔ PHẦN PHẦN MỀM LUVINA',
+      location: 'Hà Nội',
+      salary: 'Tới 12 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Fresher Embedded Engineer',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Front-End Developer',
+      company: 'TEQNOLOGICAL ASIA Co., Ltd',
+      location: 'Hồ Chí Minh',
+      salary: 'Thoả thuận',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Frontend Software Engineer (Middle/Senior/Lead)',
+      company: 'Floating Cube Studios',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Mid/ Senior Frontend Developer (Angular JS)',
+      company: 'Hitachi Digital Services',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Middle Frontend Developer (React.js, Next.js)',
+      company: 'CÔNG TY CỔ PHẦN CITICS',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Quality Analyst ( QA Night Shift – Moderation) - Attractive Salary And Benefits',
+      company: 'Công ty TNHH GEAR INC VN',
+      location: 'Hà Nội',
+      salary: 'Thoả thuận',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo',
+      location: 'Thành phố Hồ Chí Minh',
+      salary: undefined,
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Tester Game Chỉ Tuyển Nữ - Phỏng Vấn Trước Tết_Onboard Sau Tết',
+      company: 'CÔNG TY TNHH CÔNG NGHỆ HAY HAY GLOBAL',
+      location: 'Hà Nội',
+      salary: '8 - 15 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+PASS tests/unit/html-parser.test.ts
+  HtmlJobParser
+    TopCV detail parsing
+      ✓ parses core fields from detail HTML (28 ms)
+      ✓ handles anchor titles and verified badge (8 ms)
+      ✓ handles missing optional fields (3 ms)
+    Indeed detail parsing
+      ✓ parses core fields from detail HTML (7 ms)
+      ✓ provides defaults when company/location missing (5 ms)
+      ✓ extracts nested heading sections (3 ms)
+      ✓ extracts bold-label sections (5 ms)
+      ✓ parses embedded job detail (sample 1) (3 ms)
+      ✓ parses embedded job detail (sample 2) (3 ms)
+    LinkedIn detail parsing
+      ✓ parses core fields from LinkedIn job detail (sample 1) (9 ms)
+      ✓ parses core fields from LinkedIn job detail (sample 2) (3 ms)
+    Fixtures
+      ✓ parses TopCV detail fixture (7 ms)
+      ✓ parses Indeed detail fixture (4 ms)
+    Local stored HTML (optional)
+      ✓ parses first raw email body when available (5 ms)
+      ✓ parses first enriched pasted HTML when available (35 ms)
+      ✓ parses all raw email bodies when available (61 ms)
+      ✓ parses all enriched pasted HTML when available (181 ms)
+    Edge cases
+      ✓ handles empty HTML (2 ms)
+      ✓ handles malformed HTML gracefully (3 ms)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      source: 'indeed',
+      hasDescription: true,
+      descriptionLength: 3582
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      url: 'https://example.com',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      source: 'indeed',
+      hasDescription: true,
+      descriptionLength: 3582
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      url: 'https://example.com',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      source: 'indeed',
+      hasDescription: true,
+      descriptionLength: 3582
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      url: 'https://example.com',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      source: 'indeed',
+      hasDescription: true,
+      descriptionLength: 3582
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      url: 'https://example.com',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      source: 'indeed',
+      hasDescription: true,
+      descriptionLength: 3582
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      url: 'https://example.com',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+       ⚠️  HTML enrichment: Empty HTML provided
+
+      at log (src/ui/services/htmlEnricher.ts:12:13)
+
+  console.log
+       ⚠️  HTML enrichment: Empty HTML provided
+
+      at log (src/ui/services/htmlEnricher.ts:12:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ❌ HTML parsing failed: No job data extracted
+
+      at log (src/ui/services/htmlEnricher.ts:36:17)
+
+  console.log
+       💡 Tip: paste full job detail page source (View Page Source), then type END on a new line.
+
+      at log (src/ui/services/htmlEnricher.ts:37:17)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Test Position',
+      company: '',
+      location: '',
+      salary: '',
+      hasUrl: false,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Test Position',
+      company: '',
+      location: '',
+      salary: '',
+      source: 'topcv',
+      hasDescription: false,
+      descriptionLength: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Test Position',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      url: 'https://example.com',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+       ⚠️  HTML enrichment: Empty HTML provided
+
+      at log (src/ui/services/htmlEnricher.ts:12:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+       ⚠️  HTML enrichment: Empty HTML provided
+
+      at log (src/ui/services/htmlEnricher.ts:12:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      source: 'indeed',
+      hasDescription: true,
+      descriptionLength: 3582
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      url: 'https://example.com',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      source: 'indeed',
+      hasDescription: true,
+      descriptionLength: 3582
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      url: 'https://example.com',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Software Developer',
+      company: 'Generic Company',
+      location: 'Unknown',
+      salary: '',
+      platform: 'unknown',
+      matchScore: 0
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      source: 'indeed',
+      hasDescription: true,
+      descriptionLength: 3582
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      url: 'https://example.com',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 0 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Backend Developer',
+      company: 'Old Company',
+      location: 'Somewhere',
+      salary: '',
+      platform: 'topcv',
+      matchScore: 2
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv',
+      hasDescription: true,
+      descriptionLength: 2584
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, url, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      url: 'https://www.topcv.vn/viec-lam/software-developer-for-broadband-devices/2024732.html',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 2 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+  console.log
+    
+       🔍 HTML Enrichment Starting...
+
+      at log (src/ui/services/htmlEnricher.ts:17:13)
+
+  console.log
+       📧 Current Job Metadata: {
+      position: 'Frontend Developer',
+      company: 'Generic Tech',
+      location: 'Remote',
+      salary: '$2000/month',
+      platform: 'indeed',
+      matchScore: 3
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:18:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Indeed format detected {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      hasUrl: false,
+      hasDescription: true
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+       ✅ Parsed Detail Page: {
+      title: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      source: 'indeed',
+      hasDescription: true,
+      descriptionLength: 3582
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:46:13)
+
+  console.log
+       📝 Enriched Fields: position, company, location, salary, description, details
+
+      at log (src/ui/services/htmlEnricher.ts:79:13)
+
+  console.log
+       💾 Updated Job Metadata: {
+      position: 'Senior Frontend Developer',
+      company: 'Zalo Ho Chi Minh City, Vietnam Full-time',
+      location: 'Ho Chi Minh City, Vietnam Full-time',
+      salary: '$1800 - $2500 a month',
+      url: 'https://indeed.com/job/456',
+      hasDescription: true
+    }
+
+      at log (src/ui/services/htmlEnricher.ts:83:13)
+
+  console.log
+       🎯 Match Score Calculation:
+
+      at log (src/ui/services/htmlEnricher.ts:116:13)
+
+  console.log
+          • Profile skills: 25
+
+      at log (src/ui/services/htmlEnricher.ts:117:13)
+
+  console.log
+          • Matched skills: 0
+
+      at log (src/ui/services/htmlEnricher.ts:118:13)
+
+  console.log
+          • Skills found: none
+
+      at log (src/ui/services/htmlEnricher.ts:119:13)
+
+  console.log
+          • Score change: 3 → 0
+
+      at log (src/ui/services/htmlEnricher.ts:120:13)
+
+  console.log
+       ✨ Enrichment Complete!
+
+      at log (src/ui/services/htmlEnricher.ts:125:13)
+
+PASS tests/unit/htmlEnricher.test.ts
+  enrichJobFromHtml - HTML Enrichment Service
+    Successful Enrichment - TopCV Detail Page
+      ✓ should successfully enrich job from TopCV HTML (39 ms)
+      ✓ should update job URL from TopCV HTML (24 ms)
+      ✓ should update job description from TopCV HTML (17 ms)
+      ✓ should recalculate match score after TopCV enrichment (16 ms)
+      ✓ should preserve original job fields not in parsed HTML (14 ms)
+    Successful Enrichment - Indeed Detail Page
+      ✓ should successfully enrich job from Indeed HTML (18 ms)
+      ✓ should extract salary range from Indeed HTML (11 ms)
+      ✓ should update URL to Indeed job link (12 ms)
+      ✓ should extract React and TypeScript skills from Indeed description (15 ms)
+      ✓ should recalculate match score based on Indeed job skills (24 ms)
+    Error Handling
+      ✓ should return null for empty HTML (4 ms)
+      ✓ should return null for whitespace-only HTML (4 ms)
+      ✓ should return null when no title can be parsed (12 ms)
+      ✓ should handle partial HTML (missing company) (26 ms)
+      ✓ should handle null HTML gracefully (3 ms)
+    Callback Behavior
+      ✓ should call onJobUpdate callback with enriched job (28 ms)
+      ✓ should call onMatchScoreUpdate callback with number score (24 ms)
+      ✓ should call callbacks only after successful parsing (3 ms)
+    Skill Matching Integration
+      ✓ should calculate match score from profile skills (26 ms)
+      ✓ should calculate match score for Indeed job (23 ms)
+      ✓ should update match score in callback during enrichment (19 ms)
+    Data Persistence
+      ✓ should not modify original job object (21 ms)
+      ✓ should preserve messageId through enrichment (16 ms)
+      ✓ should use parsed description in enrichment (16 ms)
+    Cross-Platform Enrichment
+      ✓ should enrich TopCV and Indeed jobs identically in structure (24 ms)
+      ✓ should differentiate between TopCV and Indeed enrichment sources (29 ms)
+    Real-world Scenarios
+      ✓ should handle user pasting TopCV job detail page and enriching existing job (23 ms)
+      ✓ should handle user pasting Indeed job detail page (22 ms)
+
+PASS tests/unit/draft-builder.test.ts
+  DraftBuilder
+    build
+      ✓ should create draft with all required fields (9 ms)
+      ✓ should match skills correctly (2 ms)
+      ✓ should calculate relevance score based on match quality (2 ms)
+      ✓ should identify skill gaps (1 ms)
+      ✓ should order sections by priority and relevance (2 ms)
+      ✓ should include evidence mappings for matched skills (1 ms)
+      ✓ should create deterministic output for same inputs (4 ms)
+      ✓ should handle job with no description gracefully (1 ms)
+      ✓ should prioritize solid skills over working/familiar (1 ms)
+      ✓ should build summary section with job-specific skills (1 ms)
+      ✓ should build skills section with tiered skills (1 ms)
+      ✓ should prioritize projects with matched tech (1 ms)
+    edge cases
+      ✓ should handle profile with no skills (2 ms)
+      ✓ should handle job with no requirements
+
+PASS tests/unit/constraints-filter.test.ts
+  constraints filter compatibility - ultra-junior focus
+    ✓ Office Manager (non-software) fails (6 ms)
+    ✓ Junior developer (no years requirement) passes with high skill match (6 ms)
+    ✓ Numeric versions without years context do not trigger rejection (2 ms)
+    ✓ Senior role or any years requirement fails (2 ms)
+    ✓ Mid-level role fails (beyond junior) (2 ms)
+    ✓ Any explicit years mention (even 1-2) fails ultra-junior filter (3 ms)
+    ✓ Entry-level or fresh graduate keyword passes (2 ms)
+    ✓ Junior role with zero skill match fails (2 ms)
+    ✓ Junior role with partial skill match passes (2 ms)
+    ✓ Generic job description with no technical skills gets neutral score (2 ms)
+    ✓ Case-insensitive skill matching works (2 ms)
+    ✓ Skill variations match correctly (React vs ReactJS) (2 ms)
+    ✓ Word fragments like leadership do not mis-trigger senior rejection (2 ms)
+    ✓ Job with matching profile skills passes with good overlap (3 ms)
+    ✓ Job with completely different tech stack does not block (skills advisory) (1 ms)
+    ✓ Job with partial skill match (>20%) passes (1 ms)
+    ✓ Job with no technical skills mentioned still passes (skills advisory) (2 ms)
+    ✓ Skill matching is case-insensitive (5 ms)
+    ✓ Skill matching handles variations (React vs React.js) (1 ms)
+
+PASS tests/unit/profile-parser.test.ts
+  ProfileParser
+    validate
+      ✓ should pass validation for valid profile (2 ms)
+      ✓ should fail validation for missing required fields (1 ms)
+      ✓ should warn for invalid email format
+      ✓ should warn for missing skills (1 ms)
+    parse
+      ✓ should parse minimal profile correctly (3 ms)
+      ✓ should normalize summary to array (3 ms)
+      ✓ should parse software fundamentals with tiers (1 ms)
+      ✓ should extract normalized skills from fundamentals (1 ms)
+      ✓ should parse structured skills by domain (2 ms)
+      ✓ should normalize experience with description array (1 ms)
+      ✓ should add timestamp to normalized profile (1 ms)
+  ProfileSnapshotLoader
+    ✓ should cache profile after first load (4 ms)
+    ✓ should clear cache when requested (1 ms)
+
+PASS tests/unit/template-renderer.test.ts
+  TemplateRenderer
+    CV Rendering
+      ✓ should render a complete CV snapshot (6 ms)
+      ✓ should maintain deterministic section order (3 ms)
+      ✓ should hide optional sections not explicitly shown (1 ms)
+      ✓ should show optional sections when explicitly requested (1 ms)
+      ✓ should hide sections when requested (1 ms)
+      ✓ should handle missing optional data gracefully (1 ms)
+    Cover Letter Rendering
+      ✓ should render a complete cover letter snapshot (19 ms)
+      ✓ should maintain deterministic structure (2 ms)
+      ✓ should generate body from matched skills if not provided (2 ms)
+      ✓ should include matched skills in cover letter body (1 ms)
+    Snapshot Integrity
+      ✓ should produce consistent CV across multiple renders (2 ms)
+      ✓ should produce consistent cover letter across multiple renders (2 ms)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: TopCV format detected {
+      title: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      hasUrl: true,
+      hasDescription: false
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Email alert parsed (HTML) {
+      platform: 'LinkedIn',
+      position: 'Software Developer For Broadband Devices',
+      company: 'MARUSYS VINA CO.,LTD',
+      location: 'Hà Nội',
+      salary: 'Từ 8 triệu',
+      source: 'topcv'
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+PASS tests/unit/parser.test.ts
+  EmailParser
+    parse
+      ✓ parses LinkedIn job email (23 ms)
+      ✓ parses Indeed job email (4 ms)
+      ✓ parses VietnamWorks job email (3 ms)
+      ✓ handles unknown platform (4 ms)
+      ✓ parses real raw email from src/db when available (14 ms)
+      ✓ parses TopCV email alert with HTML (5 ms)
+      ✓ parses Indeed email alert with HTML (3 ms)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: MongoDB indexes created successfully
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: MongoDB storage adapter connected { uri: 'mongodb://127.0.0.1:27017', db: 'jobs_watcher' }
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: ✅ MongoDB storage connected
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: MongoDB indexes created successfully
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: MongoDB storage adapter connected { uri: 'mongodb://127.0.0.1:27017', db: 'jobs_watcher' }
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: ✅ MongoDB storage connected
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: 📬 New job alert received
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: 🔍 Processing job from email: msg-001
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: 📧 Email Details:
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO:    From: Stub Sender
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO:    To: Stub Receiver
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO:    Subject: Stub Subject
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO:    Date: 2026-02-17T04:06:46.130Z
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO:    Body Length: 84010 characters
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: 💾 Saving raw email to MongoDB...
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: MongoDB indexes created successfully
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: MongoDB storage adapter connected { uri: 'mongodb://127.0.0.1:27017', db: 'jobs_watcher' }
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: ✅ MongoDB storage connected
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: ✅ Raw email saved to MongoDB with ID: 6993db3a0020f02b5352d89f
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: 📊 METADATA stage: SUCCESS { company: undefined, position: undefined, errors: [] }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: 📊 JOB_DETAIL stage: SUCCESS { url: undefined, hasDescription: false, errors: [] }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: No supported job format detected
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: 🏢 Unknown Company - Unknown Position
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: 📍 Remote • LinkedIn
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] 🐛 DEBUG: Score calculated {
+      job: 'Unknown Company',
+      position: 'Unknown Position',
+      finalScore: 25,
+      breakdown: { skillsScore: 0, salaryScore: 50, locationScore: 50 }
+    }
+
+      at ConsoleLogger.log [as debug] (src/services/logger.ts:24:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: ✨ Match Score: 25% (Skills: 0%, Salary: 50%, Location: 50%)
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│ 🎯 New Job Alert                                                             │
+│                                                                              │
+│ Company:  Unknown Company                                                    │
+│ Position: Unknown Position                                                   │
+│ Platform: LinkedIn                                                           │
+│ URL:      https://www.linkedin.com/comm/mynetwork/discovery-see-all/?usecase │
+│ =EMAIL_MIXED_RECOMMENDATIONS&lipi=urn%3Ali%3Apage%3Aemail_email_edge_discove │
+│ r_01%3B4ypOdhDPQ2Sefzmvw8Hpug%3D%3D&midToken=AQF0-P9o8Gmvkg&midSig=0VvslsoV3 │
+│ css81&trk=eml-email_edge_discover_01-see_all-0-cta~text&trkEmail=eml-email_e │
+│ dge_discover_01-see_all-0-cta~text-null-k698yv~mloqm5gv~h9-null-null&eid=k69 │
+│ 8yv-mloqm5gv-h9&otpToken=MTMwNzFmZTkxYTJkY2JjM2IwMmQwZmViNDExOWU2YjY4ZWM3ZDk │
+│ 0Mjk4YWY4ZjZhN2JjZjA3NjY0ZTViNWFmNmZmZDJkNWU5NzZiNmVjZGY3YmY5YWI5MWRhZTIzZDB │
+│ kY2NkMmEzMzNlM2YxMzIwZWU2YzYxMjgzLDEsMQ%3D%3D                                │
+│ Match:    25%                                                                │
+│ Decision: Queue                                                              │
+│                                                                              │
+│ Minh, add interesting content to your feed. Here are a few recommendations   │
+│ to get started....                                                           │
+│                                                                              │
+│ Actions: [Enter] confirm • [a] apply mode • [o] open URL • [p] paste HTML •  │
+│ [q] queue                                                                    │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G[jobs-watcher] ℹ️  INFO: New job alert received
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│ 🎯 New Job Alert                                                             │
+│                                                                              │
+│ Company:  Unknown Company                                                    │
+│ Position: Unknown Position                                                   │
+│ Platform: LinkedIn                                                           │
+│ URL:      https://www.linkedin.com/comm/mynetwork/discovery-see-all/?usecase │
+│ =EMAIL_MIXED_RECOMMENDATIONS&lipi=urn%3Ali%3Apage%3Aemail_email_edge_discove │
+│ r_01%3B4ypOdhDPQ2Sefzmvw8Hpug%3D%3D&midToken=AQF0-P9o8Gmvkg&midSig=0VvslsoV3 │
+│ css81&trk=eml-email_edge_discover_01-see_all-0-cta~text&trkEmail=eml-email_e │
+│ dge_discover_01-see_all-0-cta~text-null-k698yv~mloqm5gv~h9-null-null&eid=k69 │
+│ 8yv-mloqm5gv-h9&otpToken=MTMwNzFmZTkxYTJkY2JjM2IwMmQwZmViNDExOWU2YjY4ZWM3ZDk │
+│ 0Mjk4YWY4ZjZhN2JjZjA3NjY0ZTViNWFmNmZmZDJkNWU5NzZiNmVjZGY3YmY5YWI5MWRhZTIzZDB │
+│ kY2NkMmEzMzNlM2YxMzIwZWU2YzYxMjgzLDEsMQ%3D%3D                                │
+│ Match:    25%                                                                │
+│ Decision: Queue                                                              │
+│                                                                              │
+│ Minh, add interesting content to your feed. Here are a few recommendations   │
+│ to get started....                                                           │
+│                                                                              │
+│ Actions: [Enter] confirm • [a] apply mode • [o] open URL • [p] paste HTML •  │
+│ [q] queue                                                                    │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G[jobs-watcher] ℹ️  INFO: Job metadata {
+  position: 'Unknown Position',
+  company: 'Unknown Company',
+  location: undefined,
+  salary: undefined,
+  platform: 'LinkedIn',
+  matchScore: 25,
+  messageId: undefined
+}
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│ 🎯 New Job Alert                                                             │
+│                                                                              │
+│ Company:  Unknown Company                                                    │
+│ Position: Unknown Position                                                   │
+│ Platform: LinkedIn                                                           │
+│ URL:      https://www.linkedin.com/comm/mynetwork/discovery-see-all/?usecase │
+│ =EMAIL_MIXED_RECOMMENDATIONS&lipi=urn%3Ali%3Apage%3Aemail_email_edge_discove │
+│ r_01%3B4ypOdhDPQ2Sefzmvw8Hpug%3D%3D&midToken=AQF0-P9o8Gmvkg&midSig=0VvslsoV3 │
+│ css81&trk=eml-email_edge_discover_01-see_all-0-cta~text&trkEmail=eml-email_e │
+│ dge_discover_01-see_all-0-cta~text-null-k698yv~mloqm5gv~h9-null-null&eid=k69 │
+│ 8yv-mloqm5gv-h9&otpToken=MTMwNzFmZTkxYTJkY2JjM2IwMmQwZmViNDExOWU2YjY4ZWM3ZDk │
+│ 0Mjk4YWY4ZjZhN2JjZjA3NjY0ZTViNWFmNmZmZDJkNWU5NzZiNmVjZGY3YmY5YWI5MWRhZTIzZDB │
+│ kY2NkMmEzMzNlM2YxMzIwZWU2YzYxMjgzLDEsMQ%3D%3D                                │
+│ Match:    25%                                                                │
+│ Decision: Queue                                                              │
+│                                                                              │
+│ Minh, add interesting content to your feed. Here are a few recommendations   │
+│ to get started....                                                           │
+│                                                                              │
+│ Actions: [Enter] confirm • [a] apply mode • [o] open URL • [p] paste HTML •  │
+│ [q] queue                                                                    │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G[jobs-watcher] ℹ️  INFO: Actions: (o)pen URL | (p)aste HTML | (a)pply | (q)ueue
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│ 🎯 New Job Alert                                                             │
+│                                                                              │
+│ Company:  Unknown Company                                                    │
+│ Position: Unknown Position                                                   │
+│ Platform: LinkedIn                                                           │
+│ URL:      https://www.linkedin.com/comm/mynetwork/discovery-see-all/?usecase │
+│ =EMAIL_MIXED_RECOMMENDATIONS&lipi=urn%3Ali%3Apage%3Aemail_email_edge_discove │
+│ r_01%3B4ypOdhDPQ2Sefzmvw8Hpug%3D%3D&midToken=AQF0-P9o8Gmvkg&midSig=0VvslsoV3 │
+│ css81&trk=eml-email_edge_discover_01-see_all-0-cta~text&trkEmail=eml-email_e │
+│ dge_discover_01-see_all-0-cta~text-null-k698yv~mloqm5gv~h9-null-null&eid=k69 │
+│ 8yv-mloqm5gv-h9&otpToken=MTMwNzFmZTkxYTJkY2JjM2IwMmQwZmViNDExOWU2YjY4ZWM3ZDk │
+│ 0Mjk4YWY4ZjZhN2JjZjA3NjY0ZTViNWFmNmZmZDJkNWU5NzZiNmVjZGY3YmY5YWI5MWRhZTIzZDB │
+│ kY2NkMmEzMzNlM2YxMzIwZWU2YzYxMjgzLDEsMQ%3D%3D                                │
+│ Match:    25%                                                                │
+│ Decision: Queue                                                              │
+│                                                                              │
+│ Minh, add interesting content to your feed. Here are a few recommendations   │
+│ to get started....                                                           │
+│                                                                              │
+│ Actions: [Enter] confirm • [a] apply mode • [o] open URL • [p] paste HTML •  │
+│ [q] queue                                                                    │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G[jobs-watcher] 🐛 DEBUG: MongoDB indexes created successfully
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│ 🎯 New Job Alert                                                             │
+│                                                                              │
+│ Company:  Unknown Company                                                    │
+│ Position: Unknown Position                                                   │
+│ Platform: LinkedIn                                                           │
+│ URL:      https://www.linkedin.com/comm/mynetwork/discovery-see-all/?usecase │
+│ =EMAIL_MIXED_RECOMMENDATIONS&lipi=urn%3Ali%3Apage%3Aemail_email_edge_discove │
+│ r_01%3B4ypOdhDPQ2Sefzmvw8Hpug%3D%3D&midToken=AQF0-P9o8Gmvkg&midSig=0VvslsoV3 │
+│ css81&trk=eml-email_edge_discover_01-see_all-0-cta~text&trkEmail=eml-email_e │
+│ dge_discover_01-see_all-0-cta~text-null-k698yv~mloqm5gv~h9-null-null&eid=k69 │
+│ 8yv-mloqm5gv-h9&otpToken=MTMwNzFmZTkxYTJkY2JjM2IwMmQwZmViNDExOWU2YjY4ZWM3ZDk │
+│ 0Mjk4YWY4ZjZhN2JjZjA3NjY0ZTViNWFmNmZmZDJkNWU5NzZiNmVjZGY3YmY5YWI5MWRhZTIzZDB │
+│ kY2NkMmEzMzNlM2YxMzIwZWU2YzYxMjgzLDEsMQ%3D%3D                                │
+│ Match:    25%                                                                │
+│ Decision: Queue                                                              │
+│                                                                              │
+│ Minh, add interesting content to your feed. Here are a few recommendations   │
+│ to get started....                                                           │
+│                                                                              │
+│ Actions: [Enter] confirm • [a] apply mode • [o] open URL • [p] paste HTML •  │
+│ [q] queue                                                                    │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G[jobs-watcher] ℹ️  INFO: MongoDB storage adapter connected { uri: 'mongodb://127.0.0.1:27017', db: 'jobs_watcher' }
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│ 🎯 New Job Alert                                                             │
+│                                                                              │
+│ Company:  Unknown Company                                                    │
+│ Position: Unknown Position                                                   │
+│ Platform: LinkedIn                                                           │
+│ URL:      https://www.linkedin.com/comm/mynetwork/discovery-see-all/?usecase │
+│ =EMAIL_MIXED_RECOMMENDATIONS&lipi=urn%3Ali%3Apage%3Aemail_email_edge_discove │
+│ r_01%3B4ypOdhDPQ2Sefzmvw8Hpug%3D%3D&midToken=AQF0-P9o8Gmvkg&midSig=0VvslsoV3 │
+│ css81&trk=eml-email_edge_discover_01-see_all-0-cta~text&trkEmail=eml-email_e │
+│ dge_discover_01-see_all-0-cta~text-null-k698yv~mloqm5gv~h9-null-null&eid=k69 │
+│ 8yv-mloqm5gv-h9&otpToken=MTMwNzFmZTkxYTJkY2JjM2IwMmQwZmViNDExOWU2YjY4ZWM3ZDk │
+│ 0Mjk4YWY4ZjZhN2JjZjA3NjY0ZTViNWFmNmZmZDJkNWU5NzZiNmVjZGY3YmY5YWI5MWRhZTIzZDB │
+│ kY2NkMmEzMzNlM2YxMzIwZWU2YzYxMjgzLDEsMQ%3D%3D                                │
+│ Match:    25%                                                                │
+│ Decision: Queue                                                              │
+│                                                                              │
+│ Minh, add interesting content to your feed. Here are a few recommendations   │
+│ to get started....                                                           │
+│                                                                              │
+│ Actions: [Enter] confirm • [a] apply mode • [o] open URL • [p] paste HTML •  │
+│ [q] queue                                                                    │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G[jobs-watcher] ℹ️  INFO: ✅ MongoDB storage connected
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│ 🎯 New Job Alert                                                             │
+│                                                                              │
+│ Company:  Unknown Company                                                    │
+│ Position: Unknown Position                                                   │
+│ Platform: LinkedIn                                                           │
+│ URL:      https://www.linkedin.com/comm/mynetwork/discovery-see-all/?usecase │
+│ =EMAIL_MIXED_RECOMMENDATIONS&lipi=urn%3Ali%3Apage%3Aemail_email_edge_discove │
+│ r_01%3B4ypOdhDPQ2Sefzmvw8Hpug%3D%3D&midToken=AQF0-P9o8Gmvkg&midSig=0VvslsoV3 │
+│ css81&trk=eml-email_edge_discover_01-see_all-0-cta~text&trkEmail=eml-email_e │
+│ dge_discover_01-see_all-0-cta~text-null-k698yv~mloqm5gv~h9-null-null&eid=k69 │
+│ 8yv-mloqm5gv-h9&otpToken=MTMwNzFmZTkxYTJkY2JjM2IwMmQwZmViNDExOWU2YjY4ZWM3ZDk │
+│ 0Mjk4YWY4ZjZhN2JjZjA3NjY0ZTViNWFmNmZmZDJkNWU5NzZiNmVjZGY3YmY5YWI5MWRhZTIzZDB │
+│ kY2NkMmEzMzNlM2YxMzIwZWU2YzYxMjgzLDEsMQ%3D%3D                                │
+│ Match:    25%                                                                │
+│ Decision: Queue                                                              │
+│                                                                              │
+│ Minh, add interesting content to your feed. Here are a few recommendations   │
+│ to get started....                                                           │
+│                                                                              │
+│ Actions: [Enter] confirm • [a] apply mode • [o] open URL • [p] paste HTML •  │
+│ [q] queue                                                                    │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+PASS tests/e2e/webhook-flow.test.ts
+  EventDrivenWebhook - Headless Flow
+    ✓ processes a Pub/Sub notification without manual input (1210 ms)
+    ✓ skips processing when the message payload is empty (239 ms)
+
+  console.log
+      ✓ CV: /home/minh-nguyen/node_projects/jobs-watcher/generated/job-001/cv.tex
+
+      at DocumentGenerator.log [as generateCVWithValidation] (src/services/generators/generator.ts:142:15)
+
+  console.log
+      ✓ Cover Letter: /home/minh-nguyen/node_projects/jobs-watcher/generated/job-001/cover-letter.md
+
+      at DocumentGenerator.log [as generateCoverLetterWithValidation] (src/services/generators/generator.ts:183:15)
+
+  console.log
+      ✓ Resume: /home/minh-nguyen/node_projects/jobs-watcher/generated/job-001/resume.tex
+
+      at DocumentGenerator.log [as generateResumeWithValidation] (src/services/generators/generator.ts:223:15)
+
+  console.log
+      ✓ CV: /home/minh-nguyen/node_projects/jobs-watcher/generated/job-001/cv.tex
+
+      at DocumentGenerator.log [as generateCVWithValidation] (src/services/generators/generator.ts:142:15)
+
+  console.log
+      ✓ Cover Letter: /home/minh-nguyen/node_projects/jobs-watcher/generated/job-001/cover-letter.md
+
+      at DocumentGenerator.log [as generateCoverLetterWithValidation] (src/services/generators/generator.ts:183:15)
+
+  console.log
+      ✓ Resume: /home/minh-nguyen/node_projects/jobs-watcher/generated/job-001/resume.tex
+
+      at DocumentGenerator.log [as generateResumeWithValidation] (src/services/generators/generator.ts:223:15)
+
+PASS tests/integration/generator.test.ts
+  DocumentGenerator - Validation Tests
+    generateForJobWithValidation
+      ✓ validates missing job.id (5 ms)
+      ✓ validates missing company (3 ms)
+      ✓ validates missing position (3 ms)
+      ✓ rejects "Unknown Company" (6 ms)
+      ✓ rejects "Unknown Position" (3 ms)
+      ✓ returns generated files on success (67 ms)
+      ✓ includes specific template error messages (31 ms)
+    error handling
+      ✓ handles generation errors gracefully (2 ms)
+
+PASS tests/integration/smart-generator.test.ts
+  SmartGenerator
+    extractJobRequirements
+      ✓ extracts skills and responsibilities (8 ms)
+      ✓ detects experience level (2 ms)
+    matchProfileWithJob
+      ✓ scores overlap between job and profile (10 ms)
+      ✓ returns zero when no skills match (2 ms)
+      ✓ matches skills case-insensitively and reports missing accurately (2 ms)
+    document generation
+      ✓ writes CV, cover letter, and resume files (66 ms)
+
+(node:1168589) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+PASS tests/e2e/full-integration-e2e.test.ts
+  Full E2E Workflow (No Fallback, No Mock)
+    ✓ runs the full job-to-application-to-send-to-metrics workflow (1545 ms)
+
+  console.log
+    🔔 Notification: Test
+
+      at log (src/services/notifications.ts:45:13)
+
+PASS tests/integration/notifications.test.ts
+  notifications utilities
+    logAction
+      ✓ writes JSONL entries and creates log dir (12 ms)
+      ✓ appends multiple actions (4 ms)
+    getMonitoringStats
+      ✓ aggregates totals and average match score (3 ms)
+      ✓ returns zeros when no logs (2 ms)
+    notifyUser
+      ✓ does not throw even if system notification is unavailable (34 ms)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: ✅ MongoDB storage connected
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+  console.log
+    [jobs-watcher] ℹ️  INFO: 🔌 MongoDB storage disconnected
+
+      at ConsoleLogger.log [as info] (src/services/logger.ts:28:13)
+
+PASS tests/unit/metrics/event-webhook.integration.test.ts
+  EventDrivenWebhook (integration)
+    ✓ initializes with storage and can connect/disconnect (97 ms)
+
+PASS tests/unit/gmail.test.ts
+  GmailService (unit)
+    ✓ extracts headers by name (case-insensitive) (4 ms)
+    ✓ extracts body from text/html parts (2 ms)
+    ✓ extracts body from nested parts (1 ms)
+    ✓ extracts body from payload body when no parts exist (1 ms)
+
+PASS tests/unit/metrics/analytics-queries.integration.test.ts
+  AnalyticsQueries (integration)
+    ✓ computes totalSent, successRate, avgJobFit, topProfileGaps (116 ms)
+
+PASS tests/unit/metrics/storage-adapter.integration.test.ts
+  MongoDBStorageAdapter (integration)
+    ✓ saves and retrieves a raw ingest document (18 ms)
+    ✓ logs a parse attempt (9 ms)
+
+PASS tests/unit/generators/template-document-generator.test.ts
+  TemplateDocumentGenerator
+    ✓ generates DOCX artifacts for a draft (150 ms)
+
+PASS tests/unit/metrics/metrics-recorder.integration.test.ts
+  MetricsRecorder (integration)
+    ✓ records and retrieves a metric (37 ms)
+
+PASS tests/unit/generators/pdf-generator.test.ts
+  PdfGenerator
+    ✓ creates a PDF file with content (2646 ms)
+
+PASS tests/unit/generators/docx-generator.test.ts
+  DocxGenerator
+    ✓ creates a DOCX file with content (85 ms)
+
+PASS tests/unit/metrics/metrics-recorder.test.ts
+  MetricsRecorder
+    ✓ constructs with Mongo URI (14 ms)
+
+PASS tests/unit/metrics/analytics-queries.test.ts
+  AnalyticsQueries
+    ✓ constructs with Mongo URI (24 ms)
+
+PASS tests/unit/sender/delivery-log.test.ts
+  DeliveryLog
+    ✓ constructs with Mongo URI (18 ms)
+
+PASS tests/unit/sender/email-sender.test.ts
+  EmailSender
+    ✓ should be implemented (6 ms)
+
+---------------------------------|---------|----------|---------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------
+File                             | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                                                                                                
+---------------------------------|---------|----------|---------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------
+All files                        |    74.7 |    63.44 |   74.09 |   75.44 |                                                                                                                                                  
+ src                             |      56 |     62.5 |      75 |   54.16 |                                                                                                                                                  
+  config.ts                      |   47.61 |     62.5 |   66.66 |   47.61 | 20-26,144-151                                                                                                                                    
+  constants.ts                   |     100 |      100 |     100 |     100 |                                                                                                                                                  
+ src/application                 |   33.33 |      100 |     100 |   33.33 |                                                                                                                                                  
+  job-processor.ts               |   33.33 |      100 |     100 |   33.33 | 24-25                                                                                                                                            
+ src/services                    |   55.14 |    41.08 |   48.67 |    55.8 |                                                                                                                                                  
+  constraints.ts                 |   46.09 |    37.33 |   48.64 |   45.61 | 21-25,56-63,71-114,148-190                                                                                                                       
+  event-webhook.ts               |    54.8 |    43.15 |   44.73 |   55.73 | 36-46,66-69,73-74,79-178,269,279-292,301-311,317,330-338,354-360,369-370,378-383,395-406,464-471,517,563,577-580,649,658-661,676-677,693-718,748 
+  gmail.ts                       |    54.4 |    32.39 |      50 |   55.28 | 15-16,76-77,108-111,118,134,143,156-298                                                                                                          
+  logger.ts                      |   55.55 |      100 |   33.33 |   55.55 | 32-36,64-71                                                                                                                                      
+  notifications.ts               |   85.41 |    66.66 |     100 |   84.09 | 26-42,48                                                                                                                                         
+ src/services/generators         |   85.82 |    55.55 |   90.56 |   85.71 |                                                                                                                                                  
+  docx-generator.ts              |     100 |      100 |     100 |     100 |                                                                                                                                                  
+  generator.ts                   |   77.52 |    47.54 |   88.88 |   77.52 | 23,31,37,68,91-105,115-116,144,156-157,185,197-198,225                                                                                           
+  pdf-generator.ts               |      88 |       60 |     100 |    87.5 | 26,32,55                                                                                                                                         
+  smart-generator.ts             |   90.65 |    65.95 |   91.17 |    90.9 | 99,102,218,237-240,283,331,377                                                                                                                   
+  template-document-generator.ts |   88.88 |    44.44 |   66.66 |   88.88 | 52,64                                                                                                                                            
+ src/services/metrics            |     100 |    33.33 |     100 |     100 |                                                                                                                                                  
+  analytics-queries.ts           |     100 |     37.5 |     100 |     100 | 12-39                                                                                                                                            
+  metrics-recorder.ts            |     100 |        0 |     100 |     100 | 21                                                                                                                                               
+ src/services/parsers            |    85.3 |    73.07 |   85.32 |   87.46 |                                                                                                                                                  
+  email-parser.ts                |   73.41 |    59.48 |   90.47 |   73.33 | 79,109,112,115,122-132,155,162-170,197,200,203,206,209,213,246-248,252-255,288,310-312,316-320,330-333,409,450,464-468                           
+  html-job-parser.ts             |   88.52 |    75.54 |   84.09 |   91.66 | 148,214-234,273-274,404-405,520,545,573,581,589,888,898,973,1066-1069,1073-1076,1090-1097,1156,1170,1174,1194                                    
+ src/services/profile            |   86.69 |    80.81 |   91.83 |    87.3 |                                                                                                                                                  
+  draft-builder.ts               |   98.14 |    92.45 |   97.14 |   97.97 | 134,307                                                                                                                                          
+  profile-parser.ts              |   73.68 |    75.63 |   78.57 |   75.55 | 49-62,72,230,320-329,341,398-410,432-433                                                                                                         
+ src/services/scoring            |   95.65 |    76.41 |   93.33 |    97.5 |                                                                                                                                                  
+  score-matcher.ts               |   95.65 |    76.41 |   93.33 |    97.5 | 91,205                                                                                                                                           
+ src/services/sender             |      75 |        0 |   66.66 |      75 |                                                                                                                                                  
+  delivery-log.ts                |      75 |        0 |   66.66 |      75 | 30                                                                                                                                               
+ src/services/storage            |   40.98 |    27.05 |   56.25 |      40 |                                                                                                                                                  
+  index.ts                       |       0 |        0 |       0 |       0 |                                                                                                                                                  
+  mongodb-storage-adapter.ts     |      40 |    27.05 |   56.25 |   38.93 | 67-68,80-81,113,122,131,153-162,171,181-454                                                                                                      
+  schemas.ts                     |     100 |      100 |     100 |     100 |                                                                                                                                                  
+ src/services/templates          |   90.35 |    69.76 |      95 |    92.3 |                                                                                                                                                  
+  index.ts                       |       0 |        0 |       0 |       0 |                                                                                                                                                  
+  renderer.ts                    |   90.62 |       68 |   93.33 |   93.02 | 142-148,204,244                                                                                                                                  
+  schema.ts                      |   88.88 |    81.81 |     100 |   88.88 | 150,208                                                                                                                                          
+ src/ui                          |   66.66 |       50 |     100 |   85.71 |                                                                                                                                                  
+  TuiJobPresenter.ts             |      50 |      100 |     100 |      50 | 9                                                                                                                                                
+  theme.ts                       |   71.42 |       50 |     100 |     100 | 13-19                                                                                                                                            
+ src/ui/hooks                    |   30.55 |     3.84 |   15.38 |   30.55 |                                                                                                                                                  
+  useJobInput.ts                 |    3.84 |        0 |    8.33 |    3.84 | 36-99                                                                                                                                            
+  useJobState.ts                 |     100 |       50 |     100 |     100 | 39                                                                                                                                               
+ src/ui/services                 |   78.68 |       75 |   33.33 |   79.24 |                                                                                                                                                  
+  htmlEnricher.ts                |   94.11 |    83.33 |     100 |   93.33 | 41,128-129                                                                                                                                       
+  urlHandler.ts                  |       0 |        0 |       0 |       0 | 4-22                                                                                                                                             
+---------------------------------|---------|----------|---------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------
+Test Suites: 5 skipped, 25 passed, 25 of 30 total
+Tests:       8 skipped, 181 passed, 189 total
+Snapshots:   2 passed, 2 total
+Time:        24.336 s
+Ran all test suites.
+ 

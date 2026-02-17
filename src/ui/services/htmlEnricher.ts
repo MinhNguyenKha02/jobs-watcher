@@ -1,5 +1,5 @@
-import { HtmlJobParser } from '../../services/parsers/html-job-parser.js';
 import { filterJobCompatibility, loadProfile } from '../../services/constraints.js';
+import { HtmlJobParser } from '../../services/parsers/html-job-parser.js';
 import type { Job } from '../../types.js';
 
 export async function enrichJobFromHtml(
@@ -8,7 +8,7 @@ export async function enrichJobFromHtml(
   onJobUpdate: (job: Job) => void,
   onMatchScoreUpdate: (score: number) => void
 ): Promise<Job | null> {
-  if (!html.trim()) {
+  if (!html || typeof html !== 'string' || !html.trim()) {
     console.log('   ⚠️  HTML enrichment: Empty HTML provided');
     return null;
   }
@@ -26,13 +26,17 @@ export async function enrichJobFromHtml(
 
     const parser = new HtmlJobParser();
     const parsed = parser.parseJobFromHtml(html);
-    
+
     if (!parsed || !parsed.title) {
       const lower = html.toLowerCase();
-      const looksLikeDetail = lower.includes('job-detail__info--title') || lower.includes('jobsearch-jobinfoheader-title');
+      const looksLikeDetail =
+        lower.includes('job-detail__info--title') ||
+        lower.includes('jobsearch-jobinfoheader-title');
       if (!looksLikeDetail) {
         console.log('   ❌ HTML parsing failed: No job data extracted');
-        console.log('   💡 Tip: paste full job detail page source (View Page Source), then type END on a new line.');
+        console.log(
+          '   💡 Tip: paste full job detail page source (View Page Source), then type END on a new line.'
+        );
       } else {
         console.log('   ❌ HTML parsing failed: Missing required fields');
       }
@@ -68,10 +72,14 @@ export async function enrichJobFromHtml(
     if (parsed.location && parsed.location !== currentJob.location) enrichedFields.push('location');
     if (parsed.salary && parsed.salary !== currentJob.salary) enrichedFields.push('salary');
     if (parsed.url && parsed.url !== currentJob.url) enrichedFields.push('url');
-    if (parsed.description && parsed.description !== currentJob.description) enrichedFields.push('description');
+    if (parsed.description && parsed.description !== currentJob.description)
+      enrichedFields.push('description');
     if (parsed.details && parsed.details !== currentJob.details) enrichedFields.push('details');
 
-    console.log('   📝 Enriched Fields:', enrichedFields.length > 0 ? enrichedFields.join(', ') : 'none (data same as original)');
+    console.log(
+      '   📝 Enriched Fields:',
+      enrichedFields.length > 0 ? enrichedFields.join(', ') : 'none (data same as original)'
+    );
     console.log('   💾 Updated Job Metadata:', {
       position: updatedJob.position,
       company: updatedJob.company,

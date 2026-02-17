@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">71.42% </span>
+                <span class="strong">55.55% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>10/14</span>
+                <span class='fraction'>5/9</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">71.42% </span>
+                <span class="strong">55.55% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>10/14</span>
+                <span class='fraction'>5/9</span>
             </div>
         
             
@@ -150,15 +150,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">123x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -166,7 +166,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -177,7 +177,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -185,26 +184,27 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
@@ -229,19 +229,19 @@ export class ConsoleLogger implements ILogger {
     this.prefix = prefix;
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  debug(</span>message: string, ...args: any[]): void {
-<span class="cstat-no" title="statement not covered" >    console.log(`[${this.prefix}] 🐛 DEBUG:`, message, ...args);</span>
+  debug(message: string, ...args: any[]): void {
+    console.log(`[${this.prefix}] 🐛 DEBUG:`, message, ...args);
   }
 &nbsp;
   info(message: string, ...args: any[]): void {
     console.log(`[${this.prefix}] ℹ️  INFO:`, message, ...args);
   }
 &nbsp;
-  warn(message: string, ...args: any[]): void {
-    console.warn(`[${this.prefix}] ⚠️  WARN:`, message, ...args);
+<span class="fstat-no" title="function not covered" >  wa</span>rn(message: string, ...args: any[]): void {
+<span class="cstat-no" title="statement not covered" >    console.warn(`[${this.prefix}] ⚠️  WARN:`, message, ...args);</span>
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  error(</span>message: string, ...args: any[]): void {
+<span class="fstat-no" title="function not covered" >  er</span>ror(message: string, ...args: any[]): void {
 <span class="cstat-no" title="statement not covered" >    console.error(`[${this.prefix}] ❌ ERROR:`, message, ...args);</span>
   }
 }
@@ -250,10 +250,10 @@ export class ConsoleLogger implements ILogger {
  * Silent logger - suppresses all output (useful for tests)
  */
 export class SilentLogger implements ILogger {
-<span class="fstat-no" title="function not covered" >  debug(</span>_message: string, ..._args: any[]): void {}
-<span class="fstat-no" title="function not covered" >  info(</span>_message: string, ..._args: any[]): void {}
-<span class="fstat-no" title="function not covered" >  warn(</span>_message: string, ..._args: any[]): void {}
-<span class="fstat-no" title="function not covered" >  error(</span>_message: string, ..._args: any[]): void {}
+<span class="fstat-no" title="function not covered" >  de</span>bug(_message: string, ..._args: any[]): void {}
+<span class="fstat-no" title="function not covered" >  in</span>fo(_message: string, ..._args: any[]): void {}
+<span class="fstat-no" title="function not covered" >  wa</span>rn(_message: string, ..._args: any[]): void {}
+<span class="fstat-no" title="function not covered" >  er</span>ror(_message: string, ..._args: any[]): void {}
 }
 &nbsp;
 // Global logger instance
@@ -286,7 +286,7 @@ export function <span class="fstat-no" title="function not covered" >createLogge
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-18T13:06:24.880Z
+                at 2026-02-17T05:20:52.718Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

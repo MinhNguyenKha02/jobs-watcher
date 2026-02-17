@@ -1,7 +1,10 @@
-import { google } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+import { google } from 'googleapis';
+
+// DeliveryLog import removed (was unused)
 
 let __dir: string;
 try {
@@ -26,6 +29,90 @@ export class GmailService {
     this.auth = authClient;
   }
 
+  /**
+   * Send an email using the Gmail API (RFC822 message)
+   * Usage: await gmailService.sendMail({ to, subject, text, attachments })
+   */
+  async sendMail(params: {
+    to: string;
+    subject: string;
+    text: string;
+    attachments?: { filename: string; path: string }[];
+    jobId?: string;
+    profileHash?: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    const {
+      to,
+      subject,
+      text,
+      attachments = [],
+      jobId = 'unknown',
+      profileHash = 'unknown',
+    } = params;
+    const gmail = this.ensureClient();
+    try {
+      // Build RFC822 message
+      const boundary = '----=_NodeMailer_GmailAPI_' + Date.now();
+      let message = '';
+      message += `From: me\r\n`;
+      message += `To: ${to}\r\n`;
+      message += `Subject: ${subject}\r\n`;
+      message += `MIME-Version: 1.0\r\n`;
+      if (attachments.length > 0) {
+        message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`;
+        message += `--${boundary}\r\n`;
+        message += `Content-Type: text/plain; charset="UTF-8"\r\n\r\n`;
+        message += `${text}\r\n`;
+        for (const att of attachments) {
+          const content = fs.readFileSync(att.path).toString('base64');
+          message += `--${boundary}\r\n`;
+          message += `Content-Type: application/octet-stream; name="${att.filename}"\r\n`;
+          message += `Content-Disposition: attachment; filename="${att.filename}"\r\n`;
+          message += `Content-Transfer-Encoding: base64\r\n\r\n`;
+          message += `${content}\r\n`;
+        }
+        message += `--${boundary}--`;
+      } else {
+        message += `Content-Type: text/plain; charset="UTF-8"\r\n\r\n`;
+        message += `${text}`;
+      }
+      const encodedMessage = Buffer.from(message)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+      await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: {
+          raw: encodedMessage,
+        },
+      });
+
+      // Log to action_log for E2E metrics
+      const mongoUri = process.env.MONGODB_URI || '';
+      if (mongoUri) {
+        // Use dynamic import for DeliveryLog to avoid require statement
+        const { DeliveryLog } = await import('./sender/delivery-log');
+        const log = new DeliveryLog(mongoUri, process.env.MONGODB_DB_NAME || 'jobs_watcher');
+        await log.log({
+          jobId,
+          profileHash,
+          recipient: to,
+          status: 'sent',
+          timestamp: new Date(),
+        });
+      }
+      return { success: true };
+    } catch (err: unknown) {
+      const errorMsg =
+        typeof err === 'object' && err !== null && 'message' in err
+          ? (err as { message: string }).message
+          : 'Unknown error';
+      return { success: false, error: errorMsg };
+    }
+  }
+  // ...existing code...
+
   private ensureClient() {
     if (!this.gmail) {
       throw new Error('Gmail client not initialized. Call authenticate() first.');
@@ -37,11 +124,7 @@ export class GmailService {
     const credentials = this.loadCredentials();
     const { client_secret, client_id, redirect_uris } = credentials.installed || credentials.web;
 
-    const oAuth2Client = new google.auth.OAuth2(
-      client_id,
-      client_secret,
-      redirect_uris[0]
-    );
+    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
     // Check if we have previously stored a token
     if (fs.existsSync(TOKEN_PATH)) {
@@ -57,9 +140,7 @@ export class GmailService {
 
   private loadCredentials() {
     if (!fs.existsSync(CREDENTIALS_PATH)) {
-      throw new Error(
-        'credentials.json not found. Please download it from Google Cloud Console.'
-      );
+      throw new Error('credentials.json not found. Please download it from Google Cloud Console.');
     }
     return JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
   }
@@ -73,11 +154,11 @@ export class GmailService {
    */
   async listMessages(queryOrLabelId: string, maxResults = 10) {
     const gmail = this.ensureClient();
-    
+
     // If it looks like a query (contains : or special chars), use as query
     // Otherwise treat as labelId
     const isQuery = /[:><"-]/.test(queryOrLabelId);
-    
+
     if (isQuery) {
       const res = await gmail.users.messages.list({
         userId: 'me',
@@ -113,11 +194,11 @@ export class GmailService {
     const gmail = this.ensureClient();
     const res = await gmail.users.labels.list({ userId: 'me' });
     const label = res.data.labels?.find((l: any) => l.name === labelName);
-    
+
     if (!label) {
       throw new Error(`Label "${labelName}" not found. Please create it in Gmail.`);
     }
-    
+
     return label.id;
   }
 
@@ -134,10 +215,13 @@ export class GmailService {
           labelFilterAction: 'include',
         },
       });
-      console.log(`✅ Gmail watch set up for label IDs: ${labelIds.join(', ')}`);
-    } catch (error: any) {
-      console.error('Failed to set up Gmail watch:', error.message);
-      throw error;
+      // console.log removed for lint compliance
+    } catch (error: unknown) {
+      const errorMsg =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? (error as { message: string }).message
+          : 'Unknown error';
+      throw new Error(`Failed to set up Gmail watch: ${errorMsg}`);
     }
   }
 
@@ -158,11 +242,11 @@ export class GmailService {
       id: messageId,
       format: 'raw',
     });
-    
+
     if (res.data.raw) {
       return Buffer.from(res.data.raw, 'base64').toString('utf-8');
     }
-    
+
     return '';
   }
 
@@ -193,40 +277,41 @@ export class GmailService {
     return Array.from(new Set(ids));
   }
 
-      async markAsRead(messageId: string): Promise<void> {
-        const gmail = this.ensureClient();
-        await gmail.users.messages.modify({
-          userId: 'me',
-          id: messageId,
-          requestBody: {
-            removeLabelIds: ['UNREAD'],
-          },
-        });
-      }
+  async markAsRead(messageId: string): Promise<void> {
+    const gmail = this.ensureClient();
+    await gmail.users.messages.modify({
+      userId: 'me',
+      id: messageId,
+      requestBody: {
+        removeLabelIds: ['UNREAD'],
+      },
+    });
+  }
 
-      async listHistory(startHistoryId: string) {
-        const gmail = this.ensureClient();
-        const res = await gmail.users.history.list({
-          userId: 'me',
-          startHistoryId,
-        });
+  async listHistory(startHistoryId: string) {
+    const gmail = this.ensureClient();
+    const res = await gmail.users.history.list({
+      userId: 'me',
+      startHistoryId,
+    });
 
-        return {
-          history: res.data.history || [],
-          historyId: res.data.historyId,
-        };
-      }
+    return {
+      history: res.data.history || [],
+      historyId: res.data.historyId,
+    };
+  }
 
-  extractHeader(message: any, headerName: string): string {
-    const header = message.payload?.headers?.find(
-      (h: any) => h.name.toLowerCase() === headerName.toLowerCase()
+  extractHeader(message: unknown, headerName: string): string {
+    const msg = message as any;
+    const header = msg.payload?.headers?.find(
+      (h: { name: string }) => h.name.toLowerCase() === headerName.toLowerCase()
     );
     return header?.value || '';
   }
 
-  extractBody(message: any): string {
+  extractBody(message: unknown): string {
     let body = '';
-
+    const msg = message as any;
     const getParts = (parts: any[]): void => {
       parts.forEach((part) => {
         if (part.mimeType === 'text/plain' || part.mimeType === 'text/html') {
@@ -239,13 +324,11 @@ export class GmailService {
         }
       });
     };
-
-    if (message.payload?.parts) {
-      getParts(message.payload.parts);
-    } else if (message.payload?.body?.data) {
-      body = Buffer.from(message.payload.body.data, 'base64').toString('utf-8');
+    if (msg.payload?.parts) {
+      getParts(msg.payload.parts);
+    } else if (msg.payload?.body?.data) {
+      body = Buffer.from(msg.payload.body.data, 'base64').toString('utf-8');
     }
-
     return body;
   }
 }

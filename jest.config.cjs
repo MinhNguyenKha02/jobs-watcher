@@ -1,34 +1,19 @@
 /** @type {import('jest').Config} */
 module.exports = {
-  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
-  roots: ['<rootDir>/tests'],
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
-  transform: {
-    '^.+\\.(ts|tsx)$': [
-      'ts-jest',
-      {
-        useESM: true,
-        tsconfig: {
-          module: 'esnext',
-          moduleResolution: 'bundler',
-          target: 'es2022',
-          jsx: 'react-jsx',
-          esModuleInterop: true,
-          isolatedModules: true,
-        },
-        diagnostics: {
-          ignoreCodes: ['TS151002', 'TS1343'],
-        },
-      },
-    ],
-  },
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  testEnvironmentOptions: {
+    customExportConditions: ['node', 'node-addons'],
+  },
+  roots: ['<rootDir>/tests'],
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
+  },
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(jsdom)/)',
+    'node_modules/(?!(jsdom|ink|react|react-dom)/)',
   ],
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -38,7 +23,12 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'json', 'mjs'],
   verbose: true,
   testTimeout: 10000,
+  runner: 'jest-runner',
+  setupFilesAfterEnv: [],
+  globalSetup: undefined,
+  globalTeardown: undefined,
+  testRunner: 'jest-circus/runner',
 };

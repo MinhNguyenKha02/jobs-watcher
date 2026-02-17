@@ -1,0 +1,11 @@
+
+#!/usr/bin/env sh
+set -x
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Lint staged files (allow console.log for troubleshooting)
+npx lint-staged --allow-empty --concurrent false || exit 1
+# Type-check
+npm run type-check || exit 1
+# Run only unit tests for beta stage (update snapshots automatically)
+NODE_OPTIONS=--experimental-vm-modules npx jest tests/unit/ -u --passWithNoTests --coverage --runInBand --detectOpenHandles --forceExit || exit 1

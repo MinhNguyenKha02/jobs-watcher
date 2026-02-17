@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals';
+
 import { GmailService } from '../../src/services/gmail.js';
 
 const runReal = process.env.GMAIL_INTEGRATION === 'true';

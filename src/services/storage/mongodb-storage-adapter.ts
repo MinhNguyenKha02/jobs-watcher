@@ -1,10 +1,10 @@
 /**
  * MongoDB Storage Adapter
- * 
+ *
  * Implements immutable/append-only pattern:
  * - raw_ingest: Insert once, never update
  * - parse_log: Append parse attempts only
- * 
+ *
  * Provides idempotent operations for resilient data ingestion
  */
 
@@ -12,6 +12,7 @@ import { MongoClient, Db, Collection } from 'mongodb';
 import type { Filter } from 'mongodb';
 
 import { type ILogger } from '../logger';
+
 import {
   RawIngestDocument,
   ParseLogDocument,
@@ -52,12 +53,8 @@ export class MongoDBStorageAdapter {
       this.db = this.client.db(this.dbName);
 
       // Get or create collections
-      this.rawIngestCollection = this.db.collection<RawIngestDocument>(
-        COLLECTIONS.RAW_INGEST
-      );
-      this.parseLogCollection = this.db.collection<ParseLogDocument>(
-        COLLECTIONS.PARSE_LOG
-      );
+      this.rawIngestCollection = this.db.collection<RawIngestDocument>(COLLECTIONS.RAW_INGEST);
+      this.parseLogCollection = this.db.collection<ParseLogDocument>(COLLECTIONS.PARSE_LOG);
 
       // Create indexes for optimal querying
       await this.createIndexes();
@@ -97,7 +94,9 @@ export class MongoDBStorageAdapter {
         const indexOptions: Record<string, unknown> = { name: idx.name };
         if ('unique' in idx && idx.unique) indexOptions.unique = true;
         if ('sparse' in idx && idx.sparse) indexOptions.sparse = true;
-        await this.rawIngestCollection.createIndex(idx.key, indexOptions);
+        // Remove undefined properties from key
+        const key = Object.fromEntries(Object.entries(idx.key).filter(([_, v]) => v !== undefined));
+        await this.rawIngestCollection.createIndex(key, indexOptions);
       }
 
       // Parse log indexes
@@ -105,7 +104,8 @@ export class MongoDBStorageAdapter {
         const indexOptions: Record<string, unknown> = { name: idx.name };
         if ('unique' in idx && idx.unique) indexOptions.unique = true;
         if ('sparse' in idx && idx.sparse) indexOptions.sparse = true;
-        await this.parseLogCollection.createIndex(idx.key, indexOptions);
+        const key = Object.fromEntries(Object.entries(idx.key).filter(([_, v]) => v !== undefined));
+        await this.parseLogCollection.createIndex(key, indexOptions);
       }
 
       this.logger.debug('MongoDB indexes created successfully');
@@ -239,7 +239,9 @@ export class MongoDBStorageAdapter {
         { $limit: limit },
       ];
 
-      const results = await this.parseLogCollection.aggregate<ParseFailureReport>(pipeline).toArray();
+      const results = await this.parseLogCollection
+        .aggregate<ParseFailureReport>(pipeline)
+        .toArray();
       return results;
     } catch (error) {
       this.logger.error('Failed to get failed parses', { error, stage });
@@ -279,10 +281,7 @@ export class MongoDBStorageAdapter {
     }
 
     try {
-      return await this.parseLogCollection
-        .find({ rawIngestId })
-        .sort({ timestamp: -1 })
-        .toArray();
+      return await this.parseLogCollection.find({ rawIngestId }).sort({ timestamp: -1 }).toArray();
     } catch (error) {
       this.logger.error('Failed to get parse history', { error, rawIngestId });
       throw error;
@@ -424,7 +423,7 @@ export class MongoDBStorageAdapter {
         matchFilter.success = true;
       }
 
-      return await this.parseLogCollection
+      const docs = await this.parseLogCollection
         .aggregate([
           { $match: matchFilter },
           {
@@ -440,6 +439,16 @@ export class MongoDBStorageAdapter {
           { $limit: limit },
         ])
         .toArray();
+      // Type guard: filter only objects with required ParseLogDocument fields
+      return docs.filter(
+        (doc: any) =>
+          doc &&
+          typeof doc.rawIngestId === 'string' &&
+          typeof doc.stage === 'string' &&
+          typeof doc.success === 'boolean' &&
+          typeof doc.executionMs === 'number' &&
+          doc.timestamp instanceof Date
+      ) as (ParseLogDocument & { rawIngest?: RawIngestDocument })[];
     } catch (error) {
       this.logger.error('Failed to get recent parses', { error });
       throw error;
