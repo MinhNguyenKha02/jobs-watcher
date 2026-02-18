@@ -146,18 +146,79 @@ interface JobActionHandler<TAction, TPayload> {
   - Outputs to `generated/` directory
 
 #### Storage Layer (MongoDB)
-- **`MongoDBStorageAdapter`** (`src/services/storage/mongodb-storage-adapter.ts`)
   - Immutable storage of raw emails/HTML (collection: `raw_ingest`)
   - Append-only parse attempt logs (collection: `parse_log`)
   - Query methods for analytics and regression testing
 
----
 
 ### 4. Data Layer (Storage)
 
 **Two-Collection Immutable Design:**
 
 #### `raw_ingest` Collection
+
+---
+
+## Job Processing, Queueing, and Deduplication
+
+Jobs Watcher uses a queue-based architecture to process incoming jobs (emails, webhook events, etc.) reliably and efficiently. This design ensures:
+
+- **Decoupling** of event ingestion from processing (enables retries, backpressure)
+- **Deduplication** of jobs using unique identifiers (e.g., messageId, hash)
+- **Idempotency** in job handlers (safe to retry jobs)
+- **Concurrency** via parallel workers, with deduplication ensuring each job is processed only once
+
+### Flow Diagram
+
+```mermaid
+graph TD
+    A[Receive Event (Webhook, Poll, CLI)] --> B[Enqueue Job]
+    B --> C{Is Duplicate?}
+    C -- Yes --> D[Drop/Log Duplicate]
+    C -- No --> E[Process Job]
+    E --> F[Persist Result]
+    F --> G[Mark as Processed]
+```
+
+### Key Points
+- **Job Queue:** Can be in-memory, Redis, or DB-backed. All jobs are enqueued for processing.
+- **Deduplication Store:** Persistent (MongoDB/Redis) or in-memory (session-local) store tracks processed job IDs.
+- **Retries:** Failed jobs are retried with exponential backoff.
+- **Extensibility:** The queue and deduplication mechanisms can be swapped for distributed systems (e.g., BullMQ, RabbitMQ) as scale increases.
+
+### Example Implementation
+
+```typescript
+async function handleIncomingJob(job) {
+  if (await isDuplicate(job.id)) {
+    log('Duplicate job, skipping:', job.id);
+    return;
+  }
+  await markInProgress(job.id);
+  try {
+    await processJob(job);
+    await markProcessed(job.id);
+  } catch (err) {
+    await markFailed(job.id, err);
+    throw err;
+  }
+}
+```
+
+**Benefits:**
+- Handles bursty loads gracefully
+- Prevents duplicate processing
+- Enables horizontal scaling
+- Improves reliability and observability
+
+**Trade-offs:**
+- Slightly increased complexity (queue management, deduplication store)
+- Requires monitoring for stuck or failed jobs
+
+**Future Improvements:**
+- Distributed queue for large-scale deployments
+- Dead-letter queue for failed jobs
+- Metrics and alerting for job processing health
 Authoritative input records (never updated):
 
 ```typescript

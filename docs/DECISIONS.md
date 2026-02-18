@@ -52,7 +52,6 @@ class JobProcessor<TAction, TPayload> {
 2. **Strategy pattern with conditional logic**: Would keep single class → tight coupling, harder to test
 3. **Event-based (pub/sub)**: Would add event bus complexity → overkill for current scope
 
-### Decision Outcome
 ✅ **Adopted.** Enables:
 - Multiple UIs simultaneously (TUI for prod, CLI for testing)
 - Easy headless mode (no presenter = just action handler)
@@ -60,13 +59,8 @@ class JobProcessor<TAction, TPayload> {
 - Clean testing via mocks
 
 ---
-
-## Decision 2: Two-Collection Immutable MongoDB Schema
-
 **Status:** ✅ ADOPTED
 
-### Problem
-Original approach used only file-based storage (JSON files in `db/enriched/`):
 - No audit trail of parsing attempts
 - No way to analyze failure patterns
 - Difficult to export fixtures for regression testing
@@ -74,7 +68,6 @@ Original approach used only file-based storage (JSON files in `db/enriched/`):
 
 ### Decision
 Use two immutable/append-only MongoDB collections:
-
 **`raw_ingest`** (Insert-only)
 ```json
 {
@@ -82,18 +75,11 @@ Use two immutable/append-only MongoDB collections:
   "source": "GMAIL_WEBHOOK | GMAIL_MANUAL | HTML_ONLY",
   "rawContent": "...",
   "gmailMeta": { "messageId", "from", "subject", ... },
-  "ingestedAt": "2026-02-13T...",
-  "createdAt": "2026-02-13T..."
-}
-```
 
 **`parse_log`** (Append-only)
 ```json
 {
   "_id": "logId",
-  "rawIngestId": "FK to raw_ingest",
-  "stage": "METADATA | JOB_DETAIL",
-  "success": true|false,
   "extracted": { "company", "title", ... },
   "error": { "code", "message" },
   "timestamp": "2026-02-13T..."
@@ -124,23 +110,10 @@ Use two immutable/append-only MongoDB collections:
 
 ---
 
-## Decision 3: Two-Stage Parser (METADATA vs JOB_DETAIL)
-
-**Status:** ✅ IMPLEMENTED (Feb 14, 2026)
-
 ### Problem
-Parser sometimes fails mid-extraction:
-- Extracts company/title successfully
-- Then fails to extract URL (dead link, etc.)
-- User gets partial data, unclear what failed
-- No way to retry just the failed stage
 
 ### Decision
 Split parsing into two independent stages:
-
-**Stage 1: METADATA** (Fast, reliable)
-- Extract: company, title, salary, location
-- Minimal regex/string parsing
 - ~95% success rate expected
 
 **Stage 2: JOB_DETAIL** (Complex, lower reliability)
@@ -155,46 +128,76 @@ await storage.logParseAttempt({
   stage: 'METADATA',
   success: true,
   extracted: { company: '...', title: '...' },
-  timestamp: new Date()
-});
 
 await storage.logParseAttempt({
   rawIngestId: raw._id,
-  stage: 'JOB_DETAIL',
   success: true,
   extracted: { url: '...', description: '...' },
   timestamp: new Date()
 });
-```
-
-### Tradeoffs
-
-| Aspect | Benefit | Cost |
-|--------|---------|------|
 | **Staged approach** | Can proceed with partial data (app title/salary) | User sees incomplete job (missing URL) |
-| **Stage-specific metrics** | Identify which stage needs improvement | More complex logging |
-| **Retry capability** | Could retry just stage 2 if URL fetch updated | Not implemented yet (future feature) |
-
-### Alternatives Considered
-1. **Single monolithic parse**: Simpler code, all-or-nothing result → user gets no data if any step fails
 2. **Three+ stages**: Could add CONSTRAINTS stage → over-engineered for current needs
-3. **Optional fields (permissive parser)**: Less strict validation → confuses user with garbage data
-
-### Decision Outcome
-✅ **Implemented.** Verified with real email test (Feb 14):
-- parseMetadata() executes independently in ~1ms
-- parseJobDetail() executes independently in ~0ms
-- Both stages logged separately to MongoDB
-- TUI receives merged results and displays correctly
 
 ---
 
-## Decision 4: Fixture-Based Parser Regression Testing
+### Problem
 
-**Status:** ✅ ADOPTED (replaces interactive data-testing loop)
+## Decision 11: Queue-Based Job Processing with Deduplication
+
+**Status:** ✅ ADOPTED (Feb 18, 2026)
 
 ### Problem
-Previous approach:
+Incoming jobs (emails, webhook events) can arrive in bursts, out of order, or with duplicates (e.g., Pub/Sub retries, manual triggers). Processing must be reliable, idempotent, and scalable.
+
+### Decision
+Adopt a queue-based architecture for job processing, with explicit deduplication:
+- All incoming jobs are enqueued for processing (decouples ingestion from processing)
+- Each job is assigned a unique identifier (e.g., messageId, hash)
+- Deduplication is performed before processing (in-memory for session-local, persistent for cross-session)
+- Job handlers are idempotent (safe to retry)
+- Failed jobs are retried with exponential backoff
+
+#### Example Implementation
+```typescript
+async function handleIncomingJob(job) {
+  if (await isDuplicate(job.id)) {
+    log('Duplicate job, skipping:', job.id);
+    return;
+  }
+  await markInProgress(job.id);
+  try {
+    await processJob(job);
+    await markProcessed(job.id);
+  } catch (err) {
+    await markFailed(job.id, err);
+    throw err;
+  }
+}
+```
+
+### Tradeoffs
+| Aspect | Benefit | Cost |
+|--------|---------|------|
+| **Queue-based** | Handles bursty/concurrent loads, enables retries | Adds queue management complexity |
+| **Deduplication** | Prevents duplicate processing | In-memory dedup lost on restart (unless persistent) |
+| **Idempotency** | Safe to retry jobs | Requires careful handler design |
+| **Extensible** | Can swap in distributed queue/dedup store | More moving parts at scale |
+
+### Alternatives Considered
+1. **No deduplication**: Simpler, but risks duplicate side effects
+2. **Persistent dedup only**: Always correct, but slower and more resource-intensive
+3. **Event-based (pub/sub) only**: Decouples further, but adds complexity for current needs
+
+### Implementation Details
+- **Queue**: In-memory for dev/small scale; Redis/BullMQ/RabbitMQ for production
+- **Deduplication**: In-memory Set for session-local; Redis/MongoDB for cross-session
+- **Retries**: Exponential backoff for failed jobs
+- **Monitoring**: Metrics and alerting for stuck/failed jobs (future)
+
+### Decision Outcome
+✅ **Adopted.** Enables reliable, scalable, and observable job processing. Sufficient for current scale; extensible for future needs.
+
+---
 ```bash
 npm run data-testing
 # Interactive loop: paste email → show TUI → choose action

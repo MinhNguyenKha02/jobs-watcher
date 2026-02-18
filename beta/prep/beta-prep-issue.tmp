@@ -1,0 +1,72 @@
+# Beta Prep Issue: CI, Manual Test Hooks, and Feedback Integration
+
+## Summary
+This issue summarizes the required automation, manual processes, and feedback integration for each beta cycle, referencing the latest staging, monitoring, and job queue documentation.
+
+### References
+- beta-automation-plan.md
+- beta-exit-criteria.md
+- beta-monitoring-feedback.md
+- beta-staging-process.md
+- event-driven-concurrency.md
+- release-notes.md
+- beta-staging-setup-log.tmp
+
+---
+
+## 1. CI Job: Metrics & Log Aggregation
+- **Automate**: CI job to extract and aggregate job processing metrics (success/error rates) and logs at the end of each beta cycle.
+- **Script Reference**: Use or extend scripts in `src/services/metrics/analytics-queries.ts` and `metrics-recorder.ts`.
+- **Output**: Daily/Per-cycle summary report, error alerts, and log snapshots.
+
+## 2. Manual Test/Clipboard Process (No Gmail Input)
+- **Manual Step**: For input-waiting jobs, use a clipboard/manual test process to simulate or inject test data (no Gmail integration).
+- **Documentation**: Record manual test steps and results in temporary files or logs for each cycle.
+
+## 3. Tagging/Versioning Enforcement (Git Bash Only)
+- **Enforce**: Semantic versioning for each beta cycle: `v<major>.<minor>.<patch>-beta.<cycle>`
+- **Commands**:
+  - Tag: `git tag vX.Y.Z-beta.N`
+  - Push tag: `git push origin vX.Y.Z-beta.N`
+  - List tags: `git tag --list`
+- **Update**: Release notes and documentation for each new tag/cycle.
+
+## 4. Exit Criteria & Cycle Timing
+- **Cycles**: 3-4 beta cycles, each lasting several hours to days.
+- **Exit Criteria**: See `beta-exit-criteria.md` and `beta-staging-process.md`.
+  - 80%+ criteria for 2 cycles, 100% for 1 cycle.
+- **Document**: Results and notes for each cycle in release notes and exit criteria files.
+
+## 5. Outbound Context Setup (Future Job Platforms)
+- **Prepare**: Document and script outbound context setup for future job platforms (not Gmail).
+- **Note**: Ensure event-driven, independent job handlers and metrics for new platforms.
+
+---
+
+## Required Scripts/Bash Commands
+- **Version Tagging**:
+  - `git tag vX.Y.Z-beta.N`
+  - `git push origin vX.Y.Z-beta.N`
+  - `git tag --list`
+- **Metrics Extraction**:
+  - `node scripts/analyze-raw-emails.ts` (or similar metrics script)
+- **Log Review**:
+  - `cat logs/job-processing.log | grep ERROR`
+  - `cat logs/job-processing.log | tail -n 100`
+- **Documentation Sync**:
+  - `git add docs/ release-notes.md beta-exit-criteria.md`
+  - `git commit -m "docs: update beta cycle documentation"`
+
+---
+
+## Next Steps (Manual Review)
+- [ ] Review this issue and referenced documentation.
+- [ ] Confirm CI job and script readiness.
+- [ ] Validate manual test/clipboard process for input-waiting jobs.
+- [ ] Check version tagging and documentation update process.
+- [ ] Prepare outbound context setup for future job platforms.
+- [ ] Do **not** push or commit until manual review is complete.
+
+---
+
+*This file is temporary and for beta prep review only.*
