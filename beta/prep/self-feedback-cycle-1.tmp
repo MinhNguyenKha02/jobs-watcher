@@ -1,0 +1,32 @@
+# Self-Feedback: Beta Cycle 1 (v1.0.0-beta.1.A)
+
+## User Feedback Summary
+- Score (1-5): 
+- Comments: 
+
+## Manual Validation Notes
+- Criteria met (see beta-exit-criteria.md):
+  - [ ] Core job processing success rate ≥ 95%
+  - [ ] Error frequency < 5% of total jobs
+  - [ ] User feedback: ≥ 4/5 average rating
+  - [ ] No critical bugs open
+  - [ ] Monitoring and alerting in place
+  - [ ] Documentation complete
+  - [ ] Automated daily log review
+  - [ ] Event-driven concurrency validated
+  - [ ] Temporary file/documentation process validated
+- Issues found:
+
+## Timestamp
+- Date: 
+- Reviewer initials: 
+
+## Status
+- [ ] Complete
+- [ ] Cancelled (^C)
+
+---
+Instructions:
+- Fill out this file after each beta cycle.
+- Reference this file in release notes and exit criteria.
+- Remove or mark as ^C if cycle is aborted/cancelled.
