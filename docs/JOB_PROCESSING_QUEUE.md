@@ -1,5 +1,31 @@
 # Job Processing, Queueing, and Deduplication
 
+## Supported Input Contexts
+
+Jobs Watcher supports three input adapters for job ingestion:
+- **Gmail Watcher (Pub/Sub Webhook):** Real-time, event-driven ingestion from Gmail. Listens on loopback for security. ACKs fast, processes in background.
+- **Pub/Sub Fallback:** If Gmail webhook fails, retries via Pub/Sub. All failures are logged and retried deterministically. No silent drops.
+- **Manual Clipboard Importer:** Manual job entry or clipboard paste for jobs from external platforms. Used for platforms not directly integrated or for fallback/manual validation.
+
+All input contexts are funneled into the same job queue, ensuring consistent deduplication, idempotency, and processing logic regardless of source. Deterministic engineering rules ensure:
+- No silent failures: All errors are logged and traceable.
+- Fallbacks are explicit, non-negotiable, and self-assigned.
+- Schedule configuration and constraints are enforced (see below).
+
+See [ARCHITECTURE.md](ARCHITECTURE.md#supported-input-contexts) and [DECISIONS.md](DECISIONS.md#input-contexts--platform-support) for architectural details.
+
+---
+
+## Schedule Configuration & Constraints
+
+- **Semantic Versioning:** Every release is tagged (vX.Y.Z-beta.N). No untagged deployments.
+- **Backup & Rollback:** DB/config backups before each tag. Rollback is O(1) via tag reference.
+- **Time Reduction:** Queue-based concurrency, early termination for filtered jobs, memory/cpu constraints enforced.
+- **Deterministic Rules:** Atomic commits, conventional commit messages, strict boundaries (UI → Application → Domain → Infrastructure).
+- **Fallback Logic:** Pub/Sub retry, manual import, explicit error handling. No silent fallback or skip.
+
+All constraints and fallback logic are non-negotiable and self-assigned. See [.agent-custome-rules.instructions.md](../.github/.agent-custome-rules.instructions.md) for engineering rules.
+
 This document details the strategy for job processing, queue management, and deduplication in the Jobs Watcher system.
 
 ---
@@ -67,6 +93,11 @@ async function handleIncomingJob(job) {
 - Improved deduplication and idempotency checks for beta reliability
 - Dead-letter queue implementation for repeated failures
 - Enhanced monitoring: success/error rates, job counts, deduplication stats
+
+- **CI Automation:**
+  - CI jobs run metrics aggregation, log review, and documentation update steps as described in [MICRO_PLAN.md](../MICRO_PLAN.md).
+  - Feedback and exit criteria are checked and updated automatically after each cycle.
+  - Manual and clipboard input jobs are included in metrics and deduplication statistics.
 
 
 

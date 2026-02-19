@@ -1,5 +1,19 @@
 # CI Micro-Plan: Beta Metrics Aggregation, Self-Feedback, and Documentation
 
+## Input Contexts and CI Coverage
+
+Jobs Watcher supports three input adapters, all included in CI validation, metrics, and documentation updates:
+- **Gmail Watcher (Pub/Sub Webhook):** Real-time, event-driven ingestion. Loopback only. ACK fast, process in background.
+- **Pub/Sub Fallback:** Retry on webhook failure. All failures logged and retried deterministically. No silent drops.
+- **Manual Clipboard Importer:** Manual or clipboard-based job entry for platforms not directly integrated or for fallback/manual validation.
+
+All input types are processed through a unified queue, deduplication, and idempotency logic. Deterministic engineering rules ensure:
+- No silent failures: All errors are logged and traceable.
+- Fallbacks are explicit, non-negotiable, and self-assigned.
+- Schedule configuration and constraints are enforced for every release.
+
+Reference: docs/ARCHITECTURE.md, docs/JOB_PROCESSING_QUEUE.md, .github/.agent-custome-rules.instructions.md
+
 ## 1. CI Job Flow
 
 - **Trigger:** On each commit, nightly schedule, and manual beta cycle start.

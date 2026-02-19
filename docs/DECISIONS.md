@@ -1,5 +1,15 @@
 # Architectural Decisions & Tradeoffs
 
+## Input Contexts & Platform Support
+
+| Input Context              | Description                                              | Architectural Support         |
+|----------------------------|----------------------------------------------------------|-------------------------------|
+| Watcher (Gmail Webhook)    | Real-time event-driven job ingestion from Gmail          | EventDrivenWebhook, JobQueue  |
+| Clipboard/Manual Platform  | Manual entry or clipboard paste from job boards/platforms| CLI/TUI, JobQueue             |
+| Fixture/Manual Ingestion   | Regression testing, data import via JSON/CLI             | DataTestingAdapter, JobQueue  |
+
+All input contexts are normalized and processed through the same queue, deduplication, and CI feedback/metrics logic. See [ARCHITECTURE.md](ARCHITECTURE.md#supported-input-contexts) and [JOB_PROCESSING_QUEUE.md](JOB_PROCESSING_QUEUE.md#supported-input-contexts).
+
 This document records key decisions made during the redesign of Jobs Watcher, including rationale, tradeoffs, and alternatives considered.
 
 **Last Updated**: February 15, 2026  
@@ -604,6 +614,8 @@ Benefits:
 | 8. Constructor Injection | ✅ Adopted | Q1 2026 | Testable, flexible | ✅ Code review |
 | 9. MongoDB + Files | ✅ Adopted | Q1 2026 | Scalable + user-friendly | ✅ E2E tested |
 | 10. Score Matcher v0.5 | ✅ Implemented | Feb 15, 2026 | Transparent multi-dimensional scoring | ✅ 20+ unit tests |
+
+**Input Contexts:** All input types (watcher, clipboard/manual, fixture/manual) are supported and validated in CI, metrics, and feedback loops.
 
 ---
 

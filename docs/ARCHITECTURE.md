@@ -1,5 +1,31 @@
 # Clean Architecture: Jobs Watcher
 
+## Supported Input Contexts
+
+Jobs Watcher ingests jobs from three input adapters:
+1. **Gmail Watcher (Pub/Sub Webhook):** Real-time, event-driven ingestion from Gmail. Listens on loopback for security. ACKs fast, processes in background.
+2. **Pub/Sub Fallback:** If Gmail webhook fails, retries via Pub/Sub. All failures are logged and retried deterministically. No silent drops.
+3. **Manual Clipboard Importer:** Allows manual entry or clipboard paste for jobs from external platforms. Used for platforms not directly integrated or for fallback/manual validation.
+
+All input sources are normalized and processed through a unified queue, deduplication, and idempotency logic. Deterministic engineering rules ensure:
+- No silent failures: All errors are logged and traceable.
+- Fallbacks are explicit, non-negotiable, and self-assigned.
+- Schedule configuration and constraints are enforced (see below).
+
+See [JOB_PROCESSING_QUEUE.md](JOB_PROCESSING_QUEUE.md#supported-input-contexts) and [DECISIONS.md](DECISIONS.md#input-contexts--platform-support) for more details.
+
+---
+
+## Schedule Configuration & Constraints
+
+- **Semantic Versioning:** Every release is tagged (vX.Y.Z-beta.N). No untagged deployments.
+- **Backup & Rollback:** DB/config backups before each tag. Rollback is O(1) via tag reference.
+- **Time Reduction:** Queue-based concurrency, early termination for filtered jobs, memory/cpu constraints enforced.
+- **Deterministic Rules:** Atomic commits, conventional commit messages, strict boundaries (UI → Application → Domain → Infrastructure).
+- **Fallback Logic:** Pub/Sub retry, manual import, explicit error handling. No silent fallback or skip.
+
+All constraints and fallback logic are non-negotiable and self-assigned. See [.agent-custome-rules.instructions.md](../.github/.agent-custome-rules.instructions.md) for engineering rules.
+
 ## Overview
 
 Jobs Watcher follows a **Clean Architecture** pattern with strict separation of concerns across five layers. This design enables independent testing, easy feature addition, and seamless substitution of implementations.
@@ -369,6 +395,11 @@ Option B: Demo payload
   - `gmail.labelName`: Watch label (default "Job-Alerts")
   - `features`: Enable/disable logging, notifications, etc.
 
+- **Input Context Configuration:**
+  - Manual/clipboard jobs can be ingested via CLI or TUI.
+  - Fixture-based jobs are loaded for regression and integration testing.
+  - All input types are included in CI metrics and feedback loops.
+
 **Environment Variables:**
 - `MONGODB_URI`: MongoDB connection string
 - `MONGODB_DB_NAME`: Database name (default "jobs_watcher")
@@ -390,6 +421,10 @@ Option B: Demo payload
 
 - **Storage tests**: `tests/unit/storage/`
   - Mock MongoDB, test adapter methods
+
+- **Input Context Coverage:**
+  - Unit and integration tests cover watcher, manual/clipboard, and fixture-based job ingestion.
+  - CI jobs validate all input contexts and update documentation/metrics accordingly.
 
 ### Integration Tests
 - **End-to-end webhook**: `tests/e2e/webhook.test.ts`
