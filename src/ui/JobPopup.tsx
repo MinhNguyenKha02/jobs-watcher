@@ -105,7 +105,7 @@ function JobPopupComponent({ job: initialJob, onAction }: Props) {
 
   const inputHandlers = createInputHandlers(state, handlers);
 
-  useInput((input, key) => {
+  useInput((input: string, key: { return?: boolean; escape?: boolean; backspace?: boolean; delete?: boolean; ctrl?: boolean; meta?: boolean }) => {
     if (state.mode === 'menu') {
       if (input === 'a' && state.selected.startsWith('apply')) inputHandlers.onApplyMode();
       else if (input === 'p') inputHandlers.onHtmlPaste();

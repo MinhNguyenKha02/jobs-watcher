@@ -101,6 +101,38 @@ export interface ParseLogDocument {
 }
 
 /**
+ * Needs Enrichment Document
+ * Tracks jobs that passed initial filtering but need manual enrichment
+ * for improved field extraction, skills detection, or verification
+ */
+export interface NeedsEnrichmentDocument {
+  _id?: string | { toString(): string };  // MongoDB ObjectId
+  
+  // Job reference
+  messageId: string;
+  jobTitle: string;
+  company: string;
+  
+  // Why enrichment is needed
+  reason: 'missing_skills' | 'incomplete_description' | 'low_match_score' | 'unverified_platform' | 'user_requested';
+  missingFields?: string[];
+  
+  // Current state
+  currentScore?: number;
+  currentSkills?: string[];
+  
+  // Enrichment status
+  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+  enrichedAt?: Date;
+  
+  // Tracking
+  createdAt: Date;
+  updatedAt: Date;
+  enrichmentSource?: 'manual' | 'html_paste' | 'profile_matching' | 'unknown';
+  enrichmentNotes?: string;
+}
+
+/**
  * Query result types for common operations
  */
 export interface ParseFailureReport {
@@ -149,4 +181,5 @@ export const STORAGE_INDEXES = {
 export const COLLECTIONS = {
   RAW_INGEST: 'raw_ingest',
   PARSE_LOG: 'parse_log',
+  NEEDS_ENRICHMENT: 'needs_enrichment',
 } as const;

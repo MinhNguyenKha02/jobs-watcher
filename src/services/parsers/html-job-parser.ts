@@ -444,6 +444,13 @@ export class HtmlJobParser implements IHtmlJobParser {
       if (titleMatch) title = titleMatch[1]?.trim() || '';
     }
 
+    if (!title) {
+      const altTitleMatch = html.match(
+        /class=["'][^"']*(?:job-item__title|job-item-title|job-title)[^"']*["'][^>]*>([\s\S]*?)<\//i
+      );
+      if (altTitleMatch) title = cleanText(altTitleMatch[1] || '');
+    }
+
     // Company: TopCV detail page company block
     const detailCompanyMatch = html.match(
       /company-name-label[\s\S]*?<a[^>]*class="name"[^>]*>([\s\S]*?)<\/a>/i
@@ -475,6 +482,13 @@ export class HtmlJobParser implements IHtmlJobParser {
     if (!company) {
       const companyMatch = html.match(/class="[^"]*company[^"]*"[^>]*>[\s\n]*<span[^>]*>([^<]+)</);
       if (companyMatch) company = companyMatch[1]?.trim() || '';
+    }
+
+    if (!company) {
+      const altCompanyMatch = html.match(
+        /class=["'][^"']*(?:job-item__company|company-name|employer-name)[^"']*["'][^>]*>([\s\S]*?)<\//i
+      );
+      if (altCompanyMatch) company = cleanText(altCompanyMatch[1] || '');
     }
 
     // Location: TopCV detail page location block
@@ -710,6 +724,16 @@ export class HtmlJobParser implements IHtmlJobParser {
       }
     }
 
+    // Fallback Title: alert cards often use plain <h2> without nested anchors
+    if (!title) {
+      const alertTitleMatch = html.match(
+        /<div[^>]*class="[^"]*job-item[^"]*"[^>]*>[\s\S]*?<h2[^>]*>([\s\S]*?)<\/h2>/i
+      );
+      if (alertTitleMatch) {
+        title = cleanText(alertTitleMatch[1] || '').replace(/\s*-\s*job post\s*$/i, '').trim();
+      }
+    }
+
     if (!title) return null;
 
     // Company: Indeed detail page company name (nested tags supported)
@@ -721,6 +745,21 @@ export class HtmlJobParser implements IHtmlJobParser {
     if (!company) {
       const companyNameMatch = html.match(/data-company-name="true"[^>]*>([\s\S]*?)<\//i);
       if (companyNameMatch) company = cleanText(companyNameMatch[1] || '');
+    }
+
+    // Fallback Company from alert cards: <p>Company - Location</p>
+    if (!company) {
+      const alertCompanyMatch = html.match(
+        /<div[^>]*class="[^"]*job-item[^"]*"[^>]*>[\s\S]*?<h2[^>]*>[\s\S]*?<\/h2>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i
+      );
+      if (alertCompanyMatch) {
+        const firstLine = cleanText(alertCompanyMatch[1] || '');
+        if (firstLine.includes(' - ')) {
+          company = firstLine.split(' - ')[0].trim();
+        } else {
+          company = firstLine.trim();
+        }
+      }
     }
 
     // Location: Indeed detail page location (nested tags supported)
@@ -980,6 +1019,13 @@ export class HtmlJobParser implements IHtmlJobParser {
     }
 
     if (!url) {
+      const alertApplyLink = html.match(
+        /<div[^>]*class="[^"]*job-item[^"]*"[^>]*>[\s\S]*?<a[^>]*href="([^"]*indeed\.com\/(?:rc\/clk\/dl|viewjob\?)[^"]*)"/i
+      );
+      if (alertApplyLink) url = alertApplyLink[1] || '';
+    }
+
+    if (!url) {
       const applyMatch = html.match(/https?:\/\/[^"'\s>]*indeed\.com\/applystart\?[^"'\s>]+/i);
       if (applyMatch) url = applyMatch[0] || '';
     }
@@ -1042,7 +1088,8 @@ export class HtmlJobParser implements IHtmlJobParser {
     if (
       !html.includes('jobs-search__job-details--wrapper') &&
       !html.includes('jobs-description__content') &&
-      !html.includes('job-details-jobs-unified-top-card__job-title')
+      !html.includes('job-details-jobs-unified-top-card__job-title') &&
+      !html.includes('linkedin.com/jobs')
     ) {
       return null;
     }
@@ -1076,10 +1123,29 @@ export class HtmlJobParser implements IHtmlJobParser {
       if (stickyTitle) title = cleanText(stickyTitle[1] || '');
     }
 
+    if (!title) {
+      const metaTitle = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
+      if (metaTitle) title = cleanText(metaTitle[1] || '').replace(/\s*\|\s*LinkedIn\s*$/i, '').trim();
+    }
+
+    if (!title) {
+      const pageTitle = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+      if (pageTitle) {
+        title = cleanText(pageTitle[1] || '').replace(/\s*\|\s*LinkedIn\s*$/i, '').trim();
+      }
+    }
+
     const companyMatch = html.match(
       /job-details-jobs-unified-top-card__company-name[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i
     );
     if (companyMatch) company = cleanText(companyMatch[1] || '');
+
+    if (!company) {
+      const companySpanMatch = html.match(
+        /job-details-jobs-unified-top-card__company-name[^>]*>[\s\S]*?<span[^>]*>([\s\S]*?)<\/span>/i
+      );
+      if (companySpanMatch) company = cleanText(companySpanMatch[1] || '');
+    }
 
     const locationMatch = html.match(
       /job-details-jobs-unified-top-card__tertiary-description-container[\s\S]*?<span[^>]*tvm__text--low-emphasis[^>]*>([\s\S]*?)<\/span>/i
@@ -1096,6 +1162,19 @@ export class HtmlJobParser implements IHtmlJobParser {
         if (parts.length > 1) {
           location = parts.slice(1).join(' · ');
         }
+      }
+    }
+
+    if (!location) {
+      const metaLocation = html.match(
+        /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i
+      );
+      if (metaLocation) {
+        const desc = cleanText(metaLocation[1] || '');
+        const possibleLocation = desc.split('·').map((part) => part.trim()).find((part) =>
+          /city|vietnam|remote|hà nội|ho chi minh|đà nẵng/i.test(part)
+        );
+        if (possibleLocation) location = possibleLocation;
       }
     }
 

@@ -59,7 +59,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { getProfileScore, getCapabilityScore } from "../../../scoring"
-import { profile, FundamentalsSlices } from "../../../data"
+import { profile } from "../../../data"
 import type { Fundamentals } from "../../../data"
 
 const profileScore = computed(() => getProfileScore())

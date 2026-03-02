@@ -38,6 +38,8 @@
 # Automation and Efficiency
 
 - Automate beta staging evaluation and feedback collection.
+- Ensure fallback fetch of raw emails before analysis in CI.
+- Schedule daily metrics aggregation and fallback fetch via CI.
 - Reduce manual weekly reviews by enabling self-feedback and continuous monitoring.
 
 ---

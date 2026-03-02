@@ -22,14 +22,27 @@ export class SmartGenerator {
    * Extract job requirements from job description
    * Returns: skills needed, experience level, key responsibilities
    */
-  extractJobRequirements(job: Job): {
+  extractJobRequirements(job: Partial<Job>): {
     requiredSkills: string[];
     preferredSkills: string[];
     experienceLevel: string;
     responsibilities: string[];
   } {
-    const description = (job.description || '').toLowerCase();
-    const allText = `${job.position} ${job.company} ${description}`.toLowerCase();
+    const rawDescription = [
+      typeof job.description === 'string' ? job.description : '',
+      typeof (job as any).rawContent === 'string' ? (job as any).rawContent : '',
+      typeof (job as any).subject === 'string' ? (job as any).subject : '',
+      typeof (job as any).title === 'string' ? (job as any).title : '',
+      typeof (job as any).position === 'string' ? (job as any).position : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    const description = rawDescription.toLowerCase();
+    const allText = `${job.position || (job as any).title || ''} ${job.company || ''} ${description}`
+      .toLowerCase()
+      .trim();
 
     // Define skill extraction patterns
     const skillPatterns: Record<string, RegExp[]> = {
@@ -74,17 +87,75 @@ export class SmartGenerator {
     const requiredSkills = extractSkills(requiredSection?.[0] || allText);
     const preferredSkills = extractSkills(preferredSection?.[0] || '');
 
+    // Fallback for sparse data: infer at least one requirement from title/position/profile overlap
+    const inferredRequiredSkills = [...new Set(requiredSkills)];
+    if (inferredRequiredSkills.length === 0) {
+      const positionText = `${job.position || (job as any).title || ''}`.toLowerCase();
+      const profileSkills = Array.isArray(this.profile.skills) ? this.profile.skills : [];
+      const profileMatch = profileSkills.find((skill) =>
+        typeof skill === 'string' ? positionText.includes(skill.toLowerCase()) : false
+      );
+      if (profileMatch && typeof profileMatch === 'string') {
+        inferredRequiredSkills.push(profileMatch);
+      } else {
+        // Enhanced fallback: extract from common job title patterns
+        const commonSkills = [
+          { pattern: /full[\s-]?stack/i, skill: 'Full Stack Development' },
+          { pattern: /frontend|front[\s-]?end/i, skill: 'Frontend Development' },
+          { pattern: /backend|back[\s-]?end/i, skill: 'Backend Development' },
+          { pattern: /data[\s-]?engineer/i, skill: 'Data Engineering' },
+          { pattern: /devops/i, skill: 'DevOps' },
+          { pattern: /mobile/i, skill: 'Mobile Development' },
+        ];
+        const matched = commonSkills.find((s) => s.pattern.test(positionText));
+        if (matched) {
+          inferredRequiredSkills.push(matched.skill);
+        } else {
+          inferredRequiredSkills.push('General Software Development');
+        }
+      }
+    }
+
     // Detect experience level
     const experienceLevel = this.detectExperienceLevel(allText);
 
     // Extract key responsibilities (sentences with action verbs)
     const responsibilities = this.extractResponsibilities(description);
 
+    // Guarantee non-empty responsibilities list
+    let fallbackResponsibilities = responsibilities.length > 0 ? responsibilities : [];
+    if (fallbackResponsibilities.length === 0) {
+      const lines = rawDescription
+        .split(/\n|\r|•|\-/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 18 && line.length < 200)
+        .slice(0, 3);
+      if (lines.length > 0) {
+        fallbackResponsibilities = lines;
+      } else {
+        // Ultimate fallback based on position
+        const positionText = `${job.position || (job as any).title || ''}`.toLowerCase();
+        if (positionText.includes('senior') || positionText.includes('lead')) {
+          fallbackResponsibilities = ['Lead technical projects and mentor team members', 'Design and implement scalable solutions'];
+        } else {
+          fallbackResponsibilities = ['Contribute to engineering deliverables and team collaboration'];
+        }
+      }
+    }
+
+    const normalizedRequiredSkills = inferredRequiredSkills
+      .map((skill) => String(skill || '').trim())
+      .filter(Boolean);
+
+    if (normalizedRequiredSkills.length === 0) {
+      normalizedRequiredSkills.push('General Software Development');
+    }
+
     return {
-      requiredSkills: [...new Set(requiredSkills)],
-      preferredSkills: [...new Set(preferredSkills.filter((s) => !requiredSkills.includes(s)))],
+      requiredSkills: [...new Set(normalizedRequiredSkills)],
+      preferredSkills: [...new Set(preferredSkills.filter((s) => !inferredRequiredSkills.includes(s)))],
       experienceLevel,
-      responsibilities,
+      responsibilities: fallbackResponsibilities,
     };
   }
 

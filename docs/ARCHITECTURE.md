@@ -2,10 +2,29 @@
 
 ## Supported Input Contexts
 
-Jobs Watcher ingests jobs from three input adapters:
-1. **Gmail Watcher (Pub/Sub Webhook):** Real-time, event-driven ingestion from Gmail. Listens on loopback for security. ACKs fast, processes in background.
-2. **Pub/Sub Fallback:** If Gmail webhook fails, retries via Pub/Sub. All failures are logged and retried deterministically. No silent drops.
-3. **Manual Clipboard Importer:** Allows manual entry or clipboard paste for jobs from external platforms. Used for platforms not directly integrated or for fallback/manual validation.
+
+Jobs Watcher ingests jobs from three unified input adapters, all accessible via a single CLI entry point:
+
+1. **Gmail Webhook Adapter (`GmailWebhookAdapter`)**: Real-time, event-driven ingestion from Gmail via Pub/Sub webhook. Listens on loopback for security. ACKs fast, processes in background.
+2. **Gmail API Adapter (`GmailApiAdapter`)**: Fallback batch ingestion using Gmail API (fetches and analyzes raw emails, used for CI and regression).
+3. **DB/Manual Adapter (`DbEmailSourceAdapter`)**: Ingests jobs from DB snapshots or manual/fixture sources for testing and validation.
+
+All input sources are normalized and processed through a unified queue, deduplication, and idempotency logic. Deterministic engineering rules ensure:
+- No silent failures: All errors are logged and traceable.
+- Fallbacks are explicit, non-negotiable, and self-assigned.
+- Schedule configuration and constraints are enforced (see below).
+
+**CLI Usage:**
+
+Run any adapter via:
+
+```sh
+npm run data-listening:webhook    # Real-time Gmail webhook (production)
+npm run data-listening:gmail-api  # Gmail API fallback (CI, regression)
+npm run data-listening:db         # DB/manual/fixture ingestion (testing)
+```
+
+See [JOB_PROCESSING_QUEUE.md](JOB_PROCESSING_QUEUE.md#supported-input-contexts) and [DECISIONS.md](DECISIONS.md#input-contexts--platform-support) for more details.
 
 All input sources are normalized and processed through a unified queue, deduplication, and idempotency logic. Deterministic engineering rules ensure:
 - No silent failures: All errors are logged and traceable.
@@ -60,12 +79,24 @@ Jobs Watcher follows a **Clean Architecture** pattern with strict separation of 
 
 **Responsibility:** Receive events and invoke application logic
 
+
 **Components:**
-- **`GmailEmailSourceAdapter`** (`src/cli/email-source-adapter.ts`)
+- **`GmailWebhookAdapter`** (`src/cli/email-source-adapter.ts`)
   - Listens for Pub/Sub messages from Gmail
   - Binds to `127.0.0.1:3000/webhook/gmail` (loopback only for security)
   - Delegates to `EventDrivenWebhook` for processing
   - ACKs fast (HTTP 200) and processes in background
+- **`GmailApiAdapter`** (`src/cli/email-source-adapter.ts`)
+  - Fetches and analyzes raw emails via Gmail API (batch mode)
+  - Used for CI, regression, and fallback ingestion
+- **`DbEmailSourceAdapter`** (`src/cli/email-source-adapter.ts`)
+  - Ingests jobs from DB/manual/fixture sources
+  - Used for testing, validation, and manual import
+
+- **`simulate-webhook.ts`** (Testing helper)
+  - Simulates Pub/Sub messages to test webhook locally
+  - Can send real emails via Gmail API or use demo payloads
+  - Passes messageId directly to webhook
 
 - **`simulate-webhook.ts`** (Testing helper)
   - Simulates Pub/Sub messages to test webhook locally

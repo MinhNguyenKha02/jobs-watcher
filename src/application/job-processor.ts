@@ -1,4 +1,6 @@
 import type { Job } from '../types.js';
+import { getLogger } from '../services/logger.js';
+const logger = getLogger();
 
 export interface JobPresentationResult<TAction, TPayload> {
   action: TAction;
@@ -22,6 +24,7 @@ export class JobProcessor<TAction, TPayload> {
   async process(job: Job): Promise<JobPresentationResult<TAction, TPayload>> {
     const result = await this.presenter.present(job);
     await this.actionHandler.handle(job, result.action, result.payload);
+      logger.info('[JobProcessor] Job processed', { jobId: job.id, status: result.action });
     return result;
   }
 }

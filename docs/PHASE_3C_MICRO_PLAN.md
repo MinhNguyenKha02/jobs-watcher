@@ -37,8 +37,11 @@
 
 **Status: All acceptance criteria met. System is beta-ready.**
 
+
 ### Summary of Actions
 - Implemented strict, real-integration E2E test (no mocks/fallbacks) for the full job-to-application-to-send-to-metrics workflow (see tests/e2e/full-integration-e2e.test.ts)
+- Unified all job ingestion through a single CLI entry (`data-listening.ts`) with flag-based adapter selection (`--adapter=webhook|gmail-api|db`)
+- Added/renamed adapters: `GmailWebhookAdapter`, `GmailApiAdapter`, `DbEmailSourceAdapter` (see `src/cli/email-source-adapter.ts`)
 - Patched SmartGenerator to robustly handle missing experience fields
 - Fixed GmailService.sendMail to log to action_log after successful send, ensuring metrics are always recorded
 - Created sample job/profile fixtures for E2E automation

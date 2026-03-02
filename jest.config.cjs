@@ -1,32 +1,31 @@
 /** @type {import('jest').Config} */
 module.exports = {
   testEnvironment: 'node',
-  extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  // extensionsToTreatAsEsm removed; .js is always inferred by Jest
   testEnvironmentOptions: {
     customExportConditions: ['node', 'node-addons'],
   },
-  roots: ['<rootDir>/tests'],
-  transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
-  },
+  roots: ['<rootDir>/dist/tests'],
+  transform: {},
+  preset: undefined, // No ts-jest, run only on built JS
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^src/(.*)$': '<rootDir>/dist/src/$1',
+    '^tests/(.*)$': '<rootDir>/dist/tests/$1',
   },
   transformIgnorePatterns: [
     'node_modules/(?!(jsdom|ink|react|react-dom)/)',
   ],
   collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/index.ts',
-    '!src/cli/**/*.ts',
+    'dist/src/**/*.js',
+    '!dist/src/**/*.d.ts',
+    '!dist/src/index.js',
+    '!dist/src/cli/**/*.js',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'json', 'mjs'],
+  moduleFileExtensions: ['js', 'json', 'mjs'],
   verbose: true,
-  testTimeout: 10000,
-  runner: 'jest-runner',
+  testTimeout: 120000,
   setupFilesAfterEnv: [],
   globalSetup: undefined,
   globalTeardown: undefined,

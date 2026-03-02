@@ -1,4 +1,6 @@
-{
+// Canonical profile, auto-generated from bored-cv-refinement/profile.prebuilt.json
+// Do not edit by hand. Edit profile.prebuilt.json and run prebuild script.
+export const canonicalProfile = {
   "name": "Minh Nguyen Kha",
   "email": "minhnguyen.kha@proton.me",
   "phone": "(+84) 39 679 6034",
@@ -29,7 +31,7 @@
     "backend": {
       "architecture": ["MVC", "Microservices", "Clean Architecture (learning)"],
       "frameworks": {
-        "solid": ["Express.js", "Gin"],
+        "solid": ["Node.js", "Express.js", "Gin"],
         "familiar": ["Laravel", "Fiber" ]
       },
       "api": {
@@ -81,34 +83,109 @@
     {
       "name": "Microservices demo (TS + Go)",
       "period": "2024-12–2025-03",
+      "type": "lab",
       "summary": "Small services communicating over REST; containerized with Docker; focus on modular boundaries and error handling.",
-      "tech": ["TypeScript", "Go", "Express", "Gin", "Docker"]
+      "tech": ["TypeScript", "Go", "Express", "Gin", "Docker"],
+      "outcomes": [
+        "Demonstrated modular backend design and error handling.",
+        "Containerization and RESTful communication validated in lab environment."
+      ]
     },
     {
       "name": "Networking/traffic prototypes",
       "period": "2025-01–2025-03",
+      "type": "lab",
       "summary": "Experiments with TCP/IP handling, concurrency, and request shaping; emphasis on OS processes/resources.",
-      "tech": ["Go", "TypeScript", "Linux", "Shell"]
+      "tech": ["Go", "TypeScript", "Linux", "Shell"],
+      "outcomes": [
+        "Explored OS-level resource management and network concurrency."
+      ]
     },
     {
       "name": "AWS EC2 sandbox",
       "period": "2024-11–present",
+      "type": "personal",
       "summary": "Practice deployments on EC2, security groups, Dockerized services, basic monitoring.",
-      "tech": ["AWS EC2", "Docker", "Ubuntu"]
+      "tech": ["AWS EC2", "Docker", "Ubuntu"],
+      "outcomes": [
+        "Deployed and monitored services in cloud environment."
+      ]
     },
     {
       "name": "Blockchain API prototype",
       "period": "2025-02–2025-03",
+      "type": "lab",
       "summary": "Go API with SQLite; experimented with Solidity contracts and FE Web3 integration; paused after initial week.",
       "tech": ["Go", "SQLite", "Solidity (basic)", "Web3 (basic)"],
-      "status": "Paused"
+      "status": "Paused",
+      "outcomes": [
+        "Prototyped blockchain API and basic smart contract integration."
+      ]
     },
     {
       "name": "Shell automation scripts",
       "period": "2024-10–present",
+      "type": "personal",
       "summary": "Bash scripts for setup, deployment, and local tooling; fallback utilities.",
-      "tech": ["Bash", "Linux"]
+      "tech": ["Bash", "Linux"],
+      "outcomes": [
+        "Automated local development and deployment workflows."
+      ]
+    },
+    {
+      "name": "Blockchain Developer Internship (AI Generative Industry)",
+      "period": "2025-01–2025-04",
+      "type": "beta",
+      "summary": "Worked as a Blockchain Developer Intern, using Go in the AI generative industry. Explored blockchain integration and backend services.",
+      "tech": ["Go", "Blockchain", "AI"],
+      "outcomes": [
+        "Contributed to blockchain backend features in a beta-stage AI product.",
+        "Gained experience in production-like blockchain environments."
+      ]
+    },
+    {
+      "name": "Full-Stack Developer Internship (Nuxt.js)",
+      "period": "2024-10–2025-01",
+      "type": "wxp",
+      "summary": "Interned as a Full-Stack Developer at Golive Dev JSC, specializing in Nuxt.js and Vue.js. Developed front-end modules and integrated REST APIs.",
+      "tech": ["Nuxt.js", "Vue.js", "REST API", "Git"],
+      "outcomes": [
+        "Improved UI responsiveness and user flows.",
+        "Integrated REST APIs in dev/staging environments.",
+        "Strengthened Git workflows and agile collaboration."
+      ]
+    },
+    {
+      "name": "WordPress Intern (Mevivu Co., Ltd)",
+      "period": "2023-08–2023-11",
+      "type": "wxp",
+      "summary": "Maintained and customized WordPress websites to support marketing needs. Translated Figma prototypes to responsive components.",
+      "tech": ["WordPress", "Figma", "HTML", "CSS"],
+      "outcomes": [
+        "Improved client engagement and website stability.",
+        "Supported content creation and SEO improvements."
+      ]
     }
+      ,
+      {
+        "name": "Jobs Watcher Core (Lab Evidence)",
+        "period": "2024-10–2026-02",
+        "type": "lab",
+        "summary": "Development and refinement of the jobs-watcher codebase, focusing on backend architecture, metrics, and template rendering. Includes CI/CD, integration tests, and documentation workflows.",
+        "tech": ["TypeScript", "Node.js", "Jest", "GitHub Actions", "Markdown", "Shell"],
+        "outcomes": [
+          "Implemented modular backend with TypeScript and Node.js.",
+          "Established CI/CD pipelines and integration testing.",
+          "Documented architecture and micro-plans for beta and production.",
+          "Delivered template renderer and CV/cover letter generation features."
+        ],
+        "evidence": [
+          "Source code in /src and /scripts folders.",
+          "Documentation in /docs and beta/docs/.",
+          "Automated tests and coverage reports in /coverage/.",
+          "Commit history and release notes."
+        ]
+      }
   ],
   "experience": [
     {
@@ -122,7 +199,13 @@
         "Integrated REST APIs end-to-end and tightened error handling to reduce regression risk",
         "Collaborated with designers on UI states and accessibility, increasing clarity of user interactions",
         "Used Git feature branches and reviews to keep changes scoped and traceable"
-      ]
+      ],
+      "outcomes": [
+        "Improved UI responsiveness and user flows in staging environments.",
+        "Strengthened Git workflows and agile team collaboration."
+      ],
+      "tech": ["Nuxt.js", "Vue.js", "REST API", "Git"],
+      "type": "wxp"
     },
     {
       "company": "Mevivu Co., Ltd",
@@ -134,7 +217,29 @@
         "Maintained and customized WordPress sites, ensuring stable releases and timely content updates",
         "Created UI/UX prototypes in Figma to validate flows with stakeholders before build",
         "Produced marketing assets and landing content aligned with campaign timelines"
-      ]
+      ],
+      "outcomes": [
+        "Supported client marketing needs and improved website stability.",
+        "Translated Figma prototypes to responsive front-end components."
+      ],
+      "tech": ["WordPress", "Figma", "HTML", "CSS"],
+      "type": "wxp"
+    },
+    {
+      "company": "Blockchain Developer Internship (AI Generative Industry)",
+      "position": "Blockchain Developer Intern",
+      "location": "Remote",
+      "startDate": "2025-01",
+      "endDate": "2025-04",
+      "description": [
+        "Explored blockchain integration and backend services using Go in AI generative industry."
+      ],
+      "outcomes": [
+        "Contributed to blockchain backend features in beta-stage AI product.",
+        "Gained experience in production-like blockchain environments."
+      ],
+      "tech": ["Go", "Blockchain", "AI"],
+      "type": "beta"
     }
   ],
   "education": [
@@ -154,3 +259,4 @@
     "website": ""
   }
 }
+

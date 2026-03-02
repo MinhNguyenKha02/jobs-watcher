@@ -1,0 +1,1154 @@
+[
+  {
+    "_id": "69a5ece4747bac1a040a28b7",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T20:02:44.765Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ece4747bac1a040a28b4",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T20:02:44.756Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ece4747bac1a040a28b1",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T20:02:44.745Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ece4747bac1a040a28ae",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T20:02:44.717Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ece078ea8f82c3375eb5",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T20:02:40.986Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ece078ea8f82c3375eb2",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T20:02:40.975Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ece078ea8f82c3375eaf",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T20:02:40.963Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ece078ea8f82c3375eac",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T20:02:40.928Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ea7e582e452add802600",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:52:30.534Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ea7e582e452add8025fd",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:52:30.527Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ea7e582e452add8025fa",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:52:30.519Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ea7e582e452add8025f7",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:52:30.498Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ea7aa239ac544a63ee1c",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:52:26.723Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ea7aa239ac544a63ee19",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:52:26.708Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ea7aa239ac544a63ee16",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:52:26.688Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5ea7aa239ac544a63ee13",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:52:26.643Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e93932ba54ba0d527786",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:47:05.531Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e93932ba54ba0d527783",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:47:05.522Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e93932ba54ba0d527780",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:47:05.509Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e93932ba54ba0d52777d",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:47:05.479Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e934d81601a8dc19c265",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:47:00.314Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e934d81601a8dc19c262",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:47:00.303Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e934d81601a8dc19c25f",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:47:00.287Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e934d81601a8dc19c25c",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:47:00.237Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e5389914680db6e39cf5",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:30:00.374Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e5389914680db6e39cf2",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:30:00.369Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e5389914680db6e39cef",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:30:00.362Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e5389914680db6e39cec",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:30:00.344Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e535af07fec9e031dcef",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:29:57.495Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e535af07fec9e031dcec",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:29:57.489Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e535af07fec9e031dce9",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:29:57.480Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e535af07fec9e031dce6",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:29:57.459Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e4df4218903f703e8beb",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:28:31.024Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e4df4218903f703e8be8",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:28:31.018Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e4df4218903f703e8be5",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:28:31.009Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e4de4218903f703e8be2",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:28:30.988Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e4dbb1136ba579fdd478",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:28:27.782Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e4dbb1136ba579fdd475",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:28:27.772Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e4dbb1136ba579fdd472",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:28:27.761Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5e4dbb1136ba579fdd46f",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:28:27.731Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5df7d22bca3d9ac90fce4",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:05:33.688Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5df7d22bca3d9ac90fce1",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:05:33.677Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5df7d22bca3d9ac90fcde",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:05:33.661Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5df7d22bca3d9ac90fcdb",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:05:33.626Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5df78d4ab229698f39885",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:05:28.762Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5df78d4ab229698f39882",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:05:28.753Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5df78d4ab229698f3987f",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:05:28.742Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5df78d4ab229698f3987c",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:05:28.717Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de996e5f2c9e248f1beb",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:01:45.157Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de996e5f2c9e248f1be8",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:01:45.147Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de996e5f2c9e248f1be5",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:01:45.137Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de996e5f2c9e248f1be2",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:01:45.109Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de950a3dacf90d73744c",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:01:41.678Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de950a3dacf90d737449",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:01:41.670Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de950a3dacf90d737446",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:01:41.659Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de950a3dacf90d737443",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:01:41.632Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de45e5a4398df593f430",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:00:21.587Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de45e5a4398df593f42d",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:00:21.579Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de45e5a4398df593f42a",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:00:21.567Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de45e5a4398df593f427",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:00:21.540Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de425cb624d233300397",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:00:18.155Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de425cb624d233300394",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:00:18.145Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de425cb624d233300391",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:00:18.133Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de425cb624d23330038e",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T19:00:18.106Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de1c7c5a65df72878a5a",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T18:59:40.658Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de1c7c5a65df72878a57",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T18:59:40.649Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de1c7c5a65df72878a54",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T18:59:40.636Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de1c7c5a65df72878a51",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T18:59:40.606Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de194ae6cbd197af47e2",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T18:59:37.355Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de194ae6cbd197af47df",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T18:59:37.342Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de194ae6cbd197af47dc",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T18:59:37.323Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a5de194ae6cbd197af47d9",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-02T18:59:37.290Z",
+    "parserVersion": "v1"
+  }
+]

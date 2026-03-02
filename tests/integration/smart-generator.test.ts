@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { SmartGenerator } from '../../src/services/generators/smart-generator.js';
-import { mockProfile } from '../__fixtures__/emails';
+import { canonicalProfile } from '../../src/db/json.js';
+import { ProfileParser } from '../../src/services/profile/profile-parser.js';
 
 describe('SmartGenerator', () => {
   const outputDir = path.join(process.cwd(), 'test-output');
@@ -32,7 +33,10 @@ describe('SmartGenerator', () => {
   });
 
   beforeEach(() => {
-    generator = new SmartGenerator(mockProfile as any);
+    // Normalize canonicalProfile, then flatten for SmartGenerator
+    const normalized = ProfileParser.parse(canonicalProfile);
+    const flatProfile = ProfileParser.deNormaliseProfile(normalized);
+    generator = new SmartGenerator(flatProfile);
   });
 
   describe('extractJobRequirements', () => {

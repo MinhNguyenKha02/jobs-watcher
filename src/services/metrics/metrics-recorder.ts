@@ -8,7 +8,8 @@ import { MongoClient, Collection } from 'mongodb';
 export interface ApplicationMetric {
   jobId: string;
   profileHash: string;
-  event: 'sent' | 'opened' | 'replied' | 'failed';
+  // Add 'queued' to represent enqueueing/ingestion events
+  event: 'queued' | 'sent' | 'opened' | 'replied' | 'failed';
   jobFitScore?: number;
   profileGaps?: string[];
   timestamp: Date;

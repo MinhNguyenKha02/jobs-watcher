@@ -40,6 +40,7 @@ export class GmailService {
     attachments?: { filename: string; path: string }[];
     jobId?: string;
     profileHash?: string;
+    messageId?: string;
   }): Promise<{ success: boolean; error?: string }> {
     const {
       to,
@@ -48,6 +49,7 @@ export class GmailService {
       attachments = [],
       jobId = 'unknown',
       profileHash = 'unknown',
+      messageId = undefined,
     } = params;
     const gmail = this.ensureClient();
     try {
@@ -81,18 +83,18 @@ export class GmailService {
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=+$/, '');
-      await gmail.users.messages.send({
+      const sendResult = await gmail.users.messages.send({
         userId: 'me',
         requestBody: {
           raw: encodedMessage,
         },
       });
 
-      // Log to action_log for E2E metrics
+      // Log to action_log for E2E metrics (status: sent)
       const mongoUri = process.env.MONGODB_URI || '';
       if (mongoUri) {
         // Use dynamic import for DeliveryLog to avoid require statement
-        const { DeliveryLog } = await import('./sender/delivery-log');
+        const { DeliveryLog } = await import('./sender/delivery-log.js');
         const log = new DeliveryLog(mongoUri, process.env.MONGODB_DB_NAME || 'jobs_watcher');
         await log.log({
           jobId,
@@ -101,6 +103,22 @@ export class GmailService {
           status: 'sent',
           timestamp: new Date(),
         });
+
+        // Also log action: 'apply' for E2E metrics regression
+        const actionLogEntry = {
+          action: 'apply',
+          email: to,
+          jobId,
+          messageId: messageId || jobId,
+          timestamp: new Date(),
+        };
+        // Insert directly to action_log collection
+        const { MongoClient } = await import('mongodb');
+        const client = new MongoClient(mongoUri);
+        await client.connect();
+        const db = client.db(process.env.MONGODB_DB_NAME || 'jobs_watcher');
+        await db.collection('action_log').insertOne(actionLogEntry);
+        await client.close();
       }
       return { success: true };
     } catch (err: unknown) {
@@ -178,14 +196,28 @@ export class GmailService {
   }
 
   /**
-   * Explicitly list messages by label ID
+   * Explicitly list messages by label ID, optionally since a given ISO date string (RFC3339)
+   * If since is provided, uses Gmail query to filter by newer_than (in days)
    */
-  async listMessagesByLabel(labelId: string, maxResults = 10) {
+  async listMessagesByLabel(labelId: string, maxResults = 10, since?: string) {
     const gmail = this.ensureClient();
+    let q = undefined;
+    if (since) {
+      // Gmail API does not support direct ISO date, so use newer_than:1d or after:YYYY/MM/DD
+      // Try to parse since as YYYY-MM-DD or ISO string
+      const date = new Date(since);
+      if (!isNaN(date.getTime())) {
+        const y = date.getFullYear();
+        const m = (date.getMonth() + 1).toString().padStart(2, '0');
+        const d = date.getDate().toString().padStart(2, '0');
+        q = `after:${y}/${m}/${d}`;
+      }
+    }
     const res = await gmail.users.messages.list({
       userId: 'me',
       labelIds: [labelId],
       maxResults,
+      ...(q ? { q } : {}),
     });
     return res.data.messages || [];
   }

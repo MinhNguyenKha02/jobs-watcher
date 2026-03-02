@@ -14,17 +14,28 @@ export class AnalyticsQueries {
     this.collection = client.db(dbName).collection<ApplicationMetric>('analytics');
   }
 
+  /**
+   * Metrics hooks for CI/exit criteria:
+   * - totalSent: Number of applications sent
+   * - successRate: Ratio of replied/sent
+   * - avgJobFit: Average match score (jobFitScore)
+   * - topProfileGaps: Most common missing skills/gaps
+   * These aggregates are used in CI and manual checklists (see beta-exit-criteria.md, MICRO_PLAN.md)
+   */
   async totalSent(): Promise<number> {
+    // Hook: Count of sent applications
     return this.collection.countDocuments({ event: 'sent' });
   }
 
   async successRate(): Promise<number> {
+    // Hook: Success rate (replied/sent)
     const sent = await this.collection.countDocuments({ event: 'sent' });
     const replied = await this.collection.countDocuments({ event: 'replied' });
     return sent === 0 ? 0 : replied / sent;
   }
 
   async avgJobFit(): Promise<number> {
+    // Hook: Average job fit score
     const cursor = this.collection.find({ jobFitScore: { $exists: true } });
     let total = 0, count = 0;
     await cursor.forEach(doc => {
@@ -37,6 +48,7 @@ export class AnalyticsQueries {
   }
 
   async topProfileGaps(limit = 5): Promise<{ gap: string; count: number }[]> {
+    // Hook: Most common missing skills/gaps
     const pipeline = [
       { $unwind: '$profileGaps' },
       { $group: { _id: '$profileGaps', count: { $sum: 1 } } },

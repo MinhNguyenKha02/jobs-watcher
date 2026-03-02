@@ -14,9 +14,11 @@
 - [ ] Use metrics to inform next cycle improvements
 
 ## Automation
-- [ ] Automate daily metrics extraction (success rate, error rate)
-- [ ] Automate log review and alerting
-- [ ] Schedule daily summary report generation
+- [x] Automate daily metrics extraction (success rate, error rate)
+- [x] Automate log review and alerting
+- [x] Schedule daily summary report generation
+- [x] Fallback fetch of raw emails before analysis if input is missing
+- [x] Scheduled CI job for fallback fetch and metrics aggregation
 
 ---
 

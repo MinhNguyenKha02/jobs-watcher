@@ -12,6 +12,21 @@
 import { google } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
+import { indeedEmailAlert, topCVEmailAlert } from '../tests/__fixtures__/emails.js';
+/**
+ * Simulate a Gmail Pub/Sub push to the webhook.
+ * Uses env:
+ * - WEBHOOK_URL (optional) full URL, e.g. http://localhost:3000/webhook/gmail
+ * - WEBHOOK_PORT (optional) default 3000
+ * - WEBHOOK_PATH (optional) default /webhook/gmail
+ * - HISTORY_ID (optional) default "1"
+ * - INCLUDE_EMAIL (optional) set to 'true' to include sample job email in payload
+ * - SEND_REAL_EMAIL (optional) set to 'true' to send actual email to Gmail
+ */
+
+import { google } from 'googleapis';
+import fs from 'fs';
+import path from 'path';
 import { fileURLToPath } from 'url';
 
 let __dir: string;
@@ -31,91 +46,30 @@ const url = process.env.WEBHOOK_URL || `http://localhost:${port}${webhookPath}`;
 const historyId = process.env.HISTORY_ID || '1';
 const includeEmail = process.env.INCLUDE_EMAIL === 'true';
 
-// Sample job email payload compatible with webhook handler
-const jobEmailPayload = {
-  id: 'msg-sample-job-001',
-  threadId: 'thread-job-001',
-  labelIds: ['INBOX'],
-  snippet: 'Senior Full Stack Developer - Exciting opportunity at TechCorp',
-  payload: {
-    headers: [
-      { name: 'From', value: 'jobs@techcorp.com' },
-      { name: 'To', value: 'minh.nguyen@example.com' },
-      {
-        name: 'Subject',
-        value: 'Senior Full Stack Developer Position Open at TechCorp',
-      },
-      { name: 'Date', value: new Date().toUTCString() },
-    ],
-    mimeType: 'text/html',
-    body: {
-      data: Buffer.from(`<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"/></head>
-<body style="font-family: Arial, sans-serif;">
-<h2>Senior Full Stack Developer</h2>
-<p>Dear Job Seeker,</p>
 
-<p>We're excited to announce an open position for a <strong>Senior Full Stack Developer</strong> at <strong>TechCorp Inc.</strong></p>
+// Use only indeedEmailAlert and topCVEmailAlert as possible payloads
+const availableAlerts = [indeedEmailAlert, topCVEmailAlert];
+// Allow selection via env var, else randomize
+const alertIndex = process.env.ALERT_INDEX ? parseInt(process.env.ALERT_INDEX, 10) : Math.floor(Math.random() * availableAlerts.length);
+const selectedAlert = availableAlerts[alertIndex] || indeedEmailAlert;
 
-<h3>Position Details</h3>
-<ul>
-  <li><strong>Title:</strong> Senior Full Stack Developer</li>
-  <li><strong>Company:</strong> TechCorp Inc.</li>
-  <li><strong>Location:</strong> San Francisco, CA (Remote Available)</li>
-  <li><strong>Salary:</strong> $120,000 - $160,000 per year</li>
-  <li><strong>Type:</strong> Full-time</li>
-</ul>
+// Ensure envelope fields exist on selectedAlert for webhook consumers
+try {
+  // id -> messageId
+  if (!selectedAlert.messageId && selectedAlert.id) selectedAlert.messageId = selectedAlert.id;
+  // Extract headers if present
+  if (selectedAlert.payload && Array.isArray(selectedAlert.payload.headers)) {
+    const h = selectedAlert.payload.headers;
+    const subj = h.find((x: any) => String(x.name).toLowerCase() === 'subject');
+    const from = h.find((x: any) => String(x.name).toLowerCase() === 'from');
+    if (subj && subj.value && !selectedAlert.subject) selectedAlert.subject = String(subj.value);
+    if (from && from.value && !selectedAlert.from) selectedAlert.from = String(from.value);
+  }
+} catch (err) {
+  // noop
+}
 
-<h3>Responsibilities</h3>
-<ul>
-  <li>Design and develop scalable web applications using modern tech stacks</li>
-  <li>Implement both frontend (React, Vue.js) and backend (Node.js, Python) solutions</li>
-  <li>Collaborate with product and design teams to deliver high-quality features</li>
-  <li>Participate in code reviews and mentor junior developers</li>
-  <li>Optimize application performance and security</li>
-</ul>
-
-<h3>Requirements</h3>
-<ul>
-  <li>5+ years of professional software development experience</li>
-  <li>Strong proficiency in JavaScript/TypeScript and modern frameworks</li>
-  <li>Experience with backend development (Node.js, Python, or similar)</li>
-  <li>Knowledge of databases (SQL and NoSQL)</li>
-  <li>Experience with Git version control and agile workflows</li>
-  <li>Excellent problem-solving and communication skills</li>
-</ul>
-
-<h3>Nice to Have</h3>
-<ul>
-  <li>Experience with cloud platforms (AWS, GCP, Azure)</li>
-  <li>Knowledge of Docker and containerization</li>
-  <li>Experience with CI/CD pipelines</li>
-  <li>Open source contributions</li>
-</ul>
-
-<h3>What We Offer</h3>
-<ul>
-  <li>Competitive salary and benefits package</li>
-  <li>Health insurance (medical, dental, vision)</li>
-  <li>Flexible working hours and remote work options</li>
-  <li>Professional development and training budget</li>
-  <li>Stock options</li>
-  <li>Team building and company events</li>
-</ul>
-
-<p><strong>How to Apply:</strong></p>
-<p>Please visit <a href="https://techcorp.com/careers/senior-full-stack-developer">our careers page</a> to apply.</p>
-
-<p>Questions? Contact us at <a href="mailto:careers@techcorp.com">careers@techcorp.com</a></p>
-
-<p>Best regards,<br>
-TechCorp Recruitment Team</p>
-</body>
-</html>`).toString('base64'),
-    },
-  },
-};
+// For webhook simulation, use selectedAlert as the email payload
 
 const sendRealEmail = process.env.SEND_REAL_EMAIL === 'true';
 
@@ -126,7 +80,7 @@ const buildPayload = () => {
   const messageData = includeEmail
     ? {
         historyId,
-        email: jobEmailPayload,
+        email: selectedAlert,
       }
     : sentMessageId
       ? {
@@ -273,25 +227,40 @@ TechCorp Recruitment Team</p>
 }
 
 async function sendWebhookNotification(payload: any) {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  const maxAttempts = 5;
+  let attempt = 0;
+  while (attempt < maxAttempts) {
+    attempt += 1;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Webhook responded ${res.status}: ${text}`);
-  }
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Webhook responded ${res.status}: ${text}`);
+      }
 
-  const text = await res.text();
-  console.log(`✅ Webhook responded ${res.status}: ${text || 'OK'}`);
-  if (sentMessageId) {
-    console.log(`📧 Payload included messageId: ${sentMessageId}`);
-  } else {
-    console.log(`📧 Payload included ${includeEmail ? 'sample job email' : 'historyId only'}`);
+      const text = await res.text();
+      console.log(`✅ Webhook responded ${res.status}: ${text || 'OK'}`);
+      if (sentMessageId) {
+        console.log(`📧 Payload included messageId: ${sentMessageId}`);
+      } else {
+        console.log(`📧 Payload included ${includeEmail ? 'sample job email' : 'historyId only'}`);
+      }
+      return;
+    } catch (err) {
+      const short = err instanceof Error ? err.message : String(err);
+      console.warn(`⚠️ Attempt ${attempt}/${maxAttempts} failed: ${short}`);
+      if (attempt >= maxAttempts) throw err;
+      // Wait before retrying (exponential backoff)
+      const backoff = 500 * Math.pow(2, attempt - 1);
+      await new Promise((r) => setTimeout(r, backoff));
+    }
   }
 }
 

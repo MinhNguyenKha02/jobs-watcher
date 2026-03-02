@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { logAction, getMonitoringStats, notifyUser } from '../../src/services/notifications';
+import { logAction, getMonitoringStats, notifyUser } from '../../src/services/notifications.js';
 
 describe('notifications utilities', () => {
   const testLogsDir = path.join(process.cwd(), 'logs');

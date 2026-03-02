@@ -1,16 +1,32 @@
+
 # CI Micro-Plan: Beta Metrics Aggregation, Self-Feedback, and Documentation
 
 ## Input Contexts and CI Coverage
 
+
 Jobs Watcher supports three input adapters, all included in CI validation, metrics, and documentation updates:
+
 - **Gmail Watcher (Pub/Sub Webhook):** Real-time, event-driven ingestion. Loopback only. ACK fast, process in background.
 - **Pub/Sub Fallback:** Retry on webhook failure. All failures logged and retried deterministically. No silent drops.
 - **Manual Clipboard Importer:** Manual or clipboard-based job entry for platforms not directly integrated or for fallback/manual validation.
 
+
 All input types are processed through a unified queue, deduplication, and idempotency logic. Deterministic engineering rules ensure:
+
 - No silent failures: All errors are logged and traceable.
 - Fallbacks are explicit, non-negotiable, and self-assigned.
 - Schedule configuration and constraints are enforced for every release.
+
+
+## Improved CI Flow (2026-02-20)
+
+- CI now includes an explicit fallback fetch step: before analyzing raw emails, the workflow checks if the input directory exists and is non-empty. If not, it fetches raw emails from Gmail via API, using configurable FETCH_LIMIT and FETCH_SINCE (default: last 24h).
+- If fallback fetch fails or input is still missing, CI fails with a clear error.
+- A new scheduled workflow (`beta-schedule.yml`) runs daily to ensure metrics aggregation and fallback fetch are performed even if not triggered by code changes.
+- All fallback and aggregation steps are logged and self-evaluating, with errors surfaced in CI logs and artifacts.
+- Artifacts are uploaded for easy review and checklist-based self-evaluation.
+- Documentation and automation plans in `beta/docs/` have been updated to reflect this logic.
+- For pre-prod and pre-end-beta, queue persistence (e.g., Redis) is recommended to ensure Pub/Sub events are not lost between days/cycles and to meet 98%+ exit criteria.
 
 Reference: docs/ARCHITECTURE.md, docs/JOB_PROCESSING_QUEUE.md, .github/.agent-custome-rules.instructions.md
 
@@ -28,6 +44,17 @@ Reference: docs/ARCHITECTURE.md, docs/JOB_PROCESSING_QUEUE.md, .github/.agent-cu
      - beta-exit-criteria.md
   6. Generate daily summary report and append to release notes.
   7. Tag release and update versioning.
+
+## Concrete npm scripts (for CI and local feedback-loop)
+
+- `npm run export:e2e` - Export sanitized E2E collections to `src/db/e2e-output/`.
+- `npm run export:all` - Run `export:e2e` and `export-fixtures` together.
+- `npm run inspect:db` - Produce human-readable DB inspection summary (collections, counts, exit criteria).
+- `npm run inspect:logs` - Inspect recent logs from `action_log`, `parse_log`, and `raw_ingest` collections.
+- `npm run feedback-loop` - Run `test:e2e`, `export:all`, and `inspect:db` in sequence.
+- `npm run release:patch|minor|major` - Invoke `scripts/release.sh` to create timestamped release artifacts and tag.
+
+Ensure CI runs `export:all` and `inspect:db` to generate reproducible artifacts and human-readable summaries for each cycle.
 
 ## 2. Tagging & Versioning
 
@@ -48,7 +75,9 @@ Reference: docs/ARCHITECTURE.md, docs/JOB_PROCESSING_QUEUE.md, .github/.agent-cu
   - Event-driven concurrency validated
 - Mark criteria met in documentation and release notes.
 
+
 ### Self-Feedback Process (User/Manual)
+
 - Remove interactive/manual feedback loops in code; instead, use tempo files for user feedback and validation.
 - For each cycle, create a tempo file (e.g., `beta/prep/self-feedback-cycle-1.tmp`) with:
   - User feedback summary (score, comments)

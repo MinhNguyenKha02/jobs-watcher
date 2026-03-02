@@ -44,13 +44,13 @@ export const getFundamentalScore = (area: keyof Fundamentals): number => {
 }
 
 export const buildMatrix = (): CapabilityMatrixRow[] =>
-  profile.capabilities.map((capability) => {
-    const evidenceType = resolveEvidenceType(capability.id)
-    return {
+  profile.capabilities.flatMap((capability) => {
+    const levelWeight = LevelStrength[capability.level] ?? 0
+    return (Object.keys(EvidenceWeight) as EvidenceType[]).map((evidenceType) => ({
       capabilityId: capability.id,
       evidenceType,
-      score: computeCapabilityScore(capability.id),
-    }
+      score: levelWeight * (EvidenceWeight[evidenceType] ?? 0),
+    }))
   })
 
 export const getProfileScore = () => {

@@ -109,6 +109,26 @@
       "summary": "Bash scripts for setup, deployment, and local tooling; fallback utilities.",
       "tech": ["Bash", "Linux"]
     }
+      ,
+      {
+        "name": "Jobs Watcher Core (Lab Evidence)",
+        "period": "2024-10–2026-02",
+        "type": "lab",
+        "summary": "Development and refinement of the jobs-watcher codebase, focusing on backend architecture, metrics, and template rendering. Includes CI/CD, integration tests, and documentation workflows.",
+        "tech": ["TypeScript", "Node.js", "Jest", "GitHub Actions", "Markdown", "Shell"],
+        "outcomes": [
+          "Implemented modular backend with TypeScript and Node.js.",
+          "Established CI/CD pipelines and integration testing.",
+          "Documented architecture and micro-plans for beta and production.",
+          "Delivered template renderer and CV/cover letter generation features."
+        ],
+        "evidence": [
+          "Source code in /src and /scripts folders.",
+          "Documentation in /docs and beta/docs/.",
+          "Automated tests and coverage reports in /coverage/.",
+          "Commit history and release notes."
+        ]
+      }
   ],
   "experience": [
     {
@@ -136,6 +156,23 @@
         "Produced marketing assets and landing content aligned with campaign timelines"
       ]
     }
+      ,
+      {
+        "company": "Blockchain Developer Internship (AI Generative Industry)",
+        "position": "Blockchain Developer Intern",
+        "location": "Remote",
+        "startDate": "2025-01",
+        "endDate": "2025-04",
+        "description": [
+          "Explored blockchain integration and backend services using Go in AI generative industry."
+        ],
+        "outcomes": [
+          "Contributed to blockchain backend features in beta-stage AI product.",
+          "Gained experience in production-like blockchain environments."
+        ],
+        "tech": ["Go", "Blockchain", "AI"],
+        "type": "beta"
+      }
   ],
   "education": [
     {

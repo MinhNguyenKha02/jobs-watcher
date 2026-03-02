@@ -2,10 +2,7 @@
 import { fn } from 'jest-mock';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-import {
-  MongoDBStorageAdapter,
-  StorageAdapterConfig,
-} from '../../../src/services/storage/mongodb-storage-adapter.js';
+import { MongoDBStorageAdapter, StorageAdapterConfig } from '../../../src/services/storage/mongodb-storage-adapter.js';
 import { RawIngestDocument, ParseLogDocument } from '../../../src/services/storage/schemas.js';
 
 /**

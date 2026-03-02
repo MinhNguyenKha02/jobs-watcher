@@ -9,10 +9,7 @@ export type {
   ParserSuccessRate,
 } from './schemas.js';
 
-export {
-  COLLECTIONS,
-  STORAGE_INDEXES,
-} from './schemas.js';
+export { COLLECTIONS, STORAGE_INDEXES } from './schemas.js';
 
 export {
   MongoDBStorageAdapter,

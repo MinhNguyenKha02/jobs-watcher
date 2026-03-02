@@ -1,13 +1,13 @@
 import { textContent } from 'domutils';
 import { parseDocument } from 'htmlparser2';
 
-import type { ParsedEmail } from '../../types.js';
-import type { IHtmlJobParser, IHtmlTextExtractor, IPlatformDetector } from './parser-ports.js';
-
 import { JOB_PLATFORMS } from '../../constants.js';
+import type { ParsedEmail } from '../../types.js';
 import { filterJobCompatibility, normalizeParsedEmail } from '../constraints.js';
 import { getLogger } from '../logger.js';
+
 import { HtmlJobParser } from './html-job-parser.js';
+import type { IHtmlJobParser, IHtmlTextExtractor, IPlatformDetector } from './parser-ports.js';
 
 const logger = getLogger();
 
@@ -57,11 +57,11 @@ class DefaultPlatformDetector implements IPlatformDetector {
       domains: p.domains,
       patterns: p.patterns,
     }))) {
-      if (platform.domains.some(domain => fromLower.includes(domain))) {
+      if (platform.domains.some((domain) => fromLower.includes(domain))) {
         return platform.name;
       }
 
-      if (platform.patterns.some(pattern => pattern.test(bodyLower))) {
+      if (platform.patterns.some((pattern) => pattern.test(bodyLower))) {
         return platform.name;
       }
     }
@@ -76,7 +76,10 @@ class DefaultHtmlTextExtractor implements IHtmlTextExtractor {
       const dom = parseDocument(html);
       return textContent(dom);
     } catch {
-      return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      return html
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
     }
   }
 }
@@ -231,7 +234,7 @@ export class EmailParser {
         rawContent: input.body,
         receivedAt: input.receivedAt,
       };
-      
+
       logger.debug('Email alert parsed (HTML)', {
         platform,
         position: parsed.position,
@@ -245,13 +248,15 @@ export class EmailParser {
       if (normalize) {
         const norm = normalizeParsedEmail(parsed);
         parsed = norm.parsed;
-        mergedErrors.push(...norm.warnings.map(w => `Warning: ${w}`));
+        mergedErrors.push(...norm.warnings.map((w) => `Warning: ${w}`));
       }
 
       if (applyConstraints) {
         const comp = filterJobCompatibility(parsed);
         if (!comp.passed) {
-          mergedErrors.push(`Filtered out: ${comp.reasons?.join(', ') || 'incompatible role/experience'}`);
+          mergedErrors.push(
+            `Filtered out: ${comp.reasons?.join(', ') || 'incompatible role/experience'}`
+          );
           return { success: false, data: parsed, errors: mergedErrors };
         }
       }
@@ -269,8 +274,8 @@ export class EmailParser {
 
       const cleanBody = this.textExtractor.stripHtml(input.body);
 
-      let company = this.extractCompany(cleanBody, input.subject, platform);
-      let position = this.extractPosition(cleanBody, input.subject, platform);
+      const company = this.extractCompany(cleanBody, input.subject, platform);
+      const position = this.extractPosition(cleanBody, input.subject, platform);
 
       // Validate extraction
       if (company === 'Unknown Company') {
@@ -280,9 +285,9 @@ export class EmailParser {
         errors.push('Could not extract position title');
       }
 
-      let location = this.extractLocation(cleanBody);
-      let url = this.extractUrl(input.body);
-      let description = this.extractDescription(cleanBody);
+      const location = this.extractLocation(cleanBody);
+      const url = this.extractUrl(input.body);
+      const description = this.extractDescription(cleanBody);
 
       if (!description) {
         errors.push('Could not extract job description');
@@ -302,20 +307,25 @@ export class EmailParser {
         receivedAt: input.receivedAt,
       };
       // Compute success based on current errors (warnings shouldn't affect this)
-      let success = errors.filter(e => !e.includes('Missing') || e.includes('Company') || e.includes('Position')).length === 0;
+      let success =
+        errors.filter(
+          (e) => !e.includes('Missing') || e.includes('Company') || e.includes('Position')
+        ).length === 0;
 
       const mergedErrors = [...errors];
 
       if (normalize) {
         const norm = normalizeParsedEmail(parsed);
         parsed = norm.parsed;
-        mergedErrors.push(...norm.warnings.map(w => `Warning: ${w}`));
+        mergedErrors.push(...norm.warnings.map((w) => `Warning: ${w}`));
       }
 
       if (applyConstraints) {
         const comp = filterJobCompatibility(parsed);
         if (!comp.passed) {
-          mergedErrors.push(`Filtered out: ${comp.reasons?.join(', ') || 'incompatible role/experience'}`);
+          mergedErrors.push(
+            `Filtered out: ${comp.reasons?.join(', ') || 'incompatible role/experience'}`
+          );
           success = false;
           return { success, data: parsed, errors: mergedErrors };
         }
@@ -440,9 +450,7 @@ export class EmailParser {
       const matches = body.match(pattern);
       if (matches && matches.length > 0) {
         // Return the first job-related URL
-        const jobUrl = matches.find(url => 
-          /job|career|apply|position|recruit/i.test(url)
-        );
+        const jobUrl = matches.find((url) => /job|career|apply|position|recruit/i.test(url));
         return jobUrl || matches[0];
       }
     }
@@ -452,8 +460,11 @@ export class EmailParser {
 
   private extractDescription(body: string): string | undefined {
     // Extract first meaningful paragraph (50-500 chars)
-    const lines = body.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    
+    const lines = body
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+
     for (const line of lines) {
       if (line.length >= 50 && line.length <= 500) {
         return line;

@@ -214,7 +214,7 @@ function EnrichedJobPopupComponent({ job: initialJob, jobNumber, onComplete }: P
     }
   };
 
-  useInput((input, key) => {
+  useInput((input: string, key: { return?: boolean; escape?: boolean; backspace?: boolean; delete?: boolean; ctrl?: boolean; meta?: boolean }) => {
     if (state.mode === 'main') {
       if (input === 'p') {
         handlePasteMode();

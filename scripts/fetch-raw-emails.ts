@@ -8,13 +8,15 @@ const logger = getLogger();
 
 async function main() {
   try {
+
     const limit = parseInt(process.env.FETCH_LIMIT || '5', 10);
+    const since = process.env.FETCH_SINCE || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // default: last 24h
     const storage = new RawEmailStorage();
     const baseDir = RawEmailStorage.resolveBaseDir();
     let savedCount = 0;
     let errorCount = 0;
 
-    logger.info(`📥 Starting raw email fetch (limit: ${limit}, baseDir: ${baseDir})`);
+    logger.info(`📥 Starting raw email fetch (limit: ${limit}, since: ${since}, baseDir: ${baseDir})`);
 
     const gmail = new GmailService();
     await gmail.authenticate();
@@ -23,7 +25,14 @@ async function main() {
     const labelId = await gmail.getLabelId(config.gmail.labelName);
     logger.info(`📂 Label ID: ${labelId}`);
 
-    const messages = await gmail.listMessagesByLabel(labelId, limit);
+    // Fetch messages since the given date (if supported)
+    let messages = [];
+    try {
+      messages = await gmail.listMessagesByLabel(labelId, limit, since);
+    } catch (err) {
+      logger.error(`Failed to fetch messages by label: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
     logger.info(`📮 Found ${messages.length} messages`);
 
     for (const msg of messages) {

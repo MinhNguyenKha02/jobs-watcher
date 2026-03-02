@@ -1,10 +1,12 @@
+import { fileURLToPath } from 'url';
 /**
  * Unit tests for Profile Parser (Phase 3A.1 Sprint 1)
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { ProfileParser, ProfileSnapshotLoader } from '../../src/services/profile/profile-parser';
-import type { ProfileNormalized } from '../../src/types/profile-normalized';
+
+import { ProfileParser, ProfileSnapshotLoader } from '../../src/services/profile/profile-parser.js';
+import type { ProfileNormalized } from '../../src/types/profile-normalized.js';
 
 describe('ProfileParser', () => {
   describe('validate', () => {
@@ -146,12 +148,12 @@ describe('ProfileParser', () => {
       const normalized = ProfileParser.parse(profileWithSkills as any);
 
       expect(normalized.normalizedSkills.length).toBe(3);
-      
-      const goSkill = normalized.normalizedSkills.find(s => s.name === 'Go');
+
+      const goSkill = normalized.normalizedSkills.find((s) => s.name === 'Go');
       expect(goSkill?.tier).toBe('solid');
       expect(goSkill?.domains).toContain('backend');
 
-      const pythonSkill = normalized.normalizedSkills.find(s => s.name === 'Python');
+      const pythonSkill = normalized.normalizedSkills.find((s) => s.name === 'Python');
       expect(pythonSkill?.tier).toBe('familiar');
     });
 
@@ -223,7 +225,10 @@ describe('ProfileParser', () => {
       expect(normalized.experience).toHaveLength(2);
       expect(normalized.experience[0].company).toBe('Tech Corp');
       expect(normalized.experience[0].description).toEqual(['Built APIs', 'Deployed services']);
-      expect(normalized.experience[1].description).toEqual(['Learned Go', 'Worked on microservices']);
+      expect(normalized.experience[1].description).toEqual([
+        'Learned Go',
+        'Worked on microservices',
+      ]);
     });
 
     it('should add timestamp to normalized profile', () => {
@@ -259,5 +264,19 @@ describe('ProfileSnapshotLoader', () => {
   it('should clear cache when requested', () => {
     ProfileSnapshotLoader.clearCache();
     expect(ProfileSnapshotLoader.getCachedHash()).toBeNull();
+  });
+});
+
+import path from 'path';
+import fs from 'fs';
+
+import { canonicalProfile } from '../../src/db/json.js';
+describe('Canonical profile (json.ts)', () => {
+  it('should parse and normalize the canonical profile without error', () => {
+    const normalized = ProfileParser.parse(canonicalProfile);
+    expect(normalized).toBeDefined();
+    expect(normalized.name).toBe('Minh Nguyen Kha');
+    expect(normalized.projects && normalized.projects.length).toBeGreaterThan(0);
+    expect(normalized.experience && normalized.experience.length).toBeGreaterThan(0);
   });
 });

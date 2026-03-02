@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { extractAllJobs } from '../src/services/job-extraction.js';
-import { filterJobCompatibility, loadProfile } from '../src/services/constraints.js';
+import { hybridJobFilter } from '../src/filter/job-filter.js';
+import { loadProfile } from '../src/services/constraints.js';
 import { getLogger } from '../src/services/logger.js';
 import { notifyUser } from '../src/services/notifications.js';
 
@@ -114,7 +115,8 @@ async function main() {
           };
 
           // Apply constraints filter
-          const filterResult = filterJobCompatibility(mockEmail, profile);
+          const filterResult = hybridJobFilter(mockEmail, profile);
+          logger.info('[Filter] Hybrid filter result', { reasons: filterResult.reasons, missingFields: filterResult.missingFields, matchedProfile: filterResult.matchedProfile });
 
           const processedJob: ProcessedJob = {
             messageId: entry.messageId,
@@ -202,5 +204,12 @@ async function main() {
     process.exit(1);
   }
 }
+    const filterProfile = {
+      ...jobProfile,
+      summary: Array.isArray(jobProfile.summary) ? jobProfile.summary.join('\n') : jobProfile.summary,
+      skills: Array.isArray(jobProfile.normalizedSkills)
+        ? jobProfile.normalizedSkills.map((s) => s.name)
+        : [],
+    };
 
 main();

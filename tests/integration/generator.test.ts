@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { DocumentGenerator } from '../../src/services/generators/generator.js';
-import { mockProfile } from '../__fixtures__/emails';
+import { mockProfile } from '../__fixtures__/emails.js';
 
 describe('DocumentGenerator - Validation Tests', () => {
   const outputDir = path.join(process.cwd(), 'test-output');

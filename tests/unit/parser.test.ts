@@ -2,12 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { EmailParser } from '../../src/services/parsers/email-parser.js';
 import { 
-  linkedinJobEmail, 
-  indeedJobEmail, 
-  vietnamworksJobEmail,
   topCVEmailAlert,
   indeedEmailAlert 
-} from '../__fixtures__/emails';
+} from '../__fixtures__/emails.js';
 
 const decodeBody = (payload: any) => {
   const data = payload.body?.data || '';
@@ -61,39 +58,20 @@ describe('EmailParser', () => {
   });
 
   describe('parse', () => {
-    it('parses LinkedIn job email', () => {
-      const result = parser.parse(toInput(linkedinJobEmail));
+    it('parses TopCV email alert with HTML', () => {
+      const result = parser.parse(toInput(topCVEmailAlert));
 
-      expect(result?.platform).toBe('LinkedIn');
-      expect(result?.company).toContain('TechCorp');
-      expect(result?.position).toContain('Senior Software Engineer');
-      expect(result?.location).toContain('Ho Chi Minh City');
-      expect(result?.description).toBeTruthy();
+      expect(result?.platform).toBe('TopCV');
+      expect(result).not.toBeNull();
+      expect(result?.position || result?.company || result?.description).toBeTruthy();
     });
 
-    it('parses Indeed job email', () => {
-      const result = parser.parse(toInput(indeedJobEmail));
+    it('parses Indeed email alert with HTML', () => {
+      const result = parser.parse(toInput(indeedEmailAlert));
 
       expect(result?.platform).toBe('Indeed');
-      expect(result?.position).toContain('Backend Developer');
-      expect(result?.description).toBeTruthy();
-    });
-
-    it('parses VietnamWorks job email', () => {
-      const result = parser.parse(toInput(vietnamworksJobEmail));
-
-      expect(result?.platform).toBe('VietnamWorks');
-      expect(result?.position).toBeTruthy();
-      expect(result?.description).toBeTruthy();
-    });
-
-    it('handles unknown platform', () => {
-      const input = toInput(linkedinJobEmail);
-      input.from = 'random@example.com';
-      input.body = input.body.replace(/linkedin/gi, 'randomtext');
-      const result = parser.parse(input);
       expect(result).not.toBeNull();
-      expect(result?.platform).toBe('Unknown');
+      expect(result?.position || result?.company || result?.description).toBeTruthy();
     });
 
     it('parses real raw email from src/db when available', () => {

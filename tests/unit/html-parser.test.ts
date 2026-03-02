@@ -6,10 +6,10 @@ import type { JobDetails } from '../../src/types.js';
 import {
   topCVDetailPageHTML,
   indeedDetailPageHTML,
-  indeedEmbeddedDetailPageHTMLSample1,
-  indeedEmbeddedDetailPageHTMLSample2,
-  linkedInDetailPageHTMLSample1,
-  linkedInDetailPageHTMLSample2,
+  indeedPlatformPageHtml1,
+  indeedPlatformPageHtml2,
+  linkedinPlatformPageHtml1,
+  linkedinPlatformPageHtml2,
 } from '../__fixtures__/emails.js';
 
 function getFirstRawEmailBody(): string | null {
@@ -369,7 +369,7 @@ describe('HtmlJobParser', () => {
     });
 
     it('parses embedded job detail (sample 1)', () => {
-      const result = parser.parseJobFromHtml(indeedEmbeddedDetailPageHTMLSample1);
+      const result = parser.parseJobFromHtml(indeedPlatformPageHtml1);
 
       expect(result?.source).toBe('indeed');
       expect(result?.title).toContain('Senior Full-stack Python Developer');
@@ -382,7 +382,7 @@ describe('HtmlJobParser', () => {
     });
 
     it('parses embedded job detail (sample 2)', () => {
-      const result = parser.parseJobFromHtml(indeedEmbeddedDetailPageHTMLSample2);
+      const result = parser.parseJobFromHtml(indeedPlatformPageHtml2);
 
       expect(result?.source).toBe('indeed');
       expect(result?.title).toContain('Data Engineer Fresher');
@@ -396,7 +396,7 @@ describe('HtmlJobParser', () => {
 
   describe('LinkedIn detail parsing', () => {
     it('parses core fields from LinkedIn job detail (sample 1)', () => {
-      const result = parser.parseJobFromHtml(linkedInDetailPageHTMLSample1);
+      const result = parser.parseJobFromHtml(linkedinPlatformPageHtml1);
 
       expect(result?.source).toBe('linkedin');
       expect(result?.title).toBe('Research Engineer Intern');
@@ -406,7 +406,7 @@ describe('HtmlJobParser', () => {
     });
 
     it('parses core fields from LinkedIn job detail (sample 2)', () => {
-      const result = parser.parseJobFromHtml(linkedInDetailPageHTMLSample2);
+      const result = parser.parseJobFromHtml(linkedinPlatformPageHtml2);
 
       expect(result?.source).toBe('linkedin');
       expect(result?.title).toBe('Software Developers');

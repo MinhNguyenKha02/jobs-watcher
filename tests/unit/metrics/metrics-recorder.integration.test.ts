@@ -1,10 +1,7 @@
 import { MongoClient } from 'mongodb';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-import {
-  MetricsRecorder,
-  ApplicationMetric,
-} from '../../../src/services/metrics/metrics-recorder.js';
+import { MetricsRecorder, ApplicationMetric } from '../../../src/services/metrics/metrics-recorder.js';
 
 describe('MetricsRecorder (integration)', () => {
   let mongod: MongoMemoryServer;

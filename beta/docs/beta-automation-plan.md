@@ -17,6 +17,8 @@
   - Extract and log metrics
   - Review logs and trigger alerts
   - Update documentation files
+  - **Fallback fetch of raw emails before analysis if input is missing**
+  - **Run scheduled daily CI job for metrics aggregation and fallback fetch**
 
 ## References
 - See beta-staging-process.md, beta-monitoring-feedback.md, and beta-exit-criteria.md

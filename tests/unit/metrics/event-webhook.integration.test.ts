@@ -2,10 +2,7 @@ import { fn } from 'jest-mock';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 import { EventDrivenWebhook } from '../../../src/services/event-webhook.js';
-import {
-  MongoDBStorageAdapter,
-  StorageAdapterConfig,
-} from '../../../src/services/storage/mongodb-storage-adapter.js';
+import { MongoDBStorageAdapter, StorageAdapterConfig } from '../../../src/services/storage/mongodb-storage-adapter.js';
 // Minimal mock GmailService for constructor
 class MockGmailService {
   getLabelId = fn();
@@ -15,10 +12,7 @@ class MockGmailService {
   extractBody = fn();
 }
 import type { Job } from '../../../src/types.js';
-import type {
-  JobPresenter,
-  JobPresentationResult,
-} from '../../../src/application/job-processor.js';
+import type { JobPresenter, JobPresentationResult } from '../../../src/application/job-processor.js';
 import type { ActionType, EnrichedJobData } from '../../../src/ui/hooks/useJobState.js';
 // Headless presenter to avoid Ink import in test context
 class HeadlessJobPresenter implements JobPresenter<ActionType, EnrichedJobData> {

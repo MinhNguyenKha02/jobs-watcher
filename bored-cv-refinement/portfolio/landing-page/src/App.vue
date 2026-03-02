@@ -1,28 +1,23 @@
 <script setup lang="ts">
-import MatrixGrid from "./components/MatrixGrid.vue"
-import ScoringMetrics from "./components/ScoringMetrics.vue"
+import HelloWorld from "./components/HelloWorld.vue"
+import ForestView from "./components/ForestView.vue"
 </script>
 
 <template>
   <main class="min-h-screen bg-slate-50 text-slate-900">
     <div class="mx-auto w-full max-w-[1200px] px-6 py-8">
-      <!-- Header -->
-      <header class="mb-8">
-        <p class="text-xs uppercase tracking-wide text-slate-500 mb-2">Portfolio · Metrics</p>
-        <h1 class="text-xl font-bold text-slate-900 mb-3">Capability Matrix</h1>
-        <p class="text-xs text-slate-600 max-w-[600px] leading-relaxed">
-          Deterministic skill matrix. Opacity = depth (score × evidence). Color = domain (orange = core, gray = support).
+      <!-- Tier 1: Hero Section -->
+      <HelloWorld />
+
+      <!-- Tier 2: Portfolio Forest -->
+      <section class="mb-8">
+        <h2 class="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-4">
+          Evidence Forest · Domain Clusters
+        </h2>
+        <p class="text-xs text-slate-600 mb-4 max-w-[600px] leading-relaxed">
+          Capabilities organized by domain with evidence visualization and gap detection. Red border = missing evidence, green border = complete coverage.
         </p>
-      </header>
-
-      <!-- Matrix -->
-      <section class="mb-6">
-        <MatrixGrid />
-      </section>
-
-      <!-- Metrics -->
-      <section class="mb-6">
-        <ScoringMetrics />
+        <ForestView />
       </section>
     </div>
   </main>

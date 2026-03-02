@@ -1,0 +1,15 @@
+{
+  "name": "bored-cv-refinement",
+  "version": "0.1.0",
+  "description": "CV refinement and portfolio management",
+  "type": "module",
+  "scripts": {
+    "sync:profile": "ts-node scripts/sync-profile.ts",
+    "sync:profile:watch": "ts-node scripts/sync-profile.ts --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}

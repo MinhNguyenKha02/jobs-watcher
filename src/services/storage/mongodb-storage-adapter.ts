@@ -11,7 +11,7 @@
 import { MongoClient, Db, Collection } from 'mongodb';
 import type { Filter } from 'mongodb';
 
-import { type ILogger } from '../logger';
+import { type ILogger } from '../logger.js';
 
 import {
   RawIngestDocument,
@@ -20,7 +20,7 @@ import {
   ParserSuccessRate,
   COLLECTIONS,
   STORAGE_INDEXES,
-} from './schemas';
+} from './schemas.js';
 
 export interface StorageAdapterConfig {
   mongoUri: string;

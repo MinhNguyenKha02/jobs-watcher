@@ -1,10 +1,6 @@
-/**
- * Profile Parser Service
- * 
- * Parses canonical profile format (json.json) and produces ProfileNormalized
- * with validation, normalization, and skill tier extraction.
- */
 
+
+import type { Profile } from '../../types.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -38,10 +34,43 @@ interface CanonicalProfile {
   };
 }
 
-/**
- * Profile Parser with validation and normalization
- */
+
 export class ProfileParser {
+  /**
+   * Denormalize: Convert a ProfileNormalized to a flat Profile (for SmartGenerator, scoring, etc)
+   */
+  static deNormaliseProfile(profileNorm: ProfileNormalized): Profile {
+    const skills: string[] = Array.isArray(profileNorm.normalizedSkills)
+      ? profileNorm.normalizedSkills.map((s) => s.name)
+      : [];
+    return {
+      name: profileNorm.name,
+      email: profileNorm.email,
+      phone: profileNorm.phone,
+      location: profileNorm.location,
+      title: profileNorm.title,
+      summary: Array.isArray(profileNorm.summary) ? profileNorm.summary.join(' ') : (profileNorm.summary || ''),
+      skills,
+      experience: Array.isArray(profileNorm.experience) ? profileNorm.experience.map((exp) => ({
+        company: exp.company,
+        position: exp.position,
+        location: exp.location,
+        startDate: exp.startDate,
+        endDate: exp.endDate,
+        description: Array.isArray(exp.description) ? exp.description : [],
+      })) : [],
+      education: Array.isArray(profileNorm.education) ? profileNorm.education.map((edu) => ({
+        institution: edu.institution,
+        degree: edu.degree,
+        field: edu.field,
+        startDate: edu.startDate,
+        endDate: edu.endDate,
+        gpa: edu.gpa,
+      })) : [],
+      links: profileNorm.links || {},
+    };
+  }
+
   /**
    * Load and parse canonical profile from file
    */
@@ -49,16 +78,13 @@ export class ProfileParser {
     if (!fs.existsSync(filePath)) {
       throw new Error(`Profile file not found: ${filePath}`);
     }
-
     const rawContent = fs.readFileSync(filePath, 'utf-8');
     const canonical = JSON.parse(rawContent) as CanonicalProfile;
-    
     // Calculate hash of raw content for immutability tracking
     const profileHash = crypto
       .createHash('sha256')
       .update(rawContent)
       .digest('hex');
-
     return this.parse(canonical, profileHash);
   }
 
@@ -71,25 +97,20 @@ export class ProfileParser {
     if (!validation.valid) {
       throw new Error(`Profile validation failed:\n${validation.errors.join('\n')}`);
     }
-
     // Normalize summary to array
-    const summary = Array.isArray(canonical.summary) 
-      ? canonical.summary 
+    const summary = Array.isArray(canonical.summary)
+      ? canonical.summary
       : [canonical.summary];
-
     // Parse fundamentals
     const fundamentals = this.parseFundamentals(canonical.software_fundamentals || {});
-
     // Parse structured skills
     const skills = this.parseStructuredSkills(canonical.skills || {});
-
     // Extract flat normalized skills for matching
     const normalizedSkills = this.extractNormalizedSkills(
       fundamentals,
       skills,
       canonical.projects || []
     );
-
     // Normalize experience
     const experience = (canonical.experience || []).map(exp => ({
       company: exp.company || '',
@@ -97,11 +118,10 @@ export class ProfileParser {
       location: exp.location || '',
       startDate: exp.startDate || '',
       endDate: exp.endDate || '',
-      description: Array.isArray(exp.description) 
-        ? exp.description 
+      description: Array.isArray(exp.description)
+        ? exp.description
         : exp.highlights || [],
     }));
-
     return {
       name: canonical.name,
       email: canonical.email,
@@ -127,7 +147,6 @@ export class ProfileParser {
   static validate(canonical: CanonicalProfile): ProfileValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
-
     // Required fields
     const requiredFields = ['name', 'email', 'title', 'summary'];
     for (const field of requiredFields) {
@@ -135,22 +154,18 @@ export class ProfileParser {
         errors.push(`Missing required field: ${field}`);
       }
     }
-
     // Email format validation
     if (canonical.email && !this.isValidEmail(canonical.email)) {
       warnings.push('Email format may be invalid');
     }
-
     // Skills validation
     if (!canonical.software_fundamentals && !canonical.skills) {
       warnings.push('No skills defined (software_fundamentals or skills)');
     }
-
     // Experience validation
     if (!canonical.experience || canonical.experience.length === 0) {
       warnings.push('No work experience defined');
     }
-
     return {
       valid: errors.length === 0,
       errors,
@@ -173,9 +188,7 @@ export class ProfileParser {
       test: [],
       ai: [],
     };
-
     if (!raw || typeof raw !== 'object') return defaults;
-
     // Parse programming_language with tiers
     if (raw.programming_language && typeof raw.programming_language === 'object') {
       defaults.programming_language = {
@@ -184,7 +197,6 @@ export class ProfileParser {
         familiar: raw.programming_language.familiar || [],
       };
     }
-
     // Parse other fundamentals (arrays)
     const fundamentalKeys = ['dsa', 'os', 'oop', 'database', 'networking', 'security', 'test', 'ai'];
     for (const key of fundamentalKeys) {
@@ -192,7 +204,6 @@ export class ProfileParser {
         (defaults as any)[key] = raw[key];
       }
     }
-
     return defaults;
   }
 
@@ -201,9 +212,7 @@ export class ProfileParser {
    */
   private static parseStructuredSkills(raw: Record<string, any>): StructuredSkills {
     const skills: StructuredSkills = {};
-
     if (!raw || typeof raw !== 'object') return skills;
-
     // Parse backend skills
     if (raw.backend) {
       skills.backend = {
@@ -211,12 +220,11 @@ export class ProfileParser {
         frameworks: this.extractTiers(raw.backend.frameworks),
         api: this.extractTiers(raw.backend.api),
         database: this.extractTiers(raw.backend.database),
-        authentication_authorization: raw.backend['Authentication/Authorization'] || 
+        authentication_authorization: raw.backend['Authentication/Authorization'] ||
                                       raw.backend.authentication_authorization || [],
         security: raw.backend.security || [],
       };
     }
-
     // Parse frontend skills
     if (raw.frontend) {
       skills.frontend = {
@@ -224,7 +232,6 @@ export class ProfileParser {
         comfort: raw.frontend.comfort || [],
       };
     }
-
     // Parse devops skills
     if (raw.devops) {
       skills.devops = {
@@ -233,12 +240,10 @@ export class ProfileParser {
         cloud: this.extractTiers(raw.devops.cloud),
       };
     }
-
     // Parse other skills
     skills.tooling = raw.tooling || [];
     skills.methodologies = raw.methodologies || [];
     skills.soft_skills = raw.soft_skills || [];
-
     return skills;
   }
 
@@ -251,9 +256,7 @@ export class ProfileParser {
       working: [],
       familiar: [],
     };
-
     if (!obj || typeof obj !== 'object') return defaults;
-
     return {
       solid: obj.solid || [],
       working: obj.working || [],
@@ -270,7 +273,6 @@ export class ProfileParser {
     projects: any[]
   ): NormalizedSkill[] {
     const normalized: NormalizedSkill[] = [];
-
     // Extract from programming languages
     for (const [tier, langs] of Object.entries(fundamentals.programming_language)) {
       for (const lang of langs) {
@@ -282,7 +284,6 @@ export class ProfileParser {
         });
       }
     }
-
     // Extract from backend skills
     if (skills.backend) {
       this.addSkillsFromTiered(
@@ -304,7 +305,6 @@ export class ProfileParser {
         normalized
       );
     }
-
     // Extract from frontend skills
     if (skills.frontend?.frameworks) {
       this.addSkillsFromTiered(
@@ -314,7 +314,6 @@ export class ProfileParser {
         normalized
       );
     }
-
     // Extract from devops skills
     if (skills.devops) {
       if (skills.devops.containerization) {
@@ -334,7 +333,6 @@ export class ProfileParser {
         );
       }
     }
-
     // Extract from tooling
     if (skills.tooling) {
       for (const tool of skills.tooling) {
@@ -346,7 +344,6 @@ export class ProfileParser {
         });
       }
     }
-
     return normalized;
   }
 
@@ -360,7 +357,6 @@ export class ProfileParser {
     target: NormalizedSkill[]
   ): void {
     if (!tiered) return;
-
     for (const [tier, skillList] of Object.entries(tiered)) {
       for (const skill of skillList) {
         target.push({

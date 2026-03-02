@@ -1,14 +1,43 @@
+## ESM/JS Compliance and Build Separation
+
+**Status:** ✅ ADOPTED
+
+### Problem
+Directly importing .ts files or using TypeScript extensions at runtime or in tests can cause:
+- Node.js/ESM loader failures (expects .js, not .ts)
+- Inconsistent dev/prod/test environments
+- Accidental use of unbuilt or stale code
+
+### Decision
+**All runtime and test code must import from built dist/ .js files, never from src/ or .ts.**
+TypeScript is used for type safety and build only. ESM import hygiene is enforced for production- and test-grade workflows.
+
+### Implementation
+- All test and runtime imports use paths like `../../dist/src/services/constraints.js`.
+- No .ts or src/ imports in any prod/test code.
+- Type-check and build are separate steps: `tsc --noEmit` for type-check, `tsc` for build.
+- Only built .js files in dist/ are used for execution and testing.
+
+### Rationale
+- Guarantees robust, deterministic, and production-ready ESM/JS compliance
+- Prevents accidental use of source files in production or CI
+- Ensures all environments (dev, prod, test) use the same built output
+- Simplifies CI/CD and tooling compatibility
+
+### Outcome
+All package.json scripts for build, test, and run operate on dist/ .js files. TypeScript is strictly a build/type-check layer. This policy is mandatory for all production and test workflows.
 # Architectural Decisions & Tradeoffs
 
 ## Input Contexts & Platform Support
 
+
 | Input Context              | Description                                              | Architectural Support         |
 |----------------------------|----------------------------------------------------------|-------------------------------|
-| Watcher (Gmail Webhook)    | Real-time event-driven job ingestion from Gmail          | EventDrivenWebhook, JobQueue  |
-| Clipboard/Manual Platform  | Manual entry or clipboard paste from job boards/platforms| CLI/TUI, JobQueue             |
-| Fixture/Manual Ingestion   | Regression testing, data import via JSON/CLI             | DataTestingAdapter, JobQueue  |
+| Gmail Webhook Adapter      | Real-time, event-driven ingestion from Gmail via Pub/Sub | `GmailWebhookAdapter`         |
+| Gmail API Adapter          | Batch fallback ingestion using Gmail API                 | `GmailApiAdapter`             |
+| DB/Manual Adapter          | DB/manual/fixture ingestion for testing/validation       | `DbEmailSourceAdapter`        |
 
-All input contexts are normalized and processed through the same queue, deduplication, and CI feedback/metrics logic. See [ARCHITECTURE.md](ARCHITECTURE.md#supported-input-contexts) and [JOB_PROCESSING_QUEUE.md](JOB_PROCESSING_QUEUE.md#supported-input-contexts).
+All input contexts are normalized and processed through the same queue, deduplication, and CI feedback/metrics logic. All adapters are invoked via a single CLI entry (`data-listening.ts`) with a flag to select the adapter. See [ARCHITECTURE.md](ARCHITECTURE.md#supported-input-contexts) and [JOB_PROCESSING_QUEUE.md](JOB_PROCESSING_QUEUE.md#supported-input-contexts).
 
 This document records key decisions made during the redesign of Jobs Watcher, including rationale, tradeoffs, and alternatives considered.
 
@@ -67,64 +96,29 @@ class JobProcessor<TAction, TPayload> {
 - Easy headless mode (no presenter = just action handler)
 - Web UI implementation (REST presenter, database handler)
 - Clean testing via mocks
-
----
-**Status:** ✅ ADOPTED
-
-- No audit trail of parsing attempts
-- No way to analyze failure patterns
 - Difficult to export fixtures for regression testing
 - No production analytics (success rate by source/stage)
 
-### Decision
-Use two immutable/append-only MongoDB collections:
-**`raw_ingest`** (Insert-only)
-```json
-{
-  "_id": "ObjectId",
-  "source": "GMAIL_WEBHOOK | GMAIL_MANUAL | HTML_ONLY",
   "rawContent": "...",
   "gmailMeta": { "messageId", "from", "subject", ... },
-
-**`parse_log`** (Append-only)
-```json
-{
   "_id": "logId",
-  "extracted": { "company", "title", ... },
   "error": { "code", "message" },
   "timestamp": "2026-02-13T..."
 }
 ```
-
-### Tradeoffs
-
-| Aspect | Benefit | Cost |
-|--------|---------|------|
 | **Immutability** | Complete audit trail, idempotent processing | Cannot correct bad data (must export/reimport) |
 | **Two collections** | Clear separation: input vs attempts | Requires JOIN queries for full context |
-| **Append-only parse_log** | Tracks all retry attempts | Requires cleanup script for very high volumes |
-| **MongoDB instead of files** | Production-grade storage, analytics queries | Requires MongoDB setup, connection management |
-
-### Alternatives Considered
-1. **Single `parsed_jobs` collection with overwrites**: Would lose retry history → can't analyze failure patterns
 2. **Keep file-based, add JSON audit log**: Would be slow for analytics → still need migration to DB eventually
 3. **Normalized schema with mutable records**: Would violate audit trail principle → risk of data loss
-
-### Decision Outcome
 ✅ **Adopted.** Enables:
 - Complete parse history per job
 - Export failed parses as regression fixtures
 - Analytics: success rate by source/stage/date
-- Root cause analysis (error codes, execution time)
 - Compliance/auditability requirements
 
 ---
 
-### Problem
-
-### Decision
 Split parsing into two independent stages:
-- ~95% success rate expected
 
 **Stage 2: JOB_DETAIL** (Complex, lower reliability)
 - Extract: URL, description, requirements
@@ -620,6 +614,34 @@ Benefits:
 ---
 
 ## Roadmap & Future Decisions
+---
+
+## Decision 12: Hybrid ESM/TS Compatibility & Option B Test Hygiene
+
+**Status:** ✅ ADOPTED (Feb 22, 2026)
+
+### Problem
+The codebase must support both ESM and CJS module resolution, strict TypeScript hygiene, and real integration tests (Option B). Past issues included import errors, .ts extensions, implicit any types, and inconsistent module resolution.
+
+### Decision
+- Align all imports for ESM/TS compatibility (no .ts extensions, explicit types, node moduleResolution).
+- Patch tsconfig.json, jest.config.cjs, babel.config.js for hybrid ESM/CJS support.
+- Enforce Option B: real integrations, no mocks unless required for CI, deterministic engineering, explicit error handling.
+- Use get_changed_files to track and validate all codebase changes at commit time.
+
+### Implementation
+- Imports and types patched in src/, services/, tests/, e2e.
+- Pre-commit runs lint-staged, type-check, unit/e2e tests; errors are fixed iteratively.
+- get_changed_files ensures all changes are tracked and tested before commit.
+
+### Test & E2E Coverage
+- All tests in tests/, e2e/ run against real integrations (MongoDB, Gmail API, Ink TUI).
+- E2E tests validate job ingestion, queue processing, webhook flows, and metrics aggregation.
+- Coverage rate is tracked; failures are explicit and auditable.
+- No skipped tests; all failures are surfaced and fixed.
+
+### Outcome
+✅ Codebase is hybrid ESM/TS compatible, Option B compliant, and fully covered by real integration tests. All changes are tracked and validated via get_changed_files and pre-commit.
 
 **Current Phase (Staging - Feb 15-Mar 5, 2026):**
 - ✅ Score matcher engine v0.5 integrated (Feb 15)

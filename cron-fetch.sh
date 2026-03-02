@@ -30,7 +30,6 @@ echo "[$(date)] Analyzing email
 
 
 
-
 s..."
 npm run analyze:raw-emails
 

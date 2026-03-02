@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { DraftBuilder } from '../../src/services/profile/draft-builder';
-import type { Job } from '../../src/types';
-import type { ProfileNormalized } from '../../src/types/profile-normalized';
+import { DraftBuilder } from '../../src/services/profile/draft-builder.js';
+import type { Job } from '../../src/types.js';
+import type { ProfileNormalized } from '../../src/types/profile-normalized.js';
 
 describe('DraftBuilder', () => {
   // Mock profile for testing

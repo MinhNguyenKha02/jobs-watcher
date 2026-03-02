@@ -1,0 +1,96 @@
+{
+  "exportedAt": "2026-03-02T20:02:58.794Z",
+  "processingSummary": {
+    "totalJobsProcessed": 296,
+    "queuedJobs": 143,
+    "trashedJobs": 153,
+    "parseSuccessRate": "100.00%",
+    "trashRate": "51.69%",
+    "enrichmentRate": "0.68%"
+  },
+  "collections": {
+    "job_queue": {
+      "count": 143,
+      "statuses": {
+        "queued": 143
+      }
+    },
+    "job_trash": {
+      "count": 153,
+      "reasons": {
+        "parse_failed_or_filtered": 112,
+        "filtered_by_hybrid": 41
+      }
+    },
+    "needs_enrichment": {
+      "count": 2,
+      "reasons": {
+        "missing_skills": 2
+      }
+    },
+    "action_log": {
+      "count": 0,
+      "errorCount": 0
+    },
+    "parse_log": {
+      "count": 72,
+      "stages": {
+        "JOB_DETAIL": 72
+      },
+      "successCount": 72,
+      "failureCount": 0,
+      "totalAttempts": 72,
+      "parseRate": "100.00%"
+    },
+    "raw_ingest": {
+      "count": 0
+    },
+    "metrics": {
+      "count": 0
+    }
+  },
+  "dataIntegrity": {
+    "allFilesWritten": true,
+    "filesWithData": [
+      "e2e-job-queue.json (143 records)",
+      "e2e-job-trash.json (153 records)",
+      "e2e-needs-enrichment.json (2 records)",
+      "e2e-parse-log.json (72 records)"
+    ],
+    "emptyFiles": [
+      "e2e-action-log.json",
+      "e2e-raw-ingest.json",
+      "e2e-metrics.json"
+    ]
+  },
+  "exitCriteria": {
+    "hasQueuedJobs": true,
+    "hasValidParseLogs": true,
+    "noUnexpectedErrors": true,
+    "enrichmentDataAvailable": true,
+    "metricsCollected": false,
+    "parsedJobsExist": true
+  },
+  "mvpAcceptanceCriteria": {
+    "minimumQueuedJobs": true,
+    "minimumJobsProcessed": true,
+    "acceptableParsedRate": true,
+    "hasLoggingData": true,
+    "enrichmentReady": true
+  },
+  "parseFailureAnalysis": {
+    "parseLogFailureReasons": {},
+    "trashParseErrors": {
+      "Could not extract company name": 28,
+      "Could not extract position title": 28,
+      "Warning: Position normalized to profile title": 28,
+      "Warning: Location set to profile default": 28,
+      "Missing emailId": 76,
+      "Missing from address": 78,
+      "Missing subject": 78,
+      "Warning: Location normalized to canonical city": 3,
+      "Filtered out: Requires experience beyond junior level": 3,
+      "Filtered out: Non-software role": 3
+    }
+  }
+}
