@@ -6,6 +6,7 @@
  */
 import { PLATFORM_NAMES } from '../constants.js';
 import type { Job, Profile } from '../types.js';
+
 import { filterJobCompatibility } from './constraints.js';
 
 export interface JobFilterResult {
@@ -51,9 +52,10 @@ export function hybridJobFilter(job: Partial<Job>, profile: Profile): JobFilterR
   // Relaxed: description, company, platform, skills
   if (!job.description) missingFields.push('description');
   if (!job.company) missingFields.push('company');
-  const platform = job.platform || (typeof (job as any).source === 'string' ? (job as any).source : undefined);
+  const platform =
+    job.platform || (typeof (job as any).source === 'string' ? (job as any).source : undefined);
   if (!platform) missingFields.push('platform');
-  
+
   // Skills can be extracted from description, so don't mark as missing if description exists
   const skills = (job as any).skills || (job as any).requiredSkills;
   if (!skills && !job.description) {
@@ -70,8 +72,8 @@ export function hybridJobFilter(job: Partial<Job>, profile: Profile): JobFilterR
 
   // Platform detection (relaxed) - case-insensitive
   const platformLower = job.platform?.toLowerCase() || '';
-  const normalizedPlatforms = PLATFORM_NAMES.map(p => p.toLowerCase());
-  
+  const normalizedPlatforms = PLATFORM_NAMES.map((p) => p.toLowerCase());
+
   if (job.platform && !normalizedPlatforms.includes(platformLower)) {
     warnings.push('unknown_platform');
   } else if (typeof (job as any).source === 'string') {
@@ -88,9 +90,7 @@ export function hybridJobFilter(job: Partial<Job>, profile: Profile): JobFilterR
 
   // Final pass/fail
   const hardReject = reasons.some(
-    (reason) =>
-      /non-software role/i.test(reason) ||
-      /blocked platform/i.test(reason)
+    (reason) => /non-software role/i.test(reason) || /blocked platform/i.test(reason)
   );
   const passed = matchedProfile && !hardReject;
   return {

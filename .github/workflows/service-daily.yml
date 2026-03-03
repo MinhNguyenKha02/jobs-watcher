@@ -1,0 +1,26 @@
+name: Service Daily Check
+
+on:
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+jobs:
+  health-and-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run data-listening:gmailApi
+      - run: npm run export:all
+      - run: npm run inspect:db
+      - run: npm run inspect:logs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: e2e-output-${{ github.run_id }}
+          path: src/db/e2e-output
