@@ -1,1 +1,44 @@
-[]
+[
+  {
+    "_id": "69a867dcedf3030ead55ee93",
+    "gmailMeta": {
+      "messageId": "msg-topcv-001",
+      "from": "TopCV <toppyai@topcv.vn>",
+      "subject": "\"full stack developer\": 10 việc làm mới nhất phù hợp với bạn"
+    },
+    "createdAt": "2026-03-04T17:11:56.866Z",
+    "htmlMeta": null,
+    "ingestedAt": "2026-03-04T17:11:56.866Z",
+    "mode": "testing",
+    "rawContent": "[raw content, length=1228]",
+    "source": "GMAIL_MANUAL"
+  },
+  {
+    "_id": "69a867dcedf3030ead55ee97",
+    "gmailMeta": {
+      "messageId": "msg-indeed-001",
+      "from": "noreply@indeed.com",
+      "subject": "Indeed Job Alert - 20 new front end developer jobs"
+    },
+    "createdAt": "2026-03-04T17:11:56.901Z",
+    "htmlMeta": null,
+    "ingestedAt": "2026-03-04T17:11:56.901Z",
+    "mode": "testing",
+    "rawContent": "[raw content, length=2053]",
+    "source": "GMAIL_MANUAL"
+  },
+  {
+    "_id": "69a867dcedf3030ead55eea0",
+    "gmailMeta": {
+      "messageId": "syn-b517807d05f89186",
+      "from": null,
+      "subject": null
+    },
+    "createdAt": "2026-03-04T17:11:56.929Z",
+    "htmlMeta": null,
+    "ingestedAt": "2026-03-04T17:11:56.929Z",
+    "mode": "testing",
+    "rawContent": "[raw content, length=5548]",
+    "source": "GMAIL_MANUAL"
+  }
+]

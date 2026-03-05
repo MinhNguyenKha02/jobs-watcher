@@ -1,5 +1,1126 @@
 [
   {
+    "_id": "69a93693106dad2a0065876d",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo Ho Chi Minh City, Vietnam Full-time",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-05T07:53:55.187Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a93693106dad2a0065876b",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-05T07:53:55.181Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a93693106dad2a00658768",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-05T07:53:55.170Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a93693106dad2a00658766",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": false,
+    "extracted": null,
+    "error": {
+      "code": "UNKNOWN",
+      "message": "No candidate jobs extracted from fixture input"
+    },
+    "executionMs": 0,
+    "timestamp": "2026-03-05T07:53:55.150Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a931fa009bf85903dcacd1",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo Ho Chi Minh City, Vietnam Full-time",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-05T07:34:18.835Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a931fa009bf85903dcaccf",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-05T07:34:18.827Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a931fa009bf85903dcaccc",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-05T07:34:18.812Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a931fa009bf85903dcacca",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": false,
+    "extracted": null,
+    "error": {
+      "code": "UNKNOWN",
+      "message": "No candidate jobs extracted from fixture input"
+    },
+    "executionMs": 0,
+    "timestamp": "2026-03-05T07:34:18.782Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a89c2054d586f360c7f545",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo Ho Chi Minh City, Vietnam Full-time",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T20:54:56.317Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a89c2054d586f360c7f543",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T20:54:56.311Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a89c2054d586f360c7f540",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T20:54:56.300Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a89c2054d586f360c7f53e",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": false,
+    "extracted": null,
+    "error": {
+      "code": "UNKNOWN",
+      "message": "No candidate jobs extracted from fixture input"
+    },
+    "executionMs": 0,
+    "timestamp": "2026-03-04T20:54:56.280Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a89a4041ff187177047d7a",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo Ho Chi Minh City, Vietnam Full-time",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T20:46:56.244Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a89a4041ff187177047d78",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T20:46:56.235Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a89a4041ff187177047d75",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T20:46:56.224Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a89a4041ff187177047d73",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": false,
+    "extracted": null,
+    "error": {
+      "code": "UNKNOWN",
+      "message": "No candidate jobs extracted from fixture input"
+    },
+    "executionMs": 0,
+    "timestamp": "2026-03-04T20:46:56.206Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a890d8389a2e223b82d18c",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo Ho Chi Minh City, Vietnam Full-time",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T20:06:48.931Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a890d8389a2e223b82d18a",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T20:06:48.925Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a890d8389a2e223b82d187",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T20:06:48.916Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a890d8389a2e223b82d185",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": false,
+    "extracted": null,
+    "error": {
+      "code": "UNKNOWN",
+      "message": "No candidate jobs extracted from fixture input"
+    },
+    "executionMs": 0,
+    "timestamp": "2026-03-04T20:06:48.898Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a88f0c742b99291424370c",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo Ho Chi Minh City, Vietnam Full-time",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T19:59:08.407Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a88f0c742b99291424370a",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T19:59:08.401Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a88f0c742b992914243707",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T19:59:08.392Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a88f0c742b992914243705",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": false,
+    "extracted": null,
+    "error": {
+      "code": "UNKNOWN",
+      "message": "No candidate jobs extracted from fixture input"
+    },
+    "executionMs": 0,
+    "timestamp": "2026-03-04T19:59:08.371Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a87c6f162932dabcafe7d7",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo Ho Chi Minh City, Vietnam Full-time",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T18:39:43.314Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a87c6f162932dabcafe7d5",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T18:39:43.307Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a87c6f162932dabcafe7d2",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T18:39:43.294Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a87c6f162932dabcafe7d0",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": false,
+    "extracted": null,
+    "error": {
+      "code": "UNKNOWN",
+      "message": "No candidate jobs extracted from fixture input"
+    },
+    "executionMs": 0,
+    "timestamp": "2026-03-04T18:39:43.274Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a878b5d05a07c10eb61d37",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo Ho Chi Minh City, Vietnam Full-time",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T18:23:49.974Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a878b5d05a07c10eb61d35",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T18:23:49.959Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a878b5d05a07c10eb61d32",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T18:23:49.935Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a878b5d05a07c10eb61d30",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": false,
+    "extracted": null,
+    "error": {
+      "code": "UNKNOWN",
+      "message": "No candidate jobs extracted from fixture input"
+    },
+    "executionMs": 0,
+    "timestamp": "2026-03-04T18:23:49.889Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a8786a54ecffd1c51d2b75",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo Ho Chi Minh City, Vietnam Full-time",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T18:22:34.096Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a8786a54ecffd1c51d2b73",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T18:22:34.088Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a8786a54ecffd1c51d2b70",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T18:22:34.075Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a8786a54ecffd1c51d2b6e",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": false,
+    "extracted": null,
+    "error": {
+      "code": "UNKNOWN",
+      "message": "No candidate jobs extracted from fixture input"
+    },
+    "executionMs": 0,
+    "timestamp": "2026-03-04T18:22:34.050Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a8694b07a9be2b1953c4f9",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo Ho Chi Minh City, Vietnam Full-time",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T17:18:03.399Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a8694b07a9be2b1953c4f7",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T17:18:03.392Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a8694b07a9be2b1953c4f4",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T17:18:03.381Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a8694b07a9be2b1953c4f2",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": false,
+    "extracted": null,
+    "error": {
+      "code": "UNKNOWN",
+      "message": "No candidate jobs extracted from fixture input"
+    },
+    "executionMs": 0,
+    "timestamp": "2026-03-04T17:18:03.360Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a867dc4e8034478c65c616",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo Ho Chi Minh City, Vietnam Full-time",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T17:11:56.941Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a867dc4e8034478c65c614",
+    "rawIngestId": "syn-b517807d05f89186",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T17:11:56.933Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a867dc4e8034478c65c611",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T17:11:56.920Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a867dc4e8034478c65c60f",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": false,
+    "extracted": null,
+    "error": {
+      "code": "UNKNOWN",
+      "message": "No candidate jobs extracted from fixture input"
+    },
+    "executionMs": 0,
+    "timestamp": "2026-03-04T17:11:56.896Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e86f2ca9096fe7cdd6a0",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:08:15.057Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e86f2ca9096fe7cdd69d",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:08:15.048Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e86f2ca9096fe7cdd69a",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:08:15.035Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e86f2ca9096fe7cdd697",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:08:15.006Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e8693383c8a5cd689b6d",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:08:09.116Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e8693383c8a5cd689b6a",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:08:09.091Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e8693383c8a5cd689b67",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:08:09.060Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e8693383c8a5cd689b64",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:08:09.005Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e84952bfa0c14962750f",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:07:37.390Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e84952bfa0c14962750c",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:07:37.384Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e84952bfa0c149627509",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:07:37.376Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e84952bfa0c149627506",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:07:37.351Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e84639de59241510c8ba",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:07:34.575Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e84639de59241510c8b7",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:07:34.565Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e84639de59241510c8b4",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:07:34.553Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e84639de59241510c8b1",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:07:34.525Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e81b374c39dbc930ef82",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:06:51.117Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e81b374c39dbc930ef7f",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:06:51.111Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e81b374c39dbc930ef7c",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:06:51.101Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e81b374c39dbc930ef79",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:06:51.076Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e81695f139365c4327f7",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Software Developer For Broadband Devices",
+      "company": "MARUSYS VINA CO.,LTD",
+      "filterRejected": true,
+      "hardReject": true,
+      "filterReasons": [
+        "Non-software role"
+      ]
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:06:46.977Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e81695f139365c4327f4",
+    "rawIngestId": "syn-8c6f1ec103bc95a8",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Full-stack Python Developer (AI Agent)",
+      "company": "AnyWork (itworks.asia)",
+      "matchScore": 50
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:06:46.967Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e81695f139365c4327f1",
+    "rawIngestId": "msg-topcv-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Unknown",
+      "company": "Unknown",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:06:46.954Z",
+    "parserVersion": "v1"
+  },
+  {
+    "_id": "69a7e81695f139365c4327ee",
+    "rawIngestId": "msg-indeed-001",
+    "stage": "JOB_DETAIL",
+    "success": true,
+    "extracted": {
+      "title": "Senior Frontend Developer",
+      "company": "Zalo",
+      "matchScore": 0
+    },
+    "error": null,
+    "executionMs": 0,
+    "timestamp": "2026-03-04T08:06:46.908Z",
+    "parserVersion": "v1"
+  },
+  {
     "_id": "69a5ece4747bac1a040a28b7",
     "rawIngestId": "syn-8c6f1ec103bc95a8",
     "stage": "JOB_DETAIL",

@@ -27,69 +27,185 @@ function sanitizeJobForTrash(job: any): any {
  * - data-listening: Gmail webhook runner
  */
 
+import { createHash } from 'crypto';
+import fs from 'fs';
+import path from 'path';
+
+import { MongoClient } from 'mongodb';
+
 import { config } from '../config.js';
+import { hybridJobFilter } from '../filter/job-filter.js';
 import { EventDrivenWebhook } from '../services/event-webhook.js';
 import { GmailService } from '../services/gmail.js';
+import { extractAllJobs } from '../services/job-extraction.js';
 import { getLogger } from '../services/logger.js';
-import { MongoClient } from 'mongodb';
 import { MetricsRecorder } from '../services/metrics/metrics-recorder.js';
 import { MongoJobQueue } from '../services/storage/job-queue-adapter.js';
-import { hybridJobFilter } from '../filter/job-filter.js';
-import { clipboardGetter } from './clipboard-getter.js';
-import { createHash } from 'crypto';
+import { ensureE2EOutputDir, getE2EOutputDirRelativeToRoot } from '../utils/e2e-output-path.js';
 // parseJobFromEvent is not exported; fallback to stub or implement as needed
 
 const logger = getLogger();
 
-// Extract envelope metadata (messageId/from/subject) from different adapter input shapes
-function extractEnvelope(src: any) {
-  if (!src || typeof src !== 'object') return { messageId: undefined, from: undefined, subject: undefined };
-  let messageId = src.messageId || src.emailId || src.id || (src._id ? String(src._id) : undefined) || undefined;
-  // Pub/Sub / Gmail payload headers
-  if (!messageId && src.payload && Array.isArray(src.payload.headers)) {
-    const mid = src.payload.headers.find((h: any) => h.name === 'Message-ID' || h.name === 'Message-Id' || h.name === 'MessageId');
-    if (mid) messageId = mid.value;
+type RawIngestSource = 'GMAIL_WEBHOOK' | 'GMAIL_MANUAL' | 'HTML_ONLY';
+
+function decodeBase64Maybe(value: string): string {
+  try {
+    return Buffer.from(value, 'base64').toString('utf-8');
+  } catch {
+    return value;
   }
-  // Top-level headers
-  const subject = src.subject || (src.payload && Array.isArray(src.payload.headers) && (src.payload.headers.find((h: any) => h.name === 'Subject') || {}).value) || undefined;
-  const from = src.from || (src.payload && Array.isArray(src.payload.headers) && (src.payload.headers.find((h: any) => h.name === 'From') || {}).value) || undefined;
-  return { messageId, from, subject };
 }
 
-// Ensure top-level envelope fields exist on a job/input object.
-function ensureEnvelope(src: any) {
-  const out: any = (src && typeof src === 'object') ? { ...src } : { body: src };
-  // Pull from known fields
-  out.messageId = out.messageId || out.emailId || out.id || (out._id ? String(out._id) : undefined);
-  // Try to read from payload headers
-  if (!out.messageId && out.payload && Array.isArray(out.payload.headers)) {
-    const mid = out.payload.headers.find((h: any) => /message-id/i.test(h.name));
-    if (mid && mid.value) out.messageId = mid.value;
+function extractRawContent(input: any): string {
+  if (typeof input === 'string') return input;
+  if (!input || typeof input !== 'object') return String(input);
+  if (typeof input.body === 'string') return input.body;
+  if (input.payload?.body?.data && typeof input.payload.body.data === 'string') {
+    return decodeBase64Maybe(input.payload.body.data);
   }
-  // Map headers to subject/from
-  if ((!out.subject || !out.from) && out.payload && Array.isArray(out.payload.headers)) {
-    const h = out.payload.headers;
-    const subj = h.find((x: any) => String(x.name).toLowerCase() === 'subject');
-    const from = h.find((x: any) => String(x.name).toLowerCase() === 'from');
-    if (subj && subj.value && !out.subject) out.subject = String(subj.value);
-    if (from && from.value && !out.from) out.from = String(from.value);
+  try {
+    return JSON.stringify(input);
+  } catch {
+    return String(input);
   }
-  // For clipboard sources, envelope fields (subject/from) are optional
-  // Only set defaults if not already present and not a clipboard/manual source
-  if (!out.subject && !out.synthesized) out.subject = 'no-subject';
-  if (!out.from && !out.synthesized) out.from = 'unknown@local';
-  // Generate a deterministic messageId if none found using sha256(title + company + url).slice(0,16)
-  if (!out.messageId) {
-    const title = out.title || out.position || 'unknown';
-    const company = out.company || 'unknown';
-    const url = out.url || '';
-    const hash = createHash('sha256').update(`${title}${company}${url}`).digest('hex').slice(0, 16);
-    out.messageId = `syn-${hash}`;
-    out.synthesized = true;
-  } else {
-    out.synthesized = false;
+}
+
+async function ensureCoreCollections(mongo: MongoClient): Promise<void> {
+  const db = mongo.db(config.mongodb.dbName);
+  await Promise.all([
+    db
+      .collection('raw_ingest')
+      .createIndex(
+        { source: 1, ingestedAt: -1 },
+        { name: 'idx_source_ingested', background: true }
+      ),
+    db
+      .collection('raw_ingest')
+      .createIndex(
+        { 'gmailMeta.messageId': 1 },
+        { name: 'idx_gmail_meta_message_id', sparse: true, background: true }
+      ),
+    db
+      .collection('parse_log')
+      .createIndex(
+        { rawIngestId: 1, stage: 1, timestamp: -1 },
+        { name: 'idx_parse_raw_stage_time', background: true }
+      ),
+    db
+      .collection('needs_enrichment')
+      .createIndex(
+        { status: 1, updatedAt: -1 },
+        { name: 'idx_enrichment_status_updated', background: true }
+      ),
+    db
+      .collection('needs_enrichment')
+      .createIndex(
+        { messageId: 1 },
+        { name: 'idx_enrichment_message_id', unique: true, background: true }
+      ),
+    db
+      .collection('job_queue')
+      .createIndex(
+        { status: 1, enqueuedAt: -1 },
+        { name: 'idx_job_queue_status_enqueued', background: true }
+      ),
+    db
+      .collection('job_queue')
+      .createIndex(
+        { messageId: 1 },
+        { name: 'idx_job_queue_message_id', sparse: true, background: true }
+      ),
+    db
+      .collection('job_trash')
+      .createIndex({ createdAt: -1 }, { name: 'idx_job_trash_created', background: true }),
+  ]);
+}
+
+async function saveRawIngest(
+  mongo: MongoClient,
+  input: any,
+  source: RawIngestSource,
+  mode: 'production' | 'testing' | 'manual'
+): Promise<string> {
+  const db = mongo.db(config.mongodb.dbName);
+  const messageId = getMessageId(input);
+  const document = {
+    source,
+    mode,
+    rawContent: extractRawContent(input),
+    gmailMeta:
+      source !== 'HTML_ONLY'
+        ? {
+            messageId,
+            from: getFrom(input),
+            subject: getSubject(input),
+          }
+        : undefined,
+    htmlMeta:
+      source === 'HTML_ONLY'
+        ? {
+            title: input?.title || input?.position,
+            description: input?.description,
+            url: input?.url,
+          }
+        : undefined,
+    ingestedAt: new Date(),
+    createdAt: new Date(),
+  };
+
+  if (source !== 'HTML_ONLY' && messageId) {
+    await db
+      .collection('raw_ingest')
+      .updateOne(
+        { 'gmailMeta.messageId': messageId },
+        { $setOnInsert: document },
+        { upsert: true }
+      );
+    return messageId;
   }
-  return out;
+
+  const result = await db.collection('raw_ingest').insertOne(document);
+  return result.insertedId.toString();
+}
+
+function getHeaderValue(input: any, headerName: string): string | undefined {
+  const headers = input?.payload?.headers;
+  if (!Array.isArray(headers)) return undefined;
+  const hit = headers.find(
+    (h: any) => String(h?.name || '').toLowerCase() === headerName.toLowerCase()
+  );
+  return hit?.value ? String(hit.value) : undefined;
+}
+
+function buildSyntheticMessageId(input: any, prefix = 'syn'): string {
+  const title = input?.title || input?.position || 'unknown';
+  const company = input?.company || 'unknown';
+  const url = input?.url || '';
+  const body = typeof input?.body === 'string' ? input.body.slice(0, 256) : '';
+  const hash = createHash('sha256')
+    .update(`${title}|${company}|${url}|${body}`)
+    .digest('hex')
+    .slice(0, 16);
+  return `${prefix}-${hash}`;
+}
+
+function getMessageId(input: any, prefix = 'syn'): string {
+  return (
+    input?.messageId ||
+    input?.emailId ||
+    input?.id ||
+    (input?._id ? String(input._id) : undefined) ||
+    getHeaderValue(input, 'message-id') ||
+    buildSyntheticMessageId(input, prefix)
+  );
+}
+
+function getSubject(input: any): string | undefined {
+  return input?.subject || getHeaderValue(input, 'subject');
+}
+
+function getFrom(input: any): string | undefined {
+  return input?.from || getHeaderValue(input, 'from');
 }
 
 // Helper to log parse attempts to parse_log collection
@@ -104,13 +220,15 @@ async function logParseAttempt(
 ): Promise<void> {
   const db = mongo.db(config.mongodb.dbName);
   const parseLog = db.collection('parse_log');
-  
+
   await parseLog.insertOne({
     rawIngestId,
     stage,
     success,
     extracted: success ? extracted : undefined,
-    error: error ? { code: error.code || 'UNKNOWN', message: error.message || String(error) } : undefined,
+    error: error
+      ? { code: error.code || 'UNKNOWN', message: error.message || String(error) }
+      : undefined,
     executionMs,
     timestamp: new Date(),
     parserVersion: 'v1',
@@ -139,28 +257,34 @@ async function trackNeedsEnrichment(
   const db = mongo.db(config.mongodb.dbName);
   const needsEnrichment = db.collection('needs_enrichment');
 
-  await needsEnrichment.updateOne({ messageId }, {
-    $set: {
-    messageId,
-    jobTitle,
-    company,
-    reason,
-    missingFields: missingFields.length > 0 ? missingFields : undefined,
-    currentScore,
-    currentSkills: currentSkills.length > 0 ? currentSkills : undefined,
-    warnings: warnings.length > 0 ? warnings : undefined,
-    status: 'pending',
-    updatedAt: new Date(),
-    enrichmentSource: 'unknown',
+  await needsEnrichment.updateOne(
+    { messageId },
+    {
+      $set: {
+        messageId,
+        jobTitle,
+        company,
+        reason,
+        missingFields: missingFields.length > 0 ? missingFields : undefined,
+        currentScore,
+        currentSkills: currentSkills.length > 0 ? currentSkills : undefined,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        status: 'pending',
+        updatedAt: new Date(),
+        enrichmentSource: 'unknown',
+      },
+      $setOnInsert: {
+        createdAt: new Date(),
+      },
     },
-    $setOnInsert: {
-      createdAt: new Date(),
-    },
-  }, { upsert: true });
+    { upsert: true }
+  );
 }
 
-function getEnrichmentReasonFromFilter(result: { missingFields?: string[]; warnings?: string[] }):
-  'missing_skills' | 'incomplete_description' | 'unverified_platform' | 'filter_warning' {
+function getEnrichmentReasonFromFilter(result: {
+  missingFields?: string[];
+  warnings?: string[];
+}): 'missing_skills' | 'incomplete_description' | 'unverified_platform' | 'filter_warning' {
   if (result.missingFields?.includes('skills')) return 'missing_skills';
   if (result.missingFields?.includes('description')) return 'incomplete_description';
   if (result.warnings?.includes('unknown_platform')) return 'unverified_platform';
@@ -173,6 +297,31 @@ function isHardRejectFilterResult(result: { reasons?: string[]; hardReject?: boo
   return reasons.some((reason) => /non-software role|blocked platform/i.test(reason));
 }
 
+async function exportE2EOutput(mongo: MongoClient): Promise<void> {
+  const db = mongo.db(config.mongodb.dbName);
+  const [rawIngest, jobQueue, jobTrash, needsEnrichment, parseLog] = await Promise.all([
+    db.collection('raw_ingest').find({}).toArray(),
+    db.collection('job_queue').find({}).toArray(),
+    db.collection('job_trash').find({}).toArray(),
+    db.collection('needs_enrichment').find({}).toArray(),
+    db.collection('parse_log').find({}).toArray(),
+  ]);
+
+  const outputDir = ensureE2EOutputDir();
+  fs.writeFileSync(path.join(outputDir, 'e2e-raw-ingest.json'), JSON.stringify(rawIngest, null, 2));
+  fs.writeFileSync(path.join(outputDir, 'e2e-job-queue.json'), JSON.stringify(jobQueue, null, 2));
+  fs.writeFileSync(path.join(outputDir, 'e2e-job-trash.json'), JSON.stringify(jobTrash, null, 2));
+  fs.writeFileSync(
+    path.join(outputDir, 'e2e-needs-enrichment.json'),
+    JSON.stringify(needsEnrichment, null, 2)
+  );
+  fs.writeFileSync(path.join(outputDir, 'e2e-parse-log.json'), JSON.stringify(parseLog, null, 2));
+
+  logger.info(
+    `[E2E] Exported raw_ingest, job_queue, job_trash, needs_enrichment, and parse_log to ${getE2EOutputDirRelativeToRoot()}`
+  );
+}
+
 export type EmailSourceMode = 'data-testing' | 'data-listening';
 
 export interface EmailSourceAdapter {
@@ -183,9 +332,11 @@ export interface EmailSourceAdapter {
   disconnect(): Promise<void>;
 }
 
-
 // --- Refactored Core Loop for Testability and Manual Enrichment ---
-export type JobFilterFn = (job: any, profile: any) => {
+export type JobFilterFn = (
+  job: any,
+  profile: any
+) => {
   passed: boolean;
   reasons: string[];
   warnings?: string[];
@@ -222,8 +373,12 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
     const { SmartGenerator } = await import('../services/generators/smart-generator.js');
     const generator = new SmartGenerator({
       ...jobProfile,
-      summary: Array.isArray(jobProfile.summary) ? jobProfile.summary.join('\n') : jobProfile.summary,
-      skills: Array.isArray(jobProfile.normalizedSkills) ? jobProfile.normalizedSkills.map((s: any) => s.name) : [],
+      summary: Array.isArray(jobProfile.summary)
+        ? jobProfile.summary.join('\n')
+        : jobProfile.summary,
+      skills: Array.isArray(jobProfile.normalizedSkills)
+        ? jobProfile.normalizedSkills.map((s: any) => s.name)
+        : [],
     });
     const requirements = generator.extractJobRequirements(job);
     const matching = generator.matchProfileWithJob(job, requirements);
@@ -241,7 +396,11 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
   async run(): Promise<void> {
     // Get jobs from clipboardGetter - supports both HTML strings and objects with HTML in payload
     const clipboardJobs = await this.opts.clipboardGetter();
-    const jobs: any[] = Array.isArray(clipboardJobs) ? clipboardJobs : (clipboardJobs ? [clipboardJobs] : []);
+    const jobs: any[] = Array.isArray(clipboardJobs)
+      ? clipboardJobs
+      : clipboardJobs
+        ? [clipboardJobs]
+        : [];
     const { canonicalProfile } = await import('../db/json.js');
     const { ProfileParser } = await import('../services/profile/profile-parser.js');
     const { HtmlJobParser } = await import('../services/parsers/html-job-parser.js');
@@ -250,36 +409,48 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
     if (!mongoUri) throw new Error('Missing MONGODB_URI');
     const mongo = new MongoClient(mongoUri);
     await mongo.connect();
+    await ensureCoreCollections(mongo);
     const jobQueue = new MongoJobQueue(mongo);
     const metrics = new MetricsRecorder(mongoUri, config.mongodb.dbName);
-    
+
     const htmlParser = new HtmlJobParser();
-    
+
     for (const job of jobs) {
-      const inputId = ensureEnvelope(typeof job === 'string' ? { body: job } : job).messageId || 'unknown';
-      
+      const rawIngestId = await saveRawIngest(
+        mongo,
+        typeof job === 'string' ? { body: job } : job,
+        'HTML_ONLY',
+        'manual'
+      );
+
       // Log parse attempt at entry (before any parsing)
       await logParseAttempt(
         mongo,
-        inputId,
+        rawIngestId,
         'JOB_DETAIL',
         false, // will update to true if successful
         null,
         null,
         0
       );
-      
+
       // Treat input as raw HTML string and parse with HtmlJobParser directly
-      const html = typeof job === 'string' ? job : (job.body || (job.payload && job.payload.body && job.payload.body.data ? Buffer.from(job.payload.body.data, 'base64').toString('utf-8') : ''));
+      const html =
+        typeof job === 'string'
+          ? job
+          : job.body ||
+            (job.payload && job.payload.body && job.payload.body.data
+              ? Buffer.from(job.payload.body.data, 'base64').toString('utf-8')
+              : '');
       const parsed = htmlParser.parseJobFromHtml(html);
-      
+
       if (!parsed) {
         const db = mongo.db(config.mongodb.dbName);
-        const recordOriginal = ensureEnvelope(typeof job === 'string' ? { body: job } : job);
-        
+        const recordOriginal = typeof job === 'string' ? { body: job } : job;
+
         // Don't require envelope fields for clipboard HTML sources
-        const syntheticId = recordOriginal.messageId || 'clip-unknown-' + Date.now();
-        
+        const syntheticId = getMessageId(recordOriginal, 'clip');
+
         await logParseAttempt(
           mongo,
           syntheticId,
@@ -289,11 +460,11 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
           { message: 'HtmlJobParser failed to parse job data' },
           0
         );
-        
+
         // Route to needs_enrichment if HTML-like, otherwise trash
-        const raw = typeof job === 'string' ? job : (job?.body || '');
+        const raw = typeof job === 'string' ? job : job?.body || '';
         const isHtmlLike = /<html|<body|<div/i.test(raw);
-        
+
         if (isHtmlLike) {
           await trackNeedsEnrichment(
             mongo,
@@ -308,7 +479,7 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
           );
           continue;
         }
-        
+
         // Only trash if not recoverable HTML
         await db.collection('job_trash').insertOne({
           original: sanitizeJobForTrash(recordOriginal),
@@ -321,23 +492,34 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
         });
         continue;
       }
-      
-      // Ensure envelope on parsed job with deterministic messageId
-      const normalizedEnvelope = ensureEnvelope(parsed);
-      const parsed_with_envelope = { ...parsed, ...normalizedEnvelope };
-      
+
+      const parsedJob: Record<string, unknown> = {
+        ...parsed,
+        position: (parsed as Record<string, unknown>).position || parsed.title,
+        messageId: getMessageId(parsed, 'clip'),
+      };
+
       // --- Filtering ---
       const filterProfile = {
         ...jobProfile,
-        summary: Array.isArray(jobProfile.summary) ? jobProfile.summary.join('\n') : jobProfile.summary,
-        skills: Array.isArray(jobProfile.normalizedSkills) ? jobProfile.normalizedSkills.map((s: any) => s.name) : [],
+        summary: Array.isArray(jobProfile.summary)
+          ? jobProfile.summary.join('\n')
+          : jobProfile.summary,
+        skills: Array.isArray(jobProfile.normalizedSkills)
+          ? jobProfile.normalizedSkills.map((s: any) => s.name)
+          : [],
       };
-      const filterResult = this.filterFn(parsed_with_envelope, filterProfile);
+      const filterResult = this.filterFn(parsedJob, filterProfile);
       if (filterResult) {
-        logger.info('[Filter] Hybrid filter result', { reasons: filterResult.reasons, warnings: filterResult.warnings, missingFields: filterResult.missingFields, matchedProfile: filterResult.matchedProfile });
+        logger.info('[Filter] Hybrid filter result', {
+          reasons: filterResult.reasons,
+          warnings: filterResult.warnings,
+          missingFields: filterResult.missingFields,
+          matchedProfile: filterResult.matchedProfile,
+        });
         if (!filterResult.passed) {
           const db = mongo.db(config.mongodb.dbName);
-          const messageId = parsed_with_envelope.messageId || 'unknown';
+          const messageId = String(parsedJob.messageId || 'unknown');
 
           const hardReject = isHardRejectFilterResult(filterResult);
 
@@ -347,8 +529,8 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
             'JOB_DETAIL',
             true,
             {
-              title: parsed_with_envelope.title || parsed_with_envelope.position,
-              company: parsed_with_envelope.company,
+              title: parsedJob.title || parsedJob.position,
+              company: parsedJob.company,
               filterRejected: true,
               hardReject,
               filterReasons: filterResult.reasons,
@@ -361,8 +543,8 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
             await trackNeedsEnrichment(
               mongo,
               messageId,
-              parsed_with_envelope.title || parsed_with_envelope.position || 'Unknown',
-              parsed_with_envelope.company || 'Unknown',
+              String(parsedJob.title || parsedJob.position || 'Unknown'),
+              String(parsedJob.company || 'Unknown'),
               getEnrichmentReasonFromFilter(filterResult),
               filterResult.missingFields,
               0,
@@ -371,15 +553,19 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
             );
             continue;
           }
-          
+
           await db.collection('job_trash').insertOne({
             original: sanitizeJobForTrash(typeof job === 'string' ? { body: job } : job),
-            parsed: parsed_with_envelope,
+            parsed: parsedJob,
             filterReasons: filterResult.reasons,
             missingFields: filterResult.missingFields,
             reason: 'filtered_by_hybrid',
-            strictFields: Array.isArray(filterResult.strictFields) ? filterResult.strictFields : Object.keys(filterResult.strictFields || {}),
-            relaxedFields: Array.isArray(filterResult.relaxedFields) ? filterResult.relaxedFields : Object.keys(filterResult.relaxedFields || {}),
+            strictFields: Array.isArray(filterResult.strictFields)
+              ? filterResult.strictFields
+              : Object.keys(filterResult.strictFields || {}),
+            relaxedFields: Array.isArray(filterResult.relaxedFields)
+              ? filterResult.relaxedFields
+              : Object.keys(filterResult.relaxedFields || {}),
             matchedProfile: filterResult.matchedProfile,
             createdAt: new Date(),
             phase: 'draft',
@@ -392,9 +578,9 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
         if (hasWarnings || hasMissing) {
           await trackNeedsEnrichment(
             mongo,
-            parsed_with_envelope.messageId || 'unknown',
-            parsed_with_envelope.title || parsed_with_envelope.position || 'Unknown',
-            parsed_with_envelope.company || 'Unknown',
+            String(parsedJob.messageId || 'unknown'),
+            String(parsedJob.title || parsedJob.position || 'Unknown'),
+            String(parsedJob.company || 'Unknown'),
             getEnrichmentReasonFromFilter(filterResult),
             filterResult.missingFields || [],
             0,
@@ -403,27 +589,37 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
           );
         }
       }
-      
+
       // --- Enrichment (with optional manual/simulated step) ---
-      let enrichedJob = this.enrichFn(parsed_with_envelope, jobProfile);
+      let enrichedJob = this.enrichFn(parsedJob, jobProfile);
       if (enrichedJob instanceof Promise) {
         enrichedJob = await enrichedJob;
       }
-      
+
       // Apply manual enrichment if provided (returns partial merge object)
       if (this.manualEnrichFn) {
         const manualMerge = await this.manualEnrichFn(enrichedJob);
         enrichedJob = { ...enrichedJob, ...manualMerge };
       }
-      
-      // Ensure envelope present on enriched job
-      const finalEnriched = ensureEnvelope(enrichedJob);
-      
+
+      const finalEnriched = {
+        ...enrichedJob,
+        messageId: getMessageId(enrichedJob, 'clip'),
+      };
+
       // Validate enrichment (messageId no longer hard-required for clipboard sources)
-      const targetedMessageId = finalEnriched.messageId || finalEnriched.emailId || finalEnriched.id || (finalEnriched._id ? String(finalEnriched._id) : undefined);
+      const targetedMessageId =
+        finalEnriched.messageId ||
+        finalEnriched.emailId ||
+        finalEnriched.id ||
+        (finalEnriched._id ? String(finalEnriched._id) : undefined);
       const missingEnrichment =
-        typeof finalEnriched.matchScore === 'undefined' || typeof finalEnriched.profileNarrative === 'undefined' || typeof finalEnriched.matchedProfileSkills === 'undefined' || typeof finalEnriched.requirements === 'undefined';
-      if (missingEnrichment) { // removed: || !targetedMessageId
+        typeof finalEnriched.matchScore === 'undefined' ||
+        typeof finalEnriched.profileNarrative === 'undefined' ||
+        typeof finalEnriched.matchedProfileSkills === 'undefined' ||
+        typeof finalEnriched.requirements === 'undefined';
+      if (missingEnrichment) {
+        // removed: || !targetedMessageId
         const messageId = targetedMessageId || 'clipboard-unknown';
         const missingFields = [
           typeof finalEnriched.matchScore === 'undefined' ? 'matchScore' : null,
@@ -431,7 +627,7 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
           typeof finalEnriched.matchedProfileSkills === 'undefined' ? 'matchedProfileSkills' : null,
           typeof finalEnriched.requirements === 'undefined' ? 'requirements' : null,
         ].filter(Boolean) as string[];
-        
+
         // Log enrichment failure
         await logParseAttempt(
           mongo,
@@ -446,16 +642,22 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
         await trackNeedsEnrichment(
           mongo,
           messageId,
-          finalEnriched.title || finalEnriched.position || parsed_with_envelope.title || parsed_with_envelope.position || 'Unknown',
-          finalEnriched.company || parsed_with_envelope.company || 'Unknown',
+          finalEnriched.title ||
+            finalEnriched.position ||
+            parsedJob.title ||
+            parsedJob.position ||
+            'Unknown',
+          finalEnriched.company || parsedJob.company || 'Unknown',
           'missing_enrichment',
           missingFields,
           typeof finalEnriched.matchScore === 'number' ? finalEnriched.matchScore : 0,
-          Array.isArray(finalEnriched.matchedProfileSkills) ? finalEnriched.matchedProfileSkills : []
+          Array.isArray(finalEnriched.matchedProfileSkills)
+            ? finalEnriched.matchedProfileSkills
+            : []
         );
         continue;
       }
-      
+
       // Success: Queue job and log parse success
       await logParseAttempt(
         mongo,
@@ -470,7 +672,7 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
         null,
         0
       );
-      
+
       await jobQueue.enqueue(finalEnriched);
       await metrics.record({
         jobId: String(targetedMessageId || 'clipboard-unknown'),
@@ -483,20 +685,7 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
       });
     }
     if (process.env.EXPORT_E2E_OUTPUT === '1') {
-      const db = mongo.db(config.mongodb.dbName);
-      const jobQueue = await db.collection('job_queue').find({}).toArray();
-      const jobTrash = await db.collection('job_trash').find({}).toArray();
-      const needsEnrichment = await db.collection('needs_enrichment').find({}).toArray();
-      const fs = await import('fs');
-      // Create export directory if it doesn't exist
-      const outputDir = `${process.cwd()}/src/db/e2e-output`;
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-      }
-      fs.writeFileSync(`${outputDir}/e2e-job-queue.json`, JSON.stringify(jobQueue, null, 2));
-      fs.writeFileSync(`${outputDir}/e2e-job-trash.json`, JSON.stringify(jobTrash, null, 2));
-      fs.writeFileSync(`${outputDir}/e2e-needs-enrichment.json`, JSON.stringify(needsEnrichment, null, 2));
-      logger.info(`[E2E] Exported job_queue, job_trash, and needs_enrichment to ${outputDir}/`);
+      await exportE2EOutput(mongo);
     }
     await mongo.close();
   }
@@ -508,7 +697,298 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
   async disconnect(): Promise<void> {
     // Clipboard adapter cleanup is a no-op
   }
+}
 
+function parseEmailAlertToCandidates(job: any, emailParser: any): Array<Record<string, any>> {
+  const html = Buffer.from(job.payload.body.data, 'base64').toString('utf-8');
+  const emailId = getMessageId(job, 'gmail');
+  const parseInput = {
+    body: html,
+    subject: getSubject(job) || '',
+    from: getFrom(job) || '',
+    emailId,
+    receivedAt: new Date(),
+  };
+
+  const emailResult = emailParser.parseWithValidation(parseInput);
+  const metadataJobs = extractAllJobs(html);
+
+  if (metadataJobs.length > 0) {
+    return metadataJobs.map((metadata, index) => ({
+      ...metadata,
+      sourceBody: html,
+      sourceEmailId: emailId,
+      sourceSubject: parseInput.subject,
+      sourceFrom: parseInput.from,
+      messageId: `${emailId}-${index + 1}`,
+      platform:
+        metadata.source ||
+        (emailResult.success ? emailResult.data?.platform : undefined) ||
+        'Unknown',
+    }));
+  }
+
+  if (emailResult.success && emailResult.data) {
+    return [
+      {
+        ...emailResult.data,
+        sourceBody: html,
+        sourceEmailId: emailId,
+        sourceSubject: parseInput.subject,
+        sourceFrom: parseInput.from,
+        messageId: `${emailId}-1`,
+      },
+    ];
+  }
+
+  return [];
+}
+
+function parseDetailHtmlToCandidates(job: string, htmlParser: any): Array<Record<string, any>> {
+  const parsed = htmlParser.parseJobFromHtml(job);
+  if (!parsed) return [];
+  return [{ ...parsed, messageId: getMessageId(parsed, 'detail') }];
+}
+
+async function processGmailFixtureRun(adapterName: string, jobs: any[]): Promise<void> {
+  logger.info(`🚀 Starting ${adapterName} adapter (fixture-driven test mode)...`);
+  const { canonicalProfile } = await import('../db/json.js');
+  const { ProfileParser } = await import('../services/profile/profile-parser.js');
+  const { EmailParser } = await import('../services/parsers/email-parser.js');
+  const { HtmlJobParser } = await import('../services/parsers/html-job-parser.js');
+  const { SmartGenerator } = await import('../services/generators/smart-generator.js');
+
+  const jobProfile = ProfileParser.parse(canonicalProfile);
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) throw new Error('Missing MONGODB_URI');
+
+  const mongo = new MongoClient(mongoUri);
+  await mongo.connect();
+  await ensureCoreCollections(mongo);
+
+  const db = mongo.db(config.mongodb.dbName);
+  const jobQueue = new MongoJobQueue(mongo);
+  const metrics = new MetricsRecorder(mongoUri, config.mongodb.dbName);
+  const emailParser = new EmailParser();
+  const htmlParser = new HtmlJobParser();
+
+  const filterProfile = {
+    ...jobProfile,
+    summary: Array.isArray(jobProfile.summary) ? jobProfile.summary.join('\n') : jobProfile.summary,
+    skills: Array.isArray(jobProfile.normalizedSkills)
+      ? jobProfile.normalizedSkills.map((s: any) => s.name)
+      : [],
+  };
+
+  const generator = new SmartGenerator(filterProfile);
+
+  for (const rawJob of jobs) {
+    const rawIngestId = await saveRawIngest(mongo, rawJob, 'GMAIL_MANUAL', 'testing');
+    const candidates = rawJob?.payload?.body?.data
+      ? parseEmailAlertToCandidates(rawJob, emailParser)
+      : parseDetailHtmlToCandidates(rawJob, htmlParser);
+
+    if (candidates.length === 0) {
+      await logParseAttempt(
+        mongo,
+        rawIngestId,
+        'JOB_DETAIL',
+        false,
+        null,
+        { message: 'No candidate jobs extracted from fixture input' },
+        0
+      );
+      await db.collection('job_trash').insertOne({
+        original: sanitizeJobForTrash(rawJob),
+        parseErrors: ['No candidate jobs extracted from fixture input'],
+        enriched: null,
+        reason: 'parse_failed_or_filtered',
+        other: {},
+        createdAt: new Date(),
+        phase: 'draft',
+      });
+      continue;
+    }
+
+    for (const parsedCandidate of candidates) {
+      const parsed: Record<string, any> = {
+        ...parsedCandidate,
+        messageId: getMessageId(parsedCandidate, 'gmail'),
+      };
+
+      const filterResult = hybridJobFilter(parsed, filterProfile);
+      logger.info('[Filter] Hybrid filter result', {
+        reasons: filterResult.reasons,
+        warnings: filterResult.warnings,
+        missingFields: filterResult.missingFields,
+        matchedProfile: filterResult.matchedProfile,
+      });
+
+      if (!filterResult.passed) {
+        const messageId = parsed.messageId || 'unknown';
+        const hardReject = isHardRejectFilterResult(filterResult);
+
+        await logParseAttempt(
+          mongo,
+          rawIngestId,
+          'JOB_DETAIL',
+          true,
+          {
+            title: parsed.title || parsed.position,
+            company: parsed.company,
+            filterRejected: true,
+            hardReject,
+            filterReasons: filterResult.reasons,
+          },
+          null,
+          0
+        );
+
+        if (!hardReject) {
+          await trackNeedsEnrichment(
+            mongo,
+            messageId,
+            parsed.title || parsed.position || 'Unknown',
+            parsed.company || 'Unknown',
+            getEnrichmentReasonFromFilter(filterResult),
+            filterResult.missingFields,
+            0,
+            [],
+            filterResult.warnings || []
+          );
+          continue;
+        }
+
+        await db.collection('job_trash').insertOne({
+          original: sanitizeJobForTrash(rawJob),
+          parsed,
+          filterReasons: filterResult.reasons,
+          missingFields: filterResult.missingFields,
+          reason: 'filtered_by_hybrid',
+          strictFields: Array.isArray(filterResult.strictFields)
+            ? filterResult.strictFields
+            : Object.keys(filterResult.strictFields || {}),
+          relaxedFields: Array.isArray(filterResult.relaxedFields)
+            ? filterResult.relaxedFields
+            : Object.keys(filterResult.relaxedFields || {}),
+          matchedProfile: filterResult.matchedProfile,
+          createdAt: new Date(),
+          phase: 'draft',
+        });
+        continue;
+      }
+
+      const hasWarnings = (filterResult.warnings?.length || 0) > 0;
+      const hasMissing = (filterResult.missingFields?.length || 0) > 0;
+      if (hasWarnings || hasMissing) {
+        await trackNeedsEnrichment(
+          mongo,
+          parsed.messageId || 'unknown',
+          parsed.title || parsed.position || 'Unknown',
+          parsed.company || 'Unknown',
+          getEnrichmentReasonFromFilter(filterResult),
+          filterResult.missingFields || [],
+          0,
+          [],
+          filterResult.warnings || []
+        );
+      }
+
+      const parsedWithDefaults = {
+        ...parsed,
+        messageId: parsed.messageId,
+        title: parsed.title || parsed.position || 'Unknown',
+        platform: parsed.platform || 'Unknown',
+        company: parsed.company || 'Unknown',
+        position: parsed.position || parsed.title || 'Unknown',
+        description: parsed.description || '',
+        location: parsed.location || '',
+        salary: parsed.salary || '',
+      };
+
+      const requirements = generator.extractJobRequirements(parsedWithDefaults);
+      const matching = generator.matchProfileWithJob(parsedWithDefaults, requirements);
+
+      const enrichedJob = {
+        ...parsedWithDefaults,
+        profileNarrative: filterProfile.summary,
+        matchScore: matching ? matching.matchScore : undefined,
+        matchedProfileSkills: matching ? matching.matchedSkills : undefined,
+        missingProfileSkills: matching ? matching.missingSkills : undefined,
+        relevantExperience: matching ? matching.relevantExperience : undefined,
+        requirements,
+        messageId: parsedWithDefaults.messageId,
+      };
+
+      const targetedMessageId = enrichedJob.messageId;
+      const missingEnrichment =
+        typeof enrichedJob.matchScore === 'undefined' ||
+        typeof enrichedJob.profileNarrative === 'undefined' ||
+        typeof enrichedJob.matchedProfileSkills === 'undefined' ||
+        typeof enrichedJob.requirements === 'undefined';
+
+      if (!targetedMessageId || missingEnrichment) {
+        const missingFields = [
+          typeof enrichedJob.matchScore === 'undefined' ? 'matchScore' : null,
+          typeof enrichedJob.profileNarrative === 'undefined' ? 'profileNarrative' : null,
+          typeof enrichedJob.matchedProfileSkills === 'undefined' ? 'matchedProfileSkills' : null,
+          typeof enrichedJob.requirements === 'undefined' ? 'requirements' : null,
+        ].filter(Boolean) as string[];
+
+        await logParseAttempt(
+          mongo,
+          rawIngestId,
+          'JOB_DETAIL',
+          false,
+          null,
+          { message: missingEnrichment ? 'Missing enrichment fields' : 'Missing messageId' },
+          0
+        );
+
+        await trackNeedsEnrichment(
+          mongo,
+          targetedMessageId || getMessageId(parsedWithDefaults, 'gmail'),
+          enrichedJob.title || enrichedJob.position || 'Unknown',
+          enrichedJob.company || 'Unknown',
+          'missing_enrichment',
+          missingFields,
+          typeof enrichedJob.matchScore === 'number' ? enrichedJob.matchScore : 0,
+          Array.isArray(enrichedJob.matchedProfileSkills) ? enrichedJob.matchedProfileSkills : []
+        );
+        continue;
+      }
+
+      await logParseAttempt(
+        mongo,
+        rawIngestId,
+        'JOB_DETAIL',
+        true,
+        {
+          title: enrichedJob.title || enrichedJob.position,
+          company: enrichedJob.company,
+          matchScore: enrichedJob.matchScore,
+        },
+        null,
+        0
+      );
+
+      await jobQueue.enqueue(enrichedJob);
+      await metrics.record({
+        jobId: String(targetedMessageId),
+        profileHash: '',
+        event: 'queued',
+        jobFitScore: enrichedJob.matchScore || 0,
+        profileGaps: enrichedJob.missingProfileSkills || [],
+        timestamp: new Date(),
+        version: 'v1',
+      });
+    }
+  }
+
+  if (process.env.EXPORT_E2E_OUTPUT === '1') {
+    await exportE2EOutput(mongo);
+  }
+  await mongo.close();
 }
 
 // Renamed below, see GmailWebhookAdapter
@@ -537,284 +1017,10 @@ export class GmailWebhookAdapter implements EmailSourceAdapter {
   }
 
   async run(): Promise<void> {
-    // Fixture-driven: simulate webhook events using EmailAlert and DetailPage HTML samples
-    logger.info('🚀 Starting Gmail webhook adapter (fixture-driven test mode)...');
-    const { indeedEmailAlert, topCVEmailAlert, indeedPlatformPageHtml1, topCVDetailPageHTML } = await import('../../tests/__fixtures__/emails.js');
-    // Simulate both alert and detail page flows
-    const jobs: any[] = [
-      indeedEmailAlert,
-      topCVEmailAlert,
-      indeedPlatformPageHtml1,
-      topCVDetailPageHTML,
-    ];
-    const { canonicalProfile } = await import('../db/json.js');
-    const { ProfileParser } = await import('../services/profile/profile-parser.js');
-    const { EmailParser } = await import('../services/parsers/email-parser.js');
-    const { HtmlJobParser } = await import('../services/parsers/html-job-parser.js');
-    const jobProfile = ProfileParser.parse(canonicalProfile);
-    const mongoUri = process.env.MONGODB_URI;
-    if (!mongoUri) throw new Error('Missing MONGODB_URI');
-    const mongo = new MongoClient(mongoUri);
-    await mongo.connect();
-    const jobQueue = new MongoJobQueue(mongo);
-    const metrics = new MetricsRecorder(mongoUri, config.mongodb.dbName);
-    
-    const emailParser = new EmailParser();
-    const htmlParser = new HtmlJobParser();
-    
-    for (const job of jobs) {
-      // If job is an EmailAlert, parse as email; if detail page HTML, parse as HTML
-      let emailParsed;
-      let htmlParsed;
-      let parseInput;
-      
-      if (job && job.payload && job.payload.body && job.payload.body.data) {
-        // EmailAlert: decode base64 body
-        const html = Buffer.from(job.payload.body.data, 'base64').toString('utf-8');
-        parseInput = { body: html, subject: job.payload.headers.find((h: { name: string; value: string }) => h.name === 'Subject')?.value || '', from: job.payload.headers.find((h: { name: string; value: string }) => h.name === 'From')?.value || '', emailId: job.id || '', receivedAt: new Date() };
-        
-        // Parse with EmailParser (handles alert structure)
-        const emailResult = emailParser.parseWithValidation(parseInput);
-        emailParsed = emailResult.success ? emailResult.data : null;
-        
-        // Also parse raw HTML for fallback enrichment
-        htmlParsed = htmlParser.parseJobFromHtml(html);
-      } else {
-        // DetailPage HTML
-        parseInput = { body: job, subject: '', from: '', emailId: '', receivedAt: new Date() };
-        
-        // Parse with HtmlJobParser directly
-        htmlParsed = htmlParser.parseJobFromHtml(job);
-        emailParsed = null;
-      }
-      
-      // Normalize envelope fields from job + parseInput
-      const envelopeNorm = ensureEnvelope(Object.assign({}, job || {}, parseInput || {}));
-      parseInput.subject = envelopeNorm.subject || parseInput.subject;
-      parseInput.from = envelopeNorm.from || parseInput.from;
-      parseInput.emailId = envelopeNorm.messageId || parseInput.emailId;
-      
-      // Merge email parser output with html parser output
-      // EmailParser output takes precedence for envelope fields, HtmlJobParser provides detailed job data
-      const parsed = {
-        ...(htmlParsed || {}),
-        ...(emailParsed || {}),
-        messageId: envelopeNorm.messageId,
-        synthesized: envelopeNorm.synthesized,
-      };
-      
-      if (!parsed || Object.keys(parsed).length === 0) {
-        const db = mongo.db(config.mongodb.dbName);
-        const recordOriginal = ensureEnvelope(Object.assign({}, job || {}, parseInput || {}));
-        await logParseAttempt(
-          mongo,
-          recordOriginal.messageId || 'unknown',
-          'JOB_DETAIL',
-          false,
-          null,
-          { message: 'Both EmailParser and HtmlJobParser failed' },
-          0
-        );
-        await db.collection('job_trash').insertOne({
-          original: sanitizeJobForTrash(recordOriginal),
-          parseErrors: ['Both EmailParser and HtmlJobParser failed'],
-          enriched: null,
-          reason: 'parse_failed_or_filtered',
-          other: {},
-          createdAt: new Date(),
-          phase: 'draft',
-        });
-        continue;
-      }
-      
-      // --- Filtering ---
-      const filterProfile = {
-        ...jobProfile,
-        summary: Array.isArray(jobProfile.summary) ? jobProfile.summary.join('\n') : jobProfile.summary,
-        skills: Array.isArray(jobProfile.normalizedSkills) ? jobProfile.normalizedSkills.map((s: any) => s.name) : [],
-      };
-      const filterResult = parsed ? hybridJobFilter(parsed, filterProfile) : undefined;
-      if (filterResult) {
-        logger.info('[Filter] Hybrid filter result', { reasons: filterResult.reasons, warnings: filterResult.warnings, missingFields: filterResult.missingFields, matchedProfile: filterResult.matchedProfile });
-        if (!filterResult.passed) {
-          const db = mongo.db(config.mongodb.dbName);
-          const messageId = parsed.messageId || parsed.emailId || 'unknown';
-
-          const hardReject = isHardRejectFilterResult(filterResult);
-
-          await logParseAttempt(
-            mongo,
-            messageId,
-            'JOB_DETAIL',
-            true,
-            {
-              title: parsed.title || parsed.position,
-              company: parsed.company,
-              filterRejected: true,
-              hardReject,
-              filterReasons: filterResult.reasons,
-            },
-            null,
-            0
-          );
-
-          if (!hardReject) {
-            await trackNeedsEnrichment(
-              mongo,
-              messageId,
-              parsed.title || parsed.position || 'Unknown',
-              parsed.company || 'Unknown',
-              getEnrichmentReasonFromFilter(filterResult),
-              filterResult.missingFields,
-              0,
-              [],
-              filterResult.warnings || []
-            );
-            continue;
-          }
-          
-          await db.collection('job_trash').insertOne({
-            original: job,
-            parsed,
-            filterReasons: filterResult.reasons,
-            missingFields: filterResult.missingFields,
-            reason: 'filtered_by_hybrid',
-            strictFields: Array.isArray(filterResult.strictFields) ? filterResult.strictFields : Object.keys(filterResult.strictFields || {}),
-            relaxedFields: Array.isArray(filterResult.relaxedFields) ? filterResult.relaxedFields : Object.keys(filterResult.relaxedFields || {}),
-            matchedProfile: filterResult.matchedProfile,
-            createdAt: new Date(),
-            phase: 'draft',
-          });
-          continue;
-        }
-
-        const hasWarnings = (filterResult.warnings?.length || 0) > 0;
-        const hasMissing = (filterResult.missingFields?.length || 0) > 0;
-        if (hasWarnings || hasMissing) {
-          await trackNeedsEnrichment(
-            mongo,
-            parsed.messageId || parsed.emailId || (parsed as any).id || 'unknown',
-            parsed.title || parsed.position || 'Unknown',
-            parsed.company || 'Unknown',
-            getEnrichmentReasonFromFilter(filterResult),
-            filterResult.missingFields || [],
-            0,
-            [],
-            filterResult.warnings || []
-          );
-        }
-      }
-      // --- Enrichment ---
-      const { SmartGenerator } = await import('../services/generators/smart-generator.js');
-      const generator = new SmartGenerator({
-        ...jobProfile,
-        summary: Array.isArray(jobProfile.summary) ? jobProfile.summary.join('\n') : jobProfile.summary,
-        skills: Array.isArray(jobProfile.normalizedSkills) ? jobProfile.normalizedSkills.map((s: any) => s.name) : [],
-      });
-      
-      // Ensure parsed has required fields before passing to generator
-      const parsedWithDefaults = {
-        ...parsed,
-        platform: parsed.platform || 'Unknown',
-        company: parsed.company || 'Unknown',
-        position: parsed.position || 'Unknown',
-      };
-      
-      const requirements = parsed ? generator.extractJobRequirements({
-        ...parsedWithDefaults,
-        location: parsedWithDefaults.location || '',
-        description: parsedWithDefaults.description || '',
-        salary: parsedWithDefaults.salary || '',
-      }) : undefined;
-      const matching = parsed && requirements ? generator.matchProfileWithJob(parsedWithDefaults, requirements) : undefined;
-      let messageId = parsed && (parsed as any).messageId || parsed && (parsed as any).emailId || parsed && (parsed as any).id || (parsed && (parsed as any)._id ? String((parsed as any)._id) : undefined);
-      if (!messageId) messageId = parseInput.emailId || '';
-      // Ensure enriched job has envelope
-      const preEnriched = {
-        ...parsedWithDefaults,
-        profileNarrative: jobProfile.summary,
-        matchScore: matching ? matching.matchScore : undefined,
-        matchedProfileSkills: matching ? matching.matchedSkills : undefined,
-        missingProfileSkills: matching ? matching.missingSkills : undefined,
-        relevantExperience: matching ? matching.relevantExperience : undefined,
-        requirements,
-        messageId,
-      };
-      const enrichedJob = ensureEnvelope(preEnriched);
-      // Validate enrichment
-      const targetedMessageId = enrichedJob.messageId;
-      const missingEnrichment =
-        typeof enrichedJob.matchScore === 'undefined' || typeof enrichedJob.profileNarrative === 'undefined' || typeof enrichedJob.matchedProfileSkills === 'undefined' || typeof enrichedJob.requirements === 'undefined';
-      if (!targetedMessageId || missingEnrichment) {
-        const missingFields = [
-          typeof enrichedJob.matchScore === 'undefined' ? 'matchScore' : null,
-          typeof enrichedJob.profileNarrative === 'undefined' ? 'profileNarrative' : null,
-          typeof enrichedJob.matchedProfileSkills === 'undefined' ? 'matchedProfileSkills' : null,
-          typeof enrichedJob.requirements === 'undefined' ? 'requirements' : null,
-        ].filter(Boolean) as string[];
-        await logParseAttempt(
-          mongo,
-          targetedMessageId || 'unknown',
-          'JOB_DETAIL',
-          false,
-          null,
-          { message: missingEnrichment ? 'Missing enrichment fields' : 'Missing messageId' },
-          0
-        );
-        await trackNeedsEnrichment(
-          mongo,
-          targetedMessageId || 'unknown',
-          enrichedJob.title || enrichedJob.position || parsedWithDefaults.title || parsedWithDefaults.position || 'Unknown',
-          enrichedJob.company || parsedWithDefaults.company || 'Unknown',
-          'missing_enrichment',
-          missingFields,
-          typeof enrichedJob.matchScore === 'number' ? enrichedJob.matchScore : 0,
-          Array.isArray(enrichedJob.matchedProfileSkills) ? enrichedJob.matchedProfileSkills : []
-        );
-        continue;
-      }
-
-      await logParseAttempt(
-        mongo,
-        targetedMessageId,
-        'JOB_DETAIL',
-        true,
-        {
-          title: enrichedJob.title || enrichedJob.position,
-          company: enrichedJob.company,
-          matchScore: enrichedJob.matchScore,
-        },
-        null,
-        0
-      );
-      await jobQueue.enqueue(enrichedJob);
-      await metrics.record({
-        jobId: String(targetedMessageId),
-        profileHash: '',
-        event: 'queued',
-        jobFitScore: enrichedJob.matchScore || 0,
-        profileGaps: enrichedJob.missingProfileSkills || [],
-        timestamp: new Date(),
-        version: 'v1',
-      });
-    }
-    if (process.env.EXPORT_E2E_OUTPUT === '1') {
-      const db = mongo.db(config.mongodb.dbName);
-      const jobQueue = await db.collection('job_queue').find({}).toArray();
-      const jobTrash = await db.collection('job_trash').find({}).toArray();
-      const needsEnrichment = await db.collection('needs_enrichment').find({}).toArray();
-      const fs = await import('fs');
-      // Create export directory if it doesn't exist
-      const outputDir = `${process.cwd()}/src/db/e2e-output`;
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-      }
-      fs.writeFileSync(`${outputDir}/e2e-job-queue.json`, JSON.stringify(jobQueue, null, 2));
-      fs.writeFileSync(`${outputDir}/e2e-job-trash.json`, JSON.stringify(jobTrash, null, 2));
-      fs.writeFileSync(`${outputDir}/e2e-needs-enrichment.json`, JSON.stringify(needsEnrichment, null, 2));
-      logger.info(`[E2E] Exported job_queue, job_trash, and needs_enrichment to ${outputDir}/`);
-    }
-    await mongo.close();
+    const { indeedEmailAlert, topCVEmailAlert, topCVDetailPageHTML, indeedDetailPageHTML } =
+      await import('../../tests/__fixtures__/emails.js');
+    const jobs = [topCVEmailAlert, indeedEmailAlert, topCVDetailPageHTML, indeedDetailPageHTML];
+    await processGmailFixtureRun('gmail-webhook', jobs);
   }
 
   async handleGmailWebhookEvent(event: any): Promise<void> {
@@ -850,19 +1056,28 @@ export class GmailWebhookAdapter implements EmailSourceAdapter {
     const jobProfile = ProfileParser.parse(canonicalProfile);
     const filterProfile = {
       ...jobProfile,
-      summary: Array.isArray(jobProfile.summary) ? jobProfile.summary.join('\n') : jobProfile.summary,
+      summary: Array.isArray(jobProfile.summary)
+        ? jobProfile.summary.join('\n')
+        : jobProfile.summary,
       skills: Array.isArray(jobProfile.normalizedSkills)
         ? jobProfile.normalizedSkills.map((s) => s.name)
         : [],
     };
     const filterResult = hybridJobFilter(job, filterProfile);
-    logger.info('[Filter] Hybrid filter result', { reasons: filterResult.reasons, warnings: filterResult.warnings, missingFields: filterResult.missingFields, matchedProfile: filterResult.matchedProfile });
+    logger.info('[Filter] Hybrid filter result', {
+      reasons: filterResult.reasons,
+      warnings: filterResult.warnings,
+      missingFields: filterResult.missingFields,
+      matchedProfile: filterResult.matchedProfile,
+    });
     if (!filterResult.passed) {
       const mongoUri = process.env.MONGODB_URI;
       if (!mongoUri) throw new Error('Missing MONGODB_URI');
       const mongo = new MongoClient(mongoUri);
       await mongo.connect();
+      await ensureCoreCollections(mongo);
       const db = mongo.db(config.mongodb.dbName);
+      await saveRawIngest(mongo, job, 'GMAIL_WEBHOOK', 'production');
       const messageId = job.messageId || job.id || (job._id ? String(job._id) : 'unknown');
 
       const hardReject = isHardRejectFilterResult(filterResult);
@@ -904,8 +1119,12 @@ export class GmailWebhookAdapter implements EmailSourceAdapter {
         filterReasons: filterResult.reasons,
         missingFields: filterResult.missingFields,
         reason: 'filtered_by_hybrid',
-        strictFields: Array.isArray(filterResult.strictFields) ? filterResult.strictFields : Object.keys(filterResult.strictFields || {}),
-        relaxedFields: Array.isArray(filterResult.relaxedFields) ? filterResult.relaxedFields : Object.keys(filterResult.relaxedFields || {}),
+        strictFields: Array.isArray(filterResult.strictFields)
+          ? filterResult.strictFields
+          : Object.keys(filterResult.strictFields || {}),
+        relaxedFields: Array.isArray(filterResult.relaxedFields)
+          ? filterResult.relaxedFields
+          : Object.keys(filterResult.relaxedFields || {}),
         matchedProfile: filterResult.matchedProfile,
         createdAt: new Date(),
         phase: 'draft',
@@ -917,6 +1136,8 @@ export class GmailWebhookAdapter implements EmailSourceAdapter {
     if (!mongoUri) throw new Error('Missing MONGODB_URI');
     const mongo = new MongoClient(mongoUri);
     await mongo.connect();
+    await ensureCoreCollections(mongo);
+    await saveRawIngest(mongo, job, 'GMAIL_WEBHOOK', 'production');
     const jobQueue = new MongoJobQueue(mongo);
     const hasWarnings = (filterResult.warnings?.length || 0) > 0;
     const hasMissing = (filterResult.missingFields?.length || 0) > 0;
@@ -937,8 +1158,10 @@ export class GmailWebhookAdapter implements EmailSourceAdapter {
     const targetedMessageId = job.messageId || job.id || (job._id ? String(job._id) : undefined);
     const enrichedJob = { ...job };
     const missingEnrichment =
-      typeof enrichedJob.matchScore === 'undefined' || typeof enrichedJob.profileNarrative === 'undefined' || typeof enrichedJob.matchedProfileSkills === 'undefined' || typeof enrichedJob.requirements === 'undefined';
-    const db = mongo.db(config.mongodb.dbName);
+      typeof enrichedJob.matchScore === 'undefined' ||
+      typeof enrichedJob.profileNarrative === 'undefined' ||
+      typeof enrichedJob.matchedProfileSkills === 'undefined' ||
+      typeof enrichedJob.requirements === 'undefined';
     if (!targetedMessageId || missingEnrichment) {
       const missingFields = [
         typeof enrichedJob.matchScore === 'undefined' ? 'matchScore' : null,
@@ -997,20 +1220,7 @@ export class GmailWebhookAdapter implements EmailSourceAdapter {
     });
     // Optionally export diagnostics for E2E/mongosh analysis
     if (process.env.EXPORT_E2E_OUTPUT === '1') {
-      const db = mongo.db(config.mongodb.dbName);
-      const jobQueue = await db.collection('job_queue').find({}).toArray();
-      const jobTrash = await db.collection('job_trash').find({}).toArray();
-      const needsEnrichment = await db.collection('needs_enrichment').find({}).toArray();
-      const fs = await import('fs');
-      // Create export directory if it doesn't exist
-      const outputDir = `${process.cwd()}/src/db/e2e-output`;
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-      }
-      fs.writeFileSync(`${outputDir}/e2e-job-queue.json`, JSON.stringify(jobQueue, null, 2));
-      fs.writeFileSync(`${outputDir}/e2e-job-trash.json`, JSON.stringify(jobTrash, null, 2));
-      fs.writeFileSync(`${outputDir}/e2e-needs-enrichment.json`, JSON.stringify(needsEnrichment, null, 2));
-      logger.info(`[E2E] Exported job_queue, job_trash, and needs_enrichment to ${outputDir}/`);
+      await exportE2EOutput(mongo);
     }
     await mongo.close();
   }
@@ -1034,280 +1244,9 @@ export class GmailApiAdapter implements EmailSourceAdapter {
   }
 
   async run(): Promise<void> {
-    // Fixture-driven: simulate API fetch using EmailAlert and DetailPage HTML samples
-    logger.info('🚀 Starting Gmail API fallback adapter (fixture-driven test mode)...');
-    const { indeedEmailAlert, topCVEmailAlert, indeedPlatformPageHtml1, topCVDetailPageHTML } = await import('../../tests/__fixtures__/emails.js');
-    // Simulate both alert and detail page flows
-    const jobs: any[] = [
-      indeedEmailAlert,
-      topCVEmailAlert,
-      indeedPlatformPageHtml1,
-      topCVDetailPageHTML,
-    ];
-    const { canonicalProfile } = await import('../db/json.js');
-    const { ProfileParser } = await import('../services/profile/profile-parser.js');
-    const { EmailParser } = await import('../services/parsers/email-parser.js');
-    const { HtmlJobParser } = await import('../services/parsers/html-job-parser.js');
-    const jobProfile = ProfileParser.parse(canonicalProfile);
-    const mongoUri = process.env.MONGODB_URI;
-    if (!mongoUri) throw new Error('Missing MONGODB_URI');
-    const mongo = new MongoClient(mongoUri);
-    await mongo.connect();
-    const jobQueue = new MongoJobQueue(mongo);
-    const metrics = new MetricsRecorder(mongoUri, config.mongodb.dbName);
-    
-    const emailParser = new EmailParser();
-    const htmlParser = new HtmlJobParser();
-    
-    for (const job of jobs) {
-      // If job is an EmailAlert, parse as email; if detail page HTML, parse as HTML
-      let emailParsed;
-      let htmlParsed;
-      let parseInput;
-      
-      if (job && job.payload && job.payload.body && job.payload.body.data) {
-        // EmailAlert: decode base64 body
-        const html = Buffer.from(job.payload.body.data, 'base64').toString('utf-8');
-        parseInput = { body: html, subject: job.payload.headers.find((h: { name: string; value: string }) => h.name === 'Subject')?.value || '', from: job.payload.headers.find((h: { name: string; value: string }) => h.name === 'From')?.value || '', emailId: job.id || '', receivedAt: new Date() };
-        
-        // Parse with EmailParser (handles alert structure)
-        const emailResult = emailParser.parseWithValidation(parseInput);
-        emailParsed = emailResult.success ? emailResult.data : null;
-        
-        // Also parse raw HTML for fallback enrichment
-        htmlParsed = htmlParser.parseJobFromHtml(html);
-      } else {
-        // DetailPage HTML
-        parseInput = { body: job, subject: '', from: '', emailId: '', receivedAt: new Date() };
-        
-        // Parse with HtmlJobParser directly
-        htmlParsed = htmlParser.parseJobFromHtml(job);
-        emailParsed = null;
-      }
-      
-      // Merge email parser output with html parser output
-      const envelopeNorm = ensureEnvelope(Object.assign({}, job || {}, parseInput || {}));
-      const parsed = {
-        ...(htmlParsed || {}),
-        ...(emailParsed || {}),
-        messageId: envelopeNorm.messageId,
-        synthesized: envelopeNorm.synthesized,
-      };
-      
-      if (!parsed || Object.keys(parsed).length === 0) {
-        const db = mongo.db(config.mongodb.dbName);
-        const recordOriginal = ensureEnvelope(Object.assign({}, job || {}, parseInput || {}));
-        await logParseAttempt(
-          mongo,
-          recordOriginal.messageId || 'unknown',
-          'JOB_DETAIL',
-          false,
-          null,
-          { message: 'Both EmailParser and HtmlJobParser failed' },
-          0
-        );
-        await db.collection('job_trash').insertOne({
-          original: sanitizeJobForTrash(recordOriginal),
-          parseErrors: ['Both EmailParser and HtmlJobParser failed'],
-          enriched: null,
-          reason: 'parse_failed_or_filtered',
-          other: {},
-          createdAt: new Date(),
-          phase: 'draft',
-        });
-        continue;
-      }
-      
-      // --- Filtering ---
-      const filterProfile = {
-        ...jobProfile,
-        summary: Array.isArray(jobProfile.summary) ? jobProfile.summary.join('\n') : jobProfile.summary,
-        skills: Array.isArray(jobProfile.normalizedSkills) ? jobProfile.normalizedSkills.map((s: any) => s.name) : [],
-      };
-      const filterResult = parsed ? hybridJobFilter(parsed, filterProfile) : undefined;
-      if (filterResult) {
-        if (filterResult) {
-          logger.info('[Filter] Hybrid filter result', { reasons: filterResult.reasons, warnings: filterResult.warnings, missingFields: filterResult.missingFields, matchedProfile: filterResult.matchedProfile });
-          if (!filterResult.passed) {
-            const db = mongo.db(config.mongodb.dbName);
-            const messageId = parsed.messageId || parsed.emailId || 'unknown';
-
-            const hardReject = isHardRejectFilterResult(filterResult);
-
-            await logParseAttempt(
-              mongo,
-              messageId,
-              'JOB_DETAIL',
-              true,
-              {
-                title: parsed.title || parsed.position,
-                company: parsed.company,
-                filterRejected: true,
-                hardReject,
-                filterReasons: filterResult.reasons,
-              },
-              null,
-              0
-            );
-
-            if (!hardReject) {
-              await trackNeedsEnrichment(
-                mongo,
-                messageId,
-                parsed.title || parsed.position || 'Unknown',
-                parsed.company || 'Unknown',
-                getEnrichmentReasonFromFilter(filterResult),
-                filterResult.missingFields,
-                0,
-                [],
-                filterResult.warnings || []
-              );
-              continue;
-            }
-            
-            await db.collection('job_trash').insertOne({
-              original: sanitizeJobForTrash(job),
-              parsed,
-              filterReasons: filterResult.reasons,
-              missingFields: filterResult.missingFields,
-              reason: 'filtered_by_hybrid',
-              strictFields: filterResult.strictFields,
-              relaxedFields: filterResult.relaxedFields,
-              matchedProfile: filterResult.matchedProfile,
-              createdAt: new Date(),
-              phase: 'draft',
-            });
-            continue;
-          }
-
-          const hasWarnings = (filterResult.warnings?.length || 0) > 0;
-          const hasMissing = (filterResult.missingFields?.length || 0) > 0;
-          if (hasWarnings || hasMissing) {
-            await trackNeedsEnrichment(
-              mongo,
-              parsed.messageId || parsed.emailId || (parsed as any).id || 'unknown',
-              parsed.title || parsed.position || 'Unknown',
-              parsed.company || 'Unknown',
-              getEnrichmentReasonFromFilter(filterResult),
-              filterResult.missingFields || [],
-              0,
-              [],
-              filterResult.warnings || []
-            );
-          }
-        }
-      }
-      // --- Enrichment ---
-      const { SmartGenerator } = await import('../services/generators/smart-generator.js');
-      const generator = new SmartGenerator({
-        ...jobProfile,
-        summary: Array.isArray(jobProfile.summary) ? jobProfile.summary.join('\n') : jobProfile.summary,
-        skills: Array.isArray(jobProfile.normalizedSkills) ? jobProfile.normalizedSkills.map((s: any) => s.name) : [],
-      });
-      
-      // Ensure parsed has required fields before passing to generator
-      const parsedWithDefaults = {
-        ...parsed,
-        platform: parsed.platform || 'Unknown',
-        company: parsed.company || 'Unknown',
-        position: parsed.position || 'Unknown',
-      };
-      
-      const requirements = parsed ? generator.extractJobRequirements({
-        ...parsedWithDefaults,
-        location: parsedWithDefaults.location || '',
-        description: parsedWithDefaults.description || '',
-      }) : undefined;
-      const matching = parsed && requirements ? generator.matchProfileWithJob(parsedWithDefaults, requirements) : undefined;
-      let messageId = parsed && (parsed as any).messageId || parsed && (parsed as any).emailId || parsed && (parsed as any).id || (parsed && (parsed as any)._id ? String((parsed as any)._id) : undefined);
-      if (!messageId) messageId = parseInput.emailId || '';
-      const preEnriched = {
-        ...parsedWithDefaults,
-        profileNarrative: jobProfile.summary,
-        matchScore: matching ? matching.matchScore : undefined,
-        matchedProfileSkills: matching ? matching.matchedSkills : undefined,
-        missingProfileSkills: matching ? matching.missingSkills : undefined,
-        relevantExperience: matching ? matching.relevantExperience : undefined,
-        requirements,
-        messageId,
-      };
-      const enrichedJob = ensureEnvelope(preEnriched);
-      // Validate enrichment
-      const targetedMessageId = enrichedJob.messageId;
-      const missingEnrichment =
-        typeof enrichedJob.matchScore === 'undefined' || typeof enrichedJob.profileNarrative === 'undefined' || typeof enrichedJob.matchedProfileSkills === 'undefined' || typeof enrichedJob.requirements === 'undefined';
-      if (!targetedMessageId || missingEnrichment) {
-        const missingFields = [
-          typeof enrichedJob.matchScore === 'undefined' ? 'matchScore' : null,
-          typeof enrichedJob.profileNarrative === 'undefined' ? 'profileNarrative' : null,
-          typeof enrichedJob.matchedProfileSkills === 'undefined' ? 'matchedProfileSkills' : null,
-          typeof enrichedJob.requirements === 'undefined' ? 'requirements' : null,
-        ].filter(Boolean) as string[];
-        
-        await logParseAttempt(
-          mongo,
-          targetedMessageId || 'unknown',
-          'JOB_DETAIL',
-          false,
-          null,
-          { message: missingEnrichment ? 'Missing enrichment fields' : 'Missing messageId' },
-          0
-        );
-        
-        await trackNeedsEnrichment(
-          mongo,
-          targetedMessageId || 'unknown',
-          enrichedJob.title || enrichedJob.position || parsedWithDefaults.title || parsedWithDefaults.position || 'Unknown',
-          enrichedJob.company || parsedWithDefaults.company || 'Unknown',
-          'missing_enrichment',
-          missingFields,
-          typeof enrichedJob.matchScore === 'number' ? enrichedJob.matchScore : 0,
-          Array.isArray(enrichedJob.matchedProfileSkills) ? enrichedJob.matchedProfileSkills : []
-        );
-        continue;
-      }
-      
-      // Success: Log parse success
-      await logParseAttempt(
-        mongo,
-        targetedMessageId,
-        'JOB_DETAIL',
-        true,
-        {
-          title: enrichedJob.title || enrichedJob.position,
-          company: enrichedJob.company,
-          matchScore: enrichedJob.matchScore,
-        },
-        null,
-        0
-      );
-      
-      await jobQueue.enqueue(enrichedJob);
-      await metrics.record({
-        jobId: String(targetedMessageId),
-        profileHash: '',
-        event: 'queued',
-        jobFitScore: enrichedJob.matchScore || 0,
-        profileGaps: enrichedJob.missingProfileSkills || [],
-        timestamp: new Date(),
-        version: 'v1',
-      });
-    }
-    if (process.env.EXPORT_E2E_OUTPUT === '1') {
-      const db = mongo.db(config.mongodb.dbName);
-      const jobQueue = await db.collection('job_queue').find({}).toArray();
-      const jobTrash = await db.collection('job_trash').find({}).toArray();
-      const needsEnrichment = await db.collection('needs_enrichment').find({}).toArray();
-      const fs = await import('fs');
-      const outputDir = `${process.cwd()}/src/db/e2e-output`;
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-      }
-      fs.writeFileSync(`${outputDir}/e2e-job-queue.json`, JSON.stringify(jobQueue, null, 2));
-      fs.writeFileSync(`${outputDir}/e2e-job-trash.json`, JSON.stringify(jobTrash, null, 2));
-      fs.writeFileSync(`${outputDir}/e2e-needs-enrichment.json`, JSON.stringify(needsEnrichment, null, 2));
-      logger.info(`[E2E] Exported job_queue, job_trash, and needs_enrichment to ${outputDir}/`);
-    }
-    await mongo.close();
+    const { indeedEmailAlert, topCVEmailAlert, topCVDetailPageHTML, indeedDetailPageHTML } =
+      await import('../../tests/__fixtures__/emails.js');
+    const jobs = [topCVEmailAlert, indeedEmailAlert, topCVDetailPageHTML, indeedDetailPageHTML];
+    await processGmailFixtureRun('gmail-api', jobs);
   }
 }

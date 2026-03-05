@@ -1,7 +1,9 @@
 // scripts/export-e2e-output.ts
 import { MongoClient } from 'mongodb';
 import fs from 'fs';
+import path from 'path';
 import { config } from '../src/config.js';
+import { ensureE2EOutputDir, getE2EOutputDirRelativeToRoot } from '../src/utils/e2e-output-path.js';
 
 // Sanitize function to remove large/raw fields
 function sanitizeForExport(obj: any): any {
@@ -30,11 +32,7 @@ async function exportE2EOutput() {
   await mongo.connect();
   const db = mongo.db(config.mongodb.dbName);
   
-  // Determine output directory - prioritize absolute path if running from scripts
-  const outputDir = `${process.cwd()}/src/db/e2e-output`;
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
+  const outputDir = ensureE2EOutputDir();
   
   // Export all collections with sanitization
   const jobQueue = await db.collection('job_queue').find({}).toArray();
@@ -68,7 +66,7 @@ async function exportE2EOutput() {
   const writeResults: Record<string, { success: boolean; count: number; path: string }> = {};
   
   for (const exp of exports) {
-    const filePath = `${outputDir}/${exp.file}`;
+    const filePath = path.join(outputDir, exp.file);
     try {
       fs.writeFileSync(filePath, JSON.stringify(exp.data, null, 2));
       const stat = fs.statSync(filePath);
@@ -194,7 +192,7 @@ async function exportE2EOutput() {
   });
   
   try {
-    fs.writeFileSync(`${outputDir}/e2e-summary.json`, JSON.stringify(summary, null, 2));
+    fs.writeFileSync(path.join(outputDir, 'e2e-summary.json'), JSON.stringify(summary, null, 2));
     console.log(`[E2E Export] ✅ Wrote e2e-summary.json`);
   } catch (err) {
     console.error(`[E2E Export] ❌ Failed to write e2e-summary.json:`, err);
@@ -248,7 +246,7 @@ async function exportE2EOutput() {
   console.log(`  Enrichment Ready: ${mvpCriteria.enrichmentReady ? '✅' : '❌'}`);
   console.log(`\n  Overall MVP Score: ${mvpMet}/${mvpTotal} criteria met`);
   
-  console.log(`\n📁 EXPORT LOCATION: ${outputDir}/`);
+  console.log(`\n📁 EXPORT LOCATION: ${getE2EOutputDirRelativeToRoot()}/`);
   console.log('='.repeat(80) + '\n');
 }
 

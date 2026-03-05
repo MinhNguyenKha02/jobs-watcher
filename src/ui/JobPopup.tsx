@@ -1,12 +1,14 @@
-import React from 'react';
 import { render, Box, Text, useInput, useApp } from 'ink';
+import React from 'react';
+
+import { getLogger } from '../services/logger.js';
 import type { Job } from '../types.js';
-import { useJobState, type EnrichedJobData, type ActionType } from './hooks/useJobState.js';
+
 import { createInputHandlers } from './hooks/useJobInput.js';
+import { useJobState, type EnrichedJobData, type ActionType } from './hooks/useJobState.js';
 import { enrichJobFromHtml } from './services/htmlEnricher.js';
 import { openUrlInBrowser } from './services/urlHandler.js';
 import { theme, scoreColor, decisionColor } from './theme.js';
-import { getLogger } from '../services/logger.js';
 
 const logger = getLogger();
 
@@ -93,6 +95,7 @@ function JobPopupComponent({ job: initialJob, onAction }: Props) {
       const enrichedData: EnrichedJobData = {
         htmlContent: state.htmlContent || undefined,
         urlOpened: state.urlOpened || undefined,
+        manuallyValidated: Boolean(state.htmlContent),
       };
       onAction(state.selected, enrichedData);
       exit();
@@ -105,55 +108,77 @@ function JobPopupComponent({ job: initialJob, onAction }: Props) {
 
   const inputHandlers = createInputHandlers(state, handlers);
 
-  useInput((input: string, key: { return?: boolean; escape?: boolean; backspace?: boolean; delete?: boolean; ctrl?: boolean; meta?: boolean }) => {
-    if (state.mode === 'menu') {
-      if (input === 'a' && state.selected.startsWith('apply')) inputHandlers.onApplyMode();
-      else if (input === 'p') inputHandlers.onHtmlPaste();
-      else if (input === 'o') inputHandlers.onOpenUrl();
-      else if (key.return) inputHandlers.onConfirm();
-      else if (key.escape || input === 'q') {
-        onAction('queue');
-        exit();
+  useInput(
+    (
+      input: string,
+      key: {
+        return?: boolean;
+        escape?: boolean;
+        backspace?: boolean;
+        delete?: boolean;
+        ctrl?: boolean;
+        meta?: boolean;
       }
-    } else if (state.mode === 'apply-submenu') {
-      if (input === 'c') inputHandlers.onCustomApply();
-      else if (input === 'g') inputHandlers.onGenerateApply();
-      else if (input === 'e') inputHandlers.onEditApply();
-      else if (key.escape) inputHandlers.onBackFromSubmenu();
-    } else {
-      if (key.return) inputHandlers.onConfirm();
-      else if (key.escape) inputHandlers.onEscape();
-      else if (key.backspace || key.delete) inputHandlers.onBackspace();
-      else if (input && !key.ctrl && !key.meta) inputHandlers.onInputChar(input);
+    ) => {
+      if (state.mode === 'menu') {
+        if (input === 'a' && state.selected.startsWith('apply')) inputHandlers.onApplyMode();
+        else if (input === 'p') inputHandlers.onHtmlPaste();
+        else if (input === 'o') inputHandlers.onOpenUrl();
+        else if (key.return) inputHandlers.onConfirm();
+        else if (key.escape || input === 'q') {
+          onAction('queue');
+          exit();
+        }
+      } else if (state.mode === 'apply-submenu') {
+        if (input === 'c') inputHandlers.onCustomApply();
+        else if (input === 'g') inputHandlers.onGenerateApply();
+        else if (input === 'e') inputHandlers.onEditApply();
+        else if (key.escape) inputHandlers.onBackFromSubmenu();
+      } else {
+        if (key.return) inputHandlers.onConfirm();
+        else if (key.escape) inputHandlers.onEscape();
+        else if (key.backspace || key.delete) inputHandlers.onBackspace();
+        else if (input && !key.ctrl && !key.meta) inputHandlers.onInputChar(input);
+      }
     }
-  });
+  );
   return (
     <Box flexDirection="column" padding={1} borderStyle="round" borderColor={theme.border}>
       <Text bold color={theme.header}>
         🎯 New Job Alert
       </Text>
-      
+
       <Box marginTop={1} flexDirection="column">
         <Text>
-          <Text bold color={theme.label}>Company:  </Text>
+          <Text bold color={theme.label}>
+            Company:{' '}
+          </Text>
           <Text>{job.company}</Text>
         </Text>
         <Text>
-          <Text bold color={theme.label}>Position: </Text>
+          <Text bold color={theme.label}>
+            Position:{' '}
+          </Text>
           <Text>{job.position}</Text>
         </Text>
         {job.location && (
           <Text>
-            <Text bold color={theme.label}>Location: </Text>
+            <Text bold color={theme.label}>
+              Location:{' '}
+            </Text>
             <Text>{job.location}</Text>
           </Text>
         )}
         <Text>
-          <Text bold color={theme.label}>Platform: </Text>
+          <Text bold color={theme.label}>
+            Platform:{' '}
+          </Text>
           <Text>{job.platform}</Text>
         </Text>
         <Text>
-          <Text bold color={theme.label}>URL:      </Text>
+          <Text bold color={theme.label}>
+            URL:{' '}
+          </Text>
           {job.url ? (
             <Text color={theme.link}>
               {job.url} {state.urlOpened && '✓'}
@@ -163,16 +188,18 @@ function JobPopupComponent({ job: initialJob, onAction }: Props) {
           )}
         </Text>
         <Text>
-          <Text bold color={theme.label}>Match:    </Text>
+          <Text bold color={theme.label}>
+            Match:{' '}
+          </Text>
           <Text color={scoreColor(state.matchScore)}>
             {state.matchScore > 0 ? `${Math.round(state.matchScore)}%` : 'No match'}
           </Text>
         </Text>
         <Text>
-          <Text bold color={theme.label}>Decision: </Text>
-          <Text color={decisionColor(state.selected)}>
-            {decisionLabel(state.selected)}
+          <Text bold color={theme.label}>
+            Decision:{' '}
           </Text>
+          <Text color={decisionColor(state.selected)}>{decisionLabel(state.selected)}</Text>
         </Text>
       </Box>
 
@@ -185,7 +212,9 @@ function JobPopupComponent({ job: initialJob, onAction }: Props) {
       {/* Enrichment preview */}
       {state.htmlContent && state.mode === 'menu' && (
         <Box marginTop={1} flexDirection="column">
-          <Text bold color={theme.accent}>✨ HTML Enrichment</Text>
+          <Text bold color={theme.accent}>
+            ✨ HTML Enrichment
+          </Text>
           <Text color={theme.accent}>• Job data reparsed from website HTML</Text>
           <Text color={theme.accent}>• Match score: {Math.round(state.matchScore)}%</Text>
         </Box>
@@ -194,10 +223,21 @@ function JobPopupComponent({ job: initialJob, onAction }: Props) {
       {/* Apply submenu */}
       {state.mode === 'apply-submenu' && (
         <Box marginTop={1} flexDirection="column">
-          <Text bold color={theme.header}>📋 Apply Mode</Text>
-          <Text><Text color={theme.link}>[c]</Text> Custom  <Text color={theme.muted}>Manual application</Text></Text>
-          <Text><Text color={theme.link}>[g]</Text> Generate <Text color={theme.muted}>Auto-generate materials</Text></Text>
-          <Text><Text color={theme.link}>[e]</Text> Edit     <Text color={theme.muted}>Generate then edit</Text></Text>
+          <Text bold color={theme.header}>
+            📋 Apply Mode
+          </Text>
+          <Text>
+            <Text color={theme.link}>[c]</Text> Custom{' '}
+            <Text color={theme.muted}>Manual application</Text>
+          </Text>
+          <Text>
+            <Text color={theme.link}>[g]</Text> Generate{' '}
+            <Text color={theme.muted}>Auto-generate materials</Text>
+          </Text>
+          <Text>
+            <Text color={theme.link}>[e]</Text> Edit{' '}
+            <Text color={theme.muted}>Generate then edit</Text>
+          </Text>
           <Text color={theme.muted}>Esc: Back</Text>
         </Box>
       )}
@@ -205,9 +245,15 @@ function JobPopupComponent({ job: initialJob, onAction }: Props) {
       {/* Input mode */}
       {state.mode === 'html' && (
         <Box marginTop={1} flexDirection="column">
-          <Text bold color={theme.warning}>📄 Paste HTML content from job page</Text>
+          <Text bold color={theme.warning}>
+            📄 Paste HTML content from job page
+          </Text>
           <Text>
-            <Text color={theme.link}>{state.inputBuffer.length > 100 ? state.inputBuffer.substring(0, 100) + '...' : state.inputBuffer}</Text>
+            <Text color={theme.link}>
+              {state.inputBuffer.length > 100
+                ? state.inputBuffer.substring(0, 100) + '...'
+                : state.inputBuffer}
+            </Text>
             <Text color={theme.muted}>█</Text>
           </Text>
           <Text color={theme.muted}>Enter: Parse & Enrich • Esc: Cancel</Text>

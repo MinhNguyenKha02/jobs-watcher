@@ -1,31 +1,31 @@
 {
-  "exportedAt": "2026-03-02T20:02:58.794Z",
+  "exportedAt": "2026-03-05T07:54:13.424Z",
   "processingSummary": {
-    "totalJobsProcessed": 296,
-    "queuedJobs": 143,
-    "trashedJobs": 153,
-    "parseSuccessRate": "100.00%",
-    "trashRate": "51.69%",
-    "enrichmentRate": "0.68%"
+    "totalJobsProcessed": 364,
+    "queuedJobs": 172,
+    "trashedJobs": 192,
+    "parseSuccessRate": "92.14%",
+    "trashRate": "52.75%",
+    "enrichmentRate": "0.82%"
   },
   "collections": {
     "job_queue": {
-      "count": 143,
+      "count": 172,
       "statuses": {
-        "queued": 143
+        "queued": 172
       }
     },
     "job_trash": {
-      "count": 153,
+      "count": 192,
       "reasons": {
-        "parse_failed_or_filtered": 112,
-        "filtered_by_hybrid": 41
+        "parse_failed_or_filtered": 123,
+        "filtered_by_hybrid": 69
       }
     },
     "needs_enrichment": {
-      "count": 2,
+      "count": 3,
       "reasons": {
-        "missing_skills": 2
+        "missing_skills": 3
       }
     },
     "action_log": {
@@ -33,17 +33,17 @@
       "errorCount": 0
     },
     "parse_log": {
-      "count": 72,
+      "count": 140,
       "stages": {
-        "JOB_DETAIL": 72
+        "JOB_DETAIL": 140
       },
-      "successCount": 72,
-      "failureCount": 0,
-      "totalAttempts": 72,
-      "parseRate": "100.00%"
+      "successCount": 129,
+      "failureCount": 11,
+      "totalAttempts": 140,
+      "parseRate": "92.14%"
     },
     "raw_ingest": {
-      "count": 0
+      "count": 3
     },
     "metrics": {
       "count": 0
@@ -52,14 +52,14 @@
   "dataIntegrity": {
     "allFilesWritten": true,
     "filesWithData": [
-      "e2e-job-queue.json (143 records)",
-      "e2e-job-trash.json (153 records)",
-      "e2e-needs-enrichment.json (2 records)",
-      "e2e-parse-log.json (72 records)"
+      "e2e-job-queue.json (172 records)",
+      "e2e-job-trash.json (192 records)",
+      "e2e-needs-enrichment.json (3 records)",
+      "e2e-parse-log.json (140 records)",
+      "e2e-raw-ingest.json (3 records)"
     ],
     "emptyFiles": [
       "e2e-action-log.json",
-      "e2e-raw-ingest.json",
       "e2e-metrics.json"
     ]
   },
@@ -79,7 +79,9 @@
     "enrichmentReady": true
   },
   "parseFailureAnalysis": {
-    "parseLogFailureReasons": {},
+    "parseLogFailureReasons": {
+      "No candidate jobs extracted from fixture input": 11
+    },
     "trashParseErrors": {
       "Could not extract company name": 28,
       "Could not extract position title": 28,
@@ -90,7 +92,8 @@
       "Missing subject": 78,
       "Warning: Location normalized to canonical city": 3,
       "Filtered out: Requires experience beyond junior level": 3,
-      "Filtered out: Non-software role": 3
+      "Filtered out: Non-software role": 3,
+      "No candidate jobs extracted from fixture input": 11
     }
   }
 }

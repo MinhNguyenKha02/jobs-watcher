@@ -6077,5 +6077,1362 @@
     },
     "status": "queued",
     "enqueuedAt": "2026-03-02T20:02:44.757Z"
+  },
+  {
+    "_id": "69a7e81695f139365c4327ef",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": null,
+    "description": null,
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "messageId": "msg-indeed-001",
+    "synthesized": false,
+    "platform": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "General Software Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "General Software Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer unknown"
+      ]
+    },
+    "subject": "no-subject",
+    "from": "unknown@local",
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:06:46.920Z"
+  },
+  {
+    "_id": "69a7e81695f139365c4327f2",
+    "messageId": "msg-topcv-001",
+    "synthesized": false,
+    "platform": "Unknown",
+    "company": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "General Software Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "General Software Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Unspecified",
+      "responsibilities": [
+        "Contribute to engineering deliverables and team collaboration"
+      ]
+    },
+    "subject": "no-subject",
+    "from": "unknown@local",
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:06:46.956Z"
+  },
+  {
+    "_id": "69a7e81695f139365c4327f5",
+    "title": "Senior Full-stack Python Developer (AI Agent)",
+    "company": "AnyWork (itworks.asia)",
+    "location": "Thành phố Hồ Chí Minh",
+    "salary": "75,000,000 VNĐ - 104,000,000 VNĐ a month",
+    "description": "Roles Own and deliver features end-to-end Requirements Strong experience with TypeScript Benefits & Perks 15 days of annual leave Loại hình công việc: Toàn thời gian",
+    "details": {
+      "responsibilities": "Own and deliver features end-to-end",
+      "requirements": "Strong experience with TypeScript",
+      "benefits": "15 days of annual leave Loại hình công việc: Toàn thời gian",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": null,
+    "source": "indeed",
+    "messageId": "syn-8c6f1ec103bc95a8",
+    "synthesized": false,
+    "platform": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 50,
+    "matchedProfileSkills": [
+      "TypeScript"
+    ],
+    "missingProfileSkills": [
+      "Python"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "TypeScript",
+        "Python"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "roles own and deliver features end-to-end requirements strong experience with typescript benefits & perks 15 days of annual leave loại hình công việc: toàn thời gian senior full-stack python developer (ai agent) unknown"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:06:46.969Z"
+  },
+  {
+    "_id": "69a7e81b374c39dbc930ef7a",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": null,
+    "description": null,
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "messageId": "msg-indeed-001",
+    "synthesized": false,
+    "platform": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "General Software Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "General Software Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer unknown"
+      ]
+    },
+    "subject": "no-subject",
+    "from": "unknown@local",
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:06:51.079Z"
+  },
+  {
+    "_id": "69a7e81b374c39dbc930ef7d",
+    "messageId": "msg-topcv-001",
+    "synthesized": false,
+    "platform": "Unknown",
+    "company": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "General Software Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "General Software Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Unspecified",
+      "responsibilities": [
+        "Contribute to engineering deliverables and team collaboration"
+      ]
+    },
+    "subject": "no-subject",
+    "from": "unknown@local",
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:06:51.103Z"
+  },
+  {
+    "_id": "69a7e81b374c39dbc930ef80",
+    "title": "Senior Full-stack Python Developer (AI Agent)",
+    "company": "AnyWork (itworks.asia)",
+    "location": "Thành phố Hồ Chí Minh",
+    "salary": "75,000,000 VNĐ - 104,000,000 VNĐ a month",
+    "description": "Roles Own and deliver features end-to-end Requirements Strong experience with TypeScript Benefits & Perks 15 days of annual leave Loại hình công việc: Toàn thời gian",
+    "details": {
+      "responsibilities": "Own and deliver features end-to-end",
+      "requirements": "Strong experience with TypeScript",
+      "benefits": "15 days of annual leave Loại hình công việc: Toàn thời gian",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": null,
+    "source": "indeed",
+    "messageId": "syn-8c6f1ec103bc95a8",
+    "synthesized": false,
+    "platform": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 50,
+    "matchedProfileSkills": [
+      "TypeScript"
+    ],
+    "missingProfileSkills": [
+      "Python"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "TypeScript",
+        "Python"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "roles own and deliver features end-to-end requirements strong experience with typescript benefits & perks 15 days of annual leave loại hình công việc: toàn thời gian senior full-stack python developer (ai agent) unknown"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:06:51.112Z"
+  },
+  {
+    "_id": "69a7e84639de59241510c8b2",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": null,
+    "description": null,
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "messageId": "msg-indeed-001",
+    "synthesized": false,
+    "platform": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "General Software Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "General Software Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer unknown"
+      ]
+    },
+    "subject": "no-subject",
+    "from": "unknown@local",
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:07:34.528Z"
+  },
+  {
+    "_id": "69a7e84639de59241510c8b5",
+    "messageId": "msg-topcv-001",
+    "synthesized": false,
+    "platform": "Unknown",
+    "company": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "General Software Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "General Software Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Unspecified",
+      "responsibilities": [
+        "Contribute to engineering deliverables and team collaboration"
+      ]
+    },
+    "subject": "no-subject",
+    "from": "unknown@local",
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:07:34.554Z"
+  },
+  {
+    "_id": "69a7e84639de59241510c8b8",
+    "title": "Senior Full-stack Python Developer (AI Agent)",
+    "company": "AnyWork (itworks.asia)",
+    "location": "Thành phố Hồ Chí Minh",
+    "salary": "75,000,000 VNĐ - 104,000,000 VNĐ a month",
+    "description": "Roles Own and deliver features end-to-end Requirements Strong experience with TypeScript Benefits & Perks 15 days of annual leave Loại hình công việc: Toàn thời gian",
+    "details": {
+      "responsibilities": "Own and deliver features end-to-end",
+      "requirements": "Strong experience with TypeScript",
+      "benefits": "15 days of annual leave Loại hình công việc: Toàn thời gian",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": null,
+    "source": "indeed",
+    "messageId": "syn-8c6f1ec103bc95a8",
+    "synthesized": false,
+    "platform": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 50,
+    "matchedProfileSkills": [
+      "TypeScript"
+    ],
+    "missingProfileSkills": [
+      "Python"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "TypeScript",
+        "Python"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "roles own and deliver features end-to-end requirements strong experience with typescript benefits & perks 15 days of annual leave loại hình công việc: toàn thời gian senior full-stack python developer (ai agent) unknown"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:07:34.567Z"
+  },
+  {
+    "_id": "69a7e84952bfa0c149627507",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": null,
+    "description": null,
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "messageId": "msg-indeed-001",
+    "synthesized": false,
+    "platform": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "General Software Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "General Software Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer unknown"
+      ]
+    },
+    "subject": "no-subject",
+    "from": "unknown@local",
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:07:37.355Z"
+  },
+  {
+    "_id": "69a7e84952bfa0c14962750a",
+    "messageId": "msg-topcv-001",
+    "synthesized": false,
+    "platform": "Unknown",
+    "company": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "General Software Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "General Software Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Unspecified",
+      "responsibilities": [
+        "Contribute to engineering deliverables and team collaboration"
+      ]
+    },
+    "subject": "no-subject",
+    "from": "unknown@local",
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:07:37.377Z"
+  },
+  {
+    "_id": "69a7e84952bfa0c14962750d",
+    "title": "Senior Full-stack Python Developer (AI Agent)",
+    "company": "AnyWork (itworks.asia)",
+    "location": "Thành phố Hồ Chí Minh",
+    "salary": "75,000,000 VNĐ - 104,000,000 VNĐ a month",
+    "description": "Roles Own and deliver features end-to-end Requirements Strong experience with TypeScript Benefits & Perks 15 days of annual leave Loại hình công việc: Toàn thời gian",
+    "details": {
+      "responsibilities": "Own and deliver features end-to-end",
+      "requirements": "Strong experience with TypeScript",
+      "benefits": "15 days of annual leave Loại hình công việc: Toàn thời gian",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": null,
+    "source": "indeed",
+    "messageId": "syn-8c6f1ec103bc95a8",
+    "synthesized": false,
+    "platform": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 50,
+    "matchedProfileSkills": [
+      "TypeScript"
+    ],
+    "missingProfileSkills": [
+      "Python"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "TypeScript",
+        "Python"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "roles own and deliver features end-to-end requirements strong experience with typescript benefits & perks 15 days of annual leave loại hình công việc: toàn thời gian senior full-stack python developer (ai agent) unknown"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:07:37.385Z"
+  },
+  {
+    "_id": "69a7e8693383c8a5cd689b65",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": null,
+    "description": null,
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "messageId": "msg-indeed-001",
+    "synthesized": false,
+    "platform": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "General Software Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "General Software Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer unknown"
+      ]
+    },
+    "subject": "no-subject",
+    "from": "unknown@local",
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:08:09.011Z"
+  },
+  {
+    "_id": "69a7e8693383c8a5cd689b68",
+    "messageId": "msg-topcv-001",
+    "synthesized": false,
+    "platform": "Unknown",
+    "company": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "General Software Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "General Software Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Unspecified",
+      "responsibilities": [
+        "Contribute to engineering deliverables and team collaboration"
+      ]
+    },
+    "subject": "no-subject",
+    "from": "unknown@local",
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:08:09.065Z"
+  },
+  {
+    "_id": "69a7e8693383c8a5cd689b6b",
+    "title": "Senior Full-stack Python Developer (AI Agent)",
+    "company": "AnyWork (itworks.asia)",
+    "location": "Thành phố Hồ Chí Minh",
+    "salary": "75,000,000 VNĐ - 104,000,000 VNĐ a month",
+    "description": "Roles Own and deliver features end-to-end Requirements Strong experience with TypeScript Benefits & Perks 15 days of annual leave Loại hình công việc: Toàn thời gian",
+    "details": {
+      "responsibilities": "Own and deliver features end-to-end",
+      "requirements": "Strong experience with TypeScript",
+      "benefits": "15 days of annual leave Loại hình công việc: Toàn thời gian",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": null,
+    "source": "indeed",
+    "messageId": "syn-8c6f1ec103bc95a8",
+    "synthesized": false,
+    "platform": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 50,
+    "matchedProfileSkills": [
+      "TypeScript"
+    ],
+    "missingProfileSkills": [
+      "Python"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "TypeScript",
+        "Python"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "roles own and deliver features end-to-end requirements strong experience with typescript benefits & perks 15 days of annual leave loại hình công việc: toàn thời gian senior full-stack python developer (ai agent) unknown"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:08:09.097Z"
+  },
+  {
+    "_id": "69a7e86f2ca9096fe7cdd698",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": null,
+    "description": null,
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "messageId": "msg-indeed-001",
+    "synthesized": false,
+    "platform": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "General Software Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "General Software Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer unknown"
+      ]
+    },
+    "subject": "no-subject",
+    "from": "unknown@local",
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:08:15.009Z"
+  },
+  {
+    "_id": "69a7e86f2ca9096fe7cdd69b",
+    "messageId": "msg-topcv-001",
+    "synthesized": false,
+    "platform": "Unknown",
+    "company": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "General Software Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "General Software Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Unspecified",
+      "responsibilities": [
+        "Contribute to engineering deliverables and team collaboration"
+      ]
+    },
+    "subject": "no-subject",
+    "from": "unknown@local",
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:08:15.036Z"
+  },
+  {
+    "_id": "69a7e86f2ca9096fe7cdd69e",
+    "title": "Senior Full-stack Python Developer (AI Agent)",
+    "company": "AnyWork (itworks.asia)",
+    "location": "Thành phố Hồ Chí Minh",
+    "salary": "75,000,000 VNĐ - 104,000,000 VNĐ a month",
+    "description": "Roles Own and deliver features end-to-end Requirements Strong experience with TypeScript Benefits & Perks 15 days of annual leave Loại hình công việc: Toàn thời gian",
+    "details": {
+      "responsibilities": "Own and deliver features end-to-end",
+      "requirements": "Strong experience with TypeScript",
+      "benefits": "15 days of annual leave Loại hình công việc: Toàn thời gian",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": null,
+    "source": "indeed",
+    "messageId": "syn-8c6f1ec103bc95a8",
+    "synthesized": false,
+    "platform": "Unknown",
+    "position": "Unknown",
+    "profileNarrative": [
+      "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.",
+      "Proficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.",
+      "Strong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.",
+      "Committed to writing clean, maintainable code and following best practices in security and testing.",
+      "Quick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills."
+    ],
+    "matchScore": 50,
+    "matchedProfileSkills": [
+      "TypeScript"
+    ],
+    "missingProfileSkills": [
+      "Python"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "TypeScript",
+        "Python"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "roles own and deliver features end-to-end requirements strong experience with typescript benefits & perks 15 days of annual leave loại hình công việc: toàn thời gian senior full-stack python developer (ai agent) unknown"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T08:08:15.049Z"
+  },
+  {
+    "_id": "69a867dc4e8034478c65c612",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": "",
+    "description": "",
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "sourceBody": "<!DOCTYPE html>\n<html>\n    <head><meta charset=\"UTF-8\" /><title>Indeed Job Alert</title></head>\n    <body>\n        <h1>Indeed Job Alert - 20 new front end developer jobs</h1>\n        <p>Jobs 1-20 of 20 new jobs</p>\n        <p>See matching results on Indeed: <a href=\"https://vn.indeed.com/jobs?q=front+end+developer\">https://vn.indeed.com/jobs?q=front+end+developer</a></p>\n\n        <div class=\"job-item\">\n            <h2>Senior Frontend Developer</h2>\n            <p>Zalo - Thành phố Hồ Chí Minh</p>\n            <p>Zalo VAS delivers new revenue-driving experiences to 75 million+ users. Just posted</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Senior Front-End Developer</h2>\n            <p>AdStart Media Pte. Ltd - Thành phố Hồ Chí Minh</p>\n            <p>We are seeking an experienced Senior Front-End Developer for UI/UX design. 2 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Mid/Senior Frontend Developer (Angular JS)</h2>\n            <p>Hitachi Digital Services - Thành phố Hồ Chí Minh</p>\n            <p>Design and build responsive web applications using modern frameworks. 6 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=4c4942dcbef96d14\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>React Developer</h2>\n            <p>TransPerfect - Hà Nội</p>\n            <p>The role consists of writing React code and implementing UX/UI designs. 5 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=72281de2c2521892\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Backend Developer - Ngân hàng số</h2>\n            <p>SHB - Hà Nội</p>\n            <p>Responsible for design and programming of backend services. 3 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=cdeb23be56926118\">Apply</a>\n        </div>\n    </body>\n</html>",
+    "sourceEmailId": "msg-indeed-001",
+    "sourceSubject": "Indeed Job Alert - 20 new front end developer jobs",
+    "sourceFrom": "noreply@indeed.com",
+    "messageId": "msg-indeed-001-1",
+    "platform": "indeed",
+    "position": "Senior Frontend Developer",
+    "profileNarrative": "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.\nProficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.\nStrong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.\nCommitted to writing clean, maintainable code and following best practices in security and testing.\nQuick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills.",
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "Frontend Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "Frontend Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer senior frontend developer"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T17:11:56.922Z"
+  },
+  {
+    "_id": "69a8694b07a9be2b1953c4f5",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": "",
+    "description": "",
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "sourceBody": "<!DOCTYPE html>\n<html>\n    <head><meta charset=\"UTF-8\" /><title>Indeed Job Alert</title></head>\n    <body>\n        <h1>Indeed Job Alert - 20 new front end developer jobs</h1>\n        <p>Jobs 1-20 of 20 new jobs</p>\n        <p>See matching results on Indeed: <a href=\"https://vn.indeed.com/jobs?q=front+end+developer\">https://vn.indeed.com/jobs?q=front+end+developer</a></p>\n\n        <div class=\"job-item\">\n            <h2>Senior Frontend Developer</h2>\n            <p>Zalo - Thành phố Hồ Chí Minh</p>\n            <p>Zalo VAS delivers new revenue-driving experiences to 75 million+ users. Just posted</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Senior Front-End Developer</h2>\n            <p>AdStart Media Pte. Ltd - Thành phố Hồ Chí Minh</p>\n            <p>We are seeking an experienced Senior Front-End Developer for UI/UX design. 2 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Mid/Senior Frontend Developer (Angular JS)</h2>\n            <p>Hitachi Digital Services - Thành phố Hồ Chí Minh</p>\n            <p>Design and build responsive web applications using modern frameworks. 6 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=4c4942dcbef96d14\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>React Developer</h2>\n            <p>TransPerfect - Hà Nội</p>\n            <p>The role consists of writing React code and implementing UX/UI designs. 5 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=72281de2c2521892\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Backend Developer - Ngân hàng số</h2>\n            <p>SHB - Hà Nội</p>\n            <p>Responsible for design and programming of backend services. 3 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=cdeb23be56926118\">Apply</a>\n        </div>\n    </body>\n</html>",
+    "sourceEmailId": "msg-indeed-001",
+    "sourceSubject": "Indeed Job Alert - 20 new front end developer jobs",
+    "sourceFrom": "noreply@indeed.com",
+    "messageId": "msg-indeed-001-1",
+    "platform": "indeed",
+    "position": "Senior Frontend Developer",
+    "profileNarrative": "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.\nProficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.\nStrong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.\nCommitted to writing clean, maintainable code and following best practices in security and testing.\nQuick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills.",
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "Frontend Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "Frontend Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer senior frontend developer"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T17:18:03.382Z"
+  },
+  {
+    "_id": "69a8786a54ecffd1c51d2b71",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": "",
+    "description": "",
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "sourceBody": "<!DOCTYPE html>\n<html>\n    <head><meta charset=\"UTF-8\" /><title>Indeed Job Alert</title></head>\n    <body>\n        <h1>Indeed Job Alert - 20 new front end developer jobs</h1>\n        <p>Jobs 1-20 of 20 new jobs</p>\n        <p>See matching results on Indeed: <a href=\"https://vn.indeed.com/jobs?q=front+end+developer\">https://vn.indeed.com/jobs?q=front+end+developer</a></p>\n\n        <div class=\"job-item\">\n            <h2>Senior Frontend Developer</h2>\n            <p>Zalo - Thành phố Hồ Chí Minh</p>\n            <p>Zalo VAS delivers new revenue-driving experiences to 75 million+ users. Just posted</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Senior Front-End Developer</h2>\n            <p>AdStart Media Pte. Ltd - Thành phố Hồ Chí Minh</p>\n            <p>We are seeking an experienced Senior Front-End Developer for UI/UX design. 2 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Mid/Senior Frontend Developer (Angular JS)</h2>\n            <p>Hitachi Digital Services - Thành phố Hồ Chí Minh</p>\n            <p>Design and build responsive web applications using modern frameworks. 6 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=4c4942dcbef96d14\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>React Developer</h2>\n            <p>TransPerfect - Hà Nội</p>\n            <p>The role consists of writing React code and implementing UX/UI designs. 5 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=72281de2c2521892\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Backend Developer - Ngân hàng số</h2>\n            <p>SHB - Hà Nội</p>\n            <p>Responsible for design and programming of backend services. 3 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=cdeb23be56926118\">Apply</a>\n        </div>\n    </body>\n</html>",
+    "sourceEmailId": "msg-indeed-001",
+    "sourceSubject": "Indeed Job Alert - 20 new front end developer jobs",
+    "sourceFrom": "noreply@indeed.com",
+    "messageId": "msg-indeed-001-1",
+    "platform": "indeed",
+    "position": "Senior Frontend Developer",
+    "profileNarrative": "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.\nProficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.\nStrong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.\nCommitted to writing clean, maintainable code and following best practices in security and testing.\nQuick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills.",
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "Frontend Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "Frontend Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer senior frontend developer"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T18:22:34.076Z"
+  },
+  {
+    "_id": "69a878b5d05a07c10eb61d33",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": "",
+    "description": "",
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "sourceBody": "<!DOCTYPE html>\n<html>\n    <head><meta charset=\"UTF-8\" /><title>Indeed Job Alert</title></head>\n    <body>\n        <h1>Indeed Job Alert - 20 new front end developer jobs</h1>\n        <p>Jobs 1-20 of 20 new jobs</p>\n        <p>See matching results on Indeed: <a href=\"https://vn.indeed.com/jobs?q=front+end+developer\">https://vn.indeed.com/jobs?q=front+end+developer</a></p>\n\n        <div class=\"job-item\">\n            <h2>Senior Frontend Developer</h2>\n            <p>Zalo - Thành phố Hồ Chí Minh</p>\n            <p>Zalo VAS delivers new revenue-driving experiences to 75 million+ users. Just posted</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Senior Front-End Developer</h2>\n            <p>AdStart Media Pte. Ltd - Thành phố Hồ Chí Minh</p>\n            <p>We are seeking an experienced Senior Front-End Developer for UI/UX design. 2 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Mid/Senior Frontend Developer (Angular JS)</h2>\n            <p>Hitachi Digital Services - Thành phố Hồ Chí Minh</p>\n            <p>Design and build responsive web applications using modern frameworks. 6 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=4c4942dcbef96d14\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>React Developer</h2>\n            <p>TransPerfect - Hà Nội</p>\n            <p>The role consists of writing React code and implementing UX/UI designs. 5 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=72281de2c2521892\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Backend Developer - Ngân hàng số</h2>\n            <p>SHB - Hà Nội</p>\n            <p>Responsible for design and programming of backend services. 3 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=cdeb23be56926118\">Apply</a>\n        </div>\n    </body>\n</html>",
+    "sourceEmailId": "msg-indeed-001",
+    "sourceSubject": "Indeed Job Alert - 20 new front end developer jobs",
+    "sourceFrom": "noreply@indeed.com",
+    "messageId": "msg-indeed-001-1",
+    "platform": "indeed",
+    "position": "Senior Frontend Developer",
+    "profileNarrative": "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.\nProficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.\nStrong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.\nCommitted to writing clean, maintainable code and following best practices in security and testing.\nQuick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills.",
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "Frontend Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "Frontend Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer senior frontend developer"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T18:23:49.938Z"
+  },
+  {
+    "_id": "69a87c6f162932dabcafe7d3",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": "",
+    "description": "",
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "sourceBody": "<!DOCTYPE html>\n<html>\n    <head><meta charset=\"UTF-8\" /><title>Indeed Job Alert</title></head>\n    <body>\n        <h1>Indeed Job Alert - 20 new front end developer jobs</h1>\n        <p>Jobs 1-20 of 20 new jobs</p>\n        <p>See matching results on Indeed: <a href=\"https://vn.indeed.com/jobs?q=front+end+developer\">https://vn.indeed.com/jobs?q=front+end+developer</a></p>\n\n        <div class=\"job-item\">\n            <h2>Senior Frontend Developer</h2>\n            <p>Zalo - Thành phố Hồ Chí Minh</p>\n            <p>Zalo VAS delivers new revenue-driving experiences to 75 million+ users. Just posted</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Senior Front-End Developer</h2>\n            <p>AdStart Media Pte. Ltd - Thành phố Hồ Chí Minh</p>\n            <p>We are seeking an experienced Senior Front-End Developer for UI/UX design. 2 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Mid/Senior Frontend Developer (Angular JS)</h2>\n            <p>Hitachi Digital Services - Thành phố Hồ Chí Minh</p>\n            <p>Design and build responsive web applications using modern frameworks. 6 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=4c4942dcbef96d14\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>React Developer</h2>\n            <p>TransPerfect - Hà Nội</p>\n            <p>The role consists of writing React code and implementing UX/UI designs. 5 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=72281de2c2521892\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Backend Developer - Ngân hàng số</h2>\n            <p>SHB - Hà Nội</p>\n            <p>Responsible for design and programming of backend services. 3 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=cdeb23be56926118\">Apply</a>\n        </div>\n    </body>\n</html>",
+    "sourceEmailId": "msg-indeed-001",
+    "sourceSubject": "Indeed Job Alert - 20 new front end developer jobs",
+    "sourceFrom": "noreply@indeed.com",
+    "messageId": "msg-indeed-001-1",
+    "platform": "indeed",
+    "position": "Senior Frontend Developer",
+    "profileNarrative": "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.\nProficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.\nStrong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.\nCommitted to writing clean, maintainable code and following best practices in security and testing.\nQuick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills.",
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "Frontend Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "Frontend Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer senior frontend developer"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T18:39:43.296Z"
+  },
+  {
+    "_id": "69a88f0c742b992914243708",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": "",
+    "description": "",
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "sourceBody": "<!DOCTYPE html>\n<html>\n    <head><meta charset=\"UTF-8\" /><title>Indeed Job Alert</title></head>\n    <body>\n        <h1>Indeed Job Alert - 20 new front end developer jobs</h1>\n        <p>Jobs 1-20 of 20 new jobs</p>\n        <p>See matching results on Indeed: <a href=\"https://vn.indeed.com/jobs?q=front+end+developer\">https://vn.indeed.com/jobs?q=front+end+developer</a></p>\n\n        <div class=\"job-item\">\n            <h2>Senior Frontend Developer</h2>\n            <p>Zalo - Thành phố Hồ Chí Minh</p>\n            <p>Zalo VAS delivers new revenue-driving experiences to 75 million+ users. Just posted</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Senior Front-End Developer</h2>\n            <p>AdStart Media Pte. Ltd - Thành phố Hồ Chí Minh</p>\n            <p>We are seeking an experienced Senior Front-End Developer for UI/UX design. 2 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Mid/Senior Frontend Developer (Angular JS)</h2>\n            <p>Hitachi Digital Services - Thành phố Hồ Chí Minh</p>\n            <p>Design and build responsive web applications using modern frameworks. 6 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=4c4942dcbef96d14\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>React Developer</h2>\n            <p>TransPerfect - Hà Nội</p>\n            <p>The role consists of writing React code and implementing UX/UI designs. 5 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=72281de2c2521892\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Backend Developer - Ngân hàng số</h2>\n            <p>SHB - Hà Nội</p>\n            <p>Responsible for design and programming of backend services. 3 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=cdeb23be56926118\">Apply</a>\n        </div>\n    </body>\n</html>",
+    "sourceEmailId": "msg-indeed-001",
+    "sourceSubject": "Indeed Job Alert - 20 new front end developer jobs",
+    "sourceFrom": "noreply@indeed.com",
+    "messageId": "msg-indeed-001-1",
+    "platform": "indeed",
+    "position": "Senior Frontend Developer",
+    "profileNarrative": "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.\nProficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.\nStrong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.\nCommitted to writing clean, maintainable code and following best practices in security and testing.\nQuick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills.",
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "Frontend Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "Frontend Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer senior frontend developer"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T19:59:08.393Z"
+  },
+  {
+    "_id": "69a890d8389a2e223b82d188",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": "",
+    "description": "",
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "sourceBody": "<!DOCTYPE html>\n<html>\n    <head><meta charset=\"UTF-8\" /><title>Indeed Job Alert</title></head>\n    <body>\n        <h1>Indeed Job Alert - 20 new front end developer jobs</h1>\n        <p>Jobs 1-20 of 20 new jobs</p>\n        <p>See matching results on Indeed: <a href=\"https://vn.indeed.com/jobs?q=front+end+developer\">https://vn.indeed.com/jobs?q=front+end+developer</a></p>\n\n        <div class=\"job-item\">\n            <h2>Senior Frontend Developer</h2>\n            <p>Zalo - Thành phố Hồ Chí Minh</p>\n            <p>Zalo VAS delivers new revenue-driving experiences to 75 million+ users. Just posted</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Senior Front-End Developer</h2>\n            <p>AdStart Media Pte. Ltd - Thành phố Hồ Chí Minh</p>\n            <p>We are seeking an experienced Senior Front-End Developer for UI/UX design. 2 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Mid/Senior Frontend Developer (Angular JS)</h2>\n            <p>Hitachi Digital Services - Thành phố Hồ Chí Minh</p>\n            <p>Design and build responsive web applications using modern frameworks. 6 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=4c4942dcbef96d14\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>React Developer</h2>\n            <p>TransPerfect - Hà Nội</p>\n            <p>The role consists of writing React code and implementing UX/UI designs. 5 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=72281de2c2521892\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Backend Developer - Ngân hàng số</h2>\n            <p>SHB - Hà Nội</p>\n            <p>Responsible for design and programming of backend services. 3 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=cdeb23be56926118\">Apply</a>\n        </div>\n    </body>\n</html>",
+    "sourceEmailId": "msg-indeed-001",
+    "sourceSubject": "Indeed Job Alert - 20 new front end developer jobs",
+    "sourceFrom": "noreply@indeed.com",
+    "messageId": "msg-indeed-001-1",
+    "platform": "indeed",
+    "position": "Senior Frontend Developer",
+    "profileNarrative": "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.\nProficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.\nStrong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.\nCommitted to writing clean, maintainable code and following best practices in security and testing.\nQuick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills.",
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "Frontend Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "Frontend Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer senior frontend developer"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T20:06:48.917Z"
+  },
+  {
+    "_id": "69a89a4041ff187177047d76",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": "",
+    "description": "",
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "sourceBody": "<!DOCTYPE html>\n<html>\n    <head><meta charset=\"UTF-8\" /><title>Indeed Job Alert</title></head>\n    <body>\n        <h1>Indeed Job Alert - 20 new front end developer jobs</h1>\n        <p>Jobs 1-20 of 20 new jobs</p>\n        <p>See matching results on Indeed: <a href=\"https://vn.indeed.com/jobs?q=front+end+developer\">https://vn.indeed.com/jobs?q=front+end+developer</a></p>\n\n        <div class=\"job-item\">\n            <h2>Senior Frontend Developer</h2>\n            <p>Zalo - Thành phố Hồ Chí Minh</p>\n            <p>Zalo VAS delivers new revenue-driving experiences to 75 million+ users. Just posted</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Senior Front-End Developer</h2>\n            <p>AdStart Media Pte. Ltd - Thành phố Hồ Chí Minh</p>\n            <p>We are seeking an experienced Senior Front-End Developer for UI/UX design. 2 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Mid/Senior Frontend Developer (Angular JS)</h2>\n            <p>Hitachi Digital Services - Thành phố Hồ Chí Minh</p>\n            <p>Design and build responsive web applications using modern frameworks. 6 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=4c4942dcbef96d14\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>React Developer</h2>\n            <p>TransPerfect - Hà Nội</p>\n            <p>The role consists of writing React code and implementing UX/UI designs. 5 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=72281de2c2521892\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Backend Developer - Ngân hàng số</h2>\n            <p>SHB - Hà Nội</p>\n            <p>Responsible for design and programming of backend services. 3 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=cdeb23be56926118\">Apply</a>\n        </div>\n    </body>\n</html>",
+    "sourceEmailId": "msg-indeed-001",
+    "sourceSubject": "Indeed Job Alert - 20 new front end developer jobs",
+    "sourceFrom": "noreply@indeed.com",
+    "messageId": "msg-indeed-001-1",
+    "platform": "indeed",
+    "position": "Senior Frontend Developer",
+    "profileNarrative": "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.\nProficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.\nStrong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.\nCommitted to writing clean, maintainable code and following best practices in security and testing.\nQuick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills.",
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "Frontend Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "Frontend Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer senior frontend developer"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T20:46:56.226Z"
+  },
+  {
+    "_id": "69a89c2054d586f360c7f541",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": "",
+    "description": "",
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "sourceBody": "<!DOCTYPE html>\n<html>\n    <head><meta charset=\"UTF-8\" /><title>Indeed Job Alert</title></head>\n    <body>\n        <h1>Indeed Job Alert - 20 new front end developer jobs</h1>\n        <p>Jobs 1-20 of 20 new jobs</p>\n        <p>See matching results on Indeed: <a href=\"https://vn.indeed.com/jobs?q=front+end+developer\">https://vn.indeed.com/jobs?q=front+end+developer</a></p>\n\n        <div class=\"job-item\">\n            <h2>Senior Frontend Developer</h2>\n            <p>Zalo - Thành phố Hồ Chí Minh</p>\n            <p>Zalo VAS delivers new revenue-driving experiences to 75 million+ users. Just posted</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Senior Front-End Developer</h2>\n            <p>AdStart Media Pte. Ltd - Thành phố Hồ Chí Minh</p>\n            <p>We are seeking an experienced Senior Front-End Developer for UI/UX design. 2 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Mid/Senior Frontend Developer (Angular JS)</h2>\n            <p>Hitachi Digital Services - Thành phố Hồ Chí Minh</p>\n            <p>Design and build responsive web applications using modern frameworks. 6 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=4c4942dcbef96d14\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>React Developer</h2>\n            <p>TransPerfect - Hà Nội</p>\n            <p>The role consists of writing React code and implementing UX/UI designs. 5 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=72281de2c2521892\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Backend Developer - Ngân hàng số</h2>\n            <p>SHB - Hà Nội</p>\n            <p>Responsible for design and programming of backend services. 3 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=cdeb23be56926118\">Apply</a>\n        </div>\n    </body>\n</html>",
+    "sourceEmailId": "msg-indeed-001",
+    "sourceSubject": "Indeed Job Alert - 20 new front end developer jobs",
+    "sourceFrom": "noreply@indeed.com",
+    "messageId": "msg-indeed-001-1",
+    "platform": "indeed",
+    "position": "Senior Frontend Developer",
+    "profileNarrative": "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.\nProficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.\nStrong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.\nCommitted to writing clean, maintainable code and following best practices in security and testing.\nQuick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills.",
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "Frontend Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "Frontend Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer senior frontend developer"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-04T20:54:56.302Z"
+  },
+  {
+    "_id": "69a931fa009bf85903dcaccd",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": "",
+    "description": "",
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "sourceBody": "<!DOCTYPE html>\n<html>\n    <head><meta charset=\"UTF-8\" /><title>Indeed Job Alert</title></head>\n    <body>\n        <h1>Indeed Job Alert - 20 new front end developer jobs</h1>\n        <p>Jobs 1-20 of 20 new jobs</p>\n        <p>See matching results on Indeed: <a href=\"https://vn.indeed.com/jobs?q=front+end+developer\">https://vn.indeed.com/jobs?q=front+end+developer</a></p>\n\n        <div class=\"job-item\">\n            <h2>Senior Frontend Developer</h2>\n            <p>Zalo - Thành phố Hồ Chí Minh</p>\n            <p>Zalo VAS delivers new revenue-driving experiences to 75 million+ users. Just posted</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Senior Front-End Developer</h2>\n            <p>AdStart Media Pte. Ltd - Thành phố Hồ Chí Minh</p>\n            <p>We are seeking an experienced Senior Front-End Developer for UI/UX design. 2 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Mid/Senior Frontend Developer (Angular JS)</h2>\n            <p>Hitachi Digital Services - Thành phố Hồ Chí Minh</p>\n            <p>Design and build responsive web applications using modern frameworks. 6 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=4c4942dcbef96d14\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>React Developer</h2>\n            <p>TransPerfect - Hà Nội</p>\n            <p>The role consists of writing React code and implementing UX/UI designs. 5 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=72281de2c2521892\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Backend Developer - Ngân hàng số</h2>\n            <p>SHB - Hà Nội</p>\n            <p>Responsible for design and programming of backend services. 3 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=cdeb23be56926118\">Apply</a>\n        </div>\n    </body>\n</html>",
+    "sourceEmailId": "msg-indeed-001",
+    "sourceSubject": "Indeed Job Alert - 20 new front end developer jobs",
+    "sourceFrom": "noreply@indeed.com",
+    "messageId": "msg-indeed-001-1",
+    "platform": "indeed",
+    "position": "Senior Frontend Developer",
+    "profileNarrative": "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.\nProficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.\nStrong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.\nCommitted to writing clean, maintainable code and following best practices in security and testing.\nQuick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills.",
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "Frontend Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "Frontend Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer senior frontend developer"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-05T07:34:18.813Z"
+  },
+  {
+    "_id": "69a93693106dad2a00658769",
+    "title": "Senior Frontend Developer",
+    "company": "Zalo",
+    "location": "Unknown Location",
+    "salary": "",
+    "description": "",
+    "details": {
+      "responsibilities": null,
+      "requirements": "",
+      "benefits": "",
+      "companyInfo": null,
+      "contact": null,
+      "applicationProcess": null,
+      "pay": null,
+      "jobType": null,
+      "extraSections": null
+    },
+    "url": "https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f",
+    "source": "indeed",
+    "sourceBody": "<!DOCTYPE html>\n<html>\n    <head><meta charset=\"UTF-8\" /><title>Indeed Job Alert</title></head>\n    <body>\n        <h1>Indeed Job Alert - 20 new front end developer jobs</h1>\n        <p>Jobs 1-20 of 20 new jobs</p>\n        <p>See matching results on Indeed: <a href=\"https://vn.indeed.com/jobs?q=front+end+developer\">https://vn.indeed.com/jobs?q=front+end+developer</a></p>\n\n        <div class=\"job-item\">\n            <h2>Senior Frontend Developer</h2>\n            <p>Zalo - Thành phố Hồ Chí Minh</p>\n            <p>Zalo VAS delivers new revenue-driving experiences to 75 million+ users. Just posted</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Senior Front-End Developer</h2>\n            <p>AdStart Media Pte. Ltd - Thành phố Hồ Chí Minh</p>\n            <p>We are seeking an experienced Senior Front-End Developer for UI/UX design. 2 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Mid/Senior Frontend Developer (Angular JS)</h2>\n            <p>Hitachi Digital Services - Thành phố Hồ Chí Minh</p>\n            <p>Design and build responsive web applications using modern frameworks. 6 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=4c4942dcbef96d14\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>React Developer</h2>\n            <p>TransPerfect - Hà Nội</p>\n            <p>The role consists of writing React code and implementing UX/UI designs. 5 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=72281de2c2521892\">Apply</a>\n        </div>\n\n        <div class=\"job-item\">\n            <h2>Backend Developer - Ngân hàng số</h2>\n            <p>SHB - Hà Nội</p>\n            <p>Responsible for design and programming of backend services. 3 days ago</p>\n            <a href=\"https://vn.indeed.com/rc/clk/dl?jk=cdeb23be56926118\">Apply</a>\n        </div>\n    </body>\n</html>",
+    "sourceEmailId": "msg-indeed-001",
+    "sourceSubject": "Indeed Job Alert - 20 new front end developer jobs",
+    "sourceFrom": "noreply@indeed.com",
+    "messageId": "msg-indeed-001-1",
+    "platform": "indeed",
+    "position": "Senior Frontend Developer",
+    "profileNarrative": "Passionate software engineer with a focus on backend development, eager to contribute to scalable and efficient systems.\nProficient in Go and TypeScript, with solid experience in building RESTful APIs and microservices.\nStrong foundation in data structures, algorithms, networking and OOP/SOLID principles and database design.\nCommitted to writing clean, maintainable code and following best practices in security and testing.\nQuick learner with a growth mindset, actively exploring new technologies and methodologies to enhance development skills.",
+    "matchScore": 0,
+    "matchedProfileSkills": [],
+    "missingProfileSkills": [
+      "Frontend Development"
+    ],
+    "relevantExperience": [],
+    "requirements": {
+      "requiredSkills": [
+        "Frontend Development"
+      ],
+      "preferredSkills": [],
+      "experienceLevel": "Senior",
+      "responsibilities": [
+        "senior frontend developer senior frontend developer"
+      ]
+    },
+    "status": "queued",
+    "enqueuedAt": "2026-03-05T07:53:55.171Z"
   }
 ]

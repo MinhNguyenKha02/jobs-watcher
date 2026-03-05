@@ -6,6 +6,20 @@ import Handlebars from 'handlebars';
 import { config } from '../../config.js';
 import type { Job, Profile } from '../../types.js';
 
+export interface GeneratedArtifactInfo {
+  fileName: string;
+  path: string;
+  exists: boolean;
+  sizeBytes: number;
+  updatedAt?: string;
+}
+
+export interface GenerationResult {
+  outputDir: string;
+  generatedAt: string;
+  files: GeneratedArtifactInfo[];
+}
+
 /**
  * Smart Document Generator
  * Extracts job requirements and matches with profile skills
@@ -40,9 +54,10 @@ export class SmartGenerator {
       .trim();
 
     const description = rawDescription.toLowerCase();
-    const allText = `${job.position || (job as any).title || ''} ${job.company || ''} ${description}`
-      .toLowerCase()
-      .trim();
+    const allText =
+      `${job.position || (job as any).title || ''} ${job.company || ''} ${description}`
+        .toLowerCase()
+        .trim();
 
     // Define skill extraction patterns
     const skillPatterns: Record<string, RegExp[]> = {
@@ -136,9 +151,14 @@ export class SmartGenerator {
         // Ultimate fallback based on position
         const positionText = `${job.position || (job as any).title || ''}`.toLowerCase();
         if (positionText.includes('senior') || positionText.includes('lead')) {
-          fallbackResponsibilities = ['Lead technical projects and mentor team members', 'Design and implement scalable solutions'];
+          fallbackResponsibilities = [
+            'Lead technical projects and mentor team members',
+            'Design and implement scalable solutions',
+          ];
         } else {
-          fallbackResponsibilities = ['Contribute to engineering deliverables and team collaboration'];
+          fallbackResponsibilities = [
+            'Contribute to engineering deliverables and team collaboration',
+          ];
         }
       }
     }
@@ -153,7 +173,9 @@ export class SmartGenerator {
 
     return {
       requiredSkills: [...new Set(normalizedRequiredSkills)],
-      preferredSkills: [...new Set(preferredSkills.filter((s) => !inferredRequiredSkills.includes(s)))],
+      preferredSkills: [
+        ...new Set(preferredSkills.filter((s) => !inferredRequiredSkills.includes(s))),
+      ],
       experienceLevel,
       responsibilities: fallbackResponsibilities,
     };
@@ -433,6 +455,11 @@ export class SmartGenerator {
    * Main entry point: Generate all documents for a job
    */
   async generateForJob(job: Job): Promise<string> {
+    const result = await this.generateForJobWithManifest(job);
+    return result.outputDir;
+  }
+
+  async generateForJobWithManifest(job: Job): Promise<GenerationResult> {
     // Extract requirements from job
     const requirements = this.extractJobRequirements(job);
 
@@ -455,7 +482,39 @@ export class SmartGenerator {
       this.generateResume(job, requirements, matching, outputDir),
     ]);
 
-    return outputDir;
+    const fileNames = ['cv.tex', 'cover-letter.md', 'resume.tex'];
+    const files: GeneratedArtifactInfo[] = fileNames.map((fileName) => {
+      const fullPath = path.join(outputDir, fileName);
+      if (!fs.existsSync(fullPath)) {
+        return {
+          fileName,
+          path: fullPath,
+          exists: false,
+          sizeBytes: 0,
+        };
+      }
+      const stat = fs.statSync(fullPath);
+      return {
+        fileName,
+        path: fullPath,
+        exists: true,
+        sizeBytes: stat.size,
+        updatedAt: stat.mtime.toISOString(),
+      };
+    });
+
+    const result: GenerationResult = {
+      outputDir,
+      generatedAt: new Date().toISOString(),
+      files,
+    };
+
+    fs.writeFileSync(
+      path.join(outputDir, 'generation-manifest.json'),
+      JSON.stringify(result, null, 2)
+    );
+
+    return result;
   }
 
   private sanitizeFilename(name: string): string {

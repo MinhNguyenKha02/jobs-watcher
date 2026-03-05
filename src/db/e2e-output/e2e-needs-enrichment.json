@@ -16,7 +16,7 @@
     ],
     "reason": "missing_skills",
     "status": "pending",
-    "updatedAt": "2026-03-02T20:02:44.742Z",
+    "updatedAt": "2026-03-04T08:08:15.031Z",
     "warnings": [
       "missing_description",
       "missing_company",
@@ -39,7 +39,28 @@
     ],
     "reason": "missing_skills",
     "status": "pending",
-    "updatedAt": "2026-03-02T20:02:44.711Z",
+    "updatedAt": "2026-03-04T08:08:14.999Z",
+    "warnings": [
+      "missing_description",
+      "missing_skills"
+    ]
+  },
+  {
+    "_id": "69a867dcedf3030ead55ee99",
+    "messageId": "msg-indeed-001-1",
+    "company": "Zalo",
+    "createdAt": "2026-03-04T17:11:56.912Z",
+    "currentScore": 0,
+    "currentSkills": null,
+    "enrichmentSource": "unknown",
+    "jobTitle": "Senior Frontend Developer",
+    "missingFields": [
+      "description",
+      "skills"
+    ],
+    "reason": "missing_skills",
+    "status": "pending",
+    "updatedAt": "2026-03-05T07:53:55.166Z",
     "warnings": [
       "missing_description",
       "missing_skills"

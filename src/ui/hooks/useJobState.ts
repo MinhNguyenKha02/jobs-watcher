@@ -1,4 +1,5 @@
 import { useState } from 'react';
+
 import type { Job } from '../../types.js';
 
 /**
@@ -28,6 +29,8 @@ export interface EnrichedJobData {
   htmlContent?: string;
   /** Whether URL was opened in browser during decision */
   urlOpened?: boolean;
+  /** Whether enriched data was manually validated by user before confirm */
+  manuallyValidated?: boolean;
 }
 
 export function useJobState(initialJob: Job) {

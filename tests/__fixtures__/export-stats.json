@@ -1,10 +1,10 @@
 {
-  "exportedAt": "2026-03-02T20:02:59.525Z",
-  "totalFailures": 0,
+  "exportedAt": "2026-03-05T07:54:13.988Z",
+  "totalFailures": 11,
   "totalSamples": 50,
   "byStage": {
     "METADATA": 0,
-    "JOB_DETAIL": 0
+    "JOB_DETAIL": 11
   },
   "bySource": {
     "GMAIL_WEBHOOK": 0,

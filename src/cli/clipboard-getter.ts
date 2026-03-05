@@ -1,9 +1,32 @@
 /**
- * Clipboard getter/setter for fixture-driven E2E/integration tests
+ * Clipboard getter/setter
+ *
+ * Default behavior:
+ * - production/dev: read real system clipboard via clipboardy
+ * - test/fixture mode: use fixture data by setting CLIPBOARD_FIXTURE_MODE=1
  */
-import { indeedPlatformPageHtml1, indeedPlatformPageHtml2, linkedinPlatformPageHtml1, linkedinPlatformPageHtml2 } from '../../tests/__fixtures__/emails.js';
+import { createHash } from 'crypto';
 
-// Simulate clipboard setter: injects a fixture job by name
+import clipboardy from 'clipboardy';
+
+import {
+  indeedPlatformPageHtml1,
+  indeedPlatformPageHtml2,
+  linkedinPlatformPageHtml1,
+  linkedinPlatformPageHtml2,
+} from '../../tests/__fixtures__/emails.js';
+
+let lastClipboardHash = '';
+
+function toHash(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function isHtmlLike(text: string): boolean {
+  return /<html|<body|<div|<article|<main|<section/i.test(text);
+}
+
+// Simulate clipboard setter for tests: injects a fixture job by name
 export function clipboardSetter(fixtureName: string) {
   const fixtures: Record<string, string> = {
     indeed1: indeedPlatformPageHtml1,
@@ -15,10 +38,10 @@ export function clipboardSetter(fixtureName: string) {
   (global as any).__clipboardJob = fixtures[fixtureName];
 }
 
-// Clipboard getter: returns all fixture jobs (for batch test), or the last set job
-export async function clipboardGetter(): Promise<any[]> {
-  if ((global as any).__clipboardJob) return [(global as any).__clipboardJob];
-  // Default: return all for batch
+async function getFixtureClipboard(): Promise<any[]> {
+  if ((global as any).__clipboardJob) {
+    return [(global as any).__clipboardJob];
+  }
   return [
     indeedPlatformPageHtml1,
     indeedPlatformPageHtml2,
@@ -26,4 +49,28 @@ export async function clipboardGetter(): Promise<any[]> {
     linkedinPlatformPageHtml2,
   ];
 }
-// (Removed duplicate clipboardy import and clipboardGetter implementation)
+
+export async function clipboardGetter(): Promise<any[]> {
+  const fixtureMode = process.env.CLIPBOARD_FIXTURE_MODE === '1' || process.env.NODE_ENV === 'test';
+
+  if (fixtureMode) {
+    return getFixtureClipboard();
+  }
+
+  const clipboardText = (await clipboardy.read()).trim();
+  if (!clipboardText) {
+    return [];
+  }
+
+  if (!isHtmlLike(clipboardText)) {
+    return [];
+  }
+
+  const currentHash = toHash(clipboardText);
+  if (currentHash === lastClipboardHash) {
+    return [];
+  }
+
+  lastClipboardHash = currentHash;
+  return [clipboardText];
+}

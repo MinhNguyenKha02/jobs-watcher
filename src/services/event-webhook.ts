@@ -15,6 +15,7 @@ import { type EnrichedJobData, type ActionType } from '../ui/JobPopup.js';
 import { SmartGenerator } from './generators/smart-generator.js';
 import { GmailService } from './gmail.js';
 import { getLogger } from './logger.js';
+import { MemoryMonitor } from './memory-monitor.js';
 import { notifyUser } from './notifications.js';
 import { EmailParser } from './parsers/email-parser.js';
 import { calculateJobScore, DEFAULT_SCORING_CONFIG } from './scoring/score-matcher.js';
@@ -118,8 +119,15 @@ class DefaultActionHandler implements ActionHandler {
     await this.logAction(enrichedJob, action, enrichedData);
 
     if (action.startsWith('apply')) {
-      const outputDir = await this.smartGenerator.generateForJob(enrichedJob);
+      const generation = await this.smartGenerator.generateForJobWithManifest(enrichedJob);
+      const outputDir = generation.outputDir;
       logger.info(`✅ Materials generated: ${outputDir}`);
+      logger.info(
+        `📦 Generated files: ${generation.files
+          .filter((file) => file.exists)
+          .map((file) => `${file.fileName} (${file.sizeBytes}B)`)
+          .join(', ')}`
+      );
 
       if (action === 'apply-edit') {
         logger.info('📝 Opening materials for editing...');
@@ -159,6 +167,7 @@ class DefaultActionHandler implements ActionHandler {
       position: job.position,
       url: job.url,
       enriched: Boolean(enrichedData?.htmlContent),
+      manuallyValidated: Boolean(enrichedData?.manuallyValidated),
       urlOpened: enrichedData?.urlOpened,
       matchScore: job.matchScore,
     };
@@ -197,6 +206,7 @@ export class EventDrivenWebhook {
   private parserCircuitBreaker = new CircuitBreaker();
   private generatorCircuitBreaker = new CircuitBreaker();
   private rawEmailBaseDir = path.join(config.logsPath, 'raw-emails');
+  private memoryMonitor = new MemoryMonitor({ warningThresholdMb: 160, criticalThresholdMb: 190 });
   public _presenterInit?: () => Promise<void>;
 
   /**
@@ -406,6 +416,7 @@ export class EventDrivenWebhook {
   }
   private async processJob(messageId: string) {
     try {
+      await this.memoryMonitor.checkAndAlert(`before-process:${messageId}`);
       if (config.features.logging) {
         logger.info(`🔍 Processing job from email: ${messageId}`);
       }
@@ -656,6 +667,7 @@ export class EventDrivenWebhook {
         // Default to queue if TUI is disabled
         await this.actionHandler.handle(job, 'queue');
       }
+      await this.memoryMonitor.checkAndAlert(`after-process:${messageId}`);
     } catch (error: any) {
       logger.error(`Error processing job: ${error.message}`);
     }

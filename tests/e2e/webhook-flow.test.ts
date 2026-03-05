@@ -15,6 +15,13 @@ describe('EventDrivenWebhook - Real Integration Flow', () => {
   let webhook: EventDrivenWebhook;
 
   const MONGO_URI = `${process.env.MONGODB_URI}/${process.env.MONGODB_DB_NAME || ''}`;
+  const REQUIRED_COLLECTIONS = [
+    'raw_ingest',
+    'job_queue',
+    'job_trash',
+    'needs_enrichment',
+    'parse_log',
+  ];
 
   beforeAll(async () => {
     // Connect to real MongoDB and GmailService
@@ -39,6 +46,13 @@ describe('EventDrivenWebhook - Real Integration Flow', () => {
     await webhook.processJobNotification(mockPubSubMessage);
     // Check storage is initialized and no errors
     expect(webhook['storage']).not.toBeNull();
+
+    const db = mongo.db(process.env.MONGODB_DB_NAME || 'jobs_watcher');
+    for (const collectionName of REQUIRED_COLLECTIONS) {
+      await expect(
+        db.collection(collectionName).countDocuments({})
+      ).resolves.toBeGreaterThanOrEqual(0);
+    }
   });
 
   it('skips processing when the message payload is empty (real)', async () => {
