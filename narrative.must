@@ -1,0 +1,27 @@
+## INTENT (ENFORCED)
+
+This file is the strict guardrail for pre-long-living readiness on `main`.
+
+Single source narrative: `narrative.must.md`.
+
+### Enforcement rules
+
+1. Keep one operator path only: `manual-enrichment` -> `enhanced-tui`.
+2. Treat `manual-enrichment-loop.ts` as legacy fallback; do not make it the default UX path.
+3. Preserve no-data-loss evidence in `src/db/e2e-output/*`.
+4. Do not promote any patch to "ready" unless P0 checks pass.
+
+### P-index gates
+
+- P0: no-data-loss verifier, integrity pass, E2E pass, TUI route correctness (`needs_enrichment -> job_queue|job_trash`).
+- P1: truthful alert routing (desktop/webhook/email), queue-lag metrics, restart/incident runbook.
+- P2: bounded concurrency, backpressure, memory trend improvement.
+- P3: backup/restore drills, SLO dashboard, deployment rollback hardening.
+
+### Required pre-prod run
+
+`npm run test:e2e`
+`npm run integrity:once`
+`npm run manual-enrichment -- --poll-ms=5000`
+
+If all pass with expected queue/trash transitions and artifact updates, baseline is ready for the next batch.
