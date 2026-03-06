@@ -1,93 +1,150 @@
 #!/bin/bash
 
-# Interview Simulation Script with Timer
+# Timed one-by-one QA input
 # Usage: ./interview-simulation.sh [questions_file] [time_limit_minutes]
-# Logs results to: ./interview-logs/$(date +%Y-%m-%d_%H-%M-%S).log
 
-set -e
+set -euo pipefail
 
-# Configuration
-QUESTIONS_FILE="${1:-interview-questions.txt}"
-TIME_LIMIT=${2:-2}
-LOG_DIR="./interview-logs"
-LOG_FILE="$LOG_DIR/$(date +%Y-%m-%d_%H-%M-%S).log"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Ensure directories and files exist
-mkdir -p "$LOG_DIR"
-[[ -f "$QUESTIONS_FILE" ]] || {
-    echo "Error: $QUESTIONS_FILE not found. Creating template..."
-    cat > "$QUESTIONS_FILE" << 'EOF'
-Tell me about a challenging project you worked on.
-How do you approach debugging a complex issue?
-Describe a time you had to learn something new quickly.
-What's your approach to writing maintainable code?
-How do you handle disagreements with team members?
-EOF
-    echo "Template created. Edit $QUESTIONS_FILE and run again."
-    exit 0
-}
+QUESTIONS_FILE="${1:-$ROOT_DIR/02-questions/interview-questions.txt}"
+TIME_LIMIT_MINUTES="${2:-2}"
 
-# Helper function: Run a countdown timer
-timer() {
-    local seconds=$((TIME_LIMIT * 60))
-    while ((seconds > 0)); do
-        printf "\r⏱️  Time remaining: %02d:%02d" $((seconds / 60)) $((seconds % 60))
-        sleep 1
-        ((seconds--))
+SESSION_ID="$(date +%Y-%m-%d_%H-%M-%S)"
+OUTPUT_DIR="$ROOT_DIR/06-outputs"
+LOG_DIR="$OUTPUT_DIR/loop-logs"
+SNAPSHOT_DIR="$OUTPUT_DIR/loop-snapshots/$SESSION_ID"
+LOG_FILE="$LOG_DIR/interview-simulation-$SESSION_ID.log"
+
+mkdir -p "$LOG_DIR" "$SNAPSHOT_DIR"
+
+if ! [[ "$TIME_LIMIT_MINUTES" =~ ^[0-9]+$ ]] || ((TIME_LIMIT_MINUTES <= 0)); then
+    echo "Error: time_limit_minutes must be a positive integer."
+    echo "Usage: ./interview-simulation.sh [questions_file] [time_limit_minutes]"
+    exit 1
+fi
+
+if [[ ! -f "$QUESTIONS_FILE" ]]; then
+    echo "Error: Questions file not found: $QUESTIONS_FILE"
+    exit 1
+fi
+
+# Proc 1: timer + input collection
+collect_timed_answer() {
+    local total_seconds=$1
+    local end_ts=$(( $(date +%s) + total_seconds ))
+    local timed_out=0
+    local line=""
+    local -a lines=()
+
+    echo "Type your answer line by line. Enter DONE to finish."
+
+    while true; do
+        local now
+        now=$(date +%s)
+        local remaining=$(( end_ts - now ))
+
+        if ((remaining <= 0)); then
+            timed_out=1
+            break
+        fi
+
+        printf "\r⏱️  Remaining: %02d:%02d" $((remaining / 60)) $((remaining % 60))
+
+        if IFS= read -r -t 1 line; then
+            if [[ "$line" == "DONE" ]]; then
+                break
+            fi
+            lines+=("$line")
+        fi
     done
-    echo -e "\n⏰ Time's up!"
+
+    echo
+
+    local answer_text=""
+    if ((${#lines[@]} > 0)); then
+        answer_text=$(printf "%s\n" "${lines[@]}")
+    fi
+
+    printf "%s\n<STATE>%s\n" "$answer_text" "$timed_out"
 }
 
-# Header
+# Proc 2: log QA state
+log_qa_snapshot() {
+    local q_num=$1
+    local question=$2
+    local answer=$3
+    local elapsed=$4
+    local state=$5
+    local snapshot_file
+    snapshot_file="$SNAPSHOT_DIR/q$(printf "%02d" "$q_num")-snapshot.md"
+
+    {
+        echo "# Q$q_num"
+        echo
+        echo "- Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "- State: $state"
+        echo "- Elapsed (seconds): $elapsed"
+        echo
+        echo "## Question"
+        echo "$question"
+        echo
+        echo "## Answer"
+        echo '```text'
+        echo "$answer"
+        echo '```'
+    } > "$snapshot_file"
+
+    {
+        echo "Q$q_num | state=$state | elapsed=${elapsed}s"
+        echo "Question: $question"
+        echo "Snapshot: $snapshot_file"
+        echo
+    } | tee -a "$LOG_FILE"
+}
+
 {
     echo "=== Interview Simulation Session ==="
     echo "Date: $(date)"
-    echo "Time Limit per Question: $TIME_LIMIT minutes"
-    echo "========================================"
+    echo "Questions File: $QUESTIONS_FILE"
+    echo "Time Limit per Question: ${TIME_LIMIT_MINUTES} minute(s)"
+    echo "Session ID: $SESSION_ID"
+    echo "==================================="
     echo
 } | tee "$LOG_FILE"
 
-# Main loop
+time_limit_seconds=$((TIME_LIMIT_MINUTES * 60))
 question_num=0
+
 while IFS= read -r question || [[ -n "$question" ]]; do
-    [[ -z "$question" ]] && continue
-    ((question_num++))
+    [[ -z "${question// }" ]] && continue
+    ((question_num += 1))
 
     echo
     echo "--- Question $question_num ---"
     echo "$question"
     echo
 
-    # Start timer in background
-    timer &
-    TIMER_PID=$!
+    started_at=$(date +%s)
+    collected=$(collect_timed_answer "$time_limit_seconds")
+    timed_out=$(echo "$collected" | tail -n 1 | sed 's/<STATE>//')
+    answer=$(echo "$collected" | sed '$d')
+    ended_at=$(date +%s)
+    elapsed=$((ended_at - started_at))
 
-    # Get user answer
-    read -p "Your answer: " answer
+    state="completed"
+    [[ "$timed_out" == "1" ]] && state="timed_out"
 
-    # Terminate timer if still running
-    kill $TIMER_PID 2>/dev/null || true
-    wait $TIMER_PID 2>/dev/null || true
+    log_qa_snapshot "$question_num" "$question" "$answer" "$elapsed" "$state"
 
-    # Log the answer with timestamp
-    {
-        echo "Q$question_num: $question"
-        echo "Time: $(date +%H:%M:%S)"
-        echo "Answer: $answer"
-        echo
-    } | tee -a "$LOG_FILE"
-
-    # Ask if user wants to continue
-    echo -n "Continue? (y/n): "
-    read -r continue
-    [[ "$continue" != "y" && "$continue" != "Y" ]] && break
-
+    read -r -p "Continue to next question? (y/n): " continue_choice
+    [[ "$continue_choice" != "y" && "$continue_choice" != "Y" ]] && break
 done < "$QUESTIONS_FILE"
 
-# Summary
 {
     echo "=== Session Complete ==="
-    echo "End Time: $(date)"
     echo "Questions Answered: $question_num"
     echo "Log saved to: $LOG_FILE"
+    echo "Snapshots saved to: $SNAPSHOT_DIR"
 } | tee -a "$LOG_FILE"

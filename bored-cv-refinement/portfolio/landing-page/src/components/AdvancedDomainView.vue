@@ -1,16 +1,16 @@
 <template>
-  <div class="w-full">
+  <div class="w-full min-w-0">
     <!-- Domain Tabs -->
-    <div class="flex flex-wrap gap-2 mb-6 border-b border-slate-200 pb-4">
+    <div class="mb-6 flex flex-wrap gap-2 border-b border-[var(--theme-border)] pb-4">
       <button
         v-for="domain in availableDomains"
         :key="domain"
         @click="selectedDomain = domain"
         :class="[
-          'px-4 py-2 rounded-lg font-semibold text-sm transition-all',
+          'rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
           selectedDomain === domain
-            ? 'bg-blue-600 text-white shadow-md'
-            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            ? 'border border-[var(--theme-accent-cyan)] bg-[var(--theme-surface)] text-[var(--theme-text-primary)]'
+            : 'border border-[var(--theme-border)] bg-[var(--theme-surface-elevated)] text-[var(--theme-text-secondary)] hover:border-[var(--theme-accent-purple)] hover:text-[var(--theme-text-primary)]'
         ]"
       >
         <span class="inline-block w-2 h-2 rounded-full mr-2" :style="{ backgroundColor: getDomainColor(domain) }"></span>
@@ -20,18 +20,18 @@
     </div>
 
     <!-- Domain Matrix [N×3] -->
-    <div class="overflow-x-auto rounded-lg bg-white border border-slate-200">
+    <div class="overflow-x-auto rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)]">
       <table class="w-full border-collapse text-base">
         <!-- Header -->
         <thead>
-          <tr class="bg-slate-50 border-b-2 border-slate-200">
-            <th class="px-8 py-5 text-left text-sm font-bold text-slate-900 w-56">
+          <tr class="border-b border-[var(--theme-border)] bg-[var(--theme-surface-elevated)]">
+            <th class="w-56 px-8 py-5 text-left text-sm font-bold text-[var(--theme-text-primary)]">
               {{ selectedDomain }} Capabilities
             </th>
             <th
               v-for="evidence in evidenceTypes"
               :key="`header-${evidence}`"
-              class="px-8 py-5 text-center text-sm font-bold text-slate-700 w-40"
+              class="w-40 px-8 py-5 text-center text-sm font-bold text-[var(--theme-text-secondary)]"
             >
               {{ evidence }}
             </th>
@@ -43,8 +43,8 @@
           <tr
             v-for="(cap, idx) in domainCapabilities"
             :key="`row-${cap.id}`"
-            class="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-            :class="{ 'bg-blue-50': idx % 2 === 0 }"
+            class="border-b border-[var(--theme-border)] transition-colors hover:bg-[var(--theme-surface-elevated)]/80"
+            :class="{ 'bg-[var(--theme-surface)]': idx % 2 === 0, 'bg-[var(--theme-surface-elevated)]/50': idx % 2 !== 0 }"
           >
             <!-- Capability Label -->
             <td class="px-8 py-5">
@@ -54,8 +54,8 @@
                   :style="{ backgroundColor: getDomainColor(cap.domain) }"
                 ></span>
                 <div>
-                  <div class="font-semibold text-slate-900 text-base">{{ cap.label }}</div>
-                  <div class="text-xs text-slate-500">{{ cap.level }}</div>
+                  <div class="font-semibold text-[var(--theme-text-primary)] text-base">{{ cap.label }}</div>
+                  <div class="text-xs text-[var(--theme-text-muted)]">{{ cap.level }}</div>
                 </div>
               </div>
             </td>
@@ -67,7 +67,7 @@
               class="px-8 py-5 text-center"
             >
               <div
-                class="inline-flex items-center justify-center rounded font-bold transition-all hover:shadow-md hover:scale-110 cursor-help text-4xl"
+                class="inline-flex cursor-help items-center justify-center rounded border border-[var(--theme-border)] text-4xl font-bold transition-transform hover:scale-105"
                 :style="{
                   width: '88px',
                   height: '88px',
@@ -85,22 +85,22 @@
     </div>
 
     <!-- Summary Stats -->
-    <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-        <div class="text-xs font-semibold text-blue-700 uppercase">Total Capabilities</div>
-        <div class="text-3xl font-bold text-blue-900 mt-2">{{ domainCapabilities.length }}</div>
+    <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+      <div class="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-elevated)] p-4">
+        <div class="text-xs font-semibold uppercase text-[var(--theme-text-secondary)]">Total Capabilities</div>
+        <div class="mt-2 text-3xl font-bold text-[var(--theme-text-primary)]">{{ domainCapabilities.length }}</div>
       </div>
-      <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-4 border border-emerald-200">
-        <div class="text-xs font-semibold text-emerald-700 uppercase">Avg Work Score</div>
-        <div class="text-3xl font-bold text-emerald-900 mt-2">{{ averageScore('work').toFixed(2) }}</div>
+      <div class="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-elevated)] p-4">
+        <div class="text-xs font-semibold uppercase text-[var(--theme-text-secondary)]">Avg Work Score</div>
+        <div class="mt-2 text-3xl font-bold text-[var(--theme-accent-cyan)]">{{ averageScore('work').toFixed(2) }}</div>
       </div>
-      <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
-        <div class="text-xs font-semibold text-orange-700 uppercase">Avg Lab Score</div>
-        <div class="text-3xl font-bold text-orange-900 mt-2">{{ averageScore('lab').toFixed(2) }}</div>
+      <div class="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-elevated)] p-4">
+        <div class="text-xs font-semibold uppercase text-[var(--theme-text-secondary)]">Avg Lab Score</div>
+        <div class="mt-2 text-3xl font-bold text-[var(--theme-accent-purple)]">{{ averageScore('lab').toFixed(2) }}</div>
       </div>
-      <div class="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg p-4 border border-violet-200">
-        <div class="text-xs font-semibold text-violet-700 uppercase">Avg Thesis Score</div>
-        <div class="text-3xl font-bold text-violet-900 mt-2">{{ averageScore('thesis').toFixed(2) }}</div>
+      <div class="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-elevated)] p-4">
+        <div class="text-xs font-semibold uppercase text-[var(--theme-text-secondary)]">Avg Thesis Score</div>
+        <div class="mt-2 text-3xl font-bold text-[var(--theme-accent-pink)]">{{ averageScore('thesis').toFixed(2) }}</div>
       </div>
     </div>
   </div>
@@ -172,10 +172,10 @@ const getCellColor = (capabilityId: string, evidenceType: EvidenceType): string 
   if (!capability) return "transparent"
 
   const score = getScoreValue(capabilityId, evidenceType)
-  if (score === 0) return "#f1f5f9" // empty cell (slate-100)
+  if (score === 0) return "#161b22"
 
   const isCore = CoreDomains.includes(capability.domain as any)
-  const baseColor = isCore ? [235, 170, 90] : [180, 180, 180] // orange vs silver
+  const baseColor = isCore ? [45, 212, 255] : [167, 139, 250]
 
   // Opacity based on score (0.2 min to 0.95 max)
   const opacity = Math.max(0.2, Math.min(score, 0.95))
@@ -186,22 +186,22 @@ const getCellColor = (capabilityId: string, evidenceType: EvidenceType): string 
 // Get text color (white on dark, dark on light)
 const getTextColor = (capabilityId: string, evidenceType: EvidenceType): string => {
   const score = getScoreValue(capabilityId, evidenceType)
-  return score >= 0.6 ? "#ffffff" : "#1e293b"
+  return score >= 0.6 ? "#e6edf3" : "#9aa4b2"
 }
 
 // Get domain color for indicator dot
 const getDomainColor = (domain: string): string => {
   const colorMap: Record<string, string> = {
-    backend: "#3b82f6", // blue
-    database: "#10b981", // emerald
-    networking: "#f59e0b", // amber
-    security: "#ef4444", // red
-    devops: "#8b5cf6", // violet
-    frontend: "#ec4899", // pink
-    tooling: "#6b7280", // gray
-    os: "#14b8a6", // teal
+    backend: "#2dd4ff",
+    database: "#2dd4ff",
+    networking: "#a78bfa",
+    security: "#f472b6",
+    devops: "#a78bfa",
+    frontend: "#f472b6",
+    tooling: "#9aa4b2",
+    os: "#2dd4ff",
   }
-  return colorMap[domain] || "#94a3b8"
+  return colorMap[domain] || "#9aa4b2"
 }
 
 // Calculate average score for a specific evidence type in current domain

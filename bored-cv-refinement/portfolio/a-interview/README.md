@@ -110,6 +110,19 @@ chmod +x interview-loop.sh
 # Logs to 06-outputs/loop-logs/
 ```
 
+### Option 2.5: MicroQA Snapshot Loop (Simple)
+```bash
+chmod +x ./05-scripts/interview-simulation.sh
+./05-scripts/interview-simulation.sh ./02-questions/interview-questions.txt 2
+```
+
+Behavior:
+
+- One question at a time
+- Timer + multiline input (`DONE` to submit)
+- Per-question state capture: `completed` or `timed_out`
+- Snapshot output to `06-outputs/loop-snapshots/<session-id>/`
+
 ### Option 3: Daily Cron (Auto)
 ```bash
 cd 05-scripts
@@ -138,6 +151,13 @@ chmod +x setup-cron.sh
 2. Identify trends
 3. Update `01-core/gaps.md`
 4. Plan next market
+
+### Enforcement Model (Script vs Rubric)
+
+- **Execution enforced by script:** timing, input capture, per-question state logs
+- **Quality enforced by rubric:** [01-core/recruiter-enforced.md](01-core/recruiter-enforced.md)
+- **Response quality rules by context:** [04-guides/RESPONSE-EVALUATION-FRAMEWORK.md](04-guides/RESPONSE-EVALUATION-FRAMEWORK.md)
+- **Loop operating guide:** [INTERVIEW-LOOP.md](INTERVIEW-LOOP.md)
 
 ---
 

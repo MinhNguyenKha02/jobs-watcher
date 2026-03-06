@@ -45,6 +45,7 @@ Quick check:
 - [ ] Include 2+ edge cases
 - [ ] Explain decisions clearly
 - [ ] Sound confident, not rushed
+- [ ] Pass SEA trust checks (if targeting SG/VN)
 
 ---
 
@@ -93,6 +94,8 @@ Rate yourself on each criterion:
 | **Market-Appropriate** | ☐ | ☐ | ☐ | Too simple/complex for [MARKET]? |
 
 **Overall Score:** ___ / 5 blocks
+
+**Optional SEA Check:** Use [SEA-QUESTION-QUALITY-CHECKLIST.md](SEA-QUESTION-QUALITY-CHECKLIST.md) to score trust and market-fit.
 
 ---
 

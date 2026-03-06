@@ -53,6 +53,33 @@ Total: 60 minutes
 
 By **Week 4**, you should be ready for Singapore junior backend interviews.
 
+### MicroQA Snapshot Mode (Simple Script)
+
+Use the script for one-by-one timed Q→A practice:
+
+```bash
+chmod +x ../05-scripts/interview-simulation.sh
+../05-scripts/interview-simulation.sh ../02-questions/interview-questions.txt 2
+```
+
+How it behaves:
+
+- Shows one question at a time
+- Starts timer and collects multiline input
+- Type `DONE` to submit early
+- Saves per-question snapshot with state: `completed` or `timed_out`
+
+Output files:
+
+- `../06-outputs/loop-logs/`
+- `../06-outputs/loop-snapshots/<session-id>/`
+
+### What Is Enforced
+
+- **Script-enforced:** time limit, one-by-one flow, answer capture, state logging
+- **Rubric-enforced (manual):** answer quality using [../01-core/recruiter-enforced.md](../01-core/recruiter-enforced.md)
+- **Quality rules (manual):** response structure and red flags from [../04-guides/RESPONSE-EVALUATION-FRAMEWORK.md](../04-guides/RESPONSE-EVALUATION-FRAMEWORK.md)
+
 ---
 
 ## ▶️ Start Interview Loop (Right Now, 60 min)
@@ -260,6 +287,14 @@ Q1 Order API:
 ---
 
 ## ✅ Next Steps
+
+### Setup Confirmation (Ready Loop Pack)
+
+- [ ] I can run `../05-scripts/interview-simulation.sh`
+- [ ] I selected my market target (SG/VN/EU/other)
+- [ ] I know my role target (junior backend)
+- [ ] I will score with market rubric from `recruiter-enforced.md`
+- [ ] I will log outcomes in `QUESTION-TRACKER.md`
 
 ### After This Loop:
 1. ✅ Complete all 5 questions above

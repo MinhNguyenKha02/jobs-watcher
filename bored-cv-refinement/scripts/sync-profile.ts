@@ -17,15 +17,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 const profilePath = path.join(rootDir, "profile.prebuilt.json");
 const dataPath = path.join(rootDir, "portfolio", "data.ts");
+const PROFILE_START_MARKER = "// <PROFILE_GENERATED_START>";
+const PROFILE_END_MARKER = "// <PROFILE_GENERATED_END>";
 
-/** Profile structure from profile.prebuilt.json */
-interface PrebuiltProfile {
+type LooseRecord = Record<string, unknown>;
+
+interface NormalizedProfile {
   name: string;
   email: string;
   phone: string;
   location: string;
-  title: string;
-  summary: string[];
   software_fundamentals: {
     programming_language: { solid: string[]; familiar: string[] };
     dsa: string[];
@@ -35,7 +36,7 @@ interface PrebuiltProfile {
     networking: string[];
     security: string[];
     test: string[];
-    ai?: string[];
+    ai: string[];
   };
   skills: {
     backend: {
@@ -43,7 +44,7 @@ interface PrebuiltProfile {
       frameworks: { solid: string[]; familiar: string[] };
       api: { solid: string[]; familiar: string[] };
       database: { solid: string[]; familiar: string[] };
-      "Authentication/Authorization": string[];
+      authentication_authorization: string[];
       security: string[];
     };
     frontend: {
@@ -62,12 +63,10 @@ interface PrebuiltProfile {
   projects: Array<{
     name: string;
     period: string;
-    type: "lab" | "personal" | "beta" | "wxp";
+    type: string;
     summary: string;
     tech: string[];
-    outcomes?: string[];
-    status?: "Paused" | "Active";
-    evidence?: string[];
+    status: string;
   }>;
   experience: Array<{
     company: string;
@@ -75,11 +74,7 @@ interface PrebuiltProfile {
     location: string;
     startDate: string;
     endDate: string;
-    description?: string[];
-    outcomes?: string[];
-    tech?: string[];
-    highlights?: string[];
-    type?: "wxp" | "beta";
+    highlights: string[];
   }>;
   education: Array<{
     institution: string;
@@ -87,241 +82,491 @@ interface PrebuiltProfile {
     field: string;
     startDate: string;
     endDate: string;
-    gpa?: string;
+    gpa: string;
   }>;
   links: {
     linkedin: string;
     github: string;
-    portfolio?: string;
-    website?: string;
+    portfolio: string;
+    website: string;
   };
+}
+
+const asRecord = (value: unknown): LooseRecord => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as LooseRecord;
+  }
+  return {};
+};
+
+const asString = (value: unknown, fallback = ""): string => {
+  if (typeof value !== "string") return fallback;
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.length > 0 ? normalized : fallback;
+};
+
+const asStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  const normalized = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.replace(/\s+/g, " ").trim())
+    .filter((item) => item.length > 0);
+  return Array.from(new Set(normalized));
+};
+
+const compactText = (value: string, maxLength: number): string =>
+  value.length <= maxLength ? value : `${value.slice(0, maxLength - 1).trimEnd()}…`;
+
+const pickRecord = (source: LooseRecord, keys: string[]): LooseRecord => {
+  for (const key of keys) {
+    const value = source[key];
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return value as LooseRecord;
+    }
+  }
+  return {};
+};
+
+const pickArray = (source: LooseRecord, keys: string[]): string[] => {
+  for (const key of keys) {
+    const arr = asStringArray(source[key]);
+    if (arr.length > 0) return arr;
+  }
+  return [];
+};
+
+function normalizeProfile(raw: unknown): NormalizedProfile {
+  const root = asRecord(raw);
+  const fundamentalsRoot = pickRecord(root, ["software_fundamentals", "softwareFundamentals"]);
+  const programmingLanguage = pickRecord(fundamentalsRoot, ["programming_language", "programming_languages"]);
+  const skillsRoot = asRecord(root.skills);
+  const backend = asRecord(skillsRoot.backend);
+  const frontend = asRecord(skillsRoot.frontend);
+  const devops = asRecord(skillsRoot.devops);
+  const projects = Array.isArray(root.projects) ? root.projects : [];
+  const experience = Array.isArray(root.experience) ? root.experience : [];
+  const education = Array.isArray(root.education) ? root.education : [];
+  const links = asRecord(root.links);
+
+  return {
+    name: asString(root.name),
+    email: asString(root.email),
+    phone: asString(root.phone),
+    location: asString(root.location),
+    software_fundamentals: {
+      programming_language: {
+        solid: asStringArray(programmingLanguage.solid),
+        familiar: asStringArray(programmingLanguage.familiar),
+      },
+      dsa: asStringArray(fundamentalsRoot.dsa),
+      os: asStringArray(fundamentalsRoot.os),
+      oop: asStringArray(fundamentalsRoot.oop),
+      database: asStringArray(fundamentalsRoot.database),
+      networking: asStringArray(fundamentalsRoot.networking),
+      security: asStringArray(fundamentalsRoot.security),
+      test: pickArray(fundamentalsRoot, ["test", "testing"]),
+      ai: asStringArray(fundamentalsRoot.ai),
+    },
+    skills: {
+      backend: {
+        architecture: asStringArray(backend.architecture),
+        frameworks: {
+          solid: asStringArray(asRecord(backend.frameworks).solid),
+          familiar: asStringArray(asRecord(backend.frameworks).familiar),
+        },
+        api: {
+          solid: asStringArray(asRecord(backend.api).solid),
+          familiar: asStringArray(asRecord(backend.api).familiar),
+        },
+        database: {
+          solid: asStringArray(asRecord(backend.database).solid),
+          familiar: asStringArray(asRecord(backend.database).familiar),
+        },
+        authentication_authorization: pickArray(backend, [
+          "Authentication/Authorization",
+          "Authentication\\/Authorization",
+          "authentication_authorization",
+          "authenticationAuthorization",
+        ]),
+        security: asStringArray(backend.security),
+      },
+      frontend: {
+        frameworks: {
+          solid: asStringArray(asRecord(frontend.frameworks).solid),
+          familiar: asStringArray(asRecord(frontend.frameworks).familiar),
+        },
+        comfort: asStringArray(frontend.comfort),
+      },
+      devops: {
+        containerization: {
+          familiar: asStringArray(asRecord(devops.containerization).familiar),
+        },
+        ci_cd: pickArray(devops, ["ci_cd", "ciCd"]),
+        cloud: {
+          solid: asStringArray(asRecord(devops.cloud).solid),
+          familiar: asStringArray(asRecord(devops.cloud).familiar),
+        },
+      },
+      tooling: asStringArray(skillsRoot.tooling),
+      methodologies: asStringArray(skillsRoot.methodologies),
+      soft_skills: pickArray(skillsRoot, ["soft_skills", "softSkills"]),
+    },
+    projects: projects.map((project, index) => {
+      const entry = asRecord(project);
+      return {
+        name: asString(entry.name, `Untitled Project ${index + 1}`),
+        period: asString(entry.period, "n/a"),
+        type: asString(entry.type, "lab"),
+        summary: compactText(asString(entry.summary), 180),
+        tech: asStringArray(entry.tech).slice(0, 8),
+        status: asString(entry.status, "active"),
+      };
+    }),
+    experience: experience.map((item) => {
+      const entry = asRecord(item);
+      const highlights = asStringArray(entry.highlights);
+      const description = asStringArray(entry.description);
+      const outcomes = asStringArray(entry.outcomes);
+      const mergedHighlights = highlights.length > 0 ? highlights : description.length > 0 ? description : outcomes;
+      return {
+        company: asString(entry.company),
+        position: asString(entry.position),
+        location: asString(entry.location),
+        startDate: asString(entry.startDate),
+        endDate: asString(entry.endDate),
+        highlights: mergedHighlights.map((item) => compactText(item, 120)).slice(0, 3),
+      };
+    }),
+    education: education.map((item) => {
+      const entry = asRecord(item);
+      return {
+        institution: asString(entry.institution),
+        degree: asString(entry.degree),
+        field: asString(entry.field),
+        startDate: asString(entry.startDate),
+        endDate: asString(entry.endDate),
+        gpa: asString(entry.gpa),
+      };
+    }),
+    links: {
+      linkedin: asString(links.linkedin),
+      github: asString(links.github),
+      portfolio: asString(links.portfolio),
+      website: asString(links.website),
+    },
+  };
+}
+
+const levelOrder: Record<"solid" | "working" | "familiar", number> = {
+  solid: 3,
+  working: 2,
+  familiar: 1,
+};
+
+type CapabilityLevel = keyof typeof levelOrder;
+
+interface CapabilityDraft {
+  id: string;
+  label: string;
+  domain: string;
+  level: CapabilityLevel;
+}
+
+const normalizeCapabilityId = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9./-]/g, "")
+    .replace(/-+/g, "-");
+
+const addCapability = (
+  target: CapabilityDraft[],
+  index: Map<string, number>,
+  capability: CapabilityDraft,
+) => {
+  if (!capability.id) return;
+  const existingIndex = index.get(capability.id);
+  if (existingIndex === undefined) {
+    index.set(capability.id, target.length);
+    target.push(capability);
+    return;
+  }
+
+  const existing = target[existingIndex];
+  if (levelOrder[capability.level] > levelOrder[existing.level]) {
+    target[existingIndex] = capability;
+  }
+};
+
+const mapProjectTypeToEvidenceType = (value: string): "work" | "lab" => {
+  const normalized = value.toLowerCase();
+  if (normalized === "wxp" || normalized === "beta" || normalized === "work") return "work";
+  return "lab";
+};
+
+const mapProjectStatus = (value: string): "active" | "paused" | "completed" => {
+  const normalized = value.toLowerCase();
+  if (normalized === "paused") return "paused";
+  if (normalized === "active") return "active";
+  return "completed";
+};
+
+const toTsLiteral = (value: unknown): string => JSON.stringify(value, null, 2);
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+function findProfileExportRange(content: string): { start: number; end: number } | null {
+  const exportToken = "export const profile: ProfileCore =";
+  const exportIndex = content.indexOf(exportToken);
+  if (exportIndex === -1) return null;
+
+  const objectStart = content.indexOf("{", exportIndex);
+  if (objectStart === -1) return null;
+
+  let depth = 0;
+  let quote: '"' | "'" | "`" | null = null;
+  let escaped = false;
+
+  for (let i = objectStart; i < content.length; i += 1) {
+    const ch = content[i];
+
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (ch === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (ch === '"' || ch === "'" || ch === "`") {
+      quote = ch;
+      continue;
+    }
+
+    if (ch === "{") {
+      depth += 1;
+      continue;
+    }
+
+    if (ch === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        let end = i + 1;
+        if (content[end] === "\r" && content[end + 1] === "\n") end += 2;
+        else if (content[end] === "\n") end += 1;
+        return { start: exportIndex, end };
+      }
+    }
+  }
+
+  return null;
 }
 
 /**
  * Transform prebuilt profile to portfolio data.ts format
  */
-function transformProfile(prebuilt: PrebuiltProfile): string {
-  // Helper: safely escape quotes in strings
-  const escapeQuotes = (s: string) => s.replace(/"/g, '\\"');
+function transformProfile(prebuilt: NormalizedProfile): string {
+  const capabilities: CapabilityDraft[] = [];
+  const capabilityIndex = new Map<string, number>();
 
-  // Helper: format array of strings
-  const formatStringArray = (arr: string[], indent: number = 4) => {
-    const spaces = " ".repeat(indent);
-    if (arr.length === 0) return "[]";
-    return `[\n${arr.map((s) => `${spaces}"${escapeQuotes(s)}"`).join(",\n")}\n${" ".repeat(indent - 2)}]`;
+  const addMany = (
+    values: string[],
+    domain: string,
+    level: CapabilityLevel,
+    toId: (value: string) => string = normalizeCapabilityId,
+    toLabel: (value: string) => string = (value) => value,
+  ) => {
+    for (const value of values) {
+      addCapability(capabilities, capabilityIndex, {
+        id: toId(value),
+        label: toLabel(value),
+        domain,
+        level,
+      });
+    }
   };
 
-  // Transform capabilities from skills
-  const capabilities: Array<{ id: string; label: string; domain: string; level: string }> = [];
-  const capabilityMap = new Map<string, { domain: string; level: string }>();
+  addMany(prebuilt.software_fundamentals.programming_language.solid, "backend", "solid");
+  addMany(prebuilt.software_fundamentals.programming_language.familiar, "backend", "familiar");
+  addMany(prebuilt.skills.backend.frameworks.solid, "backend", "solid");
+  addMany(prebuilt.skills.backend.frameworks.familiar, "backend", "familiar");
+  addMany(prebuilt.skills.backend.api.solid, "backend", "solid");
+  addMany(prebuilt.skills.backend.api.familiar, "backend", "familiar");
 
-  // Backend frameworks
-  prebuilt.skills.backend.frameworks.solid.forEach((f) => {
-    const id = f.toLowerCase().replace(/\s+/g, "-");
-    capabilities.push({ id, label: f, domain: "backend", level: "solid" });
-    capabilityMap.set(id, { domain: "backend", level: "solid" });
-  });
-  prebuilt.skills.backend.frameworks.familiar.forEach((f) => {
-    const id = f.toLowerCase().replace(/\s+/g, "-");
-    capabilities.push({ id, label: f, domain: "backend", level: "familiar" });
-    capabilityMap.set(id, { domain: "backend", level: "familiar" });
-  });
-
-  // APIs
-  prebuilt.skills.backend.api.solid.forEach((f) => {
-    const id = f.toLowerCase().replace(/\s+/g, "-");
-    capabilities.push({ id, label: f, domain: "backend", level: "solid" });
-    capabilityMap.set(id, { domain: "backend", level: "solid" });
-  });
-  prebuilt.skills.backend.api.familiar.forEach((f) => {
-    const id = f.toLowerCase().replace(/\s+/g, "-");
-    capabilities.push({ id, label: f, domain: "backend", level: "familiar" });
-    capabilityMap.set(id, { domain: "backend", level: "familiar" });
-  });
-
-  // Architectures
-  prebuilt.skills.backend.architecture.forEach((f) => {
-    const id = f.toLowerCase().replace(/\s+.*/, "").replace(/[()]/g, "");
-    const label = f.replace(" (learning)", "");
-    const level = f.includes("learning") ? "working" : "solid";
-    capabilities.push({ id, label, domain: "backend", level });
-    capabilityMap.set(id, { domain: "backend", level });
-  });
-
-  // Databases
-  prebuilt.skills.backend.database.solid.forEach((f) => {
-    const id = f.toLowerCase().replace(/\s+/g, "-");
-    capabilities.push({ id, label: f, domain: "database", level: "solid" });
-    capabilityMap.set(id, { domain: "database", level: "solid" });
-  });
-  prebuilt.skills.backend.database.familiar.forEach((f) => {
-    const id = f.toLowerCase().replace(/\s+/g, "-");
-    capabilities.push({ id, label: f, domain: "database", level: "familiar" });
-    capabilityMap.set(id, { domain: "database", level: "familiar" });
-  });
-
-  // Frontend frameworks
-  prebuilt.skills.frontend.frameworks.solid.forEach((f) => {
-    const id = f.toLowerCase().replace(/\s+/g, "-");
-    capabilities.push({ id, label: f, domain: "frontend", level: "solid" });
-    capabilityMap.set(id, { domain: "frontend", level: "solid" });
-  });
-  prebuilt.skills.frontend.frameworks.familiar.forEach((f) => {
-    const id = f.toLowerCase().replace(/\s+/g, "-");
-    capabilities.push({ id, label: f, domain: "frontend", level: "familiar" });
-    capabilityMap.set(id, { domain: "frontend", level: "familiar" });
-  });
-
-  // Security capabilities
-  capabilities.push(
-    { id: "auth", label: "AuthN/AuthZ (JWT, OAuth, MFA, RBAC)", domain: "security", level: "solid" },
-    { id: "apigw", label: "Secure API gateway", domain: "security", level: "solid" },
-    { id: "ratelimit", label: "Rate-limiting & abuse control", domain: "security", level: "solid" },
-    { id: "inputval", label: "Input validation & sanitization", domain: "security", level: "solid" }
-  );
-
-  // DevOps
-  capabilities.push(
-    { id: "docker", label: "Docker", domain: "devops", level: "familiar" },
-    { id: "cicd", label: "CI/CD (GitHub Actions)", domain: "devops", level: "solid" },
-    { id: "aws", label: "AWS/Azure fundamentals", domain: "devops", level: "solid" },
-    { id: "cloudops", label: "Cloud deployment best practices", domain: "devops", level: "familiar" }
-  );
-
-  // Tooling
-  prebuilt.skills.tooling.forEach((tool) => {
-    const id = tool.toLowerCase().replace(/\s+/g, "-");
-    capabilities.push({ id, label: tool, domain: "tooling", level: "solid" });
-  });
-
-  // Transform evidence/projects
-  const evidence = prebuilt.projects.map((p) => ({
-    id: p.name.toLowerCase().replace(/\s+/g, "-"),
-    type: p.type === "wxp" ? "work" : p.type === "beta" ? "work" : "lab",
-    title: p.name,
-    period: p.period,
-    summary: p.summary,
-    tech: p.tech,
-    status: p.status === "Paused" ? "paused" : p.status ? "active" : "completed",
-  }));
-
-  // Transform experience
-  const experience = prebuilt.experience.map((e) => ({
-    company: e.company,
-    position: e.position,
-    location: e.location,
-    startDate: e.startDate,
-    endDate: e.endDate,
-    highlights: e.description || e.outcomes || [],
-  }));
-
-  // Generate TypeScript code
-  const capabilitiesCode = capabilities
-    .map(
-      (c) =>
-        `    { id: "${c.id}", label: "${escapeQuotes(c.label)}", domain: "${c.domain}", level: "${c.level}" }`
-    )
-    .join(",\n");
-
-  const evidenceCode = evidence
-    .map(
-      (e) =>
-        `    {
-      id: "${e.id}",
-      type: "${e.type}",
-      title: "${escapeQuotes(e.title)}",
-      period: "${e.period}",
-      summary:
-        "${escapeQuotes(e.summary)}",
-      tech: ${JSON.stringify(e.tech)},
-      status: "${e.status}"
-    }`
-    )
-    .join(",\n");
-
-  const experienceCode = experience
-    .map(
-      (e) =>
-        `    {
-      company: "${escapeQuotes(e.company)}",
-      position: "${escapeQuotes(e.position)}",
-      location: "${escapeQuotes(e.location)}",
-      startDate: "${e.startDate}",
-      endDate: "${e.endDate}",
-      highlights: ${JSON.stringify(e.highlights)}
-    }`
-    )
-    .join(",\n");
-
-  const educationCode = prebuilt.education
-    .map(
-      (e) =>
-        `    {
-      institution: "${escapeQuotes(e.institution)}",
-      degree: "${escapeQuotes(e.degree)}",
-      field: "${escapeQuotes(e.field)}",
-      startDate: "${e.startDate}",
-      endDate: "${e.endDate}",
-      gpa: "${e.gpa || ""}"
-    }`
-    )
-    .join(",\n");
-
-  return `export const profile: ProfileCore = {
-  identity: {
-    name: "${escapeQuotes(prebuilt.name)}",
-    email: "${escapeQuotes(prebuilt.email)}",
-    phone: "${escapeQuotes(prebuilt.phone)}",
-    location: "${escapeQuotes(prebuilt.location)}",
-    links: {
-      github: "${escapeQuotes(prebuilt.links.github)}",
-      linkedin: "${escapeQuotes(prebuilt.links.linkedin)}",
-      portfolio: "${escapeQuotes(prebuilt.links.portfolio || "")}"
-    }
-  },
-
-  intent: {
-    primary: "Backend Software Engineer",
-    level: "Entry",
-    focus: [
-      "Backend systems",
-      "RESTful APIs",
-      "Networking-aware services",
-      "Concurrency & resource-aware design"
-    ]
-  },
-
-  fundamentals: {
-    programming_languages: {
-      solid: ${JSON.stringify(prebuilt.software_fundamentals.programming_language.solid)},
-      familiar: ${JSON.stringify(prebuilt.software_fundamentals.programming_language.familiar)}
+  addMany(
+    prebuilt.skills.backend.architecture,
+    "backend",
+    "solid",
+    (value) => {
+      const lowered = value.toLowerCase();
+      if (lowered.includes("clean architecture")) return "clean";
+      if (lowered.includes("microservices")) return "microservices";
+      if (lowered.includes("mvc")) return "mvc";
+      return normalizeCapabilityId(value);
     },
-    dsa: ${JSON.stringify(prebuilt.software_fundamentals.dsa)},
-    os: ${JSON.stringify(prebuilt.software_fundamentals.os)},
-    oop: ${JSON.stringify(prebuilt.software_fundamentals.oop)},
-    database: ${JSON.stringify(prebuilt.software_fundamentals.database)},
-    networking: ${JSON.stringify(prebuilt.software_fundamentals.networking)},
-    security: ${JSON.stringify(prebuilt.software_fundamentals.security)},
-    testing: ${JSON.stringify(prebuilt.software_fundamentals.test)},
-    ai: ${JSON.stringify(prebuilt.software_fundamentals.ai || [])}
-  },
+    (value) => value.replace(/\s*\(learning\)\s*/gi, "").trim(),
+  );
 
-  capabilities: [
-${capabilitiesCode}
-  ],
+  for (const capability of capabilities) {
+    if (capability.id === "clean" && prebuilt.skills.backend.architecture.some((item) => /learning/i.test(item))) {
+      capability.level = "working";
+    }
+  }
 
-  evidence: [
-${evidenceCode}
-  ],
+  addMany(prebuilt.skills.backend.database.solid, "database", "solid");
+  addMany(prebuilt.skills.backend.database.familiar, "database", "familiar");
+  addMany(prebuilt.skills.frontend.frameworks.solid, "frontend", "solid");
+  addMany(prebuilt.skills.frontend.frameworks.familiar, "frontend", "familiar");
 
-  experience: [
-${experienceCode}
-  ],
+  addMany(prebuilt.skills.devops.containerization.familiar, "devops", "familiar", (value) => {
+    if (/docker/i.test(value)) return "docker";
+    return normalizeCapabilityId(value);
+  });
+  addMany(prebuilt.skills.devops.ci_cd, "devops", "solid", (value) => {
+    if (/github\s*actions/i.test(value)) return "cicd";
+    if (/\bci\/?cd\b/i.test(value)) return "cicd";
+    if (/\bgit\b/i.test(value)) return "cicd";
+    return normalizeCapabilityId(value);
+  });
+  addMany(prebuilt.skills.devops.cloud.solid, "devops", "solid", (value) => {
+    if (/aws|azure/i.test(value)) return "aws";
+    return normalizeCapabilityId(value);
+  });
+  addMany(prebuilt.skills.devops.cloud.familiar, "devops", "familiar", (value) => {
+    if (/cloud deployment/i.test(value)) return "cloudops";
+    return normalizeCapabilityId(value);
+  });
 
-  education: [
-${educationCode}
-  ]
-}`;
+  addCapability(capabilities, capabilityIndex, {
+    id: "auth",
+    label: "AuthN/AuthZ (JWT, OAuth, MFA, RBAC)",
+    domain: "security",
+    level: "solid",
+  });
+  addCapability(capabilities, capabilityIndex, {
+    id: "apigw",
+    label: "Secure API gateway",
+    domain: "security",
+    level: "solid",
+  });
+  addCapability(capabilities, capabilityIndex, {
+    id: "ratelimit",
+    label: "Rate-limiting & abuse control",
+    domain: "security",
+    level: "solid",
+  });
+  addCapability(capabilities, capabilityIndex, {
+    id: "inputval",
+    label: "Input validation & sanitization",
+    domain: "security",
+    level: "solid",
+  });
+
+  addMany(prebuilt.skills.tooling, "tooling", "solid");
+
+  const shouldAddShell =
+    prebuilt.skills.tooling.some((item) => /bash|shell/i.test(item)) ||
+    prebuilt.software_fundamentals.os.some((item) => /bash|shell|linux|ubuntu/i.test(item));
+  if (shouldAddShell) {
+    addCapability(capabilities, capabilityIndex, {
+      id: "shell",
+      label: "Shell/Bash",
+      domain: "tooling",
+      level: "solid",
+    });
+  }
+
+  const usedEvidenceIds = new Set<string>();
+  const evidence = prebuilt.projects.map((project, index) => {
+    const baseId = normalizeCapabilityId(project.name || `project-${index + 1}`);
+    let uniqueId = baseId || `project-${index + 1}`;
+    let dedupe = 2;
+    while (usedEvidenceIds.has(uniqueId)) {
+      uniqueId = `${baseId}-${dedupe}`;
+      dedupe += 1;
+    }
+    usedEvidenceIds.add(uniqueId);
+
+    return {
+      id: uniqueId,
+      type: mapProjectTypeToEvidenceType(project.type),
+      title: compactText(project.name || `Untitled Project ${index + 1}`, 80),
+      period: project.period || "n/a",
+      summary: compactText(project.summary || "No summary provided.", 180),
+      tech: project.tech.slice(0, 8),
+      status: mapProjectStatus(project.status),
+    };
+  });
+
+  const profileObject = {
+    identity: {
+      name: prebuilt.name,
+      email: prebuilt.email,
+      phone: prebuilt.phone,
+      location: prebuilt.location,
+      links: {
+        github: prebuilt.links.github,
+        linkedin: prebuilt.links.linkedin,
+        portfolio: prebuilt.links.portfolio,
+        website: prebuilt.links.website || undefined,
+      },
+    },
+    intent: {
+      primary: "Backend Software Engineer",
+      level: "Entry",
+      focus: [
+        "Backend systems",
+        "RESTful APIs",
+        "Networking-aware services",
+        "Concurrency & resource-aware design",
+      ],
+    },
+    fundamentals: {
+      programming_languages: {
+        solid: prebuilt.software_fundamentals.programming_language.solid,
+        familiar: prebuilt.software_fundamentals.programming_language.familiar,
+      },
+      dsa: prebuilt.software_fundamentals.dsa,
+      os: prebuilt.software_fundamentals.os,
+      oop: prebuilt.software_fundamentals.oop,
+      database: prebuilt.software_fundamentals.database,
+      networking: prebuilt.software_fundamentals.networking,
+      security: prebuilt.software_fundamentals.security,
+      testing: prebuilt.software_fundamentals.test,
+      ai: prebuilt.software_fundamentals.ai,
+    },
+    capabilities,
+    evidence,
+    experience: prebuilt.experience,
+    education: prebuilt.education,
+  };
+
+  return `export const profile: ProfileCore = ${toTsLiteral(profileObject)}`;
+}
+
+function updateGeneratedRegion(dataTs: string, generatedProfileBlock: string): string {
+  const generatedRegion = `${PROFILE_START_MARKER}\n${generatedProfileBlock}\n${PROFILE_END_MARKER}`;
+  const markerRegex = new RegExp(
+    `${escapeRegExp(PROFILE_START_MARKER)}[\\s\\S]*?${escapeRegExp(PROFILE_END_MARKER)}`,
+  );
+
+  if (markerRegex.test(dataTs)) {
+    return dataTs.replace(markerRegex, generatedRegion);
+  }
+
+  const profileRange = findProfileExportRange(dataTs);
+  if (!profileRange) {
+    throw new Error("Could not find profile export in data.ts");
+  }
+
+  return `${dataTs.slice(0, profileRange.start)}${generatedRegion}\n${dataTs.slice(profileRange.end)}`;
 }
 
 /**
@@ -330,21 +575,17 @@ ${educationCode}
 async function syncProfile(): Promise<void> {
   try {
     // Read profile.prebuilt.json
-    const profileJson = JSON.parse(fs.readFileSync(profilePath, "utf-8")) as PrebuiltProfile;
+    const profileJson = JSON.parse(fs.readFileSync(profilePath, "utf-8"));
+    const normalizedProfile = normalizeProfile(profileJson);
 
     // Read current data.ts
     const dataTs = fs.readFileSync(dataPath, "utf-8");
 
     // Generate new profile constant
-    const profileCode = transformProfile(profileJson);
+    const profileCode = transformProfile(normalizedProfile);
 
-    // Replace the profile export in data.ts
-    const profileMatch = dataTs.match(/export const profile: ProfileCore = \{[\s\S]*?\n\}/);
-    if (!profileMatch) {
-      throw new Error("Could not find profile export in data.ts");
-    }
-
-    const updatedDataTs = dataTs.replace(profileMatch[0], profileCode);
+    // Replace only generated region (or migrate once by wrapping existing profile export).
+    const updatedDataTs = updateGeneratedRegion(dataTs, profileCode);
 
     // Write back to data.ts
     fs.writeFileSync(dataPath, updatedDataTs, "utf-8");

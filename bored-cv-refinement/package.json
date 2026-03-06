@@ -4,8 +4,8 @@
   "description": "CV refinement and portfolio management",
   "type": "module",
   "scripts": {
-    "sync:profile": "ts-node scripts/sync-profile.ts",
-    "sync:profile:watch": "ts-node scripts/sync-profile.ts --watch"
+    "sync:profile": "node --loader ts-node/esm scripts/sync-profile.ts",
+    "sync:profile:watch": "node --loader ts-node/esm scripts/sync-profile.ts --watch"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

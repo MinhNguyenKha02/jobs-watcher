@@ -73,12 +73,12 @@ export const FundamentalsSlices = {
  * Each fundamental area lists its associated capability IDs
  */
 export const CapabilityToFundamental: Record<keyof Fundamentals, string[]> = {
-  programming_languages: ["go", "typescript", "nodejs", "expressjs", "gin", "laravel", "fiber", "vue", "nuxt", "react"],
+  programming_languages: ["go", "typescript", "node.js", "express.js", "gin", "laravel", "fiber", "vue.js", "nuxt.js", "react"],
   dsa: [],
   os: ["docker"],
   oop: [],
-  database: ["postgres", "mongo", "sqlite", "redis", "supabase"],
-  networking: ["tcpip", "tlshttp", "webproto"],
+  database: ["postgresql", "mongodb", "sqlite", "redis", "supabase"],
+  networking: ["tls/http/grpc/websocket/webrtc"],
   security: ["auth", "apigw", "ratelimit", "inputval"],
   testing: ["cicd"],
   ai: [],
@@ -88,25 +88,23 @@ export const CapabilityToFundamental: Record<keyof Fundamentals, string[]> = {
 export const CapabilityPrimaryEvidence: Record<string, EvidenceType> = {
   go: "work",
   typescript: "work",
-  nodejs: "work",
-  expressjs: "work",
+  "node.js": "work",
+  "express.js": "work",
   gin: "lab",
   laravel: "work",
   fiber: "lab",
   rest: "work",
   graphql: "lab",
-  tlshttp: "work",
-  "external-service": "lab",
+  "tls/http/grpc/websocket/webrtc": "work",
+  "external-service-integration": "lab",
   microservices: "lab",
   mvc: "work",
-  cleanarch: "lab",
-  postgres: "work",
-  mongo: "work",
+  clean: "lab",
+  postgresql: "work",
+  mongodb: "work",
   sqlite: "lab",
   redis: "lab",
   supabase: "lab",
-  tcpip: "lab",
-  webproto: "work",
   auth: "work",
   apigw: "lab",
   ratelimit: "lab",
@@ -115,10 +113,10 @@ export const CapabilityPrimaryEvidence: Record<string, EvidenceType> = {
   cicd: "work",
   aws: "work",
   cloudops: "lab",
-  vue: "work",
-  nuxt: "work",
+  "vue.js": "work",
+  "nuxt.js": "work",
   react: "lab",
-  web3: "lab",
+  "web3-integration": "lab",
   git: "work",
   figma: "work",
   wordpress: "work",
@@ -315,215 +313,496 @@ export interface ProfileCore {
  * Concrete Instance (Your Data)
  * ============================================================ */
 
+// <PROFILE_GENERATED_START>
 export const profile: ProfileCore = {
-  identity: {
-    name: "Minh Nguyen Kha",
-    email: "minhnguyen.kha@proton.me",
-    phone: "(+84) 39 679 6034",
-    location: "District 7, Ho Chi Minh City, Vietnam",
-    links: {
-      github: "https://github.com/MinhNguyenKha02",
-      linkedin: "https://linkedin.com/in/minh-nguyen-kha",
-      portfolio: "https://your-portfolio.com"
+  "identity": {
+    "name": "Minh Nguyen Kha",
+    "email": "minhnguyen.kha@proton.me",
+    "phone": "(+84) 39 679 6034",
+    "location": "District 7, Ho Chi Minh City, Vietnam",
+    "links": {
+      "github": "https://github.com/MinhNguyenKha02",
+      "linkedin": "https://linkedin.com/in/minh-nguyen-kha",
+      "portfolio": "https://your-portfolio.com"
     }
   },
-
-  intent: {
-    primary: "Backend Software Engineer",
-    level: "Entry",
-    focus: [
+  "intent": {
+    "primary": "Backend Software Engineer",
+    "level": "Entry",
+    "focus": [
       "Backend systems",
       "RESTful APIs",
       "Networking-aware services",
       "Concurrency & resource-aware design"
     ]
   },
-
-  fundamentals: {
-    programming_languages: {
-      solid: ["Go","TypeScript"],
-      familiar: ["JavaScript","C","PHP","Bash"]
+  "fundamentals": {
+    "programming_languages": {
+      "solid": [
+        "Go",
+        "TypeScript"
+      ],
+      "familiar": [
+        "JavaScript",
+        "C",
+        "PHP",
+        "Bash"
+      ]
     },
-    dsa: ["Data structures & algorithms fundamentals"],
-    os: ["Linux/Ubuntu fundamentals","Shell automation","Processes and resource control"],
-    oop: ["OOP fundamentals","SOLID principles","Design patterns familiarity"],
-    database: ["Relational/NoSQL fundamentals","Schema design","SQL queries"],
-    networking: ["TCP/IP (L3-L4)","Networking programming fundamentals"],
-    security: ["Secure defaults","Threat-model awareness","Trust boundaries & Least privilege","Authentication/Authorization fundamentals"],
-    testing: ["Unit & Integration & End-To-End test"],
-    ai: ["ML fundamentals and familiarity","Familiarity with AI tools and integration, data labeling, datasets on training or fine-tuned"]
+    "dsa": [
+      "Data structures & algorithms fundamentals"
+    ],
+    "os": [
+      "Linux/Ubuntu fundamentals",
+      "Shell automation",
+      "Processes and resource control"
+    ],
+    "oop": [
+      "OOP fundamentals",
+      "SOLID principles",
+      "Design patterns familiarity"
+    ],
+    "database": [
+      "Relational/NoSQL fundamentals",
+      "Schema design",
+      "SQL queries"
+    ],
+    "networking": [
+      "TCP/IP (L3-L4)",
+      "Networking programming fundamentals"
+    ],
+    "security": [
+      "Secure defaults",
+      "Threat-model awareness",
+      "Trust boundaries & Least privilege",
+      "Authentication/Authorization fundamentals"
+    ],
+    "testing": [
+      "Unit & Integration & End-To-End test"
+    ],
+    "ai": [
+      "ML fundamentals and familiarity",
+      "Familiarity with AI tools and integration, data labeling, datasets on training or fine-tuned"
+    ]
   },
-
-  capabilities: [
-    { id: "go", label: "Go", domain: "backend", level: "solid" },
-    { id: "typescript", label: "TypeScript", domain: "backend", level: "solid" },
-    { id: "node.js", label: "Node.js", domain: "backend", level: "solid" },
-    { id: "express.js", label: "Express.js", domain: "backend", level: "solid" },
-    { id: "gin", label: "Gin", domain: "backend", level: "solid" },
-    { id: "laravel", label: "Laravel", domain: "backend", level: "familiar" },
-    { id: "fiber", label: "Fiber", domain: "backend", level: "familiar" },
-    { id: "rest", label: "REST", domain: "backend", level: "solid" },
-    { id: "tls/http/grpc/websocket/webrtc", label: "TLS/HTTP/gRPC/WebSocket/WebRTC", domain: "backend", level: "solid" },
-    { id: "graphql", label: "GraphQL", domain: "backend", level: "familiar" },
-    { id: "external-service-integration", label: "External Service Integration", domain: "backend", level: "familiar" },
-    { id: "mvc", label: "MVC", domain: "backend", level: "solid" },
-    { id: "microservices", label: "Microservices", domain: "backend", level: "solid" },
-    { id: "clean", label: "Clean Architecture", domain: "backend", level: "working" },
-    { id: "postgresql", label: "PostgreSQL", domain: "database", level: "solid" },
-    { id: "mongodb", label: "MongoDB", domain: "database", level: "solid" },
-    { id: "sqlite", label: "SQLite", domain: "database", level: "familiar" },
-    { id: "redis", label: "Redis", domain: "database", level: "familiar" },
-    { id: "supabase", label: "Supabase", domain: "database", level: "familiar" },
-    { id: "vue.js", label: "Vue.js", domain: "frontend", level: "solid" },
-    { id: "nuxt.js", label: "Nuxt.js", domain: "frontend", level: "solid" },
-    { id: "react", label: "React", domain: "frontend", level: "familiar" },
-    { id: "web3-integration", label: "Web3 integration", domain: "frontend", level: "familiar" },
-    { id: "auth", label: "AuthN/AuthZ (JWT, OAuth, MFA, RBAC)", domain: "security", level: "solid" },
-    { id: "apigw", label: "Secure API gateway", domain: "security", level: "solid" },
-    { id: "ratelimit", label: "Rate-limiting & abuse control", domain: "security", level: "solid" },
-    { id: "inputval", label: "Input validation & sanitization", domain: "security", level: "solid" },
-    { id: "docker", label: "Docker", domain: "devops", level: "familiar" },
-    { id: "cicd", label: "CI/CD (GitHub Actions)", domain: "devops", level: "solid" },
-    { id: "aws", label: "AWS/Azure fundamentals", domain: "devops", level: "solid" },
-    { id: "cloudops", label: "Cloud deployment best practices", domain: "devops", level: "familiar" },
-    { id: "git", label: "Git", domain: "tooling", level: "solid" },
-    { id: "figma", label: "Figma", domain: "tooling", level: "solid" },
-    { id: "wordpress", label: "WordPress", domain: "tooling", level: "solid" },
-    { id: "vscode", label: "VSCode", domain: "tooling", level: "solid" },
-    { id: "shell", label: "Shell/Bash", domain: "tooling", level: "solid" }
-  ],
-
-  evidence: [
+  "capabilities": [
     {
-      id: "microservices-demo-(ts-+-go)",
-      type: "lab",
-      title: "Microservices demo (TS + Go)",
-      period: "2024-12–2025-03",
-      summary:
-        "Small services communicating over REST; containerized with Docker; focus on modular boundaries and error handling.",
-      tech: ["TypeScript","Go","Express","Gin","Docker"],
-      status: "completed"
+      "id": "go",
+      "label": "Go",
+      "domain": "backend",
+      "level": "solid"
     },
     {
-      id: "networking/traffic-prototypes",
-      type: "lab",
-      title: "Networking/traffic prototypes",
-      period: "2025-01–2025-03",
-      summary:
-        "Experiments with TCP/IP handling, concurrency, and request shaping; emphasis on OS processes/resources.",
-      tech: ["Go","TypeScript","Linux","Shell"],
-      status: "completed"
+      "id": "typescript",
+      "label": "TypeScript",
+      "domain": "backend",
+      "level": "solid"
     },
     {
-      id: "aws-ec2-sandbox",
-      type: "lab",
-      title: "AWS EC2 sandbox",
-      period: "2024-11–present",
-      summary:
-        "Practice deployments on EC2, security groups, Dockerized services, basic monitoring.",
-      tech: ["AWS EC2","Docker","Ubuntu"],
-      status: "completed"
+      "id": "javascript",
+      "label": "JavaScript",
+      "domain": "backend",
+      "level": "familiar"
     },
     {
-      id: "blockchain-api-prototype",
-      type: "lab",
-      title: "Blockchain API prototype",
-      period: "2025-02–2025-03",
-      summary:
-        "Go API with SQLite; experimented with Solidity contracts and FE Web3 integration; paused after initial week.",
-      tech: ["Go","SQLite","Solidity (basic)","Web3 (basic)"],
-      status: "paused"
+      "id": "c",
+      "label": "C",
+      "domain": "backend",
+      "level": "familiar"
     },
     {
-      id: "shell-automation-scripts",
-      type: "lab",
-      title: "Shell automation scripts",
-      period: "2024-10–present",
-      summary:
-        "Bash scripts for setup, deployment, and local tooling; fallback utilities.",
-      tech: ["Bash","Linux"],
-      status: "completed"
+      "id": "php",
+      "label": "PHP",
+      "domain": "backend",
+      "level": "familiar"
     },
     {
-      id: "blockchain-developer-internship-(ai-generative-industry)",
-      type: "work",
-      title: "Blockchain Developer Internship (AI Generative Industry)",
-      period: "2025-01–2025-04",
-      summary:
-        "Worked as a Blockchain Developer Intern, using Go in the AI generative industry. Explored blockchain integration and backend services.",
-      tech: ["Go","Blockchain","AI"],
-      status: "completed"
+      "id": "bash",
+      "label": "Bash",
+      "domain": "backend",
+      "level": "familiar"
     },
     {
-      id: "full-stack-developer-internship-(nuxt.js)",
-      type: "work",
-      title: "Full-Stack Developer Internship (Nuxt.js)",
-      period: "2024-10–2025-01",
-      summary:
-        "Interned as a Full-Stack Developer at Golive Dev JSC, specializing in Nuxt.js and Vue.js. Developed front-end modules and integrated REST APIs.",
-      tech: ["Nuxt.js","Vue.js","REST API","Git"],
-      status: "completed"
+      "id": "node.js",
+      "label": "Node.js",
+      "domain": "backend",
+      "level": "solid"
     },
     {
-      id: "wordpress-intern-(mevivu-co.,-ltd)",
-      type: "work",
-      title: "WordPress Intern (Mevivu Co., Ltd)",
-      period: "2023-08–2023-11",
-      summary:
-        "Maintained and customized WordPress websites to support marketing needs. Translated Figma prototypes to responsive components.",
-      tech: ["WordPress","Figma","HTML","CSS"],
-      status: "completed"
+      "id": "express.js",
+      "label": "Express.js",
+      "domain": "backend",
+      "level": "solid"
     },
     {
-      id: "jobs-watcher-core-(lab-evidence)",
-      type: "lab",
-      title: "Jobs Watcher Core (Lab Evidence)",
-      period: "2024-10–2026-02",
-      summary:
-        "Development and refinement of the jobs-watcher codebase, focusing on backend architecture, metrics, and template rendering. Includes CI/CD, integration tests, and documentation workflows.",
-      tech: ["TypeScript","Node.js","Jest","GitHub Actions","Markdown","Shell"],
-      status: "completed"
+      "id": "gin",
+      "label": "Gin",
+      "domain": "backend",
+      "level": "solid"
+    },
+    {
+      "id": "laravel",
+      "label": "Laravel",
+      "domain": "backend",
+      "level": "familiar"
+    },
+    {
+      "id": "fiber",
+      "label": "Fiber",
+      "domain": "backend",
+      "level": "familiar"
+    },
+    {
+      "id": "rest",
+      "label": "REST",
+      "domain": "backend",
+      "level": "solid"
+    },
+    {
+      "id": "tls/http/grpc/websocket/webrtc",
+      "label": "TLS/HTTP/gRPC/WebSocket/WebRTC",
+      "domain": "backend",
+      "level": "solid"
+    },
+    {
+      "id": "graphql",
+      "label": "GraphQL",
+      "domain": "backend",
+      "level": "familiar"
+    },
+    {
+      "id": "external-service-integration",
+      "label": "External Service Integration",
+      "domain": "backend",
+      "level": "familiar"
+    },
+    {
+      "id": "mvc",
+      "label": "MVC",
+      "domain": "backend",
+      "level": "solid"
+    },
+    {
+      "id": "microservices",
+      "label": "Microservices",
+      "domain": "backend",
+      "level": "solid"
+    },
+    {
+      "id": "clean",
+      "label": "Clean Architecture",
+      "domain": "backend",
+      "level": "working"
+    },
+    {
+      "id": "postgresql",
+      "label": "PostgreSQL",
+      "domain": "database",
+      "level": "solid"
+    },
+    {
+      "id": "mongodb",
+      "label": "MongoDB",
+      "domain": "database",
+      "level": "solid"
+    },
+    {
+      "id": "sqlite",
+      "label": "SQLite",
+      "domain": "database",
+      "level": "familiar"
+    },
+    {
+      "id": "redis",
+      "label": "Redis",
+      "domain": "database",
+      "level": "familiar"
+    },
+    {
+      "id": "supabase",
+      "label": "Supabase",
+      "domain": "database",
+      "level": "familiar"
+    },
+    {
+      "id": "vue.js",
+      "label": "Vue.js",
+      "domain": "frontend",
+      "level": "solid"
+    },
+    {
+      "id": "nuxt.js",
+      "label": "Nuxt.js",
+      "domain": "frontend",
+      "level": "solid"
+    },
+    {
+      "id": "react",
+      "label": "React",
+      "domain": "frontend",
+      "level": "familiar"
+    },
+    {
+      "id": "web3-integration",
+      "label": "Web3 integration",
+      "domain": "frontend",
+      "level": "familiar"
+    },
+    {
+      "id": "docker",
+      "label": "Docker",
+      "domain": "devops",
+      "level": "familiar"
+    },
+    {
+      "id": "cicd",
+      "label": "GitHub Actions",
+      "domain": "devops",
+      "level": "solid"
+    },
+    {
+      "id": "aws",
+      "label": "AWS/Azure fundamentals",
+      "domain": "devops",
+      "level": "solid"
+    },
+    {
+      "id": "cloudops",
+      "label": "Cloud deployment best practices",
+      "domain": "devops",
+      "level": "familiar"
+    },
+    {
+      "id": "auth",
+      "label": "AuthN/AuthZ (JWT, OAuth, MFA, RBAC)",
+      "domain": "security",
+      "level": "solid"
+    },
+    {
+      "id": "apigw",
+      "label": "Secure API gateway",
+      "domain": "security",
+      "level": "solid"
+    },
+    {
+      "id": "ratelimit",
+      "label": "Rate-limiting & abuse control",
+      "domain": "security",
+      "level": "solid"
+    },
+    {
+      "id": "inputval",
+      "label": "Input validation & sanitization",
+      "domain": "security",
+      "level": "solid"
+    },
+    {
+      "id": "git",
+      "label": "Git",
+      "domain": "tooling",
+      "level": "solid"
+    },
+    {
+      "id": "figma",
+      "label": "Figma",
+      "domain": "tooling",
+      "level": "solid"
+    },
+    {
+      "id": "wordpress",
+      "label": "WordPress",
+      "domain": "tooling",
+      "level": "solid"
+    },
+    {
+      "id": "vscode",
+      "label": "VSCode",
+      "domain": "tooling",
+      "level": "solid"
+    },
+    {
+      "id": "shell",
+      "label": "Shell/Bash",
+      "domain": "tooling",
+      "level": "solid"
     }
   ],
-
-  experience: [
+  "evidence": [
     {
-      company: "Golive Dev JSC",
-      position: "Full-Stack Developer",
-      location: "Remote",
-      startDate: "2024-10",
-      endDate: "2025-01",
-      highlights: ["Built and optimized Vue/Nuxt product modules, improving navigation flow and responsiveness","Integrated REST APIs end-to-end and tightened error handling to reduce regression risk","Collaborated with designers on UI states and accessibility, increasing clarity of user interactions","Used Git feature branches and reviews to keep changes scoped and traceable"]
+      "id": "microservices-demo-ts-go",
+      "type": "lab",
+      "title": "Microservices demo (TS + Go)",
+      "period": "2024-12–2025-03",
+      "summary": "Small services communicating over REST; containerized with Docker; focus on modular boundaries and error handling.",
+      "tech": [
+        "TypeScript",
+        "Go",
+        "Express",
+        "Gin",
+        "Docker"
+      ],
+      "status": "completed"
     },
     {
-      company: "Mevivu Co., Ltd",
-      position: "Web Developer",
-      location: "Ho Chi Minh City, Vietnam",
-      startDate: "2023-08",
-      endDate: "2023-11",
-      highlights: ["Maintained and customized WordPress sites, ensuring stable releases and timely content updates","Created UI/UX prototypes in Figma to validate flows with stakeholders before build","Produced marketing assets and landing content aligned with campaign timelines"]
+      "id": "networking/traffic-prototypes",
+      "type": "lab",
+      "title": "Networking/traffic prototypes",
+      "period": "2025-01–2025-03",
+      "summary": "Experiments with TCP/IP handling, concurrency, and request shaping; emphasis on OS processes/resources.",
+      "tech": [
+        "Go",
+        "TypeScript",
+        "Linux",
+        "Shell"
+      ],
+      "status": "completed"
     },
     {
-      company: "Blockchain Developer Internship (AI Generative Industry)",
-      position: "Blockchain Developer Intern",
-      location: "Remote",
-      startDate: "2025-01",
-      endDate: "2025-04",
-      highlights: ["Explored blockchain integration and backend services using Go in AI generative industry."]
+      "id": "aws-ec2-sandbox",
+      "type": "lab",
+      "title": "AWS EC2 sandbox",
+      "period": "2024-11–present",
+      "summary": "Practice deployments on EC2, security groups, Dockerized services, basic monitoring.",
+      "tech": [
+        "AWS EC2",
+        "Docker",
+        "Ubuntu"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "blockchain-api-prototype",
+      "type": "lab",
+      "title": "Blockchain API prototype",
+      "period": "2025-02–2025-03",
+      "summary": "Go API with SQLite; experimented with Solidity contracts and FE Web3 integration; paused after initial week.",
+      "tech": [
+        "Go",
+        "SQLite",
+        "Solidity (basic)",
+        "Web3 (basic)"
+      ],
+      "status": "paused"
+    },
+    {
+      "id": "shell-automation-scripts",
+      "type": "lab",
+      "title": "Shell automation scripts",
+      "period": "2024-10–present",
+      "summary": "Bash scripts for setup, deployment, and local tooling; fallback utilities.",
+      "tech": [
+        "Bash",
+        "Linux"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "blockchain-developer-internship-ai-generative-industry",
+      "type": "work",
+      "title": "Blockchain Developer Internship (AI Generative Industry)",
+      "period": "2025-01–2025-04",
+      "summary": "Worked as a Blockchain Developer Intern, using Go in the AI generative industry. Explored blockchain integration and backend services.",
+      "tech": [
+        "Go",
+        "Blockchain",
+        "AI"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "full-stack-developer-internship-nuxt.js",
+      "type": "work",
+      "title": "Full-Stack Developer Internship (Nuxt.js)",
+      "period": "2024-10–2025-01",
+      "summary": "Interned as a Full-Stack Developer at Golive Dev JSC, specializing in Nuxt.js and Vue.js. Developed front-end modules and integrated REST APIs.",
+      "tech": [
+        "Nuxt.js",
+        "Vue.js",
+        "REST API",
+        "Git"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "wordpress-intern-mevivu-co.-ltd",
+      "type": "work",
+      "title": "WordPress Intern (Mevivu Co., Ltd)",
+      "period": "2023-08–2023-11",
+      "summary": "Maintained and customized WordPress websites to support marketing needs. Translated Figma prototypes to responsive components.",
+      "tech": [
+        "WordPress",
+        "Figma",
+        "HTML",
+        "CSS"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "jobs-watcher-core-lab-evidence",
+      "type": "lab",
+      "title": "Jobs Watcher Core (Lab Evidence)",
+      "period": "2024-10–2026-02",
+      "summary": "Development and refinement of the jobs-watcher codebase, focusing on backend architecture, metrics, and template rendering. Includes CI/CD, integration tests, and documentation workflows.",
+      "tech": [
+        "TypeScript",
+        "Node.js",
+        "Jest",
+        "GitHub Actions",
+        "Markdown",
+        "Shell"
+      ],
+      "status": "completed"
     }
   ],
-
-  education: [
+  "experience": [
     {
-      institution: "Ho Chi Minh City Open University",
-      degree: "Bachelor of Information Technology",
-      field: "Software Technology",
-      startDate: "2020",
-      endDate: "2025",
-      gpa: "3.0/4.0"
+      "company": "Golive Dev JSC",
+      "position": "Full-Stack Developer",
+      "location": "Remote",
+      "startDate": "2024-10",
+      "endDate": "2025-01",
+      "highlights": [
+        "Built and optimized Vue/Nuxt product modules, improving navigation flow and responsiveness",
+        "Integrated REST APIs end-to-end and tightened error handling to reduce regression risk",
+        "Collaborated with designers on UI states and accessibility, increasing clarity of user interactions",
+        "Used Git feature branches and reviews to keep changes scoped and traceable"
+      ]
+    },
+    {
+      "company": "Mevivu Co., Ltd",
+      "position": "Web Developer",
+      "location": "Ho Chi Minh City, Vietnam",
+      "startDate": "2023-08",
+      "endDate": "2023-11",
+      "highlights": [
+        "Maintained and customized WordPress sites, ensuring stable releases and timely content updates",
+        "Created UI/UX prototypes in Figma to validate flows with stakeholders before build",
+        "Produced marketing assets and landing content aligned with campaign timelines"
+      ]
+    },
+    {
+      "company": "Blockchain Developer Internship (AI Generative Industry)",
+      "position": "Blockchain Developer Intern",
+      "location": "Remote",
+      "startDate": "2025-01",
+      "endDate": "2025-04",
+      "highlights": [
+        "Explored blockchain integration and backend services using Go in AI generative industry."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Ho Chi Minh City Open University",
+      "degree": "Bachelor of Information Technology",
+      "field": "Software Technology",
+      "startDate": "2020",
+      "endDate": "2025",
+      "gpa": "3.0/4.0"
     }
   ]
 }
+// <PROFILE_GENERATED_END>
 
 /* ============================================================
  * Hard Clustering (Mode 1)

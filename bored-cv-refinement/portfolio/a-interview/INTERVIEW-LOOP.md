@@ -18,6 +18,28 @@ Review Example → Compare & Improve → Log Progress → Move Next
 **Frequency:** 1 loop per day  
 **Expected result:** Master 1 question per day, improve 5-block framework execution
 
+### MicroQA Snapshot Run (Simple)
+
+```bash
+chmod +x ./05-scripts/interview-simulation.sh
+./05-scripts/interview-simulation.sh ./02-questions/interview-questions.txt 2
+```
+
+Script enforces:
+
+- one-by-one question flow
+- timer + input collector
+- state logs: `completed` or `timed_out`
+
+Outputs:
+
+- `06-outputs/loop-logs/`
+- `06-outputs/loop-snapshots/<session-id>/`
+
+Quality/rubric is applied manually after each answer.
+
+Use [03-practice/SEA-QUESTION-QUALITY-CHECKLIST.md](03-practice/SEA-QUESTION-QUALITY-CHECKLIST.md) for SG/VN trust and reflection scoring.
+
 ---
 
 ## 📚 Table of Contents
@@ -44,6 +66,21 @@ Review Example → Compare & Improve → Log Progress → Move Next
 | **5. FAILURE** | Error handling, retries, recovery, edge cases | "For failures, we..." |
 
 **Quality Check:** Can you identify each block in your answer? If not, rewrite until you can.
+
+### Context Rules (Role + Market)
+
+Use this order each loop:
+
+1. Role baseline: Junior backend clarity + implementation
+2. Market target rules from `01-core/recruiter-enforced.md`
+3. Response quality rules from `04-guides/RESPONSE-EVALUATION-FRAMEWORK.md`
+
+Quick market focus:
+
+- **SG:** structured communication, transactions, consistency
+- **VN:** practical implementation, external API handling
+- **EU:** fundamentals, testing, algorithmic clarity
+- **US:** tradeoffs, ownership, system thinking
 
 ---
 
@@ -178,6 +215,14 @@ Document: What will you do differently next time?
 ---
 
 ## Progress Tracking
+
+### Ready-to-Run Loop Pack Checklist
+
+- [ ] I can run `./05-scripts/interview-simulation.sh`
+- [ ] I selected my current market target
+- [ ] I selected my role target (junior backend)
+- [ ] I will score answer quality with recruiter rubric after each question
+- [ ] I will update `03-practice/QUESTION-TRACKER.md` after the session
 
 ### How to Track Your Work
 

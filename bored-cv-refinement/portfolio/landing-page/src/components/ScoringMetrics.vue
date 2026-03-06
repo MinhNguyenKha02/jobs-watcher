@@ -1,55 +1,55 @@
 <template>
-  <section class="flex flex-col gap-4">
-    <h2 class="text-xs font-semibold text-slate-700 uppercase tracking-wide">Scoring Metrics</h2>
+  <section class="flex min-w-0 flex-col gap-4">
+    <h2 class="text-xs font-semibold uppercase tracking-wide text-[var(--theme-text-secondary)]">Scoring Metrics</h2>
     
     <!-- Profile-level aggregates -->
-    <div class="border border-slate-200 rounded bg-white p-4">
-      <div class="grid grid-cols-4 gap-4 text-center">
+    <div class="rounded border border-[var(--theme-border)] bg-[var(--theme-surface-elevated)] p-4">
+      <div class="grid grid-cols-2 gap-4 text-center md:grid-cols-4">
         <div>
-          <p class="text-xs text-slate-500">Capability Avg</p>
-          <p class="text-lg font-bold text-slate-800">{{ profileScore.capabilityAverage.toFixed(2) }}</p>
+          <p class="text-xs text-[var(--theme-text-muted)]">Capability Avg</p>
+          <p class="text-lg font-bold text-[var(--theme-text-primary)]">{{ profileScore.capabilityAverage.toFixed(2) }}</p>
         </div>
         <div>
-          <p class="text-xs text-slate-500">Fundamentals Avg</p>
-          <p class="text-lg font-bold text-slate-800">{{ profileScore.fundamentalsAverage.toFixed(2) }}</p>
+          <p class="text-xs text-[var(--theme-text-muted)]">Fundamentals Avg</p>
+          <p class="text-lg font-bold text-[var(--theme-text-primary)]">{{ profileScore.fundamentalsAverage.toFixed(2) }}</p>
         </div>
         <div>
-          <p class="text-xs text-slate-500">Overall</p>
-          <p class="text-lg font-bold text-orange-600">{{ profileScore.overallScore.toFixed(2) }}</p>
+          <p class="text-xs text-[var(--theme-text-muted)]">Overall</p>
+          <p class="text-lg font-bold text-[var(--theme-accent-cyan)]">{{ profileScore.overallScore.toFixed(2) }}</p>
         </div>
         <div>
-          <p class="text-xs text-slate-500">Max Capability</p>
-          <p class="text-lg font-bold text-slate-800">{{ maxCapabilityScore.toFixed(2) }}</p>
+          <p class="text-xs text-[var(--theme-text-muted)]">Max Capability</p>
+          <p class="text-lg font-bold text-[var(--theme-text-primary)]">{{ maxCapabilityScore.toFixed(2) }}</p>
         </div>
       </div>
     </div>
 
     <!-- Fundamentals breakdown -->
-    <div class="border border-slate-200 rounded bg-white p-4">
-      <p class="text-xs font-semibold text-slate-700 mb-3">Fundamentals Coverage</p>
-      <div class="grid grid-cols-3 gap-3">
+    <div class="rounded border border-[var(--theme-border)] bg-[var(--theme-surface-elevated)] p-4">
+      <p class="mb-3 text-xs font-semibold text-[var(--theme-text-secondary)]">Fundamentals Coverage</p>
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div v-for="[area, score] in fundamentalsEntries" :key="area" class="flex flex-col gap-1">
-          <p class="text-xs text-slate-600">{{ formatArea(area) }}</p>
+          <p class="text-xs text-[var(--theme-text-secondary)]">{{ formatArea(area) }}</p>
           <div class="flex items-center gap-2">
-            <div class="flex-1 h-2 bg-slate-100 rounded overflow-hidden">
+            <div class="h-2 flex-1 overflow-hidden rounded bg-[var(--theme-surface)]">
               <div
-                class="h-full bg-orange-400 transition-all"
+                class="h-full bg-[var(--theme-accent-purple)] transition-all"
                 :style="{ width: (score * 100) + '%' }"
               ></div>
             </div>
-            <span class="text-xs font-mono text-slate-700">{{ score.toFixed(2) }}</span>
+            <span class="text-xs font-mono text-[var(--theme-text-primary)]">{{ score.toFixed(2) }}</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Capability scores table -->
-    <div class="border border-slate-200 rounded bg-white p-4">
-      <p class="text-xs font-semibold text-slate-700 mb-3">Capability Scores</p>
-      <div class="grid grid-cols-2 gap-2 text-xs">
-        <div v-for="cap in capabilityScores" :key="cap.id" class="flex justify-between items-center p-2 bg-slate-50 rounded">
-          <span class="text-slate-700 truncate">{{ cap.label }}</span>
-          <span class="font-mono text-slate-800 font-semibold">{{ cap.score.toFixed(2) }}</span>
+    <div class="rounded border border-[var(--theme-border)] bg-[var(--theme-surface-elevated)] p-4">
+      <p class="mb-3 text-xs font-semibold text-[var(--theme-text-secondary)]">Capability Scores</p>
+      <div class="grid grid-cols-1 gap-2 text-xs md:grid-cols-2">
+        <div v-for="cap in capabilityScores" :key="cap.id" class="flex items-center justify-between rounded border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2">
+          <span class="truncate pr-2 text-[var(--theme-text-secondary)]">{{ cap.label }}</span>
+          <span class="font-mono font-semibold text-[var(--theme-text-primary)]">{{ cap.score.toFixed(2) }}</span>
         </div>
       </div>
     </div>

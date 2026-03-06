@@ -12,29 +12,29 @@ const topEvidence = computed(() => {
 const getStatusColor = (status?: string) => {
   switch (status) {
     case "active":
-      return "bg-green-100 text-green-700 border-green-200"
+      return "border-[var(--theme-accent-cyan)]/50 bg-[var(--theme-accent-cyan)]/10 text-[var(--theme-accent-cyan)]"
     case "completed":
-      return "bg-blue-100 text-blue-700 border-blue-200"
+      return "border-[var(--theme-accent-purple)]/50 bg-[var(--theme-accent-purple)]/10 text-[var(--theme-accent-purple)]"
     case "paused":
-      return "bg-yellow-100 text-yellow-700 border-yellow-200"
+      return "border-[var(--theme-accent-pink)]/50 bg-[var(--theme-accent-pink)]/10 text-[var(--theme-accent-pink)]"
     default:
-      return "bg-slate-100 text-slate-700 border-slate-200"
+      return "border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-text-secondary)]"
   }
 }
 </script>
 
 <template>
-  <section class="w-full">
-    <h2 class="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-4">Evidence Highlights</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <section class="w-full min-w-0">
+    <h2 class="mb-4 text-xs font-semibold uppercase tracking-wide text-[var(--theme-text-secondary)]">Evidence Highlights</h2>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div
         v-for="evidence in topEvidence"
         :key="evidence.id"
-        class="flex flex-col gap-3 p-5 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-shadow"
+        class="flex min-w-0 flex-col gap-3 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-elevated)] p-5 transition-colors hover:border-[var(--theme-accent-purple)]"
       >
         <!-- Header -->
         <div class="flex items-start justify-between gap-2">
-          <h3 class="text-sm font-semibold text-slate-800 leading-tight">{{ evidence.title }}</h3>
+          <h3 class="text-sm font-semibold leading-tight text-[var(--theme-text-primary)]">{{ evidence.title }}</h3>
           <span
             :class="getStatusColor(evidence.status)"
             class="text-xs px-2 py-1 rounded border font-medium shrink-0"
@@ -44,21 +44,21 @@ const getStatusColor = (status?: string) => {
         </div>
 
         <!-- Period & Type -->
-        <div class="flex items-center gap-2 text-xs text-slate-600">
+        <div class="flex flex-wrap items-center gap-2 text-xs text-[var(--theme-text-secondary)]">
           <span class="font-mono">{{ evidence.period }}</span>
-          <span class="text-slate-400">•</span>
-          <span class="capitalize px-2 py-0.5 bg-slate-100 rounded">{{ evidence.type }}</span>
+          <span class="text-[var(--theme-text-muted)]">•</span>
+          <span class="rounded border border-[var(--theme-border)] bg-[var(--theme-surface)] px-2 py-0.5 capitalize">{{ evidence.type }}</span>
         </div>
 
         <!-- Summary -->
-        <p class="text-xs text-slate-600 leading-relaxed line-clamp-3">{{ evidence.summary }}</p>
+        <p class="line-clamp-3 text-xs leading-relaxed text-[var(--theme-text-secondary)]">{{ evidence.summary }}</p>
 
         <!-- Tech Stack -->
         <div class="flex flex-wrap gap-1.5">
           <span
             v-for="tech in evidence.tech"
             :key="tech"
-            class="text-xs px-2 py-1 bg-orange-50 text-orange-700 border border-orange-200 rounded font-medium"
+            class="rounded border border-[var(--theme-border)] bg-[var(--theme-surface)] px-2 py-1 text-xs font-medium text-[var(--theme-text-primary)]"
           >
             {{ tech }}
           </span>

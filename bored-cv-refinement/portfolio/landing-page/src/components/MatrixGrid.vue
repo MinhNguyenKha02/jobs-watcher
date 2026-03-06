@@ -1,12 +1,12 @@
 <template>
   <!-- [12 rows × 3 columns] Matrix: Capabilities as rows, Evidence as columns -->
-  <div class="w-full">
+  <div class="w-full min-w-0">
     <!-- Domain-tree progressive controls -->
     <div
       v-if="props.mode !== 'hero'"
-      class="mb-[17px] rounded-lg border border-slate-200 bg-white p-[17px]"
+      class="mb-[17px] rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-elevated)] p-[17px]"
     >
-      <div class="mb-[17px] text-xs font-semibold uppercase tracking-wide text-slate-600">
+      <div class="mb-[17px] text-xs font-semibold uppercase tracking-wide text-[var(--theme-text-secondary)]">
         Domain Filter
       </div>
       <div class="flex flex-wrap gap-[17px]">
@@ -17,8 +17,8 @@
           class="rounded-md border px-[17px] py-[8px] text-xs font-semibold transition-colors"
           :class="
             selectedDomain === domain
-              ? 'border-slate-700 bg-slate-700 text-white'
-              : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+              ? 'border-[var(--theme-accent-cyan)] bg-[var(--theme-surface)] text-[var(--theme-text-primary)]'
+              : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-text-secondary)] hover:border-[var(--theme-accent-purple)] hover:text-[var(--theme-text-primary)]'
           "
         >
           {{ domain }}
@@ -31,7 +31,7 @@
       >
         <button
           @click="showAllRows = !showAllRows"
-          class="text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
+          class="text-xs font-semibold text-[var(--theme-text-secondary)] underline-offset-2 hover:text-[var(--theme-text-primary)] hover:underline"
         >
           {{ showAllRows ? 'Show fewer rows' : 'Show more rows' }}
         </button>
@@ -39,18 +39,18 @@
     </div>
 
     <!-- Desktop: Table view (3 columns visible) -->
-    <div class="hidden md:block overflow-x-auto rounded-lg bg-white border border-slate-200">
+    <div class="hidden overflow-x-auto rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] md:block">
       <table class="w-full border-collapse text-[17px]">
         <!-- Header -->
         <thead>
-          <tr class="bg-slate-50 border-b-2 border-slate-200">
-            <th class="px-[17px] py-[17px] text-left text-sm font-bold text-slate-900 w-56">
+          <tr class="border-b border-[var(--theme-border)] bg-[var(--theme-surface-elevated)]">
+            <th class="w-56 px-[17px] py-[17px] text-left text-sm font-bold text-[var(--theme-text-primary)]">
               Capability
             </th>
             <th
               v-for="evidence in evidenceTypes"
               :key="`header-${evidence}`"
-              class="px-[17px] py-[17px] text-center text-sm font-bold text-slate-700 w-40"
+              class="w-40 px-[17px] py-[17px] text-center text-sm font-bold text-[var(--theme-text-secondary)]"
             >
               {{ evidence }}
             </th>
@@ -62,8 +62,8 @@
           <tr
             v-for="(cap, idx) in renderedCapabilities"
             :key="`row-${cap.id}`"
-            class="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-            :class="{ 'bg-blue-50': idx % 2 === 0 }"
+            class="border-b border-[var(--theme-border)] transition-colors hover:bg-[var(--theme-surface-elevated)]/80"
+            :class="{ 'bg-[var(--theme-surface)]': idx % 2 === 0, 'bg-[var(--theme-surface-elevated)]/50': idx % 2 !== 0 }"
           >
             <!-- Capability Label (Left) -->
             <td class="px-[17px] py-[17px]">
@@ -74,8 +74,8 @@
                   :title="cap.domain"
                 ></span>
                 <div>
-                  <div class="font-semibold text-slate-900 text-base">{{ cap.label }}</div>
-                  <div class="text-xs text-slate-500">{{ cap.level }}</div>
+                  <div class="font-semibold text-[var(--theme-text-primary)] text-base">{{ cap.label }}</div>
+                  <div class="text-xs text-[var(--theme-text-muted)]">{{ cap.level }}</div>
                 </div>
               </div>
             </td>
@@ -87,7 +87,7 @@
               class="px-[17px] py-[17px] text-center"
             >
               <div
-                class="inline-flex items-center justify-center rounded font-bold leading-none transition-all hover:shadow-md hover:scale-105 cursor-help"
+                class="inline-flex cursor-help items-center justify-center rounded border border-[var(--theme-border)] font-bold leading-none transition-transform hover:scale-105"
                 :style="{
                   width: '85px',
                   height: '85px',
@@ -106,11 +106,11 @@
     </div>
 
     <!-- Mobile: Card view (1 column, stacked) -->
-    <div class="md:hidden space-y-[17px]">
+    <div class="space-y-[17px] md:hidden">
       <div
         v-for="(cap, idx) in renderedCapabilities"
         :key="`card-${cap.id}`"
-        class="bg-white border border-slate-200 rounded-lg p-[17px]"
+        class="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-elevated)] p-[17px]"
       >
         <div class="flex items-start justify-between mb-[17px]">
           <div class="flex items-center gap-2">
@@ -119,11 +119,11 @@
               :style="{ backgroundColor: getDomainColor(cap.domain) }"
             ></span>
             <div>
-              <h4 class="font-semibold text-slate-900">{{ cap.label }}</h4>
-              <p class="text-xs text-slate-500">{{ cap.domain }}</p>
+              <h4 class="font-semibold text-[var(--theme-text-primary)]">{{ cap.label }}</h4>
+              <p class="text-xs text-[var(--theme-text-muted)]">{{ cap.domain }}</p>
             </div>
           </div>
-          <span class="text-xs px-2.5 py-1 bg-slate-100 text-slate-600 rounded font-medium">
+          <span class="rounded border border-[var(--theme-border)] bg-[var(--theme-surface)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-secondary)]">
             {{ cap.level }}
           </span>
         </div>
@@ -145,7 +145,7 @@
             >
               {{ getScoreDisplay(cap.id, evidence) }}
             </div>
-            <span class="text-xs text-slate-500 font-medium">{{ evidence }}</span>
+            <span class="text-xs font-medium text-[var(--theme-text-muted)]">{{ evidence }}</span>
           </div>
         </div>
       </div>
@@ -245,10 +245,10 @@ const getCellColor = (capabilityId: string, evidenceType: EvidenceType): string 
   if (!capability) return "transparent"
 
   const score = getScoreValue(capabilityId, evidenceType)
-  if (score === 0) return "#f1f5f9" // empty cell (slate-100)
+  if (score === 0) return "#161b22"
 
   const isCore = CoreDomains.includes(capability.domain as any)
-  const baseColor = isCore ? [235, 170, 90] : [180, 180, 180] // orange vs silver
+  const baseColor = isCore ? [45, 212, 255] : [167, 139, 250]
 
   // Opacity based on score (0.2 min to 0.95 max)
   const opacity = Math.max(0.2, Math.min(score, 0.95))
@@ -259,22 +259,22 @@ const getCellColor = (capabilityId: string, evidenceType: EvidenceType): string 
 // Get text color (white on dark, dark on light)
 const getTextColor = (capabilityId: string, evidenceType: EvidenceType): string => {
   const score = getScoreValue(capabilityId, evidenceType)
-  return score >= 0.6 ? "#ffffff" : "#1e293b"
+  return score >= 0.6 ? "#e6edf3" : "#9aa4b2"
 }
 
 // Get domain color for indicator dot
 const getDomainColor = (domain: string): string => {
   const colorMap: Record<string, string> = {
-    backend: "#3b82f6", // blue
-    database: "#10b981", // emerald
-    networking: "#f59e0b", // amber
-    security: "#ef4444", // red
-    devops: "#8b5cf6", // violet
-    frontend: "#ec4899", // pink
-    tooling: "#6b7280", // gray
-    os: "#14b8a6", // teal
+    backend: "#2dd4ff",
+    database: "#2dd4ff",
+    networking: "#a78bfa",
+    security: "#f472b6",
+    devops: "#a78bfa",
+    frontend: "#f472b6",
+    tooling: "#9aa4b2",
+    os: "#2dd4ff",
   }
-  return colorMap[domain] || "#94a3b8"
+  return colorMap[domain] || "#9aa4b2"
 }
 </script>
 

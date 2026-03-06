@@ -1,10 +1,20 @@
-Tell me about a challenging project you worked on.
-How do you approach debugging a complex issue?
-Describe a time you had to learn something new quickly.
-What's your approach to writing maintainable code?
-How do you handle disagreements with team members?
-Describe your experience with system design.
-Tell me about a time you failed and what you learned.
-How do you prioritize when you have multiple tasks?
-Explain a technical concept you recently learned.
-What motivates you in your work?
+[SG] Design a POST /orders API for a Singapore e-commerce platform with clear transaction boundaries.
+[SG] How do you prevent duplicate payment charging with idempotency keys in a card + PayNow flow?
+[SG] A payment provider returns 500 during checkout; explain retry, rollback, and customer communication.
+[SG] Design inventory reservation under concurrent checkout to avoid overselling.
+[SG] Explain how you separate validation, service logic, and persistence in a production backend.
+[VN] Build a practical user registration API for a Vietnam startup shipping in 2 weeks.
+[VN] How would you integrate MoMo/ZaloPay style external payment APIs with timeout handling?
+[VN] You must release fast with limited team size; what architecture tradeoffs do you choose first?
+[VN] Debug an intermittent production bug where webhook events arrive out of order.
+[VN] Explain how you would implement retry with exponential backoff for unstable third-party APIs.
+[SEA] Design a wallet top-up flow for cross-border users with currency conversion checks.
+[SEA] How do you handle KYC/identity verification failure while keeping UX clear and compliant?
+[SEA] Describe your approach to audit logging so finance operations can trust transaction history.
+[SEA] How would you design role-based access for operations teams across multiple countries?
+[SEA] Explain your failure-handling policy for partial success in distributed services.
+[Reflective] Which block (Validation/Service/Persistence/External/Failure) is currently your weakest and why?
+[Reflective] What trust risk did you miss in your last answer, and how will you address it next time?
+[Reflective] If a recruiter asks for a 60-second answer, how do you keep structure without losing accuracy?
+[Reflective] Which market are you optimizing for today (SG or VN), and what specific signals will you show?
+[Reflective] What is one concrete quality improvement you will apply in the next answer immediately?
