@@ -7,6 +7,7 @@ cd "$ROOT_DIR"
 LOG_DIR="$ROOT_DIR/logs"
 SUPERVISOR_PID_FILE="$LOG_DIR/infra-supervisor.pid"
 SERVICE_PID_FILE="$LOG_DIR/data-listening.pid"
+WATCHDOG_PID_FILE="$LOG_DIR/infra-watchdog.pid"
 
 stop_by_pid_file() {
   local label="$1"
@@ -42,3 +43,4 @@ stop_by_pid_file() {
 
 stop_by_pid_file "corepipeline" "$SERVICE_PID_FILE"
 stop_by_pid_file "supervisor" "$SUPERVISOR_PID_FILE"
+stop_by_pid_file "watchdog" "$WATCHDOG_PID_FILE"

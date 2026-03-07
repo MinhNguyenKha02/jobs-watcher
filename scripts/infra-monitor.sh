@@ -8,6 +8,7 @@ LOG_DIR="$ROOT_DIR/logs"
 REPORT_DIR="$LOG_DIR/feedback-reports"
 SUPERVISOR_PID_FILE="$LOG_DIR/infra-supervisor.pid"
 SERVICE_PID_FILE="$LOG_DIR/data-listening.pid"
+WATCHDOG_PID_FILE="$LOG_DIR/infra-watchdog.pid"
 LATEST_CASES_FILE="$REPORT_DIR/daily-cases-latest.json"
 
 status_for_pid_file() {
@@ -39,6 +40,7 @@ status_for_pid_file() {
 echo "=== Infra Monitor $(date -Iseconds) ==="
 status_for_pid_file "supervisor" "$SUPERVISOR_PID_FILE"
 status_for_pid_file "corepipeline" "$SERVICE_PID_FILE"
+status_for_pid_file "watchdog" "$WATCHDOG_PID_FILE"
 
 echo "memory_mb=$(free -m | awk 'NR==2{print $3}')"
 echo "swap_used_mb=$(free -m | awk 'NR==3{print $3}')"

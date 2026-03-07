@@ -343,12 +343,22 @@ echo "════════════════════════�
 echo "Daily long-living loop completed at $(date)" | tee -a "$LOG_FILE"
 echo "═══════════════════════════════════════════════════════" | tee -a "$LOG_FILE"
 
-# Send notification (optional, requires notify-send)
+# Send desktop notification with verdict + cases (optional, requires notify-send)
 if command -v notify-send &> /dev/null; then
-    if [ $FEEDBACK_EXIT_CODE -eq 0 ]; then
-        notify-send "Jobs Watcher" "Daily long-living loop completed successfully"
+    VERDICT="unknown"
+    CASE_COUNT="unknown"
+    if [ -f "$LATEST_CASES_FILE" ]; then
+        VERDICT="$(node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));console.log(d.verdict||'unknown')" "$LATEST_CASES_FILE" 2>/dev/null || echo "unknown")"
+        CASE_COUNT="$(node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));console.log(Array.isArray(d.cases)?d.cases.length:0)" "$LATEST_CASES_FILE" 2>/dev/null || echo "unknown")"
+    fi
+
+    HEALTH_TAG="service:${SERVICE_RUNNING} supervisor:${SUPERVISOR_RUNNING}"
+    if [ "$VERDICT" = "GO" ]; then
+        notify-send "Jobs Watcher Daily" "verdict=${VERDICT} cases=${CASE_COUNT} ${HEALTH_TAG}"
+    elif [ "$VERDICT" = "HOLD" ]; then
+        notify-send -u normal "Jobs Watcher Daily" "verdict=${VERDICT} cases=${CASE_COUNT} ${HEALTH_TAG}"
     else
-        notify-send -u critical "Jobs Watcher" "Daily long-living loop completed with warnings"
+        notify-send -u critical "Jobs Watcher Daily" "verdict=${VERDICT} cases=${CASE_COUNT} ${HEALTH_TAG}"
     fi
 fi
 
