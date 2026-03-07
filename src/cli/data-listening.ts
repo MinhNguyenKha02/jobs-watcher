@@ -1,3 +1,24 @@
+import { getLogsDir } from '../utils/e2e-output-path.js';
+// Helper to persist processed webhook messageIds
+function persistWebhookMessageId(messageId: string) {
+  try {
+    const logsDir = getLogsDir();
+    const filePath = path.join(logsDir, 'webhook-messageids-latest.json');
+    let arr: Array<{ messageId: string; timestamp: string }> = [];
+    if (fs.existsSync(filePath)) {
+      try {
+        arr = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      } catch {}
+    }
+    // Avoid duplicates
+    if (!arr.some((x) => x.messageId === messageId)) {
+      arr.push({ messageId, timestamp: new Date().toISOString() });
+      fs.writeFileSync(filePath, JSON.stringify(arr, null, 2));
+    }
+  } catch (err) {
+    logger.warn(`Failed to persist webhook messageId: ${messageId} (${err instanceof Error ? err.message : String(err)})`);
+  }
+}
 /**
  * Data listening mode runner
  * Uses Gmail webhook adapter (Pub/Sub notifications)
@@ -488,6 +509,7 @@ async function runDataListening() {
               chunk.map((messageId: string) =>
                 runWithRetry('gmail-backfill', async () => {
                   await (webhookAdapter as GmailWebhookAdapter).processMessageById(messageId);
+                  persistWebhookMessageId(messageId);
                 })
               )
             );

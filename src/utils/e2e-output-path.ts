@@ -1,3 +1,7 @@
+// Returns the logs directory at project root
+export function getLogsDir(): string {
+  return path.join(projectRoot, 'logs');
+}
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
