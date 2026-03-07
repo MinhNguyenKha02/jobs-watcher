@@ -12,6 +12,8 @@ credentials.json
 token.json
 generated/
 src/db/emails/
+src/db/e2e-output/
 logs/
 coverage/
 test-output/
+.vscode/
