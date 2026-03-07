@@ -18,7 +18,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md#supported-input-contexts) and [DECISIONS.m
 
 ## Schedule Configuration & Constraints
 
-- **Semantic Versioning:** Every release is tagged (vX.Y.Z-beta.N). No untagged deployments.
+- **Semantic Versioning:** Every release is tagged (vX.Y.Z). No untagged deployments.
 - **Backup & Rollback:** DB/config backups before each tag. Rollback is O(1) via tag reference.
 - **Time Reduction:** Queue-based concurrency, early termination for filtered jobs, memory/cpu constraints enforced.
 - **Deterministic Rules:** Atomic commits, conventional commit messages, strict boundaries (UI → Application → Domain → Infrastructure).
@@ -84,13 +84,14 @@ async function handleIncomingJob(job) {
 - **Deduplication Store:** In-memory Set is fast for single-instance; use Redis or MongoDB for cross-session or multi-instance deduplication.
 - **Retries:** Failed jobs can be retried with exponential backoff.
 - **Idempotency:** All job handlers must be idempotent to ensure safe retries and duplicate suppression.
-## Version v1.0.0-beta.1.a Improvements
+
+## Recent Queue Reliability Improvements
 
 - Integrated CI job for daily metrics aggregation and log review
 - Automated alerting for stuck/failed jobs via CI pipeline
 - CI updates documentation and exit criteria status after each cycle
 - Metrics recorder and analytics queries now part of job processing flow
-- Improved deduplication and idempotency checks for beta reliability
+- Improved deduplication and idempotency checks for long-living reliability
 - Dead-letter queue implementation for repeated failures
 - Enhanced monitoring: success/error rates, job counts, deduplication stats
 
@@ -110,6 +111,7 @@ async function handleIncomingJob(job) {
 ---
 
 ## References
+
 - See `docs/ARCHITECTURE.md` (Application Layer, Services Layer)
 - See `docs/DECISIONS.md` (Decision: Queue-based job processing)
 - Example code: `src/services/job-queue.ts`, `src/application/job-processor.ts`
@@ -117,6 +119,7 @@ async function handleIncomingJob(job) {
 ---
 
 ## Benefits
+
 - Handles bursty loads gracefully
 - Prevents duplicate processing
 - Enables horizontal scaling
@@ -125,12 +128,14 @@ async function handleIncomingJob(job) {
 ---
 
 ## Trade-offs
+
 - Slightly increased complexity (queue management, deduplication store)
 - Requires monitoring for stuck or failed jobs
 
 ---
 
 ## Future Improvements
+
 - Distributed queue (e.g., BullMQ, RabbitMQ) for large-scale deployments
 - Dead-letter queue for failed jobs
 - Metrics and alerting for job processing health

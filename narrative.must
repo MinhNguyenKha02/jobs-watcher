@@ -7,13 +7,17 @@ Single source narrative: `narrative.must.md`.
 ### Enforcement rules
 
 1. Keep one operator path only: `manual-enrichment` -> `enhanced-tui`.
-2. Treat `manual-enrichment-loop.ts` as legacy fallback; do not make it the default UX path.
+2. Treat `manual-enrichment-loop.ts` as legacy fallback; it must not be auto-started by default.
 3. Preserve no-data-loss evidence in `src/db/e2e-output/*`.
 4. Do not promote any patch to "ready" unless P0 checks pass.
+5. TUI correctness must be proven by runtime evidence; TUI test matrices are not accepted as sole proof.
+6. Long-living fire on `main` is allowed only after required pre-prod run + P0 runtime evidence gate.
+7. Hot commits touching parse/filter/queue/TUI routing must re-run P0 hard verification before merge.
+8. CI evidence source-of-truth is canonical artifacts in `src/db/e2e-output/*`; log screenshots are non-authoritative.
 
 ### P-index gates
 
-- P0: no-data-loss verifier, integrity pass, E2E pass, TUI route correctness (`needs_enrichment -> job_queue|job_trash`).
+- P0: no-data-loss verifier, integrity pass, E2E pass, and runtime TUI evidence in `action_log` (`manual_validate_to_queue` or `manual_reject_to_trash`) with correlation from `needs_enrichment.finalRoute` to the terminal collection (`job_queue` or `job_trash`).
 - P1: truthful alert routing (desktop/webhook/email), queue-lag metrics, restart/incident runbook.
 - P2: bounded concurrency, backpressure, memory trend improvement.
 - P3: backup/restore drills, SLO dashboard, deployment rollback hardening.
@@ -23,5 +27,15 @@ Single source narrative: `narrative.must.md`.
 `npm run test:e2e`
 `npm run integrity:once`
 `npm run manual-enrichment -- --poll-ms=5000`
+`VERIFY_P0_HARD=1 VERIFY_P1P2_HARD=1 npm run verify:e2e-output`
 
 If all pass with expected queue/trash transitions and artifact updates, baseline is ready for the next batch.
+
+### Long-living fire operator check
+
+Fire long-living only when all are true:
+
+1. E2E + integrity passed on current `main`.
+2. Runtime TUI evidence exists in `action_log` (`manual_validate_to_queue` or `manual_reject_to_trash`).
+3. `needs_enrichment.finalRoute` correlates to terminal collection write (`job_queue` or `job_trash`).
+4. CI hard-gate verification passes without override flags disabled.

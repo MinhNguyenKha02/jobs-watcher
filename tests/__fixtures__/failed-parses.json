@@ -1,5 +1,16 @@
 [
   {
+    "parseLogId": "69a999dea343fd1757232195",
+    "rawIngestId": "msg-topcv-001",
+    "source": "UNKNOWN",
+    "stage": "JOB_DETAIL",
+    "errorCode": "UNKNOWN",
+    "errorMessage": "No candidate jobs extracted from fixture input",
+    "rawContent": "",
+    "timestamp": "2026-03-05T14:57:34.362Z",
+    "executionMs": 0
+  },
+  {
     "parseLogId": "69a93693106dad2a00658766",
     "rawIngestId": "msg-topcv-001",
     "source": "UNKNOWN",

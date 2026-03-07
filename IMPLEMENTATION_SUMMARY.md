@@ -55,7 +55,7 @@ async run(): Promise<void> {
 
 The adapter correctly simulates both alert and detail page flows for validation.
 
-### 4. ✅ Export `needs_enrichment` Data to `e2e-output` Folder
+### 4. ✅ Export `needs_enrichment` Data to Canonical E2E Directory
 
 **Files Modified:**
 1. [src/cli/email-source-adapter.ts](src/cli/email-source-adapter.ts) - All three adapter implementations
@@ -66,12 +66,10 @@ The adapter correctly simulates both alert and detail page flows for validation.
   - `e2e-job-queue.json`
   - `e2e-job-trash.json`
   - `e2e-needs-enrichment.json`
-- Created `e2e-output/` directory for exports during adapter runs
-- Export script exports to `src/db/e2e-output/` for permanent record
+- Export script writes all E2E runtime artifacts to `src/db/e2e-output/`
 
 **Export Locations:**
-- Runtime: `e2e-output/` (created by adapters when EXPORT_E2E_OUTPUT=1)
-- Permanent: `src/db/e2e-output/` (created by export:e2e script)
+- Canonical runtime + persisted output: `src/db/e2e-output/` (used by adapters and `export:e2e`)
 
 **Summary Report:**
 The export script now includes needs_enrichment statistics in the summary:
@@ -120,8 +118,7 @@ The export script now includes needs_enrichment statistics in the summary:
 3. `scripts/export-e2e-output.ts` - Added needs_enrichment collection to exports
 
 ### Created Files:
-1. `e2e-output/` - Directory for runtime exports
-2. `IMPLEMENTATION_SUMMARY.md` - This summary document
+1. `IMPLEMENTATION_SUMMARY.md` - This summary document
 
 ### Generated Output Files:
 1. `src/db/e2e-output/e2e-job-queue.json` - Queued jobs
@@ -152,7 +149,7 @@ This runs the complete pipeline:
 - ✅ clipboardGetter is properly consumed in adapter.run()
 - ✅ Gmail fixtures use correct alert + detail page pairings
 - ✅ needs_enrichment data is tracked and exported
-- ✅ E2E output is generated in both runtime (e2e-output/) and permanent (src/db/e2e-output/) locations
+- ✅ E2E output is generated in the canonical `src/db/e2e-output/` location
 - ✅ Export script includes needs_enrichment statistics
 - ✅ All adapters support needs_enrichment export
 - ✅ Tests pass with valid queued jobs
@@ -162,5 +159,48 @@ This runs the complete pipeline:
 
 - The needs_enrichment collection tracks jobs that need further review or enrichment
 - Current tracking reasons include: missing_skills, incomplete_description, low_match_score, unverified_platform, missing_enrichment, filter_warning, user_requested
-- The export mechanism respects the EXPORT_E2E_OUTPUT environment variable for runtime exports
-- The permanent export to src/db/e2e-output/ runs automatically with the export:e2e script
+- The export mechanism respects the EXPORT_E2E_OUTPUT environment variable while writing to `src/db/e2e-output/`
+- The canonical export to `src/db/e2e-output/` runs automatically with the export:e2e script
+
+## Long-Living Fire Addendum (Operator Baseline)
+
+### Fire Sequence (What to Run)
+
+Run in strict order:
+
+```bash
+npm run test:e2e
+npm run integrity:once
+npm run manual-enrichment -- --poll-ms=5000
+VERIFY_P0_HARD=1 VERIFY_P1P2_HARD=1 npm run verify:e2e-output
+```
+
+Fire long-living mode only when all commands pass and canonical artifacts are refreshed.
+
+### CI + CI Graph Loop Interpretation
+
+- CI pass is necessary but not sufficient; hard-gate verification and artifact evidence are required.
+- Evaluate graph drift by checking relationship across `raw_ingest -> parse_log -> (job_queue|job_trash|needs_enrichment)`.
+- If `needs_enrichment` grows while terminal transitions flatten, treat as human-loop pressure and hold promotion.
+- If parse failure/trash ratio rises after hot commit, route to rollback-or-patch path.
+
+### Core Pipeline Hot Commit Protocol
+
+- Scope: parse, filter, scoring, routing, manual enrichment, export, verification.
+- Required: rerun full fire sequence after each in-scope hot commit.
+- Promotion is blocked if P0 runtime evidence contract is broken, even with otherwise green CI.
+
+### TUI Routing Logic Evidence (Runtime Contract)
+
+Evidence must exist in artifacts, not only tests:
+
+1. Terminal action in `e2e-action-log.json` (`manual_validate_to_queue` or `manual_reject_to_trash`).
+2. Route marker in `e2e-needs-enrichment.json` (`finalRoute`).
+3. Matching terminal collection write in `e2e-job-queue.json` or `e2e-job-trash.json`.
+
+### No-Data-Loss Compliance by Design
+
+- Canonical compliance record: `src/db/e2e-output/*`.
+- Every core transition must be durable and exportable for audit replay.
+- Promotion decision is gate-driven by P-index, with P0 mandatory on `main`.
+- TUI test matrices can support confidence, but runtime evidence is the acceptance source of truth.

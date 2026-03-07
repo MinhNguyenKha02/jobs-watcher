@@ -29,6 +29,27 @@ type PendingEnrichment = {
   nextRetryAt?: Date;
 };
 
+type LegacyTerminalAction = 'manual_validate_to_queue' | 'manual_reject_to_trash';
+type LegacyTerminalRoute = 'job_queue' | 'job_trash';
+
+function getLegacyTerminalRoute(action: LegacyTerminalAction): LegacyTerminalRoute {
+  return action === 'manual_validate_to_queue' ? 'job_queue' : 'job_trash';
+}
+
+export function buildLegacyActionLogEntry(
+  messageId: string,
+  action: LegacyTerminalAction,
+  details: Record<string, unknown>
+): Record<string, unknown> {
+  return {
+    timestamp: new Date().toISOString(),
+    messageId,
+    action,
+    source: 'legacy_manual_enrichment_loop',
+    details,
+  };
+}
+
 function createReadline(): readline.Interface {
   return readline.createInterface({
     input: process.stdin,
@@ -120,6 +141,8 @@ async function processNextPending(mongo: MongoClient, rl: readline.Interface): P
   const db = mongo.db(config.mongodb.dbName);
   const needsCollection = db.collection('needs_enrichment');
   const queueCollection = db.collection('job_queue');
+  const trashCollection = db.collection('job_trash');
+  const actionLogCollection = db.collection('action_log');
 
   const next = await needsCollection.findOneAndUpdate(
     {
@@ -191,16 +214,48 @@ async function processNextPending(mongo: MongoClient, rl: readline.Interface): P
     }
 
     if (action === 's') {
+      const rejectReason = 'operator_skipped_legacy';
+      const route = getLegacyTerminalRoute('manual_reject_to_trash');
+
+      await trashCollection.insertOne({
+        messageId: pending.messageId,
+        reason: rejectReason,
+        phase: 'manual_enrichment',
+        source: 'legacy_manual_enrichment_loop',
+        original: {
+          messageId: pending.messageId,
+          jobTitle: pending.jobTitle,
+          company: pending.company,
+          location: pending.location,
+          url: pending.url,
+          currentScore: pending.currentScore,
+          currentSkills: pending.currentSkills,
+          missingFields: pending.missingFields,
+          warnings: pending.warnings,
+        },
+        createdAt: new Date(),
+      });
+
       await needsCollection.updateOne(
         { _id: pending._id },
         {
           $set: {
             status: 'skipped',
             updatedAt: new Date(),
-            enrichmentNotes: 'Skipped by operator',
+            enrichmentNotes: `Skipped by operator: ${rejectReason}`,
+            finalRoute: route,
+            finalReason: rejectReason,
           },
         }
       );
+
+      await actionLogCollection.insertOne(
+        buildLegacyActionLogEntry(pending.messageId, 'manual_reject_to_trash', {
+          route,
+          reason: rejectReason,
+        })
+      );
+
       return true;
     }
 
@@ -301,8 +356,19 @@ async function processNextPending(mongo: MongoClient, rl: readline.Interface): P
             enrichedAt: new Date(),
             enrichmentSource: 'manual',
             enrichmentNotes: 'Validated and queued via TUI',
+            finalRoute: getLegacyTerminalRoute('manual_validate_to_queue'),
+            manuallyValidated: true,
+            manuallyValidatedAt: new Date(),
           },
         }
+      );
+
+      await actionLogCollection.insertOne(
+        buildLegacyActionLogEntry(pending.messageId, 'manual_validate_to_queue', {
+          route: getLegacyTerminalRoute('manual_validate_to_queue'),
+          matchScore: draft.matchScore,
+          skills: draft.matchedProfileSkills,
+        })
       );
 
       logger.info(`[ManualEnrichment] Queued validated job: ${pending.messageId}`);

@@ -41,8 +41,8 @@ All input contexts are normalized and processed through the same queue, deduplic
 
 This document records key decisions made during the redesign of Jobs Watcher, including rationale, tradeoffs, and alternatives considered.
 
-**Last Updated**: February 15, 2026  
-**Status**: Staging Phase (Decisions 1-10 implemented, 11+ planned)  
+**Last Updated**: March 6, 2026  
+**Status**: Long-Living 24/7 Phase (continuous gate model)  
 **Scope**: Architecture, data layer, integration patterns, testing strategy
 
 ---
@@ -643,21 +643,21 @@ The codebase must support both ESM and CJS module resolution, strict TypeScript 
 ### Outcome
 ✅ Codebase is hybrid ESM/TS compatible, Option B compliant, and fully covered by real integration tests. All changes are tracked and validated via get_changed_files and pre-commit.
 
-**Current Phase (Staging - Feb 15-Mar 5, 2026):**
+**Current Phase (Long-Living 24/7):**
 - ✅ Score matcher engine v0.5 integrated (Feb 15)
-- ⏳ Sprint 1: Score validation & tuning (Feb 15-19)
-- ⏳ Sprint 2: Action logging & analytics (Feb 16-21)
-- ⏳ Sprint 3: Material generation (CV/cover letter) (Feb 22-Mar 3)
-- ⏳ Staging gate: Performance & feature validation (Mar 3-5)
+- ✅ Runtime validation is governed by [LONG_LIVING_EVALUATION.md](LONG_LIVING_EVALUATION.md)
+- ✅ Hard-gate verification and artifact evidence are mandatory promotion criteria
 
-**Planned Next Decisions (Post-Staging - Phase 4):**
+**Planned Next Decisions (Backlog under same phase):**
+
 - **Decision 11**: Web UI Architecture (React SPA vs Server-rendered)
 - **Decision 12**: Email Provider Support Strategy (Outlook, Yahoo, etc.)
 - **Decision 13**: Team Collaboration Mode (shared profiles, application tracking)
 - **Decision 14**: Machine Learning for Job Matching (classifier architecture)
 - **Decision 15**: Redis for Production Scaling (if memory/dedup needs grow)
 
-**Out-of-Scope (Defer to Phase 5+):**
+**Out-of-Scope (deferred backlog):**
+
 - Internationalization (i18n) support
 - Multi-account management
 - Integration with job boards (LinkedIn, Indeed scrapers)

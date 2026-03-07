@@ -7,7 +7,7 @@ Jobs Watcher ingests jobs from three unified input adapters, all accessible via 
 
 1. **Gmail Webhook Adapter (`GmailWebhookAdapter`)**: Real-time, event-driven ingestion from Gmail via Pub/Sub webhook. Listens on loopback for security. ACKs fast, processes in background.
 2. **Gmail API Adapter (`GmailApiAdapter`)**: Fallback batch ingestion using Gmail API (fetches and analyzes raw emails, used for CI and regression).
-3. **DB/Manual Adapter (`DbEmailSourceAdapter`)**: Ingests jobs from DB snapshots or manual/fixture sources for testing and validation.
+3. **Clipboard Adapter (`ClipboardOnlyAdapter`)**: Ingests jobs from clipboard/manual HTML sources for operator-assisted processing.
 
 All input sources are normalized and processed through a unified queue, deduplication, and idempotency logic. Deterministic engineering rules ensure:
 - No silent failures: All errors are logged and traceable.
@@ -19,9 +19,9 @@ All input sources are normalized and processed through a unified queue, deduplic
 Run any adapter via:
 
 ```sh
-npm run data-listening:webhook    # Real-time Gmail webhook (production)
-npm run data-listening:gmail-api  # Gmail API fallback (CI, regression)
-npm run data-listening:db         # DB/manual/fixture ingestion (testing)
+npm run serve:hybrid   # Canonical long-living serve (real ingress + manual clipboard trigger)
+npm run data-listening -- --adapter=gmailWebhook   # Real-time Gmail webhook only
+INGRESS_FIXTURE_MODE=1 npm run data-listening -- --adapter=gmailApi # Fixture-only Gmail API run
 ```
 
 See [JOB_PROCESSING_QUEUE.md](JOB_PROCESSING_QUEUE.md#supported-input-contexts) and [DECISIONS.md](DECISIONS.md#input-contexts--platform-support) for more details.
@@ -37,7 +37,9 @@ See [JOB_PROCESSING_QUEUE.md](JOB_PROCESSING_QUEUE.md#supported-input-contexts) 
 
 ## Schedule Configuration & Constraints
 
-- **Semantic Versioning:** Every release is tagged (vX.Y.Z-beta.N). No untagged deployments.
+- **Canonical E2E Runtime Exports:** All E2E runtime export artifacts are written to `src/db/e2e-output/` only.
+
+- **Semantic Versioning:** Every release is tagged (vX.Y.Z). No untagged deployments.
 - **Backup & Rollback:** DB/config backups before each tag. Rollback is O(1) via tag reference.
 - **Time Reduction:** Queue-based concurrency, early termination for filtered jobs, memory/cpu constraints enforced.
 - **Deterministic Rules:** Atomic commits, conventional commit messages, strict boundaries (UI → Application → Domain → Infrastructure).
@@ -89,9 +91,9 @@ Jobs Watcher follows a **Clean Architecture** pattern with strict separation of 
 - **`GmailApiAdapter`** (`src/cli/email-source-adapter.ts`)
   - Fetches and analyzes raw emails via Gmail API (batch mode)
   - Used for CI, regression, and fallback ingestion
-- **`DbEmailSourceAdapter`** (`src/cli/email-source-adapter.ts`)
-  - Ingests jobs from DB/manual/fixture sources
-  - Used for testing, validation, and manual import
+- **`ClipboardOnlyAdapter`** (`src/cli/email-source-adapter.ts`)
+  - Ingests jobs from clipboard/manual HTML sources
+  - Used for manual and hybrid operator workflows
 
 - **`simulate-webhook.ts`** (Testing helper)
   - Simulates Pub/Sub messages to test webhook locally

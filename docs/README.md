@@ -469,23 +469,29 @@ npm run data-listening
 # Runs on 127.0.0.1:3000
 ```
 
-### Staging/Beta
+### Long-Living Validation Profile
 ```bash
-# Set WEBHOOK_HOST to your staging domain
-export WEBHOOK_HOST=beta.example.com
+# Optional environment targeting for validation profile
+export WEBHOOK_HOST=validation.example.com
 
-# Set MongoDB to staging instance
-export MONGODB_URI=mongodb+srv://...staging...
+# Set MongoDB to validation instance
+export MONGODB_URI=mongodb+srv://...validation...
 
 npm run build
 npm run data-listening
+
+# Required long-living gate sequence
+npm run test:e2e
+npm run integrity:once
+npm run manual-enrichment -- --poll-ms=5000
+VERIFY_P0_HARD=1 VERIFY_P1P2_HARD=1 npm run verify:e2e-output
 ```
 
-### Production
+### Long-Living Operations Profile
 ```bash
-# Behind reverse proxy (Nginx, Cloud Load Balancer)
+# Internet-exposed operations profile (reverse proxy, fixed host)
 export WEBHOOK_HOST=jobs.example.com
-export MONGODB_URI=mongodb+srv://...production...
+export MONGODB_URI=mongodb+srv://...ops...
 
 npm run build
 npm run data-listening
@@ -618,7 +624,7 @@ MIT
 - **[ARCHITECTURE.md](ARCHITECTURE.md)**: Deep dive into clean architecture, layers, data flow
 - **[DECISIONS.md](DECISIONS.md)**: Design rationale, tradeoffs, alternatives considered
 - **[ENRICHMENT_FLOW.md](flows/ENRICHMENT_FLOW.md)**: Job enrichment and user workflow
-- **[STAGING_GUIDE.md](staging/STAGING_GUIDE.md)**: Staging and validation guide
+- **[LONG_LIVING_EVALUATION.md](LONG_LIVING_EVALUATION.md)**: Canonical long-living fire, evidence, fallback, and CI/hot-commit gates
 
 ---
 

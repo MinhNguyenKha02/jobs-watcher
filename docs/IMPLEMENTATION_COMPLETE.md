@@ -1,37 +1,30 @@
-# IMPLEMENTATION_COMPLETE.md
+# Implementation Completion Summary
 
-## Beta Stage Transition & Completion Summary (Phases 3A, 3B, 3C)
+## Single Long-Living Phase Baseline
 
-**Date:** 2026-02-16
+**Date:** 2026-03-06
 
----
+This project now uses a single operational readiness model: **Long-Living 24/7 Phase**.
+Legacy beta/pre-prod/prod staged readiness is retired.
 
-### ✅ Phase 3A: Core Features
-- All sprints (3A.1 Application Customizer, 3A.2 Template Editor, 3A.3 Document Generators) are implemented and tested.
-- See [PHASE_3A_MICRO_PLAN.md](PHASE_3A_MICRO_PLAN.md) for detailed micro plan and outcomes.
+Canonical operational gate and runtime governance:
 
-### ✅ Phase 3B: Automation & Analytics
-- All sprints (3B.1 Application Sender, 3B.2 Metrics & Analytics) are implemented and tested.
-- See [PHASE_3B_MICRO_PLAN.md](PHASE_3B_MICRO_PLAN.md) for detailed micro plan and outcomes.
+- [LONG_LIVING_EVALUATION.md](LONG_LIVING_EVALUATION.md)
 
-### ✅ Phase 3C: E2E & Regression
-- E2E and regression micro sprint completed. All acceptance criteria met.
-- See [PHASE_3C_MICRO_PLAN.md](PHASE_3C_MICRO_PLAN.md) for E2E and regression plan and outcomes.
+## Completed Foundations
 
-### 📝 Evaluation & Beta Readiness
-- See [PHASE_3A_3B_EVAL_DRAFT.md](PHASE_3A_3B_EVAL_DRAFT.md) for evaluation of test coverage, integration, and beta readiness.
-- All features from 3A and 3B are unit tested and integrated. E2E reliability is validated.
+- Core parsing/filtering/scoring pipeline implemented and integrated.
+- Manual enrichment operator path unified to `manual-enrichment -> enhanced-tui`.
+- Runtime evidence contract enforced via exported artifacts in `src/db/e2e-output/*`.
+- Hard-gate validation integrated for P0/P1/P2 checks.
+- CI validation path anchored on `verify:e2e-output` hard gate.
 
-### 📚 Documentation
-- All micro plans and evaluation drafts are present in `docs/` and referenced in the roadmap.
-- Roadmap and this file updated to reflect beta-ready status.
+## Current Readiness Statement
 
-### 🚦 Beta Stage: READY
-- All core features, automation, analytics, and E2E validation are complete.
-- System is modular, testable, and ready for beta release.
-- Minor E2E/test automation work may continue, but all critical gates are passed.
+- Readiness is evaluated continuously using the single long-living phase criteria.
+- Promotion decisions are based on runtime evidence and hard-gate results, not historical phase completion labels.
 
----
+## Historical Note
 
-**This document certifies that the project has reached beta readiness as of 2026-02-16.**
+Earlier phase documents (3A/3B/3C + evaluation draft) were legacy planning artifacts and are no longer active governance sources.
 

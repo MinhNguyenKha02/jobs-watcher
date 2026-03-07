@@ -6,17 +6,28 @@
  * - test/fixture mode: use fixture data by setting CLIPBOARD_FIXTURE_MODE=1
  */
 import { createHash } from 'crypto';
+import { createRequire } from 'module';
 
 import clipboardy from 'clipboardy';
 
-import {
-  indeedPlatformPageHtml1,
-  indeedPlatformPageHtml2,
-  linkedinPlatformPageHtml1,
-  linkedinPlatformPageHtml2,
-} from '../../tests/__fixtures__/emails.js';
+type ClipboardFixtureEmails = {
+  indeedPlatformPageHtml1: string;
+  indeedPlatformPageHtml2: string;
+  linkedinPlatformPageHtml1: string;
+  linkedinPlatformPageHtml2: string;
+};
+
+const require = createRequire(import.meta.url);
 
 let lastClipboardHash = '';
+
+function isClipboardFixtureModeEnabled(): boolean {
+  return process.env.CLIPBOARD_FIXTURE_MODE === '1';
+}
+
+function loadClipboardFixtures(): ClipboardFixtureEmails {
+  return require('../../tests/__fixtures__/emails.js') as ClipboardFixtureEmails;
+}
 
 function toHash(value: string): string {
   return createHash('sha256').update(value).digest('hex');
@@ -28,6 +39,13 @@ function isHtmlLike(text: string): boolean {
 
 // Simulate clipboard setter for tests: injects a fixture job by name
 export function clipboardSetter(fixtureName: string) {
+  const {
+    indeedPlatformPageHtml1,
+    indeedPlatformPageHtml2,
+    linkedinPlatformPageHtml1,
+    linkedinPlatformPageHtml2,
+  } = loadClipboardFixtures();
+
   const fixtures: Record<string, string> = {
     indeed1: indeedPlatformPageHtml1,
     indeed2: indeedPlatformPageHtml2,
@@ -39,6 +57,13 @@ export function clipboardSetter(fixtureName: string) {
 }
 
 async function getFixtureClipboard(): Promise<any[]> {
+  const {
+    indeedPlatformPageHtml1,
+    indeedPlatformPageHtml2,
+    linkedinPlatformPageHtml1,
+    linkedinPlatformPageHtml2,
+  } = loadClipboardFixtures();
+
   if ((global as any).__clipboardJob) {
     return [(global as any).__clipboardJob];
   }
@@ -51,7 +76,7 @@ async function getFixtureClipboard(): Promise<any[]> {
 }
 
 export async function clipboardGetter(): Promise<any[]> {
-  const fixtureMode = process.env.CLIPBOARD_FIXTURE_MODE === '1' || process.env.NODE_ENV === 'test';
+  const fixtureMode = isClipboardFixtureModeEnabled();
 
   if (fixtureMode) {
     return getFixtureClipboard();

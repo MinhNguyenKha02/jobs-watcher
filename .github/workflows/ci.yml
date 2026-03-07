@@ -15,7 +15,4 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run build
-      - run: npm run test:unit
-      - run: npm run test:integration
-      - run: EXPORT_E2E_OUTPUT=1 npm run test:e2e
+      - run: npm run ci:gate

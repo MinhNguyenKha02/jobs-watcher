@@ -49,6 +49,27 @@ interface DraftJob {
   requirements: string[];
 }
 
+export type TerminalRoute = 'job_queue' | 'job_trash';
+export type TerminalAction = 'manual_validate_to_queue' | 'manual_reject_to_trash';
+
+export function getTerminalRouteForAction(action: TerminalAction): TerminalRoute {
+  return action === 'manual_validate_to_queue' ? 'job_queue' : 'job_trash';
+}
+
+export function buildTuiActionLogEntry(
+  messageId: string,
+  action: string,
+  details: Record<string, unknown>
+): Record<string, unknown> {
+  return {
+    timestamp: new Date().toISOString(),
+    messageId,
+    action,
+    source: 'enhanced_tui',
+    details,
+  };
+}
+
 class EnhancedTUI {
   private rl: readline.Interface;
   private mongo!: MongoClient;
@@ -330,8 +351,9 @@ class EnhancedTUI {
             },
           }
         );
+        const route = getTerminalRouteForAction('manual_reject_to_trash');
         await this.logRouteAction(pending.messageId, 'manual_reject_to_trash', {
-          route: 'job_trash',
+          route,
           reason: rejectReason,
         });
         console.log('⏭️  Job skipped');
@@ -429,8 +451,9 @@ class EnhancedTUI {
             },
           }
         );
+        const route = getTerminalRouteForAction('manual_validate_to_queue');
         await this.logRouteAction(pending.messageId, 'manual_validate_to_queue', {
-          route: 'job_queue',
+          route,
           matchScore: draft.matchScore,
           skills: draft.matchedProfileSkills,
         });
@@ -485,13 +508,7 @@ class EnhancedTUI {
     details: Record<string, unknown>
   ): Promise<void> {
     const db = this.mongo.db(config.mongodb.dbName);
-    await db.collection('action_log').insertOne({
-      timestamp: new Date().toISOString(),
-      messageId,
-      action,
-      source: 'enhanced_tui',
-      details,
-    });
+    await db.collection('action_log').insertOne(buildTuiActionLogEntry(messageId, action, details));
   }
 
   private sleep(ms: number): Promise<void> {

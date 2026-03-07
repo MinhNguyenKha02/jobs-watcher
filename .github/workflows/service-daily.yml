@@ -16,10 +16,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: npm run data-listening:gmailApi
-      - run: npm run export:all
-      - run: npm run inspect:db
-      - run: npm run inspect:logs
+      - run: npm run data-listening -- --adapter=gmailApi
+      - run: npm run ll:daily:closeout
       - uses: actions/upload-artifact@v4
         with:
           name: e2e-output-${{ github.run_id }}

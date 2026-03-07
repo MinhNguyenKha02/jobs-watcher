@@ -48,6 +48,14 @@ const logger = getLogger();
 
 type RawIngestSource = 'GMAIL_WEBHOOK' | 'GMAIL_MANUAL' | 'HTML_ONLY';
 
+function isIngressFixtureModeEnabled(): boolean {
+  return process.env.INGRESS_FIXTURE_MODE === '1';
+}
+
+async function loadFixtureEmails() {
+  return import('../../tests/__fixtures__/emails.js');
+}
+
 function decodeBase64Maybe(value: string): string {
   try {
     return Buffer.from(value, 'base64').toString('utf-8');
@@ -1016,9 +1024,33 @@ export class GmailWebhookAdapter implements EmailSourceAdapter {
     }
   }
 
+  isConnected(): boolean {
+    return this.webhook !== null;
+  }
+
+  async processMessageById(messageId: string): Promise<void> {
+    if (!this.webhook) {
+      throw new Error('GmailWebhookAdapter is not connected');
+    }
+
+    const payload = Buffer.from(JSON.stringify({ messageId }), 'utf-8').toString('base64');
+    await this.webhook.processJobNotification({
+      message: {
+        data: payload,
+      },
+    });
+  }
+
   async run(): Promise<void> {
+    if (!isIngressFixtureModeEnabled()) {
+      logger.info(
+        '[gmail-webhook] Fixture run is disabled (INGRESS_FIXTURE_MODE!=1). Listener mode uses webhook events only.'
+      );
+      return;
+    }
+
     const { indeedEmailAlert, topCVEmailAlert, topCVDetailPageHTML, indeedDetailPageHTML } =
-      await import('../../tests/__fixtures__/emails.js');
+      await loadFixtureEmails();
     const jobs = [topCVEmailAlert, indeedEmailAlert, topCVDetailPageHTML, indeedDetailPageHTML];
     await processGmailFixtureRun('gmail-webhook', jobs);
   }
@@ -1244,8 +1276,15 @@ export class GmailApiAdapter implements EmailSourceAdapter {
   }
 
   async run(): Promise<void> {
+    if (!isIngressFixtureModeEnabled()) {
+      logger.info(
+        '[gmail-api] Fixture run is disabled (INGRESS_FIXTURE_MODE!=1). Real Gmail API fetch flow is expected in live ingress mode.'
+      );
+      return;
+    }
+
     const { indeedEmailAlert, topCVEmailAlert, topCVDetailPageHTML, indeedDetailPageHTML } =
-      await import('../../tests/__fixtures__/emails.js');
+      await loadFixtureEmails();
     const jobs = [topCVEmailAlert, indeedEmailAlert, topCVDetailPageHTML, indeedDetailPageHTML];
     await processGmailFixtureRun('gmail-api', jobs);
   }

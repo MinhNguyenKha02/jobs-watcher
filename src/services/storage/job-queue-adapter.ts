@@ -6,6 +6,7 @@
  */
 
 import { MongoClient, ObjectId } from 'mongodb';
+
 import { getLogger } from '../logger.js';
 const logger = getLogger();
 
@@ -13,6 +14,7 @@ export class MongoJobQueue {
   private client: MongoClient;
   private dbName: string;
   private collectionName: string;
+  private queueIndexEnsured = false;
 
   constructor(client: MongoClient, dbName = 'jobs_watcher', collectionName = 'job_queue') {
     this.client = client;
@@ -20,14 +22,61 @@ export class MongoJobQueue {
     this.collectionName = collectionName;
   }
 
-  async enqueue(job: any) {
+  private async ensureIndexes() {
+    if (this.queueIndexEnsured) return;
     const db = this.client.db(this.dbName);
+    await db.collection(this.collectionName).createIndex(
+      { messageId: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { messageId: { $type: 'string' } },
+      }
+    );
+    this.queueIndexEnsured = true;
+  }
+
+  async enqueue(job: any) {
+    await this.ensureIndexes();
+    const db = this.client.db(this.dbName);
+
+    if (typeof job?.messageId === 'string' && job.messageId.length > 0) {
+      const result = await db.collection(this.collectionName).updateOne(
+        { messageId: job.messageId },
+        {
+          $setOnInsert: {
+            ...job,
+            status: 'queued',
+            enqueuedAt: new Date(),
+          },
+          $set: {
+            lastSeenAt: new Date(),
+          },
+        },
+        { upsert: true }
+      );
+
+      if (result.upsertedCount > 0) {
+        logger.info('[MongoJobQueue] Job enqueued', {
+          jobId: result.upsertedId,
+          messageId: job.messageId,
+        });
+        return;
+      }
+
+      logger.warn('[MongoJobQueue] Duplicate job skipped (already queued)', {
+        messageId: job.messageId,
+      });
+      return;
+    }
+
     const result = await db.collection(this.collectionName).insertOne({
       ...job,
       status: 'queued',
       enqueuedAt: new Date(),
     });
-    logger.info('[MongoJobQueue] Job enqueued', { jobId: result.insertedId });
+    logger.info('[MongoJobQueue] Job enqueued without messageId dedup', {
+      jobId: result.insertedId,
+    });
   }
 
   async dequeue(): Promise<any | null> {

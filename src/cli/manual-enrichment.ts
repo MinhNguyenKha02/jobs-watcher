@@ -6,12 +6,19 @@ import { startEnhancedTui } from './enhanced-tui.js';
 
 const logger = getLogger();
 
+export function resolveManualEnrichmentPollMs(argv: string[], fallbackMs = 5000): number {
+  const pollArg = argv.find((arg) => arg.startsWith('--poll-ms='));
+  if (!pollArg) return fallbackMs;
+
+  const parsed = Number.parseInt(pollArg.split('=')[1], 10);
+  return Number.isNaN(parsed) ? fallbackMs : parsed;
+}
+
 async function runManualEnrichment(): Promise<void> {
-  const pollArg = process.argv.find((arg) => arg.startsWith('--poll-ms='));
-  const pollMs = pollArg ? Number.parseInt(pollArg.split('=')[1], 10) : 5000;
+  const pollMs = resolveManualEnrichmentPollMs(process.argv, 5000);
 
   logger.info('🎯 Manual enrichment uses enhanced TUI. Press Ctrl+C to stop.');
-  await startEnhancedTui(Number.isNaN(pollMs) ? 5000 : pollMs);
+  await startEnhancedTui(pollMs);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

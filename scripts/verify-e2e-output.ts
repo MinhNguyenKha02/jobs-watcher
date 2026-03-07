@@ -2,6 +2,13 @@ import fs from 'fs';
 import path from 'path';
 
 import { getE2EOutputDir, getE2EOutputDirRelativeToRoot } from '../src/utils/e2e-output-path.js';
+import {
+  type GateRecord,
+  type HardGateFailure,
+  type HardGateInput,
+  validateP0HardGate,
+  validateP1P2HardGate,
+} from '../src/utils/p-index-hard-gates.js';
 
 type ValidationFailure = {
   file: string;
@@ -93,6 +100,8 @@ function main() {
   const trash = readJson(path.join(outputDir, 'e2e-job-trash.json')) as unknown[];
   const needs = readJson(path.join(outputDir, 'e2e-needs-enrichment.json')) as unknown[];
   const parseLog = readJson(path.join(outputDir, 'e2e-parse-log.json')) as unknown[];
+  const actionLog = readJson(path.join(outputDir, 'e2e-action-log.json')) as unknown[];
+  const metrics = readJson(path.join(outputDir, 'e2e-metrics.json')) as unknown[];
 
   const downstream = queue.length + trash.length + needs.length;
   if (raw.length > 0 && downstream === 0) {
@@ -109,9 +118,35 @@ function main() {
     process.exit(1);
   }
 
+  const hardGateInput: HardGateInput = {
+    actionLog: actionLog as GateRecord[],
+    needsEnrichment: needs as GateRecord[],
+    jobQueue: queue as GateRecord[],
+    jobTrash: trash as GateRecord[],
+    metrics: metrics as GateRecord[],
+  };
+
+  const hardFailures: HardGateFailure[] = [];
+  if (process.env.VERIFY_P0_HARD === '1') {
+    hardFailures.push(...validateP0HardGate(hardGateInput));
+  }
+  if (process.env.VERIFY_P1P2_HARD === '1') {
+    hardFailures.push(...validateP1P2HardGate(hardGateInput));
+  }
+
+  if (hardFailures.length > 0) {
+    console.error(`[verify:e2e-output] Hard gate failed for ${relativeOutputDir}`);
+    hardFailures.forEach((failure) => {
+      console.error(`  - ${failure.gate}: ${failure.reason}`);
+    });
+    process.exit(1);
+  }
+
   console.log(
     `[verify:e2e-output] OK ${relativeOutputDir} raw=${raw.length} parse_log=${parseLog.length} queue=${queue.length} trash=${trash.length} needs_enrichment=${needs.length}`
   );
 }
 
-main();
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}
