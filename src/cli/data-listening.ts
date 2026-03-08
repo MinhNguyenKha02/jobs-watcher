@@ -29,6 +29,16 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 
+function isPidAlive(pid: number): boolean {
+  if (!pid || isNaN(pid)) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 import { config } from '../config.js';
 import { GmailService } from '../services/gmail.js';
 import { getLogger } from '../services/logger.js';
@@ -181,6 +191,21 @@ async function runDataListening() {
   const failureLogPath = path.join(process.cwd(), 'logs', 'stream-failures.jsonl');
   const servicePidPath = path.join(process.cwd(), 'logs', 'data-listening.pid');
 
+  // Remove stale PID file if present
+  if (fs.existsSync(servicePidPath)) {
+    try {
+      const stalePid = Number(fs.readFileSync(servicePidPath, 'utf-8').trim());
+      if (!isPidAlive(stalePid)) {
+        fs.unlinkSync(servicePidPath);
+        // eslint-disable-next-line no-console
+        console.warn(`[data-listening] Removed stale PID file for dead process: ${stalePid}`);
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(`[data-listening] Failed to check/remove stale PID file: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   const writeServicePid = () => {
     try {
       fs.mkdirSync(path.dirname(servicePidPath), { recursive: true });
@@ -199,6 +224,11 @@ async function runDataListening() {
       // noop
     }
   };
+
+  // Always remove PID file on exit
+  process.on('exit', () => {
+    removeServicePid();
+  });
 
   const appendFailureLog = (stream: string, error: unknown, retryAttempt = 0) => {
     try {
@@ -370,6 +400,8 @@ async function runDataListening() {
     process.on('uncaughtException', (error) => {
       logger.error(`Uncaught exception captured in long-living service: ${error.message}`);
       appendFailureLog('runtime-uncaughtException', error);
+      removeServicePid();
+      process.exit(1);
     });
 
     process.on('SIGINT', async () => {

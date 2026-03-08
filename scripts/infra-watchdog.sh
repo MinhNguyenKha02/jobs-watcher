@@ -32,22 +32,11 @@ log() {
   echo "[infra-watchdog] $(date -Iseconds) $*" >> "$WATCHDOG_LOG_FILE"
 }
 
-NOTIFY_LAST_SENT_EPOCH=0
-NOTIFY_MIN_INTERVAL_SEC=1  # Only one notification per second max
-NOTIFY_TIMEOUT_MS=6000     # Notification disappears after 6 seconds
+
 
 notify_state() {
-  local urgency="$1"
-  local message="$2"
-  local now_epoch
-  now_epoch="$(date +%s)"
-  if command -v notify-send >/dev/null 2>&1; then
-    # Rate limit: only send if at least NOTIFY_MIN_INTERVAL_SEC since last
-    if [ $((now_epoch - NOTIFY_LAST_SENT_EPOCH)) -ge $NOTIFY_MIN_INTERVAL_SEC ]; then
-      notify-send -u "$urgency" -t "$NOTIFY_TIMEOUT_MS" "Jobs Watcher Watchdog" "$message"
-      NOTIFY_LAST_SENT_EPOCH="$now_epoch"
-    fi
-  fi
+  # GUI notification disabled; all alerts are TTY/log-only
+  true
 }
 
 read_pid_file() {

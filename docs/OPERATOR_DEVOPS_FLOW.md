@@ -1,27 +1,62 @@
-## Gmail MessageId Sync and Data Loss Prevention
+## Manual Crash, Restart, and Degrade Handling
 
-   - If any messageIds are missing from the webhook, they are written to `logs/webhook-missing-messageids.json`.
-   - To reprocess missing messageIds, run `scripts/trigger-webhook-missing.sh` (requires webhook endpoint to be accessible on localhost).
- After each Gmail API fetch, persist all messageIds (with timestamp) from the last 7 days using `scripts/persist-gmail-messageids.sh`.
- Webhook-processed messageIds are also persisted to `logs/webhook-messageids-latest.json` by the core pipeline.
+If any background service (core pipeline, infra-monitor, etc.) crashes or is unresponsive:
 
- **All validation, aggregation, retrigger, and log rotation are performed locally via bash scripts. No GitHub Actions or cloud automation is used for messageId sync or artifact aggregation.**
+1. **Manual Restart:**
+   - Use `npm run ll:infra:stop` then `npm run ll:infra:autostart` in Terminal B.
+   - Monitor logs with `tail -f logs/infra-monitor.log`.
+2. **Graceful Fallback:**
+   - If the supervisor fails to recover, repeat the stop/autostart sequence.
+   - If repeated failures occur, switch to manual monitoring (run `npm run ll:infra:monitor` periodically and log incidents; all notifications are TTY/log-only).
+3. **Degrade Mode:**
+   - If automation is degraded, continue shift operations manually and log all incidents for later review.
+   - No auto-escalation: all fallback and degrade actions are local/manual. No GUI notifications are used; all alerts are logged.
 
-
-**Weekly and daily aggregation, validation, and retrigger:**
-
-- Run `scripts/validate-webhook-sync.sh` to compare Gmail and webhook messageId lists (weekly or as needed):
-   - If any messageIds are missing from the webhook, they are written to `logs/webhook-missing-messageids.json`.
-   - To reprocess missing messageIds, run `scripts/trigger-webhook-missing.sh` (requires webhook endpoint to be accessible on localhost).
-- After validation/retrigger, run log/email rotation scripts to maintain compliance and retention.
-
-
-**Artifacts:**
-
-- Daily and weekly aggregates are produced by local scripts (see below for schedule and commands).
-- Artifacts are rotated and aggregated locally; reviewable bundles are available in `logs/shift-reports/`, `logs/feedback-reports/`, and `e2e-output/`.
+**Commit Guidance:**
+- Patch and commit each logical change (script, service, doc) separately.
+- All patches and restarts are local-only; no remote/CI automation is used.
 
 # Solo DevOps Runbook (Long-Living Phase)
+
+## Index
+
+1. [Terminal Layout](#terminal-layout)
+2. [Notification Policy](#notification-policy)
+3. [Typical Daily Flow](#typical-daily-flow)
+4. [Ownership Model](#ownership-model-devops-only)
+5. [Runtime Architecture](#runtime-architecture-always-on)
+6. [Shift Schedule Contract](#shift-schedule-contract-0900-2100)
+7. [Terminal Contract](#terminal-contract)
+8. [Shift Flow](#shift-flow-sequential)
+9. [Incident Policy](#incident-policy-fallback--recovery)
+10. [Artifact and Validation Boundary](#local-only-artifact-and-validation-boundary)
+11. [Issue Escalation Policy](#issue-escalation-policy)
+12. [One-Screen Daily Command Set](#one-screen-daily-command-set)
+
+---
+
+## Terminal Layout
+
+1. **Terminal A — TUI Decision Terminal**
+   - `npm run ll:human:loop`
+   - No infra/monitor commands here.
+2. **Terminal B — DevOps Control Terminal**
+   - `npm run ll:infra:monitor` (runs infra-monitor, which logs all health/incidents)
+   - `tail -f logs/infra-monitor.log` (live incident view)
+
+## Notification Policy
+
+- All infra and CASE alerts are logged to TTY and log files only (no GUI notifications).
+- Urgency is indicated by symbols: [!] (critical), [*] (warning), [✓] (ok), etc.
+- All notifications are traceable and rotated at end of day.
+
+## Typical Daily Flow
+
+1. Open Terminal B, run `npm run ll:infra:monitor` and `tail -f logs/infra-watchdog.log`.
+2. Open Terminal A, run `npm run ll:human:loop`.
+3. Respond to terminal/log notifications immediately (see above policy).
+4. At shift checkpoints, run `npm run ll:shift:aggregate` and review logs/artifacts.
+5. For incidents, follow the fallback/recovery sequence in this guide.
 
  This is the single operational guide for one person owning runtime operations, artifact evidence, and shift governance while keeping TUI decisions manual. All operations are local-only; no GitHub Actions or cloud automation is used for runtime, validation, or artifact aggregation.
 
@@ -100,13 +135,12 @@ Use this layout consistently (local-only):
 2. Run `npm run clipboard:trigger` only when manual clipboard ingest is needed.
 3. On desktop alert (see below for notification details), immediately run:
 
-   ### Desktop Notification Policy
+   ### Terminal Notification Policy
 
-   - All infra alerts use `notify-send` with a 6-second timeout (`-t 6000`).
-   - Only one notification is sent per second at most (rate-limited in script).
-   - Notifications disappear from the screen after timeout, but remain in the GNOME notification queue until cleared.
-   - **Manual clear:** At the end of each shift or day, use the GNOME notification UI to clear all queued notifications (no auto-clear script; this is a GNOME feature).
-   - Notifications are append-only: all alerts are queued and visible in the notification center until manually cleared.
+   - All infra alerts are output to TTY and log files only.
+   - Urgency is shown by symbols ([!], [*], [✓]) and clear text.
+   - All notifications are append-only in logs and rotated at end of day.
+   - No GUI notifications are used; all alerts are visible in the terminal and logs.
 
    ## Log and Email Rotation Policy
 
@@ -122,10 +156,10 @@ Use this layout consistently (local-only):
    - No runtime or fixed schedule for maintenance; cleanup is handled by scripts after each fetch/closeout.
    - If a weekly low-load window is needed, schedule a cron job (e.g., Sunday 02:00) and document it here.
    - `npm run ll:infra:monitor`
-   - `tail -n 100 logs/infra-watchdog.log`
+   - `tail -n 100 logs/infra-monitor.log`
 4. Append second-level incident snapshot to monitor log for traceability:
-   - `echo "[$(date +%Y-%m-%dT%H:%M:%S%z)] alert-captured" >> logs/infra-watchdog.log`
-   - `npm run ll:infra:monitor >> logs/infra-watchdog.log 2>&1`
+   - `echo "[$(date +%Y-%m-%dT%H:%M:%S%z)] alert-captured" >> logs/infra-monitor.log`
+   - `npm run ll:infra:monitor >> logs/infra-monitor.log 2>&1`
 5. Keep decisions deterministic:
    - `manual_validate_to_queue`
    - `manual_reject_to_trash`
@@ -133,7 +167,7 @@ Use this layout consistently (local-only):
 Recommended cadence during active shift window:
 
 - Every 30-60 minutes: run `npm run ll:infra:monitor` from Terminal B.
-- On each desktop alert: run the alert response block above within 1 minute.
+- On each terminal/log alert: run the alert response block above within 1 minute.
 
 ### 3) Shift Close
 
@@ -147,15 +181,15 @@ Recommended cadence during active shift window:
 
 ## Incident Policy (Fallback + Recovery)
 
-`infra-watchdog` behavior:
+`infra-monitor` behavior:
 
-- **warning**: soft throttle (`renice` + `ionice`).
-- **critical**: graceful stop -> force-kill fallback -> cooldown sleep -> supervisor restart.
+- **[*] warning**: soft throttle (`renice` + `ionice`).
+- **[!] critical**: graceful stop -> force-kill fallback -> cooldown sleep -> supervisor restart.
 
 Manual intervention sequence:
 
 1. `npm run ll:infra:monitor`
-2. Inspect watchdog/supervisor logs
+2. Inspect infra-monitor/supervisor logs
 3. If unstable loop persists:
    - `npm run ll:infra:stop`
    - wait 10s
@@ -165,7 +199,7 @@ Manual intervention sequence:
 TUI boundary rule in incidents:
 
 - Keep Terminal A focused on pending human decisions.
-- Perform all infra recovery in Terminal B.
+   - Perform all infra recovery in Terminal B (TTY/log only).
 
 ## CI and Artifact Boundary
 

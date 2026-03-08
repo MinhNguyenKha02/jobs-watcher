@@ -8,9 +8,6 @@ LATEST_CASES_FILE="$ROOT_DIR/logs/feedback-reports/daily-cases-latest.json"
 
 if [ ! -f "$LATEST_CASES_FILE" ]; then
   echo "[ll-notify] cases artifact missing: $LATEST_CASES_FILE"
-  if command -v notify-send >/dev/null 2>&1; then
-    notify-send -u normal "Jobs Watcher" "No latest CASE artifact found"
-  fi
   exit 0
 fi
 
@@ -21,10 +18,4 @@ TOP_CASES="$(node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync(
 echo "[ll-notify] verdict=$VERDICT cases=$CASE_COUNT top=$TOP_CASES"
 cat "$LATEST_CASES_FILE"
 
-if command -v notify-send >/dev/null 2>&1; then
-  urgency="normal"
-  if [ "$VERDICT" = "NO-GO" ]; then
-    urgency="critical"
-  fi
-  notify-send -u "$urgency" "Jobs Watcher CASE" "verdict=$VERDICT cases=$CASE_COUNT top=$TOP_CASES"
-fi
+

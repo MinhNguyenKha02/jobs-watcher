@@ -1,5 +1,6 @@
 import { getLogger } from './logger.js';
 import { notifyUser } from './notifications.js';
+import type { Notification } from './notifications.js';
 
 const logger = getLogger();
 
@@ -72,6 +73,9 @@ export class MemoryMonitor {
     const cpuLevel =
       cpuPercent >= cpuCritical ? 'critical' : cpuPercent >= cpuWarning ? 'warning' : 'ok';
 
+    // Use a consistent notification ID for deduplication
+    const notifyId = 2001;
+
     if (memoryLevel === 'ok') {
       this.lastLevel = 'ok';
     }
@@ -93,6 +97,7 @@ export class MemoryMonitor {
         title,
         message,
         urgency: memoryLevel === 'critical' ? 'high' : 'normal',
+        id: notifyId,
       });
 
       this.lastLevel = memoryLevel;
@@ -112,6 +117,7 @@ export class MemoryMonitor {
         title,
         message,
         urgency: cpuLevel === 'critical' ? 'high' : 'normal',
+        id: notifyId,
       });
 
       this.lastCpuLevel = cpuLevel;

@@ -18,6 +18,7 @@ LATEST_CASES_FILE="$LOG_DIR/feedback-reports/daily-cases-latest.json"
 RUN_HARD_GATE="${RUN_HARD_GATE:-1}"
 RUN_DAILY_FEEDBACK="${RUN_DAILY_FEEDBACK:-1}"
 
+
 {
   echo "[shift] started at $(date -Iseconds)"
   echo "[shift] collecting infra monitor"
@@ -78,15 +79,16 @@ fs.writeFileSync(process.env.REPORT_JSON, JSON.stringify(report, null, 2));
   echo "report_json=$REPORT_JSON"
 } >> "$REPORT_TXT"
 
+
 cp "$REPORT_TXT" "$LATEST_TXT"
 cp "$REPORT_JSON" "$LATEST_JSON"
 
-if [ "${DISABLE_NOTIFY:-0}" != "1" ] && command -v notify-send >/dev/null 2>&1; then
-  urgency="normal"
-  if [ "$VERDICT" = "NO-GO" ] || [ "$GATE_STATUS" = "fail" ]; then
-    urgency="critical"
-  fi
-  notify-send -u "$urgency" "Jobs Watcher Shift" "gate=$GATE_STATUS verdict=$VERDICT cases=$CASE_COUNT"
-fi
+# Notify shift close
+
+
+
+
+
+
 
 cat "$REPORT_TXT"

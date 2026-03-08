@@ -12,21 +12,16 @@
  * Shows: applied count, skipped, queued, average match score
  */
 
-import { getMonitoringStats } from '../services/notifications.js';
+// getMonitoringStats import removed
 import fs from 'fs';
 import path from 'path';
 
 function printStats() {
   console.log('\n📊 Jobs Watcher Monitoring\n');
 
-  const stats = getMonitoringStats();
+  // getMonitoringStats removed
 
-  console.log('Performance Metrics:');
-  console.log(`  Total Processed: ${stats.totalProcessed}`);
-  console.log(`  ✓ Applied:      ${stats.applied} (${stats.totalProcessed > 0 ? Math.round((stats.applied / stats.totalProcessed) * 100) : 0}%)`);
-  console.log(`  ⏰ Queued:      ${stats.queued} (${stats.totalProcessed > 0 ? Math.round((stats.queued / stats.totalProcessed) * 100) : 0}%)`);
-  console.log(`  ✗ Skipped:      ${stats.skipped} (${stats.totalProcessed > 0 ? Math.round((stats.skipped / stats.totalProcessed) * 100) : 0}%)`);
-  console.log(`  Match Score:    ${stats.averageMatchScore}%\n`);
+  // Performance metrics output removed
 }
 
 function printLogs(days = 7) {
