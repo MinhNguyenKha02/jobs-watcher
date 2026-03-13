@@ -1,21 +1,21 @@
+import type { Job, Profile } from '../types.js';
+import type { ParsedJobData } from '../services/parsers/parser-ports.js';
 // Utility to sanitize job objects before storing in job_trash
-function sanitizeJobForTrash(job: any): any {
-  if (!job || typeof job !== 'object') return job;
+function sanitizeJobForTrash(job: unknown): Record<string, unknown> {
+  if (!job || typeof job !== 'object') return {};
   const clone = JSON.parse(JSON.stringify(job));
   // Remove or summarize large/raw fields
-  if (clone.payload && clone.payload.body && clone.payload.body.data) {
-    // If base64 and very large, replace with summary
+  if ('payload' in clone && clone.payload && typeof clone.payload === 'object' && 'body' in clone.payload && clone.payload.body && typeof clone.payload.body === 'object' && 'data' in clone.payload.body) {
     const data = clone.payload.body.data;
     if (typeof data === 'string' && data.length > 200) {
       clone.payload.body.data = `[base64 string, length=${data.length}]`;
     }
   }
-  if (clone.body && typeof clone.body === 'string' && clone.body.length > 200) {
+  if ('body' in clone && typeof clone.body === 'string' && clone.body.length > 200) {
     clone.body = `[html string, length=${clone.body.length}]`;
   }
-  // Remove Buffer fields if present
   Object.keys(clone).forEach((k) => {
-    if (clone[k] && typeof clone[k] === 'object' && clone[k]._isBuffer) {
+    if (clone[k] && typeof clone[k] === 'object' && '_isBuffer' in clone[k]) {
       clone[k] = '[Buffer]';
     }
   });
@@ -64,11 +64,11 @@ function decodeBase64Maybe(value: string): string {
   }
 }
 
-function extractRawContent(input: any): string {
+function extractRawContent(input: unknown): string {
   if (typeof input === 'string') return input;
   if (!input || typeof input !== 'object') return String(input);
-  if (typeof input.body === 'string') return input.body;
-  if (input.payload?.body?.data && typeof input.payload.body.data === 'string') {
+  if ('body' in input && typeof (input as any).body === 'string') return (input as any).body;
+  if ('payload' in input && input.payload && typeof input.payload === 'object' && 'body' in input.payload && input.payload.body && typeof input.payload.body === 'object' && 'data' in input.payload.body && typeof input.payload.body.data === 'string') {
     return decodeBase64Maybe(input.payload.body.data);
   }
   try {
@@ -342,8 +342,8 @@ export interface EmailSourceAdapter {
 
 // --- Refactored Core Loop for Testability and Manual Enrichment ---
 export type JobFilterFn = (
-  job: any,
-  profile: any
+  job: Job | ParsedJobData | Record<string, unknown>,
+  profile: Profile | Record<string, unknown>
 ) => {
   passed: boolean;
   reasons: string[];
@@ -354,11 +354,11 @@ export type JobFilterFn = (
   relaxedFields?: any;
   matchedProfile?: any;
 };
-export type JobEnrichmentFn = (job: any, profile: any) => any;
-export type ManualEnrichmentFn = (job: any) => Promise<any>;
+export type JobEnrichmentFn = (job: Job | ParsedJobData | Record<string, unknown>, profile: Profile | Record<string, unknown>) => Record<string, unknown> | Promise<Record<string, unknown>>;
+export type ManualEnrichmentFn = (job: Job | ParsedJobData | Record<string, unknown>) => Promise<Record<string, unknown>>;
 
 export interface ClipboardOnlyAdapterOptions {
-  clipboardGetter: () => Promise<any[]>;
+  clipboardGetter: () => Promise<(Job | ParsedJobData | Record<string, unknown>)[]>;
   filterFn?: JobFilterFn;
   enrichFn?: JobEnrichmentFn;
   manualEnrichFn?: ManualEnrichmentFn;
@@ -377,15 +377,16 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
     this.manualEnrichFn = opts.manualEnrichFn;
   }
 
-  static async defaultEnrichFn(job: any, jobProfile: any) {
+  static async defaultEnrichFn(job: Job | ParsedJobData | Record<string, unknown>, jobProfile: Profile | Record<string, unknown>) {
     const { SmartGenerator } = await import('../services/generators/smart-generator.js');
+    const normalizeSkill = (s: string) => s.toLowerCase().trim();
     const generator = new SmartGenerator({
       ...jobProfile,
       summary: Array.isArray(jobProfile.summary)
         ? jobProfile.summary.join('\n')
         : jobProfile.summary,
       skills: Array.isArray(jobProfile.normalizedSkills)
-        ? jobProfile.normalizedSkills.map((s: any) => s.name)
+        ? jobProfile.normalizedSkills.map((s: any) => normalizeSkill(s.name))
         : [],
     });
     const requirements = generator.extractJobRequirements(job);
@@ -404,7 +405,7 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
   async run(): Promise<void> {
     // Get jobs from clipboardGetter - supports both HTML strings and objects with HTML in payload
     const clipboardJobs = await this.opts.clipboardGetter();
-    const jobs: any[] = Array.isArray(clipboardJobs)
+    const jobs: (Job | ParsedJobData | Record<string, unknown>)[] = Array.isArray(clipboardJobs)
       ? clipboardJobs
       : clipboardJobs
         ? [clipboardJobs]
@@ -443,13 +444,14 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
       );
 
       // Treat input as raw HTML string and parse with HtmlJobParser directly
-      const html =
-        typeof job === 'string'
-          ? job
-          : job.body ||
-            (job.payload && job.payload.body && job.payload.body.data
-              ? Buffer.from(job.payload.body.data, 'base64').toString('utf-8')
-              : '');
+      let html = '';
+      if (typeof job === 'string') {
+        html = job;
+      } else if ('body' in job && typeof (job as any).body === 'string') {
+        html = (job as any).body;
+      } else if ('payload' in job && job.payload && typeof job.payload === 'object' && 'body' in job.payload && job.payload.body && typeof job.payload.body === 'object' && 'data' in job.payload.body && typeof job.payload.body.data === 'string') {
+        html = Buffer.from(job.payload.body.data, 'base64').toString('utf-8');
+      }
       const parsed = htmlParser.parseJobFromHtml(html);
 
       if (!parsed) {
@@ -503,18 +505,19 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
 
       const parsedJob: Record<string, unknown> = {
         ...parsed,
-        position: (parsed as Record<string, unknown>).position || parsed.title,
+        position: (parsed as any).position || (parsed as any).title,
         messageId: getMessageId(parsed, 'clip'),
       };
 
       // --- Filtering ---
+      const normalizeSkill = (s: string) => s.toLowerCase().trim();
       const filterProfile = {
         ...jobProfile,
         summary: Array.isArray(jobProfile.summary)
           ? jobProfile.summary.join('\n')
           : jobProfile.summary,
         skills: Array.isArray(jobProfile.normalizedSkills)
-          ? jobProfile.normalizedSkills.map((s: any) => s.name)
+          ? jobProfile.normalizedSkills.map((s: any) => normalizeSkill(s.name))
           : [],
       };
       const filterResult = this.filterFn(parsedJob, filterProfile);
@@ -707,7 +710,7 @@ export class ClipboardOnlyAdapter implements EmailSourceAdapter {
   }
 }
 
-function parseEmailAlertToCandidates(job: any, emailParser: any): Array<Record<string, any>> {
+function parseEmailAlertToCandidates(job: Record<string, unknown>, emailParser: any): Array<Record<string, unknown>> {
   const html = Buffer.from(job.payload.body.data, 'base64').toString('utf-8');
   const emailId = getMessageId(job, 'gmail');
   const parseInput = {
@@ -752,13 +755,13 @@ function parseEmailAlertToCandidates(job: any, emailParser: any): Array<Record<s
   return [];
 }
 
-function parseDetailHtmlToCandidates(job: string, htmlParser: any): Array<Record<string, any>> {
+function parseDetailHtmlToCandidates(job: string, htmlParser: any): Array<Record<string, unknown>> {
   const parsed = htmlParser.parseJobFromHtml(job);
   if (!parsed) return [];
   return [{ ...parsed, messageId: getMessageId(parsed, 'detail') }];
 }
 
-async function processGmailFixtureRun(adapterName: string, jobs: any[]): Promise<void> {
+async function processGmailFixtureRun(adapterName: string, jobs: (Job | ParsedJobData | Record<string, unknown>)[]): Promise<void> {
   logger.info(`🚀 Starting ${adapterName} adapter (fixture-driven test mode)...`);
   const { canonicalProfile } = await import('../db/json.js');
   const { ProfileParser } = await import('../services/profile/profile-parser.js');
@@ -784,7 +787,7 @@ async function processGmailFixtureRun(adapterName: string, jobs: any[]): Promise
     ...jobProfile,
     summary: Array.isArray(jobProfile.summary) ? jobProfile.summary.join('\n') : jobProfile.summary,
     skills: Array.isArray(jobProfile.normalizedSkills)
-      ? jobProfile.normalizedSkills.map((s: any) => s.name)
+      ? jobProfile.normalizedSkills.map((s: any) => (typeof s.name === 'string' ? s.name.toLowerCase().trim() : s.name))
       : [],
   };
 
@@ -1016,6 +1019,10 @@ export class GmailWebhookAdapter implements EmailSourceAdapter {
     await gmailService.authenticate();
     this.webhook = new EventDrivenWebhook(gmailService);
     await this.webhook.connect();
+    // Start the HTTP server after connecting storage
+    if (typeof this.webhook.start === 'function') {
+      await this.webhook.start(this.options?.port || 3000);
+    }
   }
 
   async disconnect(): Promise<void> {
@@ -1055,7 +1062,7 @@ export class GmailWebhookAdapter implements EmailSourceAdapter {
     await processGmailFixtureRun('gmail-webhook', jobs);
   }
 
-  async handleGmailWebhookEvent(event: any): Promise<void> {
+  async handleGmailWebhookEvent(event: Record<string, unknown>): Promise<void> {
     // Normalize incoming event to ensure envelope fields are present
     const job = { ...(event || {}) };
     try {
@@ -1087,12 +1094,12 @@ export class GmailWebhookAdapter implements EmailSourceAdapter {
     const { ProfileParser } = await import('../services/profile/profile-parser.js');
     const jobProfile = ProfileParser.parse(canonicalProfile);
     const filterProfile = {
-      ...jobProfile,
+      ...jobProfile ,
       summary: Array.isArray(jobProfile.summary)
         ? jobProfile.summary.join('\n')
         : jobProfile.summary,
       skills: Array.isArray(jobProfile.normalizedSkills)
-        ? jobProfile.normalizedSkills.map((s) => s.name)
+        ? jobProfile.normalizedSkills.map((s) => (typeof s.name === 'string' ? s.name.toLowerCase().trim() : s.name))
         : [],
     };
     const filterResult = hybridJobFilter(job, filterProfile);

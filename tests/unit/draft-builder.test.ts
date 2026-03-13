@@ -165,13 +165,14 @@ describe('DraftBuilder', () => {
       expect(draft.profileHash).toBe('abc123hash');
     });
 
-    it('should match skills correctly', () => {
+    it('should match skills correctly using token-based matcher', () => {
       const draft = DraftBuilder.build(mockProfile, mockJob);
-
       expect(draft.matchedSkills).toContain('Go');
       expect(draft.matchedSkills).toContain('PostgreSQL');
       expect(draft.matchedSkills).toContain('REST');
       expect(draft.matchedSkills).toContain('Docker');
+      // ATS-friendliness: no false positives
+      expect(draft.matchedSkills).not.toContain('Laravel');
     });
 
     it('should calculate relevance score based on match quality', () => {

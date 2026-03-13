@@ -218,7 +218,7 @@ describe('constraints filter compatibility - ultra-junior focus', () => {
     expect(res.passes).toBe(true);
   });
 
-  test('Job with matching profile skills passes with good overlap', () => {
+  test('Job with matching profile skills passes with good overlap (token-based, ATS-friendly)', () => {
     const job = makeJob({
       position: 'Junior Full-Stack Developer',
       location: 'Remote',
@@ -229,6 +229,8 @@ describe('constraints filter compatibility - ultra-junior focus', () => {
     const res = filterJobCompatibility(job, freshGradProfile);
     expect(res.passes).toBe(true);
     expect(res.matchedSkills).toEqual(expect.arrayContaining(['typescript', 'react', 'node.js']));
+    // No false positives
+    expect(res.matchedSkills).not.toContain('Laravel');
   });
 
   test('Job with completely different tech stack does not block (skills advisory)', () => {

@@ -37,26 +37,40 @@ If any background service (core pipeline, infra-monitor, etc.) crashes or is unr
 
 ## Terminal Layout
 
-1. **Terminal A — TUI Decision Terminal**
+1. **Terminal A — Actions Terminal**
    - `npm run ll:human:loop`
-   - No infra/monitor commands here.
-2. **Terminal B — DevOps Control Terminal**
-   - `npm run ll:infra:monitor` (runs infra-monitor, which logs all health/incidents)
-   - `tail -f logs/infra-monitor.log` (live incident view)
+   - Use for actions at any time during the 09:00-21:00 shift window.
+   - No monitoring or metrics commands here.
+2. **Terminal B — Merged Infra/Core Monitor Terminal**
+   - Use three dedicated terminals for live monitoring:
+     - **B.1:** `tail -f logs/infra-monitor.log` (one-shot status snapshots, cron/manual at checkpoints)
+     - **B.2:** `tail -f logs/infra-watchdog.log` (continuous health/incident monitoring)
+     - **B.3:** `tail -f src/db/cache/jobs-watcher-$(date +%Y%m%d).log` (Node/TS main logs, daily rotated)
+   - Run `bash scripts/infra-monitor.sh >> logs/infra-monitor.log 2>&1` manually or via cron at 09:00 and 21:00 for status snapshots.
+   - All monitoring output must use urgency symbols ([!], [*], [✓]), include origin, and be traceable in logs (audit-compliant format).
+   - This ensures unified, audit-compliant monitoring of all background services, incidents, and eval/test flows.
+3. **Terminal C — Eval/Test Terminal**
+   - Reserved for eval stage (fetch/analyze/testing).
+   - Run `npm run eval:fetch-and-trigger` (MANDATORY at least once per shift; creates jobs for needs_enrichment in Terminal A).
+   - All outputs must use urgency symbols ([!], [*], [✓]), include origin, and be traceable in logs.
 
 ## Notification Policy
 
-- All infra and CASE alerts are logged to TTY and log files only (no GUI notifications).
-- Urgency is indicated by symbols: [!] (critical), [*] (warning), [✓] (ok), etc.
+- All infra, core, and CASE alerts are logged to TTY and log files only.
+- Urgency symbols ([!], [*], [✓]) and origin must be shown for every alert and log output, in all scripts and services, with no exceptions. This is enforced for all notification, incident, and eval stage outputs.
 - All notifications are traceable and rotated at end of day.
 
 ## Typical Daily Flow
 
-1. Open Terminal B, run `npm run ll:infra:monitor` and `tail -f logs/infra-watchdog.log`.
-2. Open Terminal A, run `npm run ll:human:loop`.
-3. Respond to terminal/log notifications immediately (see above policy).
-4. At shift checkpoints, run `npm run ll:shift:aggregate` and review logs/artifacts.
-5. For incidents, follow the fallback/recovery sequence in this guide.
+1. Open Terminal B with three terminals for live monitoring:
+   - B.1: `tail -f logs/infra-monitor.log`
+   - B.2: `tail -f logs/infra-watchdog.log`
+   - B.3: `tail -f src/db/cache/jobs-watcher-$(date +%Y%m%d).log`
+2. Open Terminal A for actions at any time during the shift.
+3. Open Terminal C for eval/test flows and job ingestion monitoring (run eval:fetch-and-trigger as required).
+4. Respond to terminal/log notifications immediately.
+5. At shift checkpoints, run aggregates and rotate infra-monitor logs.
+6. For incidents, follow fallback/recovery as described.
 
  This is the single operational guide for one person owning runtime operations, artifact evidence, and shift governance while keeping TUI decisions manual. All operations are local-only; no GitHub Actions or cloud automation is used for runtime, validation, or artifact aggregation.
 
@@ -104,7 +118,9 @@ Configure local cron (via `ll:cron:install`) to run:
 - `0 9 * * * ... npm run ll:scheduled:cycle`
 - `0 21 * * * ... npm run ll:scheduled:cycle`
 
- **No GitHub Actions or remote scheduler is used. All scheduling and aggregation is local.**
+At every shift open/close (09:00/21:00), run `bash scripts/infra-monitor.sh >> logs/infra-monitor.log 2>&1` (manual or via cron) to append a status snapshot. Logs are rotated daily by date.
+
+**No GitHub Actions or remote scheduler is used. All scheduling and aggregation is local.**
 
 ## Terminal Contract
 
@@ -131,9 +147,10 @@ Use this layout consistently (local-only):
 
 ### 2) During Shift
 
-1. Process `needs_enrichment` queue in TUI.
-2. Run `npm run clipboard:trigger` only when manual clipboard ingest is needed.
-3. On desktop alert (see below for notification details), immediately run:
+1. Use Terminal A for actions at any time during 09:00-21:00.
+2. Use Terminal C to run eval/test flows and monitor job ingestion as needed (MANDATORY: run eval:fetch-and-trigger at least once per shift).
+3. Run `npm run clipboard:trigger` only when manual clipboard ingest is needed.
+4. On terminal/log alert, respond immediately.
 
    ### Terminal Notification Policy
 
@@ -166,8 +183,8 @@ Use this layout consistently (local-only):
 
 Recommended cadence during active shift window:
 
-- Every 30-60 minutes: run `npm run ll:infra:monitor` from Terminal B.
-- On each terminal/log alert: run the alert response block above within 1 minute.
+- Every 30-60 minutes: run `npm run ll:infra:monitor` or `bash scripts/infra-monitor.sh >> logs/infra-monitor.log` from Terminal B.1.
+- On each terminal/log alert (from B.1, B.2, or B.3): run the alert response block above within 1 minute.
 
 ### 3) Shift Close
 
@@ -248,8 +265,14 @@ Treat artifact files as source-of-truth for escalation evidence.
 # shift open / close checkpoint
 npm run ll:shift:aggregate
 
-# runtime health
-npm run ll:infra:monitor
+
+# runtime health (one-shot status snapshot)
+bash scripts/infra-monitor.sh >> logs/infra-monitor.log
+
+# live monitoring (open three terminals):
+# Terminal B.1: tail -f logs/infra-monitor.log
+# Terminal B.2: tail -f logs/infra-watchdog.log
+# Terminal B.3: tail -f src/db/cache/jobs-watcher-$(date +%Y%m%d).log
 
 # manual clipboard ingest trigger (only when needed)
 npm run clipboard:trigger

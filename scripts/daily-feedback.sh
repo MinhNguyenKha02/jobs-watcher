@@ -40,15 +40,17 @@ mkdir -p "$REPORT_DIR"
 # Log file for this run
 LOG_FILE="$LOG_DIR/daily-feedback-$TIMESTAMP.log"
 
-echo "═══════════════════════════════════════════════════════" | tee -a "$LOG_FILE"
-echo "Daily Long-Living Loop - $TIMESTAMP" | tee -a "$LOG_FILE"
-echo "═══════════════════════════════════════════════════════" | tee -a "$LOG_FILE"
-echo "" | tee -a "$LOG_FILE"
+
+source "$PROJECT_DIR/scripts/log-format.sh"
+log info daily-feedback "═══════════════════════════════════════════════════════" | tee -a "$LOG_FILE"
+log info daily-feedback "Daily Long-Living Loop - $TIMESTAMP" | tee -a "$LOG_FILE"
+log info daily-feedback "═══════════════════════════════════════════════════════" | tee -a "$LOG_FILE"
+log info daily-feedback "" | tee -a "$LOG_FILE"
 
 cd "$PROJECT_DIR"
 
 # 1. Check if service is running
-echo "🔍 Checking service status..." | tee -a "$LOG_FILE"
+log info daily-feedback "Checking service status..." | tee -a "$LOG_FILE"
 SERVICE_RUNNING=0
 SERVICE_PID=""
 if [ -f "$SERVICE_PID_FILE" ]; then
@@ -57,13 +59,13 @@ fi
 
 if [ -n "$SERVICE_PID" ] && kill -0 "$SERVICE_PID" 2>/dev/null; then
     SERVICE_RUNNING=1
-    echo "✅ Service is running (pid=$SERVICE_PID)" | tee -a "$LOG_FILE"
+    log success daily-feedback "Service is running (pid=$SERVICE_PID)" | tee -a "$LOG_FILE"
     UPTIME=$(ps -p "$SERVICE_PID" -o lstart= 2>/dev/null || true)
     if [ -n "${UPTIME:-}" ]; then
-        echo "   Started: $UPTIME" | tee -a "$LOG_FILE"
+        log info daily-feedback "Started: $UPTIME" | tee -a "$LOG_FILE"
     fi
 else
-    echo "⚠️  Service is not running (pid file missing or stale)" | tee -a "$LOG_FILE"
+    log warn daily-feedback "Service is not running (pid file missing or stale)" | tee -a "$LOG_FILE"
 fi
 
 SUPERVISOR_RUNNING=0
@@ -73,28 +75,28 @@ if [ -f "$SUPERVISOR_PID_FILE" ]; then
 fi
 if [ -n "$SUPERVISOR_PID" ] && kill -0 "$SUPERVISOR_PID" 2>/dev/null; then
     SUPERVISOR_RUNNING=1
-    echo "✅ Infra supervisor is running (pid=$SUPERVISOR_PID)" | tee -a "$LOG_FILE"
+    log success daily-feedback "Infra supervisor is running (pid=$SUPERVISOR_PID)" | tee -a "$LOG_FILE"
 else
-    echo "⚠️  Infra supervisor is not running" | tee -a "$LOG_FILE"
+    log warn daily-feedback "Infra supervisor is not running" | tee -a "$LOG_FILE"
 fi
-echo "" | tee -a "$LOG_FILE"
+log info daily-feedback "" | tee -a "$LOG_FILE"
 
 # 2. Collect system metrics
-echo "📊 Collecting system metrics..." | tee -a "$LOG_FILE"
+log info daily-feedback "Collecting system metrics..." | tee -a "$LOG_FILE"
 MEMORY_MB=$(free -m | awk 'NR==2{printf "%d", $3}')
 CPU_PERCENT=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
 DISK_PERCENT=$(df -h "$PROJECT_DIR" | awk 'NR==2 {print $5}' | sed 's/%//')
 SWAPPINESS_CURRENT=$(cat /proc/sys/vm/swappiness 2>/dev/null || echo "unknown")
-echo "   Memory: ${MEMORY_MB}MB" | tee -a "$LOG_FILE"
-echo "   CPU: ${CPU_PERCENT}%" | tee -a "$LOG_FILE"
-echo "   Disk: ${DISK_PERCENT}%" | tee -a "$LOG_FILE"
-echo "   Swappiness: ${SWAPPINESS_CURRENT}" | tee -a "$LOG_FILE"
-echo "   Infra profile: ${INFRA_PROFILE}" | tee -a "$LOG_FILE"
-echo "   Thresholds: swap<=${MAX_SWAP_USED_MB}MB cpu<=${MAX_CPU_PERCENT}% disk<=${MAX_DISK_PERCENT}% restarts<=${MAX_RESTARTS_DAILY}/day" | tee -a "$LOG_FILE"
-echo "" | tee -a "$LOG_FILE"
+log info daily-feedback "Memory: ${MEMORY_MB}MB" | tee -a "$LOG_FILE"
+log info daily-feedback "CPU: ${CPU_PERCENT}%" | tee -a "$LOG_FILE"
+log info daily-feedback "Disk: ${DISK_PERCENT}%" | tee -a "$LOG_FILE"
+log info daily-feedback "Swappiness: ${SWAPPINESS_CURRENT}" | tee -a "$LOG_FILE"
+log info daily-feedback "Infra profile: ${INFRA_PROFILE}" | tee -a "$LOG_FILE"
+log info daily-feedback "Thresholds: swap<=${MAX_SWAP_USED_MB}MB cpu<=${MAX_CPU_PERCENT}% disk<=${MAX_DISK_PERCENT}% restarts<=${MAX_RESTARTS_DAILY}/day" | tee -a "$LOG_FILE"
+log info daily-feedback "" | tee -a "$LOG_FILE"
 
 # 3. Run long-living verification loop
-echo "🔄 Running long-living closeout + hard gate..." | tee -a "$LOG_FILE"
+log info daily-feedback "Running long-living closeout + hard gate..." | tee -a "$LOG_FILE"
 FEEDBACK_EXIT_CODE=0
 if ! npm run ll:daily:closeout >> "$LOG_FILE" 2>&1; then
     FEEDBACK_EXIT_CODE=1
@@ -104,23 +106,23 @@ if ! P1_QUEUE_LAG_MAX_MS="$P1_QUEUE_LAG_MAX_MS" npm run ll:gate:hard >> "$LOG_FI
 fi
 
 if [ $FEEDBACK_EXIT_CODE -eq 0 ]; then
-    echo "✅ Feedback loop completed successfully" | tee -a "$LOG_FILE"
+    log success daily-feedback "Feedback loop completed successfully" | tee -a "$LOG_FILE"
 else
-    echo "⚠️  Feedback loop completed with warnings (exit code: $FEEDBACK_EXIT_CODE)" | tee -a "$LOG_FILE"
+    log warn daily-feedback "Feedback loop completed with warnings (exit code: $FEEDBACK_EXIT_CODE)" | tee -a "$LOG_FILE"
 fi
-echo "" | tee -a "$LOG_FILE"
+log info daily-feedback "" | tee -a "$LOG_FILE"
 
 # 4. Archive old logs (keep last 30 days)
-echo "🗂️  Archiving old logs..." | tee -a "$LOG_FILE"
+log info daily-feedback "Archiving old logs..." | tee -a "$LOG_FILE"
 find "$LOG_DIR" -name "daily-feedback-*.log" -mtime +30 -delete
 find "$REPORT_DIR" -name "report-*.json" -mtime +30 -delete
-echo "   Cleaned logs older than 30 days" | tee -a "$LOG_FILE"
-echo "" | tee -a "$LOG_FILE"
+log info daily-feedback "Cleaned logs older than 30 days" | tee -a "$LOG_FILE"
+log info daily-feedback "" | tee -a "$LOG_FILE"
 
 # 5. Generate summary metrics
-echo "📈 Generating daily metrics..." | tee -a "$LOG_FILE"
+log info daily-feedback "Generating daily metrics..." | tee -a "$LOG_FILE"
 if [ -z "${MONGODB_URI:-}" ]; then
-        echo "⚠️  Skipping DB metrics: MONGODB_URI is not set" | tee -a "$LOG_FILE"
+        log warn daily-feedback "Skipping DB metrics: MONGODB_URI is not set" | tee -a "$LOG_FILE"
 elif ! node -e "
 const fs = require('fs');
 const { MongoClient } = require('mongodb');

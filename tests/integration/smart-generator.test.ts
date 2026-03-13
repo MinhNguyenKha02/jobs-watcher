@@ -54,11 +54,13 @@ describe('SmartGenerator', () => {
   });
 
   describe('matchProfileWithJob', () => {
-    it('scores overlap between job and profile', () => {
+    it('scores overlap between job and profile using token-based matcher', () => {
       const req = generator.extractJobRequirements(job);
       const matching = generator.matchProfileWithJob(job, req);
       expect(matching.matchScore).toBeGreaterThan(0);
       expect(matching.matchedSkills).toEqual(expect.arrayContaining(['Node.js', 'TypeScript', 'React']));
+      // ATS-friendliness: no false positives
+      expect(matching.matchedSkills).not.toContain('Laravel');
     });
 
     it('returns zero when no skills match', () => {

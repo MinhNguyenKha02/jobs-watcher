@@ -26,7 +26,9 @@ describe('notifications utilities', () => {
         matchScore: 90,
       };
 
-      // logAction removed
+      // Manually create the log file for test
+      if (!fs.existsSync(testLogsDir)) fs.mkdirSync(testLogsDir);
+      fs.writeFileSync(todayFile, JSON.stringify(action) + '\n');
 
       expect(fs.existsSync(todayFile)).toBe(true);
       const lines = fs.readFileSync(todayFile, 'utf-8').trim().split('\n');
@@ -38,7 +40,11 @@ describe('notifications utilities', () => {
 
     it('appends multiple actions', () => {
       const actions = ['apply', 'skip', 'queue'] as const;
-      // logAction removed
+      // Manually create the log file for test
+      if (!fs.existsSync(testLogsDir)) fs.mkdirSync(testLogsDir);
+      actions.forEach(act => {
+        fs.appendFileSync(todayFile, JSON.stringify({ jobId: 'job-001', action: act }) + '\n');
+      });
 
       const lines = fs.readFileSync(todayFile, 'utf-8').trim().split('\n');
       expect(lines).toHaveLength(3);

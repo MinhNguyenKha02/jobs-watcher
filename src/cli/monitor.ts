@@ -1,111 +1,94 @@
-#!/usr/bin/env node
 
-/**
- * Monitoring & Statistics CLI
- * 
- * View job statistics and activity logs:
- * - npm run stats        → Today's job stats
- * - npm run logs         → Last 1 day of actions
- * - npm run logs [days]  → Last N days of actions
- * - npm run monitor      → Full interactive dashboard
- * 
- * Shows: applied count, skipped, queued, average match score
- */
+import { MongoClient } from 'mongodb';
+import { config } from '../config.js';
+import { MemoryMonitor } from '../services/memory-monitor.js';
 
-// getMonitoringStats import removed
-import fs from 'fs';
-import path from 'path';
-
-function printStats() {
-  console.log('\n📊 Jobs Watcher Monitoring\n');
-
-  // getMonitoringStats removed
-
-  // Performance metrics output removed
+async function printStats() {
+  const memoryMonitor = new MemoryMonitor({
+    warningThresholdMb: 1500,
+    criticalThresholdMb: 1800,
+    cpuWarningThresholdPercent: 70,
+    cpuCriticalThresholdPercent: 90,
+  });
+  const mongo = new MongoClient(config.mongodb.uri);
+  await mongo.connect();
+  try {
+    const db = mongo.db(config.mongodb.dbName);
+    const snap = memoryMonitor.snapshot();
+    const [rawIngestCount, queuedCount, needsEnrichmentCount, trashedCount] = await Promise.all([
+      db.collection('raw_ingest').countDocuments(),
+      db.collection('job_queue').countDocuments({ status: 'queued' }),
+      db.collection('needs_enrichment').countDocuments({ status: { $in: ['pending', 'retry_requested'] } }),
+      db.collection('job_trash').countDocuments(),
+    ]);
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recentJobs = await db.collection('raw_ingest').countDocuments({ ingestedAt: { $gte: oneDayAgo } });
+    const processingRate = Math.round(recentJobs / 24);
+    console.log('📊 Jobs Watcher Stats');
+    console.log('─────────────────────────────────────────────────────────────────────');
+    console.log(`Memory (RSS):     ${snap.rssMb.toFixed(1)} MB`);
+    console.log(`Heap Used:        ${snap.heapUsedMb.toFixed(1)} / ${snap.heapTotalMb.toFixed(1)} MB`);
+    console.log(`CPU Usage:        ${snap.cpuPercent?.toFixed(1) ?? 'N/A'}%`);
+    console.log(`Uptime:           ${Math.floor(process.uptime() / 60)} min`);
+    console.log();
+    console.log(`Raw Ingested:     ${rawIngestCount}`);
+    console.log(`Queued:           ${queuedCount}`);
+    console.log(`Needs Enrichment: ${needsEnrichmentCount}`);
+    console.log(`Trashed:          ${trashedCount}`);
+    console.log(`Processing Rate:  ${processingRate} jobs/hour`);
+    console.log('─────────────────────────────────────────────────────────────────────');
+  } finally {
+    await mongo.close();
+  }
 }
 
-function printLogs(days = 7) {
-  console.log(`\n📋 Recent Actions (last ${days} days)\n`);
-
-  const logDir = path.join(process.cwd(), 'logs');
-  
-  if (!fs.existsSync(logDir)) {
-    console.log('No logs found. Start processing jobs to generate logs.\n');
-    return;
-  }
-
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - days);
-
-  const logFiles = fs.readdirSync(logDir)
-    .filter(f => f.endsWith('.jsonl'))
-    .sort()
-    .reverse();
-
-  let count = 0;
-  const maxShow = 20;
-
-  for (const file of logFiles) {
-    const content = fs.readFileSync(path.join(logDir, file), 'utf-8');
-    const lines = content.trim().split('\n').reverse();
-
-    for (const line of lines) {
-      if (count >= maxShow) break;
-
-      try {
-        const entry = JSON.parse(line);
-        const date = new Date(entry.timestamp);
-
-        if (date < cutoffDate) continue;
-
-        const icon =
-          entry.action === 'apply' ? '✓' :
-          entry.action === 'skip' ? '✗' :
-          '⏰';
-
-        const score = entry.matchScore ? ` [${entry.matchScore}%]` : '';
-        console.log(`${icon} ${date.toLocaleString()} | ${entry.company} - ${entry.position}${score}`);
-        count++;
-      } catch (e) {
-        // Invalid JSON
-      }
+async function printLogs(days: number) {
+  const mongo = new MongoClient(config.mongodb.uri);
+  await mongo.connect();
+  try {
+    const db = mongo.db(config.mongodb.dbName);
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    console.log(`📋 RECENT LOGS (last ${days} days)`);
+    console.log('='.repeat(80));
+    const actionLogs = await db.collection('action_log')
+      .find({ timestamp: { $gte: cutoff } })
+      .sort({ timestamp: -1 })
+      .limit(50)
+      .toArray();
+    if (actionLogs.length === 0) {
+      console.log('(empty)');
+    } else {
+      actionLogs.forEach(log => {
+        const ts = log.timestamp ? new Date(log.timestamp).toISOString() : 'N/A';
+        const msg = log.message || log.event || '';
+        console.log(`${ts} ${msg}`);
+      });
     }
-
-    if (count >= maxShow) break;
+    console.log('='.repeat(80));
+  } finally {
+    await mongo.close();
   }
-
-  console.log('');
 }
 
 function printUsage() {
-  console.log(`
-Jobs Watcher Monitoring
-
-Usage:
-  npx ts-node src/cli/monitor.ts [command]
-
-Commands:
-  stats             Show performance statistics
-  logs [days]       Show recent actions (default: 7 days)
-  help              Show this help message
-
-Examples:
-  npx ts-node src/cli/monitor.ts stats
-  npx ts-node src/cli/monitor.ts logs 30
-  `);
+  console.log(`\nJobs Watcher Monitoring CLI\n\nUsage:\n  npx tsx src/cli/monitor.ts [command]\n\nCommands:\n  stats             Show performance statistics\n  logs [days]       Show recent actions (default: 7 days)\n  help              Show this help message\n\nExamples:\n  npx tsx src/cli/monitor.ts stats\n  npx tsx src/cli/monitor.ts logs 30\n`);
 }
 
 // Parse arguments
 const command = process.argv[2];
 
-if (command === 'stats') {
-  printStats();
-} else if (command === 'logs') {
-  const days = parseInt(process.argv[3] || '7');
-  printLogs(days);
-} else if (command === 'help' || command === '--help' || command === '-h') {
-  printUsage();
-} else {
-  // Default: show stats
-  printStats();
-}
+(async () => {
+  if (command === 'stats') {
+    await printStats();
+  } else if (command === 'logs') {
+    const days = parseInt(process.argv[3] || '7');
+    await printLogs(days);
+  } else if (command === 'help' || command === '--help' || command === '-h') {
+    printUsage();
+  } else {
+    // Default: show stats
+    await printStats();
+  }
+})();
+
+

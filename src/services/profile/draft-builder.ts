@@ -156,35 +156,35 @@ export class DraftBuilder {
       ...keywords.preferredSkills,
     ];
 
+    function tokenizeSkill(skill: string): Set<string> {
+      return new Set(skill.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(Boolean));
+    }
+    function tokenMatch(skillA: string, skillB: string): boolean {
+      const tokensA = tokenizeSkill(skillA);
+      const tokensB = tokenizeSkill(skillB);
+      return [...tokensA].some(token => tokensB.has(token));
+    }
     for (const profileSkill of profile.normalizedSkills) {
       const skillName = profileSkill.name.toLowerCase();
-
-      // Check if skill matches any job keyword
+      // Token-based match
       const matchedKeywords = allJobSkills.filter(jobSkill =>
-        skillName.includes(jobSkill) || jobSkill.includes(skillName)
+        tokenMatch(skillName, jobSkill)
       );
-
       if (matchedKeywords.length > 0) {
-        // Calculate relevance based on tier and match type
         const isRequired = keywords.requiredSkills.some(req =>
-          skillName.includes(req) || req.includes(skillName)
+          tokenMatch(skillName, req)
         );
-
         const tierWeight = {
           solid: 1.0,
           working: 0.8,
           familiar: 0.6,
         }[profileSkill.tier];
-
         const relevance = (isRequired ? 1.0 : 0.7) * tierWeight;
-
-        // Find evidence from projects and experience
         const evidence = this.findEvidence(
           profile,
           profileSkill.name,
           profileSkill.domains
         );
-
         matches.push({
           skill: profileSkill.name,
           tier: profileSkill.tier,
@@ -193,8 +193,6 @@ export class DraftBuilder {
         });
       }
     }
-
-    // Sort by relevance (highest first)
     return matches.sort((a, b) => b.relevance - a.relevance);
   }
 

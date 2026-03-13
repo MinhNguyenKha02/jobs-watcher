@@ -240,12 +240,23 @@ function normalizeSkill(skill: string): string {
 /**
  * Check if a skill from job matches any profile skill (case-insensitive, substring matching)
  */
-function skillMatchesProfile(jobSkill: string, profileSkills: string[]): boolean {
+function tokenizeSkill(skill: string): Set<string> {
+  return new Set(skill.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(Boolean));
+}
+function tokenMatch(skillA: string, skillB: string): boolean {
+  const tokensA = tokenizeSkill(skillA);
+  const tokensB = tokenizeSkill(skillB);
+  return [...tokensA].some(token => tokensB.has(token));
+}
+function skillMatchesProfile(jobSkill: string, profile: Profile): boolean {
   const target = normalizeSkill(jobSkill);
-  return profileSkills.some(ps => {
-    const profileSkill = normalizeSkill(ps);
-    return profileSkill.includes(target) || target.includes(profileSkill);
-  });
+  // Use normalizedSkills if present, else fallback to skills, and normalize all
+  const normalizedSkills: string[] = Array.isArray((profile as any).normalizedSkills)
+    ? ((profile as any).normalizedSkills as { name: string }[]).map((s) => normalizeSkill(s.name))
+    : Array.isArray(profile.skills)
+      ? profile.skills.map(normalizeSkill)
+      : [];
+  return normalizedSkills.some((ps: string) => tokenMatch(ps, target));
 }
 
 /**
@@ -253,10 +264,14 @@ function skillMatchesProfile(jobSkill: string, profileSkills: string[]): boolean
  */
 function extractJobSkills(position: string, description: string, profile: Profile): string[] {
   const text = `${position} ${description}`.toLowerCase();
-  const keywords = (profile.skills?.length ? profile.skills : DEFAULT_TECH_KEYWORDS).map(k => normalizeSkill(k));
-
+  // Use normalizedSkills if present, else fallback to skills
+  const keywords: string[] = Array.isArray((profile as any).normalizedSkills)
+    ? ((profile as any).normalizedSkills as { name: string }[]).map((s) => normalizeSkill(s.name))
+    : Array.isArray(profile.skills)
+      ? profile.skills.map(normalizeSkill)
+      : DEFAULT_TECH_KEYWORDS;
   const found: string[] = [];
-  for (const kw of keywords) {
+  for (const kw of keywords.map((k: string) => normalizeSkill(k))) {
     if (!kw) continue;
     const pattern = new RegExp(escapeRegExp(kw).replace(/\s+/g, '\\s*'), 'i');
     const match = text.match(pattern);
@@ -302,7 +317,7 @@ export function filterJobCompatibility(
 
   // 3) Skills relevance (non-blocking): collect overlaps using flexible matching
   const extracted = extractJobSkills(jobTitle, job.description || '', profile);
-  const matchedSkills = extracted.filter(skill => skillMatchesProfile(skill, profile.skills || []));
+  const matchedSkills = extracted.filter(skill => skillMatchesProfile(skill, profile));
   const normalizedMatchedSkills = unique(matchedSkills.map(skill => normalizeSkill(skill)));
 
   // Skills are advisory only (no scoring, no blocking); favor junior opportunity

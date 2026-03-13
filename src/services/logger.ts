@@ -1,22 +1,88 @@
+
+import util from 'util';
 import fs from 'fs';
 import path from 'path';
+
 /**
  * Logger interface and implementations
  * Supports pluggable logging backends
  */
 
 export interface ILogger {
-  debug(message: string, context?: Record<string, any>): void;
-  info(message: string, context?: Record<string, any>): void;
-  warn(message: string, context?: Record<string, any>): void;
-  error(message: string, context?: Record<string, any>): void;
+  debug(message: string, context?: Record<string, unknown>): void;
+  info(message: string, context?: Record<string, unknown>): void;
+  warn(message: string, context?: Record<string, unknown>): void;
+  error(message: string, context?: Record<string, unknown>): void;
 }
 
-/**
- * Console logger - logs to stdout/stderr and persistent file
- */
+
+const URGENCY_SYMBOLS = {
+  info: '[*]',
+  warn: '[!]',
+  error: '[!]',
+  debug: '[*]',
+  success: '[✓]',
+};
+
+function getOrigin(): string {
+  const stackRaw = new Error().stack;
+  if (!stackRaw) return 'unknown-origin';
+  const stack = stackRaw.split('\n');
+  // Find the first stack frame outside logger.ts
+  let originFrame = '';
+  for (let i = 2; i < stack.length; i++) {
+    if (stack[i] && !stack[i].includes('logger.ts')) {
+      originFrame = stack[i];
+      break;
+    }
+  }
+  // Fallback to 3rd frame if not found
+  if (!originFrame && stack.length > 3) originFrame = stack[3];
+  const match = originFrame.match(/at (.+?) \((.+?):([0-9]+):([0-9]+)\)/) || originFrame.match(/at (.+?):([0-9]+):([0-9]+)/);
+  if (match) {
+    // match[1]: function or file, match[2]: file, match[3]: line
+    if (match.length === 5) {
+      return `${match[1]}@${match[2]}:${match[3]}`;
+    } else if (match.length === 4) {
+      return `${match[1]}:${match[2]}`;
+    }
+  }
+  return 'unknown-origin';
+}
+
+function getTimestamp() {
+  return new Date().toISOString();
+}
+
+function logWithAudit(level: keyof typeof URGENCY_SYMBOLS, ...args: unknown[]) {
+  const symbol = URGENCY_SYMBOLS[level] || '[*]';
+  const origin = getOrigin();
+  const msg = util.format(...args);
+  const out = `${getTimestamp()} ${symbol} [${origin}] ${msg}`;
+  if (level === 'error') {
+    console.error(out);
+  } else if (level === 'warn') {
+    console.warn(out);
+  } else {
+    console.log(out);
+  }
+}
+
+
+class AuditLogger implements ILogger {
+  debug(message: string, _context?: Record<string, unknown>) { logWithAudit('debug', message); }
+  info(message: string, _context?: Record<string, unknown>) { logWithAudit('info', message); }
+  warn(message: string, _context?: Record<string, unknown>) { logWithAudit('warn', message); }
+  error(message: string, _context?: Record<string, unknown>) { logWithAudit('error', message); }
+}
+
+let globalLogger: ILogger = new AuditLogger();
+
 export class ConsoleLogger implements ILogger {
   private prefix: string;
+    public getPrefix(): string {
+      return this.prefix;
+    }
   private json: boolean;
   private filePath?: string;
 
@@ -26,7 +92,7 @@ export class ConsoleLogger implements ILogger {
     this.filePath = filePath;
   }
 
-  private format(level: string, message: string, context?: Record<string, any>) {
+  private format(level: string, message: string, context?: Record<string, unknown>) {
     if (this.json) {
       const logObj = { ts: new Date().toISOString(), level, prefix: this.prefix, message, ...context };
       return JSON.stringify(logObj);
@@ -63,25 +129,25 @@ export class ConsoleLogger implements ILogger {
     return path.join(base, fname);
   }
 
-  debug(message: string, context?: Record<string, any>): void {
+  debug(message: string, context?: Record<string, unknown>): void {
     const line = this.format('🐛 DEBUG', message, context);
     console.log(line);
     if (this.filePath) this.writeToFile(line);
   }
 
-  info(message: string, context?: Record<string, any>): void {
+  info(message: string, context?: Record<string, unknown>): void {
     const line = this.format('ℹ️  INFO', message, context);
     console.log(line);
     if (this.filePath) this.writeToFile(line);
   }
 
-  warn(message: string, context?: Record<string, any>): void {
+  warn(message: string, context?: Record<string, unknown>): void {
     const line = this.format('⚠️  WARN', message, context);
     console.warn(line);
     if (this.filePath) this.writeToFile(line);
   }
 
-  error(message: string, context?: Record<string, any>): void {
+  error(message: string, context?: Record<string, unknown>): void {
     const line = this.format('❌ ERROR', message, context);
     console.error(line);
     if (this.filePath) this.writeToFile(line);
@@ -92,10 +158,10 @@ export class ConsoleLogger implements ILogger {
  * Silent logger - suppresses all output (useful for tests)
  */
 export class SilentLogger implements ILogger {
-  debug(_message: string, _context?: Record<string, any>): void {}
-  info(_message: string, _context?: Record<string, any>): void {}
-  warn(_message: string, _context?: Record<string, any>): void {}
-  error(_message: string, _context?: Record<string, any>): void {}
+  debug(_message: string, _context?: Record<string, unknown>): void {}
+  info(_message: string, _context?: Record<string, unknown>): void {}
+  warn(_message: string, _context?: Record<string, unknown>): void {}
+  error(_message: string, _context?: Record<string, unknown>): void {}
 }
 
 // Default log file path for persistent logs (always daily rotated)
@@ -110,7 +176,8 @@ function getDefaultLogFilePath(): string {
   }
   return path.join(base, `jobs-watcher-${y}${m}${d}.log`);
 }
-let globalLogger: ILogger = new ConsoleLogger('jobs-watcher', false, getDefaultLogFilePath());
+
+
 
 
 /**
@@ -119,6 +186,7 @@ let globalLogger: ILogger = new ConsoleLogger('jobs-watcher', false, getDefaultL
 export function getLogger(): ILogger {
   return globalLogger;
 }
+
 
 /**
  * Set the global logger instance (useful for tests)
@@ -139,6 +207,6 @@ export function createLogger(prefix: string): ILogger {
  */
 export function setLoggerJsonMode(json: boolean): void {
   if (globalLogger instanceof ConsoleLogger) {
-    globalLogger = new ConsoleLogger((globalLogger as any).prefix, json, getDefaultLogFilePath());
+    globalLogger = new ConsoleLogger(globalLogger.getPrefix(), json, getDefaultLogFilePath());
   }
 }

@@ -37,6 +37,7 @@
     "analyze:raw-emails": "tsx scripts/analyze-raw-emails.ts",
     "simulate-webhook": "tsx scripts/simulate-webhook.ts",
     "export-fixtures": "tsx scripts/export-fixtures.ts",
+    "eval:fetch-and-trigger": "tsx scripts/eval-fetch-and-trigger.ts",
     "seed-test-db": "tsx scripts/seed-test-db.ts",
     "phase-2-validate": "bash scripts/phase-2-validate.sh",
     "hash:profile": "tsx scripts/generate-profile-hash.ts",

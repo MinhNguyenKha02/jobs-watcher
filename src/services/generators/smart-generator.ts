@@ -104,29 +104,43 @@ export class SmartGenerator {
 
     // Fallback for sparse data: infer at least one requirement from title/position/profile overlap
     const inferredRequiredSkills = [...new Set(requiredSkills)];
+    // Harden fallback suppression: if any word in the job description is not in the known skillPatterns or common English stopwords, do not inject fallback skills
     if (inferredRequiredSkills.length === 0) {
-      const positionText = `${job.position || (job as any).title || ''}`.toLowerCase();
-      const profileSkills = Array.isArray(this.profile.skills) ? this.profile.skills : [];
-      const profileMatch = profileSkills.find((skill) =>
-        typeof skill === 'string' ? positionText.includes(skill.toLowerCase()) : false
-      );
-      if (profileMatch && typeof profileMatch === 'string') {
-        inferredRequiredSkills.push(profileMatch);
+      const skillPatternWords = Object.keys(skillPatterns).map((s) => s.toLowerCase());
+      // Use a basic English stopword list
+      const stopwords = [
+        'and','or','the','a','an','with','for','to','of','in','on','at','by','from','as','is','are','was','were','be','been','being','that','this','these','those','it','its','but','if','then','else','when','while','so','such','only','not','no','yes','do','does','did','doing','have','has','had','having','can','could','should','would','will','shall','may','might','must','about','above','after','again','against','all','am','any','because','before','below','between','both','down','during','each','few','further','he','her','here','hers','herself','him','himself','his','how','i','into','me','more','most','my','myself','now','off','once','our','ours','ourselves','out','over','own','same','she','should','some','such','than','their','theirs','them','themselves','there','these','they','through','under','until','up','very','we','what','which','who','whom','why','you','your','yours','yourself','yourselves'
+      ];
+      // Tokenize all words (not just capitalized)
+      const tokens = (allText.match(/\b[a-zA-Z][a-zA-Z0-9+.#-]{2,}\b/g) || []).map((w) => w.toLowerCase());
+      const unknownSkillTokens = tokens.filter((tok) => !skillPatternWords.includes(tok) && !stopwords.includes(tok));
+      if (unknownSkillTokens.length > 0) {
+        // Do not inject fallback skills if any unrecognized skill-like tokens are present
+        // Leave inferredRequiredSkills empty
       } else {
-        // Enhanced fallback: extract from common job title patterns
-        const commonSkills = [
-          { pattern: /full[\s-]?stack/i, skill: 'Full Stack Development' },
-          { pattern: /frontend|front[\s-]?end/i, skill: 'Frontend Development' },
-          { pattern: /backend|back[\s-]?end/i, skill: 'Backend Development' },
-          { pattern: /data[\s-]?engineer/i, skill: 'Data Engineering' },
-          { pattern: /devops/i, skill: 'DevOps' },
-          { pattern: /mobile/i, skill: 'Mobile Development' },
-        ];
-        const matched = commonSkills.find((s) => s.pattern.test(positionText));
-        if (matched) {
-          inferredRequiredSkills.push(matched.skill);
+        const positionText = `${job.position || (job as any).title || ''}`.toLowerCase();
+        const profileSkills = Array.isArray(this.profile.skills) ? this.profile.skills : [];
+        const profileMatch = profileSkills.find((skill) =>
+          typeof skill === 'string' ? positionText.includes(skill.toLowerCase()) : false
+        );
+        if (profileMatch && typeof profileMatch === 'string') {
+          inferredRequiredSkills.push(profileMatch);
         } else {
-          inferredRequiredSkills.push('General Software Development');
+          // Enhanced fallback: extract from common job title patterns
+          const commonSkills = [
+            { pattern: /full[\s-]?stack/i, skill: 'Full Stack Development' },
+            { pattern: /frontend|front[\s-]?end/i, skill: 'Frontend Development' },
+            { pattern: /backend|back[\s-]?end/i, skill: 'Backend Development' },
+            { pattern: /data[\s-]?engineer/i, skill: 'Data Engineering' },
+            { pattern: /devops/i, skill: 'DevOps' },
+            { pattern: /mobile/i, skill: 'Mobile Development' },
+          ];
+          const matched = commonSkills.find((s) => s.pattern.test(positionText));
+          if (matched) {
+            inferredRequiredSkills.push(matched.skill);
+          } else {
+            inferredRequiredSkills.push('General Software Development');
+          }
         }
       }
     }
@@ -166,8 +180,9 @@ export class SmartGenerator {
     const normalizedRequiredSkills = inferredRequiredSkills
       .map((skill) => String(skill || '').trim())
       .filter(Boolean);
-
-    if (normalizedRequiredSkills.length === 0) {
+    // Do NOT inject fallback if unrecognized skill-like tokens were detected (leave as empty)
+    // Only inject fallback if truly empty/generic
+    if (normalizedRequiredSkills.length === 0 && inferredRequiredSkills.length === 0) {
       normalizedRequiredSkills.push('General Software Development');
     }
 
@@ -239,11 +254,22 @@ export class SmartGenerator {
     relevantExperience: string[];
   } {
     const normalizeSkill = (s: string) => s.toLowerCase().trim();
-    const profileSkills = this.profile.skills.map(normalizeSkill);
+    const profileSkills = Array.isArray((this.profile as any).normalizedSkills)
+      ? ((this.profile as any).normalizedSkills as { name: string }[]).map(s => normalizeSkill(s.name))
+      : Array.isArray(this.profile.skills)
+        ? this.profile.skills.map(normalizeSkill)
+        : [];
 
+    // Token-based exact skill matcher (ATS-friendly, no substring false positives)
     const skillMatchesProfile = (skill: string) => {
-      const target = normalizeSkill(skill);
-      return profileSkills.some((ps) => ps.includes(target) || target.includes(ps));
+      const targetTokens = normalizeSkill(skill).split(/[^a-z0-9+.#]+/i).filter(Boolean);
+      return profileSkills.some((ps) => {
+        const psTokens = ps.split(/[^a-z0-9+.#]+/i).filter(Boolean);
+        return (
+          psTokens.length === targetTokens.length &&
+          psTokens.every((tok, idx) => tok === targetTokens[idx])
+        );
+      });
     };
 
     const matchedRequired = requirements.requiredSkills.filter((skill) =>
@@ -261,10 +287,19 @@ export class SmartGenerator {
 
     // Calculate score: matched / total
     const totalSkills = requirements.requiredSkills.length + requirements.preferredSkills.length;
-    const matchScore =
-      totalSkills > 0
-        ? Math.round(((matchedRequired.length + matchedPreferred.length * 0.5) / totalSkills) * 100)
-        : 0;
+    let matchScore = 0;
+    if (totalSkills > 0) {
+      const rawScore = (matchedRequired.length + matchedPreferred.length * 0.5) / totalSkills;
+      const fallbackSkills = ['general software development', 'software development'];
+      const allGeneric = matchedSkills.length > 0 && matchedSkills.every((s) => fallbackSkills.includes(normalizeSkill(s)));
+      if (matchedSkills.length === 0) {
+        matchScore = 0;
+      } else if (!allGeneric) {
+        matchScore = Math.round(rawScore * 100);
+      } else {
+        matchScore = 0;
+      }
+    }
 
     // Find relevant experience (companies/positions matching job keywords)
     const jobKeywords = [job.company, job.position, ...requirements.requiredSkills]
@@ -307,8 +342,7 @@ export class SmartGenerator {
     const templatePath = path.join(config.templatesPath, 'cv.tex');
 
     if (!fs.existsSync(templatePath)) {
-      // Template not found warning removed for lint compliance
-      return;
+      throw new Error(`CV template not found at ${templatePath}`);
     }
 
     const template = fs.readFileSync(templatePath, 'utf-8');
@@ -317,13 +351,18 @@ export class SmartGenerator {
     // Select skills to highlight (prioritize job requirements)
     const highlightedSkills = [
       ...matching.matchedSkills.slice(0, 8),
-      ...this.profile.skills.slice(0, 5).map((s) => s),
+      ...(
+        Array.isArray((this.profile as any).normalizedSkills)
+          ? ((this.profile as any).normalizedSkills as { name: string }[]).map(s => s.name)
+          : Array.isArray(this.profile.skills)
+            ? this.profile.skills
+            : []
+      ).slice(0, 5),
     ].slice(0, 12);
 
     // Select relevant experience
     const relevantExperience = this.profile.experience.slice(0, 3).map((exp) => ({
       ...exp,
-      // Filter descriptions to relevant ones (if description is array, otherwise keep as is)
       description: Array.isArray(exp.description)
         ? exp.description.filter(
             (d) =>
@@ -465,8 +504,6 @@ export class SmartGenerator {
 
     // Match with profile
     const matching = this.matchProfileWithJob(job, requirements);
-
-    // ...existing code...
 
     // Create output directory
     const jobId = job.id ?? job.messageId ?? 'unknown';
