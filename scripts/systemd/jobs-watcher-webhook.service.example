@@ -1,0 +1,29 @@
+[Unit]
+Description=Jobs Watcher webhook + worker
+After=network.target mongod.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=jobswatcher
+Group=jobswatcher
+EnvironmentFile=/etc/jobs-watcher.env
+Environment="NODE_ENV=production"
+# Set `INTERNAL_AUTH_TOKEN` and other secrets in /etc/jobs-watcher.env (KEY=VALUE lines)
+WorkingDirectory=/srv/jobs-watcher
+ExecStart=/usr/bin/node /srv/jobs-watcher/dist/index.js
+Restart=on-failure
+RestartSec=5
+UMask=0027
+# Ensure socket directory ownership (adjust if using /tmp)
+RuntimeDirectory=jobs-watcher
+RuntimeDirectoryMode=0750
+
+[Install]
+WantedBy=multi-user.target
+
+# Notes:
+# - /srv/jobs-watcher is a placeholder path where release artifacts are expected to be installed.
+#   Adjust WorkingDirectory and ExecStart to match your deployment layout.
+# - Create the `jobswatcher` system user and group and ensure the runtime directory exists
+#   and is owned by that user. Configure secrets in /etc/jobs-watcher.env (owner root, group jobswatcher, mode 0640).

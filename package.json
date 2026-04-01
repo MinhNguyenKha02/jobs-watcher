@@ -16,8 +16,9 @@
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage --runInBand --detectOpenHandles --forceExit --passWithNoTests",
     "test:unit": "NODE_OPTIONS='--experimental-vm-modules' jest tests/unit/ -u --passWithNoTests --coverage --runInBand --detectOpenHandles --forceExit",
     "test:integration": "NODE_OPTIONS='--experimental-vm-modules' jest tests/integration/ -u --passWithNoTests --coverage --runInBand --detectOpenHandles --forceExit",
-    "test:e2e": "NODE_OPTIONS='--experimental-vm-modules' jest tests/e2e/ -u --passWithNoTests --coverage --runInBand --detectOpenHandles --forceExit",
-    "test:e2e:clean": "CLEAR_GENERATED=1 NODE_OPTIONS='--experimental-vm-modules' jest tests/e2e/ -u --passWithNoTests --coverage --runInBand --detectOpenHandles --forceExit",
+    "test:e2e": "TEST_NO_GMAIL_AUTH=1 INTERNAL_AUTH_TOKEN=e2e-internal-token NODE_OPTIONS='--experimental-vm-modules' jest tests/e2e/ -u --passWithNoTests --coverage --runInBand --detectOpenHandles --forceExit",
+    "test:e2e:core": "npm run test:e2e -- --testPathPattern=full-integration-e2e.test.ts",
+    "test:e2e:clean": "CLEAR_GENERATED=1 TEST_NO_GMAIL_AUTH=1 INTERNAL_AUTH_TOKEN=e2e-internal-token NODE_OPTIONS='--experimental-vm-modules' jest tests/e2e/ -u --passWithNoTests --coverage --runInBand --detectOpenHandles --forceExit",
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch --runInBand --detectOpenHandles --forceExit --passWithNoTests",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "export:e2e": "tsx scripts/export-e2e-output.ts",
@@ -40,12 +41,15 @@
     "eval:fetch-and-trigger": "tsx scripts/eval-fetch-and-trigger.ts",
     "seed-test-db": "tsx scripts/seed-test-db.ts",
     "phase-2-validate": "bash scripts/phase-2-validate.sh",
+       "trigger:clipboard-uds": "INTERNAL_AUTH_TOKEN=e2e-internal-token tsx scripts/trigger-clipboard-uds.ts",
     "hash:profile": "tsx scripts/generate-profile-hash.ts",
     "data-listening": "tsx src/cli/data-listening.ts",
     "serve:hybrid": "INGRESS_FIXTURE_MODE=0 CLIPBOARD_FIXTURE_MODE=0 HYBRID_CLIPBOARD_MODE=manual npm run data-listening -- --adapter=hybrid --hybrid-clipboard=manual",
     "clipboard:trigger": "tsx scripts/trigger-hybrid-clipboard.ts",
     "manual-enrichment": "tsx src/cli/manual-enrichment.ts",
     "tui": "tsx src/cli/enhanced-tui.ts",
+    "sse-test": "node scripts/sse-test-client.js",
+    "start:tui": "npm run build && npm run tui",
     "dashboard": "tsx src/cli/dashboard.ts",
     "dashboard:watch": "tsx src/cli/dashboard.ts --watch",
     "feedback-loop": "tsx src/cli/feedback-loop.ts",
@@ -78,7 +82,9 @@
     "feedback-loop:quick": "bash -c 'npm run test:e2e && npm run export:all && npm run inspect:db'",
     "release:patch": "bash scripts/release.sh patch",
     "release:minor": "bash scripts/release.sh minor",
-    "release:major": "bash scripts/release.sh major"
+    "release:major": "bash scripts/release.sh major",
+    "install:systemd:local": "bash scripts/install-systemd-local.sh",
+    "deploy:systemd:staging": "bash scripts/deploy-systemd-staging.sh"
   },
   "keywords": [
     "gmail",
@@ -108,6 +114,8 @@
     "puppeteer": "^24.37.3",
     "react": "^18.2.0",
     "zod": "^3.22.4"
+    ,
+    "eventsource": "^2.0.0"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx}": [
