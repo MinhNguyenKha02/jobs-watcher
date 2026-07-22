@@ -1,11 +1,13 @@
 import { Collection } from 'mongodb';
-import { Counter, type Registry } from 'prom-client';
+import { Counter, Registry } from 'prom-client';
 import { ExtractionQueueDocument } from '../../../domain/types/extraction-queue.js';
 import type { ExtractionQueuePort } from '../../../application/ports/extraction-queue.port.js';
 import type { TraceContext } from '../monitoring/trace-context.js';
 
-export interface ExtractionQueueAdapterOptions {
-  register?: Registry;
+function ensureCounter(registry: Registry, name: string, help: string): Counter<string> {
+  const existing = registry.getSingleMetric(name);
+  if (existing) return existing as Counter<string>;
+  return new Counter({ name, help, registers: [registry] });
 }
 
 export class MongoExtractionQueueAdapter implements ExtractionQueuePort {
@@ -15,19 +17,10 @@ export class MongoExtractionQueueAdapter implements ExtractionQueuePort {
 
   constructor(
     private collection: Collection<ExtractionQueueDocument>,
-    private options?: ExtractionQueueAdapterOptions,
   ) {
-    const reg = options?.register;
-    this.enqueueCounter = new Counter({
-      name: 'extraction_queue_enqueue_total',
-      help: 'Number of jobs enqueued to extraction queue',
-      registers: reg ? [reg] : undefined,
-    });
-    this.dequeueCounter = new Counter({
-      name: 'extraction_queue_dequeue_total',
-      help: 'Number of jobs dequeued from extraction queue',
-      registers: reg ? [reg] : undefined,
-    });
+    const registry = new Registry();
+    this.enqueueCounter = ensureCounter(registry, 'extraction_queue_enqueue_total', 'Number of jobs enqueued to extraction queue');
+    this.dequeueCounter = ensureCounter(registry, 'extraction_queue_dequeue_total', 'Number of jobs dequeued from extraction queue');
   }
 
   onEnqueue(cb: () => void): void {

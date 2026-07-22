@@ -26,7 +26,7 @@ describe('MongoExtractionQueueAdapter', () => {
 
       expect(collection.updateOne).toHaveBeenCalledWith(
         { _id: 'job-1' },
-        { $setOnInsert: { _id: 'job-1', joblifecycleId: 'job-1', createdAt: expect.any(Date) } },
+        { $setOnInsert: { _id: 'job-1', jobLifecycleId: 'job-1', createdAt: expect.any(Date) } },
         { upsert: true },
       );
     });
