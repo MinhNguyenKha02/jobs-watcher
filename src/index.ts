@@ -7,6 +7,7 @@ import { RabbitMqRoutingAdapter } from './infrastructure/outbound/rabbitmq/rabbi
 import { JobIngestor } from './application/ingestor.js';
 import { startHealthServer } from './infrastructure/inbound/health/health-adapter.js';
 import { MetricsRegistry } from './infrastructure/outbound/monitoring/metrics-registry.js';
+import { SystemMonitor } from './infrastructure/outbound/monitoring/system-monitor.js';
 
 initLogger();
 const logger = getLogger();
@@ -18,6 +19,7 @@ async function main(): Promise<void> {
   await mongoAdapter.connect();
 
   const metricsRegistry = new MetricsRegistry();
+  const systemMonitor = new SystemMonitor();
 
   const rmq = new RabbitMqConnection({
     url: process.env.RABBITMQ_URL || 'amqp://localhost',
@@ -34,7 +36,7 @@ async function main(): Promise<void> {
     routingAdapter,
   );
 
-  startHealthServer({ port: Number(process.env.HEALTH_PORT || '9090'), metricsRegistry });
+  startHealthServer({ port: Number(process.env.HEALTH_PORT || '9090'), metricsRegistry, systemMonitor });
 
   logger.info('[Boot] Startup complete');
 }
