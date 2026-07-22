@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { clipboardGetter } from '../../infrastructure/inbound/cli/clipboard-getter.js';
 import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 
-import { KeyboardHandler, type KeyAction } from './components/KeyboardHandler.js';
+import { KeyboardHandler, KeyAction } from './components/KeyboardHandler.js';
 import { UdsActionWriter } from './components/UdsActionWriter.js';
 import {
   getCurrentJob,
@@ -118,49 +118,49 @@ export class ActionController {
       }
 
       // Otherwise, dispatch normal action
-      switch (action as string) {
-        case 'queue':
+      switch (action) {
+        case KeyAction.QUEUE:
           await this.handleQueue();
           break;
 
-        case 'trash':
+        case KeyAction.TRASH:
           await this.handleTrash();
           break;
 
-        case 'preview':
+        case KeyAction.PREVIEW:
           await this.handlePreview();
           break;
 
-        case 'ingest':
+        case KeyAction.INGEST:
           await this.handleIngest();
           break;
 
-        case 'webhook_stage2_parse':
+        case KeyAction.WEBHOOK_STAGE2_PARSE:
            logger.info('[action-controller] [c] About to call handleWebhookStage2Parse');
           await this.handleWebhookStage2Parse();
            logger.info('[action-controller] [c] handleWebhookStage2Parse completed');
           break;
 
-        case 'open':
+        case KeyAction.OPEN:
           await this.handleOpenUrl();
           break;
 
-        case 'toggle_queue':
+        case KeyAction.TOGGLE_QUEUE:
           await this.handleToggleQueue();
           break;
 
-        case 'help':
+        case KeyAction.HELP:
           await this.handleHelp();
           break;
 
-        case 'quit':
+        case KeyAction.QUIT:
           logger.info('[action-controller] User quit requested');
           this.stop();
           break;
 
-        case 'modal_discard':
-        case 'modal_scroll_up':
-        case 'modal_scroll_down':
+        case KeyAction.MODAL_DISCARD:
+        case KeyAction.MODAL_SCROLL_UP:
+        case KeyAction.MODAL_SCROLL_DOWN:
           // These should only be used when a modal is active
           logger.warn('[action-controller] Modal action received but no modal active', { action });
           break;
@@ -182,11 +182,11 @@ export class ActionController {
   private async handleModalInput(action: KeyAction, modal: Exclude<ModalState, null>): Promise<void> {
     try {
       if (modal.type === 'PREVIEW_VIEWER') {
-        if ((action as string) === 'modal_scroll_down') {
+        if (action === KeyAction.MODAL_SCROLL_DOWN) {
           await this.handlePreviewScrollDown();
-        } else if ((action as string) === 'modal_scroll_up') {
+        } else if (action === KeyAction.MODAL_SCROLL_UP) {
           await this.handlePreviewScrollUp();
-        } else if (action === 'quit' || action === 'modal_discard') {
+        } else if (action === KeyAction.QUIT || action === KeyAction.MODAL_DISCARD) {
           await this.handlePreviewClose();
         } else {
           await this.handlePreviewClose();

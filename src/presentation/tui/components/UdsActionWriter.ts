@@ -14,7 +14,10 @@ import { postJsonOverUds, type UdsRequestOptions } from '../../../infrastructure
 
 const logger = getLogger();
 
-export type OperatorAction = 'queue' | 'trash';
+export enum OperatorAction {
+  QUEUE = 'queue',
+  TRASH = 'trash',
+}
 
 export interface ActionPayload {
   jobLifecycleId: string;
@@ -47,7 +50,7 @@ export class UdsActionWriter {
   async queue(jobLifecycleId: string, editedKVs?: Record<string, unknown>, job?: any): Promise<void> {
     const payload: ActionPayload = {
       jobLifecycleId,
-      action: 'queue',
+      action: OperatorAction.QUEUE,
       editedKVs,
       source: 'ops-tui',
     };
@@ -61,7 +64,7 @@ export class UdsActionWriter {
   async trash(jobLifecycleId: string, editedKVs?: Record<string, unknown>, job?: any): Promise<void> {
     const payload: ActionPayload = {
       jobLifecycleId,
-      action: 'trash',
+      action: OperatorAction.TRASH,
       editedKVs,
       source: 'ops-tui',
     };

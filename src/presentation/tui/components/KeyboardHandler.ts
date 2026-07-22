@@ -7,7 +7,21 @@
 
 import readline from 'readline';
 
-export type KeyAction = 'queue' | 'trash' | 'preview' | 'webhook_stage2_parse' | 'open' | 'ingest' | 'toggle_queue' | 'help' | 'quit' | 'modal_discard' | 'modal_scroll_up' | 'modal_scroll_down' | 'none';
+export enum KeyAction {
+  QUEUE = 'queue',
+  TRASH = 'trash',
+  PREVIEW = 'preview',
+  WEBHOOK_STAGE2_PARSE = 'webhook_stage2_parse',
+  OPEN = 'open',
+  INGEST = 'ingest',
+  TOGGLE_QUEUE = 'toggle_queue',
+  HELP = 'help',
+  QUIT = 'quit',
+  MODAL_DISCARD = 'modal_discard',
+  MODAL_SCROLL_UP = 'modal_scroll_up',
+  MODAL_SCROLL_DOWN = 'modal_scroll_down',
+  NONE = 'none',
+}
 
 export class KeyboardHandler {
   private rl: readline.Interface | null = null;
@@ -115,54 +129,27 @@ export class KeyboardHandler {
    * Map a key character to an action.
    */
   private keyToAction(input: Buffer): KeyAction {
-    // Arrow keys are emitted as ANSI escape sequences.
     if (input.length >= 3 && input[0] === 0x1b && input[1] === 0x5b) {
-      if (input[2] === 0x41) return 'modal_scroll_up';
-      if (input[2] === 0x42) return 'modal_scroll_down';
+      if (input[2] === 0x41) return KeyAction.MODAL_SCROLL_UP;
+      if (input[2] === 0x42) return KeyAction.MODAL_SCROLL_DOWN;
     }
 
-    // ESC alone should dismiss modal without quitting app.
     if (input.length === 1 && input[0] === 0x1b) {
-      return 'modal_discard';
+      return KeyAction.MODAL_DISCARD;
     }
 
     const char = String.fromCharCode(input[0]).toLowerCase();
     switch (char) {
-      // Routing/Ingestion
-      case 'j':
-        return 'queue';
-      case 'd':
-        return 'trash'; // Context: trash in normal mode, modal_discard in edit modal
-      // case 's': skip removed - not implemented
-
-      // Preview/Clipboard
-      case 'p':
-        return 'preview';
-      case 'i':
-        return 'ingest';
-
-      // Webhook stage 2 parsing
-      case 'c':
-        return 'webhook_stage2_parse';
-
-      // Open URL
-      case 'o':
-        return 'open';
-
-      // Mode toggle: queue ↔ direct
-      case 'b':
-        return 'toggle_queue';
-
-      // Help
-      case '?':
-        return 'help';
-
-      // Quit (can also close modal when active)
-      case 'q':
-        return 'quit';
-
-      default:
-        return 'none';
+      case 'j': return KeyAction.QUEUE;
+      case 'd': return KeyAction.TRASH;
+      case 'p': return KeyAction.PREVIEW;
+      case 'i': return KeyAction.INGEST;
+      case 'c': return KeyAction.WEBHOOK_STAGE2_PARSE;
+      case 'o': return KeyAction.OPEN;
+      case 'b': return KeyAction.TOGGLE_QUEUE;
+      case '?': return KeyAction.HELP;
+      case 'q': return KeyAction.QUIT;
+      default: return KeyAction.NONE;
     }
   }
 
