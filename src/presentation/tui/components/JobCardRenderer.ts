@@ -6,8 +6,7 @@
  * Single-frame, idempotent rendering - full redraw per update.
  */
 
-import type { Job } from './SseJobReader.js';
-import type { JobDetails } from '../../../domain/types/job.js';
+import type { Job, JobDetails } from '../../../domain/types/job.js';
 
 export interface CardStatus {
   sseConnected: boolean;
@@ -258,8 +257,7 @@ export class JobCardRenderer {
       role: 'Senior Engineer',
       location: 'San Francisco, CA',
       url: 'https://example.com/job/123',
-      matchScore: 85,
-      matchedSkills: ['TypeScript', 'Node.js', 'React'],
+
     };
 
     return renderer.renderCard(sampleJob, {

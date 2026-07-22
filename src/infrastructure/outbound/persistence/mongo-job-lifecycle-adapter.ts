@@ -17,7 +17,7 @@ export class MongoJobLifecycleAdapter implements JobLifecyclePort {
     const db = this.client.db(this.dbName);
     this.collection = db.collection<JobLifecycleDocument>(COLLECTIONS.JOB_LIFECYCLE);
     for (const index of INDEXES.JOB_LIFECYCLE) {
-      await this.collection.createIndex(index.key, { unique: index.unique, name: index.name });
+      await this.collection.createIndex(index.key as Record<string, number>, { unique: index.unique, name: index.name });
     }
     logger.info('[MongoJobLifecycleAdapter] Connected and indexes ensured');
   }
@@ -41,7 +41,7 @@ export class MongoJobLifecycleAdapter implements JobLifecyclePort {
     if (!this.collection) throw new Error('MongoJobLifecycleAdapter not connected');
     await this.collection.updateOne(
       { _id: jobLifecycleId },
-      { $set: { stage, status, updatedAt: new Date(), stageTimestamp: new Date() } }
+      { $set: { stage: stage as any, status: status as any, updatedAt: new Date(), stageTimestamp: new Date() } }
     );
   }
 

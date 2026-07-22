@@ -1,12 +1,12 @@
 import { GmailService } from '../../infrastructure/outbound/gmail.js';
-import { EventDrivenWebhook } from '../../infrastructure/inbound/web/event-webhook.js';
+import { WebhookAdapter } from '../../infrastructure/inbound/web/webhook-adapter.js';
 import { config } from '../../config.js';
 import { getLogger } from '../../infrastructure/outbound/logging/logger.js';
 
 const logger = getLogger();
 
 // Global state
-let webhook: EventDrivenWebhook | null = null;
+let webhook: WebhookAdapter | null = null;
 let gmailService: GmailService | null = null;
 let isShuttingDown = false;
 
@@ -75,8 +75,8 @@ async function main() {
     logger.info('✅ Authenticated with Gmail');
 
     // Start event-driven webhook server
-    webhook = new EventDrivenWebhook(gmailService);
-    await webhook.start(config.webhook.port);
+    webhook = new WebhookAdapter(null as any);
+    webhook.start(config.webhook.port, config.webhook.path);
 
     logger.info(`✅ Jobs Watcher is running`);
     logger.info(`📧 Watching Gmail label: "${config.gmail.labelName}"`);

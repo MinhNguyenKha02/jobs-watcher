@@ -23,9 +23,9 @@ const DEFERRED_S2_TTL_MS = 30_000;
 const EVICTOR_INTERVAL_MS = 5_000;
 
 export class RabbitMqJobReader {
-  private s1channel: Channel;
-  private s2channel: Channel;
-  private s34channel: Channel;
+  private s1channel!: Channel;
+  private s2channel!: Channel;
+  private s34channel!: Channel;
 
   private pendingAcks = new Map<string, PendingAck[]>();
   private deferredS2 = new Map<string, DeferredS2Entry>();

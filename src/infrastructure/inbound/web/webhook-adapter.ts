@@ -6,11 +6,20 @@ import type { ProcessIngestCommand } from '../../../application/commands.js';
 
 const logger = getLogger();
 
+import type { Server } from 'http';
+
 export class WebhookAdapter {
   private ingestor: JobIngestor;
+  private server: Server | null = null;
 
   constructor(ingestor: JobIngestor) {
     this.ingestor = ingestor;
+  }
+
+  async stop(): Promise<void> {
+    if (this.server) {
+      await new Promise<void>((resolve) => this.server?.close(() => resolve()));
+    }
   }
 
   start(port: number, path: string): void {
@@ -46,7 +55,7 @@ export class WebhookAdapter {
       }
     });
 
-    app.listen(port, () => {
+    this.server = app.listen(port, () => {
       logger.info(`[Webhook] Server listening on port ${port}`);
     });
   }

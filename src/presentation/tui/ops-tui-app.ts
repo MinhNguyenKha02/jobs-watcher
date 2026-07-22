@@ -20,7 +20,7 @@
 import { getLogger } from '../../infrastructure/outbound/logging/logger.js';
 import type { Job } from '../../domain/types/job.js';
 
-import { SseJobReader } from './components/SseJobReader.js';
+import { JobReader as SseJobReader } from './components/JobReader.js';
 import { JobCardRenderer, type CardStatus } from './components/JobCardRenderer.js';
 import { AnsiTerminal } from './components/AnsiTerminal.js';
 import { renderPreviewViewerModal } from './components/PreviewViewerModal.js';

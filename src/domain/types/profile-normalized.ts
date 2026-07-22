@@ -228,6 +228,11 @@ export interface ApplicationDraft {
   bodyParagraph?: string;
   closingParagraph?: string;
   companyAddress?: string;
+  skillGroups?: Array<{ label: string; skills: string[] }>;
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
+  website?: string;
 }
 
 export type ApplicationAsset = ApplicationDraft;

@@ -1,4 +1,4 @@
-export type { JobLifecycleDocument } from '../../domain/types/job-lifecycle.js';
+export type { JobLifecycleDocument } from '../../../domain/types/job-lifecycle.js';
 
 export interface ExtractionQueueDocument {
   _id: string;

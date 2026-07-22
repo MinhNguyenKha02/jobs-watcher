@@ -1,4 +1,4 @@
-import amqplib, { type Channel, type Connection } from 'amqplib';
+import amqplib, { type Channel } from 'amqplib';
 import { getLogger } from '../logging/logger.js';
 
 const logger = getLogger();
@@ -9,7 +9,7 @@ export interface RabbitMqConfig {
 }
 
 export class RabbitMqConnection {
-  private connection: Connection | null = null;
+  private connection: Awaited<ReturnType<typeof amqplib.connect>> | null = null;
   private channel: Channel | null = null;
 
   constructor(private config: RabbitMqConfig) {}
