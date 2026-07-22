@@ -26,12 +26,21 @@ function decodeBase64Json(data: string): Record<string, unknown> {
   }
 }
 
+export interface GmailClient {
+  getMessage(messageId: string): Promise<unknown>;
+  extractHeader(message: unknown, name: string): string;
+  extractBody(message: unknown): string;
+  getMessagesSinceHistory(historyId: string, labelId?: string): Promise<string[]>;
+}
+
 export class WebhookAdapter {
   private ingestor: JobIngestor;
+  private gmail: GmailClient;
   private server: Server | null = null;
 
-  constructor(ingestor: JobIngestor) {
+  constructor(ingestor: JobIngestor, gmail: GmailClient) {
     this.ingestor = ingestor;
+    this.gmail = gmail;
   }
 
   async stop(): Promise<void> {
@@ -48,39 +57,57 @@ export class WebhookAdapter {
 
     app.post(path, async (req: Request, res: Response) => {
       try {
-        const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
         const raw = req.body as Record<string, unknown>;
-        let messageId = '';
+        let gmailMessageId = '';
 
         if (raw && typeof raw === 'object' && 'message' in raw && typeof (raw as PubSubPushPayload).message?.data === 'string') {
           const pubsub = raw as PubSubPushPayload;
-          messageId = pubsub.message!.messageId || '';
           const decoded = decodeBase64Json(pubsub.message!.data!);
-          logger.info('[Webhook] PubSub push', { messageId, historyId: decoded.historyId, emailAddress: decoded.emailAddress });
+          const historyId = String(decoded.historyId || '');
+          if (historyId) {
+            const ids = await this.gmail.getMessagesSinceHistory(historyId);
+            gmailMessageId = ids[0] || '';
+          }
+          logger.info('[Webhook] PubSub push', { historyId, emailAddress: decoded.emailAddress, gmailMessageId });
         } else if (raw && typeof raw === 'object' && typeof raw.messageId === 'string') {
-          messageId = raw.messageId as string;
-          logger.info('[Webhook] Simulated push', { messageId });
-        } else {
-          messageId = `webhook-${Date.now()}`;
-          logger.info('[Webhook] Generic push, generated messageId', { messageId });
+          gmailMessageId = raw.messageId as string;
+          logger.info('[Webhook] Simulated push', { gmailMessageId });
+        }
+
+        if (!gmailMessageId) {
+          logger.warn('[Webhook] No messageId resolved — skipping');
+          res.status(202).json({ status: 'accepted', messageId: '' });
+          return;
+        }
+
+        const gmailMsg = await this.gmail.getMessage(gmailMessageId);
+        const rawPayload = this.gmail.extractBody(gmailMsg);
+        const subject = this.gmail.extractHeader(gmailMsg, 'Subject');
+        const from = this.gmail.extractHeader(gmailMsg, 'From');
+        const to = this.gmail.extractHeader(gmailMsg, 'To');
+
+        if (!rawPayload.trim()) {
+          logger.warn('[Webhook] Empty email body after extraction', { gmailMessageId });
+          res.status(202).json({ status: 'accepted', messageId: gmailMessageId });
+          return;
         }
 
         const command: ProcessIngestCommand = {
           source: JobSource.BROWSER_AUTO,
           stage: JobStage.PARTIAL_PARSED,
-          rawPayload: body,
+          rawPayload,
           jobLifecycleId: undefined,
           metadata: {
-            messageId,
-            threadId: (req.headers['x-thread-id'] as string) || '',
-            from: (req.headers['x-from'] as string) || '',
-            to: (req.headers['x-to'] as string) || '',
-            subject: (req.headers['x-subject'] as string) || '',
+            messageId: gmailMessageId,
+            threadId: this.gmail.extractHeader(gmailMsg, 'Message-ID') || '',
+            from,
+            to,
+            subject,
           },
         };
 
         await this.ingestor.processIngestCommand(command);
-        res.status(202).json({ status: 'accepted', messageId });
+        res.status(202).json({ status: 'accepted', messageId: gmailMessageId });
       } catch (err) {
         logger.error('[Webhook] Processing failed', { error: err instanceof Error ? err.message : String(err) });
         res.status(500).json({ status: 'error', error: 'Internal server error' });

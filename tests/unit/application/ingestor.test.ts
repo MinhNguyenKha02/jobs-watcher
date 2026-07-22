@@ -10,6 +10,15 @@ function mockPort() {
   };
 }
 
+function mockQueue() {
+  return {
+    enqueue: vi.fn(),
+    dequeue: vi.fn(),
+    size: vi.fn(),
+    onEnqueue: vi.fn(),
+  };
+}
+
 function mockParsePort() {
   return {
     emitGenerated: vi.fn(),
@@ -26,10 +35,21 @@ function mockRoutingPort() {
   };
 }
 
+/** TopCV single-job HTML — parseTopCV path, no url extracted → emitGenerated */
 function makeTopCvHtml(): string {
-  return '<div class="job-detail__info--title"><h1>Junior Engineer</h1></div>'
+  return '<div class="job-detail__info--title"><h1>Junior Software Engineer</h1></div>'
     + '<div class="company-name-label"><a class="name">Junior Co</a></div>'
-    + '<div>topcv</div>';
+    + '<div class="job-detail__body"><p>Node.js and TypeScript skills required</p></div>';
+}
+
+/** Indeed notification HTML — parseIndeed path, has applystart url → enqueue */
+function makeIndeedHtmlWithUrl(): string {
+  return '<html><body>indeed.com'
+    + '<a href="https://vn.indeed.com/applystart?jk=abc123">Apply</a>'
+    + '<div data-testid="JobInfoHeader-title"><span>Senior Backend Engineer</span></div>'
+    + '<div data-testid="inlineHeader-companyName">Senior Co</div>'
+    + '<div id="jobDescriptionText"><p>Golang and TypeScript skills required</p></div>'
+    + '</body></html>';
 }
 
 function makeStage1Partial(overrides = {}): any {
@@ -55,18 +75,20 @@ function makeStage1Partial(overrides = {}): any {
 describe('JobIngestor', () => {
   let ingestor: JobIngestor;
   let storage: ReturnType<typeof mockPort>;
+  let queue: ReturnType<typeof mockQueue>;
   let parsePort: ReturnType<typeof mockParsePort>;
   let routingPort: ReturnType<typeof mockRoutingPort>;
 
   beforeEach(() => {
     storage = mockPort();
+    queue = mockQueue();
     parsePort = mockParsePort();
     routingPort = mockRoutingPort();
-    ingestor = new JobIngestor(storage, parsePort, routingPort);
+    ingestor = new JobIngestor(storage, parsePort, routingPort, queue);
   });
 
   describe('processIngestCommand — BROWSER_AUTO PARTIAL_PARSED', () => {
-    it('calls emitGenerated when rawPayload is provided', async () => {
+    it('calls emitGenerated when rawPayload is provided (no url)', async () => {
       await ingestor.processIngestCommand({
         source: JobSource.BROWSER_AUTO,
         stage: JobStage.PARTIAL_PARSED,
@@ -75,6 +97,7 @@ describe('JobIngestor', () => {
       });
       expect(storage.upsert).toHaveBeenCalled();
       expect(parsePort.emitGenerated).toHaveBeenCalled();
+      expect(queue.enqueue).not.toHaveBeenCalled();
     });
 
     it('falls back to signal1BrowserAutoFallback when only jobLifecycleId', async () => {
@@ -86,6 +109,48 @@ describe('JobIngestor', () => {
       });
       expect(storage.findById).toHaveBeenCalledWith('existing-id');
       expect(parsePort.emitGenerated).toHaveBeenCalled();
+    });
+  });
+
+  describe('Case A: job has url → enqueue to extraction queue', () => {
+    it('enqueues when extracted job has a url', async () => {
+      await ingestor.processIngestCommand({
+        source: JobSource.BROWSER_AUTO,
+        stage: JobStage.PARTIAL_PARSED,
+        rawPayload: makeIndeedHtmlWithUrl(),
+        metadata: { messageId: 'url-msg' },
+      });
+      expect(storage.upsert).toHaveBeenCalled();
+      expect(queue.enqueue).toHaveBeenCalled();
+      expect(parsePort.emitGenerated).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Case B: job has no url → emitGenerated only', () => {
+    it('emits generated when no url', async () => {
+      await ingestor.processIngestCommand({
+        source: JobSource.BROWSER_AUTO,
+        stage: JobStage.PARTIAL_PARSED,
+        rawPayload: makeTopCvHtml(),
+        metadata: { messageId: 'nourl-msg' },
+      });
+      expect(storage.upsert).toHaveBeenCalled();
+      expect(parsePort.emitGenerated).toHaveBeenCalled();
+      expect(queue.enqueue).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Filter rejection', () => {
+    it('trashes job when filter rejects', async () => {
+      const nonJobHtml = '<html><body><div>Totally not a job posting</div></body></html>';
+      await ingestor.processIngestCommand({
+        source: JobSource.BROWSER_AUTO,
+        stage: JobStage.PARTIAL_PARSED,
+        rawPayload: nonJobHtml,
+        metadata: { messageId: 'nonjob-msg' },
+      });
+      expect(routingPort.emitJobTrashed).toHaveBeenCalled();
+      expect(storage.upsert).not.toHaveBeenCalled();
     });
   });
 

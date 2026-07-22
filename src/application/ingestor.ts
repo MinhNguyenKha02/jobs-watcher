@@ -1,9 +1,11 @@
 import { getLogger } from '../infrastructure/outbound/logging/logger.js';
 import { HtmlJobParser } from '../domain/services/parsing/html-job-parser.js';
 import { JobExtractionService } from '../domain/services/parsing/job-extraction.js';
+import { hybridJobFilter } from '../domain/filter/job-filter.js';
 import type { ParsePort } from './ports/parse.port.js';
 import type { RoutingPort } from './ports/routing.port.js';
 import type { JobLifecyclePort } from './ports/job-lifecycle.port.js';
+import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
 import type { AssetProducingPort } from './ports/asset-producing.port.js';
 import type { ProcessIngestCommand, ProcessResolutionCommand } from './commands.js';
 import { JobStage, JobStatus, JobSource, type JobLifecycleDocument } from '../domain/types/job-lifecycle.js';
@@ -21,6 +23,7 @@ export class JobIngestor {
     private jobLifecycle: JobLifecyclePort,
     private parsePort: ParsePort,
     private routingPort: RoutingPort,
+    private extractionQueue?: ExtractionQueuePort,
     private assetProducingPort?: AssetProducingPort
   ) {}
 
@@ -82,6 +85,7 @@ export class JobIngestor {
     }
   }
 
+  /** BROWSER_AUTO PARTIAL_PARSED: email HTML → extract → filter → enqueue (has url) or emitGenerated (no url) */
   private async signal1BrowserAutoXorManual(
     rawPayload: string,
     metadata?: ProcessIngestCommand['metadata']
@@ -110,6 +114,9 @@ export class JobIngestor {
 
       const role = this.getStringField(extracted.role) || '';
       const company = this.getStringField(extracted.company) || '';
+      const url = this.getStringField(extracted.url) || '';
+
+      const hasUrl = /indeed\.com\/(?:applystart|viewjob)\?/i.test(url);
 
       const doc: Partial<JobLifecycleDocument> = {
         _id: jobLifeCycleId,
@@ -127,7 +134,7 @@ export class JobIngestor {
         description: this.getStringField(extracted.description) || '',
         salary: this.getStringField(extracted.salary) || '',
         location: this.getStringField(extracted.location) || '',
-        url: this.getStringField(extracted.url) || '',
+        url,
         deadline: extracted.deadline || undefined,
         easyApply: extracted.easyApply || undefined,
         stage: JobStage.PARTIAL_PARSED,
@@ -137,6 +144,13 @@ export class JobIngestor {
         updatedAt: new Date(),
         stageTimestamp: new Date(),
       };
+
+      const filterResult = hybridJobFilter(doc);
+      if (!filterResult.passed) {
+        logger.info('[Ingestor] Filter rejected job', { jobLifeCycleId, role, company, reasons: filterResult.reasons });
+        await this.routingPort.emitJobTrashed(jobLifeCycleId, `Filter rejected: ${filterResult.reasons.join('; ')}`);
+        continue;
+      }
 
       try {
         await this.jobLifecycle.upsert(doc);
@@ -149,10 +163,16 @@ export class JobIngestor {
         throw e;
       }
 
-      await this.parsePort.emitGenerated(doc, {
-        stage: JobStage.PARTIAL_PARSED,
-        source: JobSource.BROWSER_AUTO,
-      });
+      if (hasUrl && this.extractionQueue) {
+        logger.info('[Ingestor] Job has url — enqueuing to extraction queue', { jobLifeCycleId, role, company, url });
+        await this.extractionQueue.enqueue(jobLifeCycleId);
+      } else {
+        logger.info('[Ingestor] Job has no url — emitting generated only', { jobLifeCycleId, role, company });
+        await this.parsePort.emitGenerated(doc, {
+          stage: JobStage.PARTIAL_PARSED,
+          source: JobSource.BROWSER_AUTO,
+        });
+      }
     }
   }
 
