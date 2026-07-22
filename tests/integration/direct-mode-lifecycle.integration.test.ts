@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 const CLIPBOARD_HTML = `<html><body>
 <div class="job-detail">
@@ -42,18 +42,17 @@ const CLIPBOARD_HTML = `<html><body>
 
 describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     parseEvents = [];
@@ -72,7 +71,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
       emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
     };
 
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
   afterAll(async () => {
@@ -132,7 +131,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
     const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
     expect(queuedEvents.length).toBe(1);
 
-    const routedDoc = await adapter.findJobLifecycleById(clipDoc._id);
+    const routedDoc = await adapter.findById(clipDoc._id);
     expect(routedDoc).not.toBeNull();
     expect(routedDoc!.status).toBe(JobStatus.QUEUED);
 
@@ -162,7 +161,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
     const trashedEvents = routingEvents.filter(([t]) => t === 'trashed');
     expect(trashedEvents.length).toBe(1);
 
-    const routedDoc = await adapter.findJobLifecycleById(clipDoc._id);
+    const routedDoc = await adapter.findById(clipDoc._id);
     expect(routedDoc!.status).toBe(JobStatus.TRASHED);
   });
 

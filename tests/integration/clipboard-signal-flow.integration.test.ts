@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 function htmlFor(role: string, company: string): string {
   return '<div class="job-detail__info--title"><h1>' + role + '</h1></div>'
@@ -36,18 +36,17 @@ function makeStage1Partial(overrides: any = {}): any {
 
 describe('Clipboard ingest signal flow with real storage', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     parseEvents = [];
@@ -66,7 +65,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
     };
 
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
   afterAll(async () => {
@@ -92,7 +91,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
     it('upgrades PARTIAL_PARSED to FULL_PARSED with merged fields from clipboard HTML', async () => {
       const joblifecycleId = 'int-2a-valid';
       const partialDoc = makeStage1Partial({ _id: joblifecycleId, company: 'OldCo', role: 'Junior Engineer' });
-      await adapter.upsertJobLifecycle(partialDoc);
+      await adapter.upsert(partialDoc);
 
       await ingestor.processIngestCommand({
         source: JobSource.MANUAL,
@@ -104,7 +103,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
       expect(completedEvents.length).toBe(1);
 
-      const doc = await adapter.findJobLifecycleById(joblifecycleId);
+      const doc = await adapter.findById(joblifecycleId);
       expect(doc).not.toBeNull();
       expect(doc!.stage).toBe(JobStage.FULL_PARSED);
       expect(doc!.status).toBe(JobStatus.ENRICHED);
@@ -116,7 +115,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
     it('emits parse.failed on empty clipboard HTML (S4 path)', async () => {
       const joblifecycleId = 'int-2a-empty';
       const partialDoc = makeStage1Partial({ _id: joblifecycleId });
-      await adapter.upsertJobLifecycle(partialDoc);
+      await adapter.upsert(partialDoc);
 
       await ingestor.processIngestCommand({
         source: JobSource.MANUAL,
@@ -129,7 +128,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       expect(failedEvents.length).toBe(1);
       expect(failedEvents[0][2]).toEqual(expect.objectContaining({ error: 'Empty HTML payload' }));
 
-      const doc = await adapter.findJobLifecycleById(joblifecycleId);
+      const doc = await adapter.findById(joblifecycleId);
       expect(doc).not.toBeNull();
       if (doc) expect(doc.status).toBe(JobStatus.FAILED);
     });
@@ -137,7 +136,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
     it('emits parse.failed on unparsable clipboard HTML', async () => {
       const joblifecycleId = 'int-2a-noparse';
       const partialDoc = makeStage1Partial({ _id: joblifecycleId });
-      await adapter.upsertJobLifecycle(partialDoc);
+      await adapter.upsert(partialDoc);
 
       await ingestor.processIngestCommand({
         source: JobSource.MANUAL,
@@ -150,7 +149,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       expect(failedEvents.length).toBe(1);
       expect(failedEvents[0][2]).toEqual(expect.objectContaining({ error: 'HTML parse failed' }));
 
-      const doc = await adapter.findJobLifecycleById(joblifecycleId);
+      const doc = await adapter.findById(joblifecycleId);
       expect(doc).not.toBeNull();
       if (doc) expect(doc.status).toBe(JobStatus.FAILED);
     });
@@ -166,7 +165,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
       expect(completedEvents.length).toBe(1);
 
-      const doc = await adapter.findJobLifecycleById('missing-partial');
+      const doc = await adapter.findById('missing-partial');
       expect(doc).not.toBeNull();
       expect(doc!.company).toBe('NoPartialCo');
       expect(doc!.role).toBe('Junior Engineer');
@@ -272,7 +271,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
 
     it('[c] then [j]: signal2aManual upgrades partial, then queue resolution succeeds', async () => {
       const joblifecycleId = 'int-2a-queue';
-      await adapter.upsertJobLifecycle(makeStage1Partial({ _id: joblifecycleId }));
+      await adapter.upsert(makeStage1Partial({ _id: joblifecycleId }));
 
       await ingestor.processIngestCommand({
         source: JobSource.MANUAL,
@@ -293,14 +292,14 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
       expect(queuedEvents.length).toBe(1);
 
-      const doc = await adapter.findJobLifecycleById(joblifecycleId);
+      const doc = await adapter.findById(joblifecycleId);
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.QUEUED);
     });
 
     it('[c] then [d]: signal2aManual upgrades partial, then trash resolution succeeds', async () => {
       const joblifecycleId = 'int-2a-trash';
-      await adapter.upsertJobLifecycle(makeStage1Partial({ _id: joblifecycleId }));
+      await adapter.upsert(makeStage1Partial({ _id: joblifecycleId }));
 
       await ingestor.processIngestCommand({
         source: JobSource.MANUAL,
@@ -321,14 +320,14 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const trashedEvents = routingEvents.filter(([t]) => t === 'trashed');
       expect(trashedEvents.length).toBe(1);
 
-      const doc = await adapter.findJobLifecycleById(joblifecycleId);
+      const doc = await adapter.findById(joblifecycleId);
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.TRASHED);
     });
 
     it('S2 failure (S4) → next S1 still processes', async () => {
       const failedId = 'int-s4-fail';
-      await adapter.upsertJobLifecycle(makeStage1Partial({ _id: failedId }));
+      await adapter.upsert(makeStage1Partial({ _id: failedId }));
 
       await ingestor.processIngestCommand({
         source: JobSource.MANUAL,
@@ -384,7 +383,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
       expect(queuedEvents.length).toBe(1);
 
-      const doc = await adapter.findJobLifecycleById(clipId);
+      const doc = await adapter.findById(clipId);
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.QUEUED);
     });
@@ -412,7 +411,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const trashedEvents = routingEvents.filter(([t]) => t === 'trashed');
       expect(trashedEvents.length).toBe(1);
 
-      const doc = await adapter.findJobLifecycleById(lastClipId);
+      const doc = await adapter.findById(lastClipId);
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.TRASHED);
     });

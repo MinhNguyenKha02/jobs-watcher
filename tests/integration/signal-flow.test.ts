@@ -1,8 +1,8 @@
 import 'dotenv/config';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import { MongoClient } from 'mongodb';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
-import JobIngestor from '../../src/application/ingestor.js';
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
+import { JobIngestor } from '../../src/application/ingestor.js';
 import { JobStage, JobStatus, JobSource } from '../../src/domain/types/job-lifecycle.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 
@@ -21,7 +21,7 @@ function htmlFor(role: string, company: string): string {
 
 describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
   let client: MongoClient;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEventPort: ReturnType<typeof createParseEventPort>;
   let routingPort: ReturnType<typeof createRoutingPort>;
   let ingestor: JobIngestor;
@@ -55,7 +55,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     client = new MongoClient(MONGODB_URI);
     await client.connect();
     await client.db(DB_NAME).dropDatabase();
-    adapter = new MongoDBStorageAdapter({ mongoUri: MONGODB_URI, dbName: DB_NAME, logger });
+    adapter = new MongoJobLifecycleAdapter(MONGODB_URI, DB_NAME);
     await adapter.connect();
   });
 
@@ -69,7 +69,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     await cleanDb();
     parseEventPort = createParseEventPort();
     routingPort = createRoutingPort();
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   });
 
   it('S1: job.generated for BROWSER_AUTO PARTIAL_PARSED', async () => {
@@ -87,7 +87,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     const id = canonicalJob._id;
     expect(id).toBeTruthy();
 
-    const doc = await adapter.findJobLifecycleById(id);
+    const doc = await adapter.findById(id);
     expect(doc).not.toBeNull();
     expect(doc!.status).toBe(JobStatus.ENRICHING);
     expect(doc!.stage).toBe(JobStage.PARTIAL_PARSED);
@@ -120,7 +120,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     expect(emitArgs[1]).toBeTruthy();
     expect(emitArgs[2]).toEqual(expect.objectContaining({ stage: JobStage.FULL_PARSED }));
 
-    const doc = await adapter.findJobLifecycleById(id);
+    const doc = await adapter.findById(id);
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
   });
 
@@ -139,7 +139,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     await ingestor.processResolutionCommand({ joblifecycleId, action: 'queue' });
 
     expect(routingPort.emitJobQueued).toHaveBeenCalled();
-    const doc = await adapter.findJobLifecycleById(joblifecycleId);
+    const doc = await adapter.findById(joblifecycleId);
     expect(doc?.status).toBe(JobStatus.QUEUED);
   });
 
@@ -158,7 +158,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     await ingestor.processResolutionCommand({ joblifecycleId, action: 'trash' });
 
     expect(routingPort.emitJobTrashed).toHaveBeenCalled();
-    const doc = await adapter.findJobLifecycleById(joblifecycleId);
+    const doc = await adapter.findById(joblifecycleId);
     expect(doc?.status).toBe(JobStatus.TRASHED);
   });
 

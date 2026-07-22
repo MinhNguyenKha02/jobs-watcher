@@ -44,15 +44,14 @@ describe('Composition root — bootstrap with real storage', () => {
   });
 
   it('JobIngestor processes queue resolution against real MongoDB', async () => {
-    const { default: JobIngestor } = await import('../../src/application/ingestor.js');
-    const { MongoDBStorageAdapter } = await import('../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' );
+    const { JobIngestor } = await import('../../src/application/ingestor.js');
+    const { MongoJobLifecycleAdapter } = await import('../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' );
     const { JobStatus, JobStage, JobSource } = await import('../../src/domain/types/job-lifecycle.js' );
 
-    const adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger: console,
-    });
+    const adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     const routingPort = {
@@ -72,7 +71,7 @@ describe('Composition root — bootstrap with real storage', () => {
     });
 
     const jobId = 'comp-root-test-queue-001';
-    await adapter.upsertJobLifecycle({
+    await adapter.upsert({
       _id: jobId,
       role: 'Software Engineer',
       company: 'Test Corp',
@@ -87,7 +86,7 @@ describe('Composition root — bootstrap with real storage', () => {
 
     await ingestor.processResolutionCommand({ joblifecycleId: jobId, action: 'queue' });
 
-    const updated = await adapter.findJobLifecycleById(jobId);
+    const updated = await adapter.findById(jobId);
     expect(updated).toBeDefined();
     expect(updated!._id).toBe(jobId);
     expect(updated!.status).toBe(JobStatus.QUEUED);
@@ -97,15 +96,14 @@ describe('Composition root — bootstrap with real storage', () => {
   }, 30000);
 
   it('JobIngestor processes trash resolution against real MongoDB', async () => {
-    const { default: JobIngestor } = await import('../../src/application/ingestor.js');
-    const { MongoDBStorageAdapter } = await import('../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' );
+    const { JobIngestor } = await import('../../src/application/ingestor.js');
+    const { MongoJobLifecycleAdapter } = await import('../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' );
     const { JobStatus, JobStage, JobSource } = await import('../../src/domain/types/job-lifecycle.js' );
 
-    const adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger: console,
-    });
+    const adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     const routingPort = {
@@ -125,7 +123,7 @@ describe('Composition root — bootstrap with real storage', () => {
     });
 
     const jobId = 'comp-root-test-trash-001';
-    await adapter.upsertJobLifecycle({
+    await adapter.upsert({
       _id: jobId,
       role: 'DevOps Engineer',
       company: 'Cloud Inc',
@@ -140,7 +138,7 @@ describe('Composition root — bootstrap with real storage', () => {
 
     await ingestor.processResolutionCommand({ joblifecycleId: jobId, action: 'trash' });
 
-    const updated = await adapter.findJobLifecycleById(jobId);
+    const updated = await adapter.findById(jobId);
     expect(updated).toBeDefined();
     expect(updated!.status).toBe(JobStatus.TRASHED);
     expect(routingPort.emitJobTrashed).toHaveBeenCalledOnce();
@@ -149,15 +147,14 @@ describe('Composition root — bootstrap with real storage', () => {
   }, 30000);
 
   it('JobIngestor processes resolution with editedKVs against real MongoDB', async () => {
-    const { default: JobIngestor } = await import('../../src/application/ingestor.js');
-    const { MongoDBStorageAdapter } = await import('../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' );
+    const { JobIngestor } = await import('../../src/application/ingestor.js');
+    const { MongoJobLifecycleAdapter } = await import('../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' );
     const { JobStatus, JobStage, JobSource } = await import('../../src/domain/types/job-lifecycle.js' );
 
-    const adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger: console,
-    });
+    const adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     const routingPort = {
@@ -177,7 +174,7 @@ describe('Composition root — bootstrap with real storage', () => {
     });
 
     const jobId = 'comp-root-test-edit-001';
-    await adapter.upsertJobLifecycle({
+    await adapter.upsert({
       _id: jobId,
       role: 'Junior Developer',
       company: 'Startup Co',

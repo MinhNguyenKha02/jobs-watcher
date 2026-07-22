@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
 
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 const now = new Date();
 
@@ -28,18 +28,17 @@ function makeDoc(overrides: any): any {
 
 describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: any;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     parseEvents = [];
@@ -58,7 +57,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
       emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
     };
 
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
   afterAll(async () => {
@@ -68,7 +67,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
 
   it('processResolutionCommand queue updates status and emits queued event', async () => {
     const doc = makeDoc({ _id: 'it-queue-1', company: 'QueueCorp', role: 'Dev' });
-    await adapter.upsertJobLifecycle(doc);
+    await adapter.upsert(doc);
 
     await ingestor.processResolutionCommand({
       joblifecycleId: 'it-queue-1',
@@ -76,7 +75,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
       editedKVs: {},
     });
 
-    const updated = await adapter.findJobLifecycleById('it-queue-1');
+    const updated = await adapter.findById('it-queue-1');
     expect(updated).not.toBeNull();
     expect(updated!.status).toBe(JobStatus.QUEUED);
 
@@ -86,7 +85,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
 
   it('processResolutionCommand trash updates status and emits trashed event', async () => {
     const doc = makeDoc({ _id: 'it-trash-1', company: 'TrashCorp', role: 'Dev' });
-    await adapter.upsertJobLifecycle(doc);
+    await adapter.upsert(doc);
 
     await ingestor.processResolutionCommand({
       joblifecycleId: 'it-trash-1',
@@ -94,7 +93,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
       editedKVs: { reason: 'not interested' },
     });
 
-    const updated = await adapter.findJobLifecycleById('it-trash-1');
+    const updated = await adapter.findById('it-trash-1');
     expect(updated).not.toBeNull();
     expect(updated!.status).toBe(JobStatus.TRASHED);
 
@@ -117,12 +116,12 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
 
   it('allows multiple queue/trash actions on same job', async () => {
     const doc = makeDoc({ _id: 'it-multi-1', company: 'MultiCorp', role: 'Dev' });
-    await adapter.upsertJobLifecycle(doc);
+    await adapter.upsert(doc);
 
     await ingestor.processResolutionCommand({ joblifecycleId: 'it-multi-1', action: 'queue', editedKVs: {} });
     expect(routingEvents.filter(([t]) => t === 'queued').length).toBeGreaterThanOrEqual(1);
 
-    const stored = await adapter.findJobLifecycleById('it-multi-1');
+    const stored = await adapter.findById('it-multi-1');
     expect(stored?.status).toBe(JobStatus.QUEUED);
   });
 });

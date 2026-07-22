@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { ExtractionScheduler } from '../../src/application/extraction-scheduler.js';
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 const INDEED_EMAIL_HTML = `<html><body>
 <span class="strong-text-link">Indeed Job Alert</span>
@@ -64,18 +64,17 @@ const INDEED_DETAIL_HTML = `<html><body>
 
 describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal 2c)', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     ingestor = new JobIngestor(adapter);
@@ -182,7 +181,7 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
       updatedAt: new Date(),
       stageTimestamp: new Date(),
     };
-    await adapter.upsertJobLifecycle(partialDoc as any);
+    await adapter.upsert(partialDoc as any);
 
     const eqCol = (adapter as any).extractionQueueCollection;
     await eqCol.insertOne({
@@ -192,7 +191,7 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
     });
 
     const findJobLifecycle = async (id: string) => {
-      const doc = await adapter.findJobLifecycleById(id);
+      const doc = await adapter.findById(id);
       return doc ? { url: doc.url } : null;
     };
 
@@ -229,7 +228,7 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
       expect(completedEvents.length).toBeGreaterThanOrEqual(1);
     }, { interval: 100, timeout: 10000 });
 
-    const fullDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const fullDoc = await adapter.findById(joblifecycleId);
     expect(fullDoc).not.toBeNull();
     expect(fullDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(fullDoc!.status).toBe(JobStatus.ENRICHED);

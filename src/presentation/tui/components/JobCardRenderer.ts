@@ -7,6 +7,7 @@
  */
 
 import type { Job, JobDetails } from '../../../domain/types/job.js';
+import { KeyAction } from './KeyboardHandler.js';
 
 export interface CardStatus {
   sseConnected: boolean;
@@ -193,27 +194,38 @@ export class JobCardRenderer {
   /**
    * Render the footer with keyboard help.
    */
+  private actionLabel(action: KeyAction): string {
+    switch (action) {
+      case KeyAction.QUEUE: return 'j=queue';
+      case KeyAction.TRASH: return 'd=trash';
+      case KeyAction.PREVIEW: return 'p=preview';
+      case KeyAction.WEBHOOK_STAGE2_PARSE: return 'c=stage2';
+      case KeyAction.OPEN: return 'o=open-url';
+      case KeyAction.INGEST: return 'i=ingest';
+      case KeyAction.TOGGLE_QUEUE: return 'b=queue/direct';
+      case KeyAction.HELP: return '?=help';
+      case KeyAction.QUIT: return 'q=quit';
+      default: return '';
+    }
+  }
+
   private renderFooter(hasJob: boolean, status?: CardStatus): string {
     const isDirect = status?.queueMode === false;
     const lines: string[] = [];
 
     if (!hasJob) {
-      if (isDirect) {
-        lines.push('╚ i=ingest  p=preview  q=quit  b=queue');
-      } else {
-        lines.push('╚ q=quit  b=direct');
-      }
+      const actions = isDirect
+        ? [KeyAction.INGEST, KeyAction.PREVIEW, KeyAction.QUIT, KeyAction.TOGGLE_QUEUE]
+        : [KeyAction.QUIT, KeyAction.TOGGLE_QUEUE];
+      lines.push('╚ ' + actions.map(a => this.actionLabel(a)).join('  '));
       return lines.join('\n');
     }
 
     lines.push('╟─ Actions:');
-    if (isDirect) {
-      lines.push('║  j=queue  d=trash  p=preview');
-      lines.push('║  b=queue  ?=help  q=quit');
-    } else {
-      lines.push('║  j=queue  d=trash  p=preview  e=edit  o=open-url  c=stage2  f=filter');
-      lines.push('║  b=direct  ?=help  q=quit');
-    }
+    const actions = isDirect
+      ? [KeyAction.QUEUE, KeyAction.TRASH, KeyAction.PREVIEW, KeyAction.TOGGLE_QUEUE, KeyAction.HELP, KeyAction.QUIT]
+      : [KeyAction.QUEUE, KeyAction.TRASH, KeyAction.PREVIEW, KeyAction.WEBHOOK_STAGE2_PARSE, KeyAction.OPEN, KeyAction.TOGGLE_QUEUE, KeyAction.HELP, KeyAction.QUIT];
+    lines.push('║  ' + actions.map(a => this.actionLabel(a)).join('  '));
     lines.push('╚' + '═'.repeat(Math.max(0, this.terminalWidth - 2)) + '╝');
 
     return lines.join('\n');

@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 const CLIPBOARD_HTML = `<html><body>
 <div class="job-detail">
@@ -60,18 +60,17 @@ const EMPTY_HTML = '';
 
 describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     parseEvents = [];
@@ -90,7 +89,7 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
       emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
     };
 
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
   afterAll(async () => {
@@ -113,7 +112,7 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
       updatedAt: new Date(),
       stageTimestamp: new Date(),
     };
-    await adapter.upsertJobLifecycle(partialDoc as any);
+    await adapter.upsert(partialDoc as any);
 
     const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
 
@@ -125,7 +124,7 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
       receivedAt: new Date(),
     });
 
-    const fullDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const fullDoc = await adapter.findById(joblifecycleId);
     expect(fullDoc).not.toBeNull();
     expect(fullDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(fullDoc!.status).toBe(JobStatus.ENRICHED);
@@ -153,7 +152,7 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
       updatedAt: new Date(),
       stageTimestamp: new Date(),
     };
-    await adapter.upsertJobLifecycle(partialDoc as any);
+    await adapter.upsert(partialDoc as any);
 
     const failedBefore = parseEvents.filter(([t]) => t === 'failed').length;
 
@@ -168,7 +167,7 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
     const failedEvents = parseEvents.filter(([t]) => t === 'failed');
     expect(failedEvents.length).toBe(failedBefore + 1);
 
-    const doc = await adapter.findJobLifecycleById(joblifecycleId);
+    const doc = await adapter.findById(joblifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.status).toBe(JobStatus.FAILED);
   });

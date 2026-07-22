@@ -1,8 +1,8 @@
 import 'dotenv/config';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import { MongoClient } from 'mongodb';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
-import JobIngestor from '../../src/application/ingestor.js';
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
+import { JobIngestor } from '../../src/application/ingestor.js';
 import { JobStage, JobStatus, JobSource } from '../../src/domain/types/job-lifecycle.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 
@@ -21,7 +21,7 @@ function htmlFor(role: string, company: string): string {
 
 describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
   let client: MongoClient;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEventPort: ReturnType<typeof createParseEventPort>;
   let routingPort: ReturnType<typeof createRoutingPort>;
   let ingestor: JobIngestor;
@@ -55,7 +55,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     client = new MongoClient(MONGODB_URI);
     await client.connect();
     await client.db(DB_NAME).dropDatabase();
-    adapter = new MongoDBStorageAdapter({ mongoUri: MONGODB_URI, dbName: DB_NAME, logger });
+    adapter = new MongoJobLifecycleAdapter(MONGODB_URI, DB_NAME);
     await adapter.connect();
   });
 
@@ -69,7 +69,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     await cleanDb();
     parseEventPort = createParseEventPort();
     routingPort = createRoutingPort();
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   });
 
   it('S2b: signal2bManual creates job with clip-* ID and FULL_PARSED status', async () => {
@@ -82,7 +82,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     expect(parseEventPort.emitParseCompleted).toHaveBeenCalled();
     const id = parseEventPort.emitParseCompleted.mock.calls[0][0];
     expect(id).toMatch(/^clip-/);
-    const doc = await adapter.findJobLifecycleById(id);
+    const doc = await adapter.findById(id);
     expect(doc).not.toBeNull();
     expect(doc!.status).toBe(JobStatus.ENRICHED);
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
@@ -100,7 +100,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     expect(parseEventPort.emitJobGenerated).toHaveBeenCalled();
     const s1Job = parseEventPort.emitJobGenerated.mock.calls[0][0];
     const joblifecycleId = s1Job._id;
-    const s1Doc = await adapter.findJobLifecycleById(joblifecycleId);
+    const s1Doc = await adapter.findById(joblifecycleId);
     expect(s1Doc).not.toBeNull();
     expect(s1Doc!.stage).toBe(JobStage.PARTIAL_PARSED);
 
@@ -112,7 +112,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
       joblifecycleId,
     });
     expect(parseEventPort.emitParseCompleted).toHaveBeenCalled();
-    const s2Doc = await adapter.findJobLifecycleById(joblifecycleId);
+    const s2Doc = await adapter.findById(joblifecycleId);
     expect(s2Doc).not.toBeNull();
     expect(s2Doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(s2Doc!.status).toBe(JobStatus.ENRICHED);
@@ -127,7 +127,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     });
     expect(parseEventPort.emitParseCompleted).toHaveBeenCalled();
     const id = parseEventPort.emitParseCompleted.mock.calls[0][0];
-    const doc = await adapter.findJobLifecycleById(id);
+    const doc = await adapter.findById(id);
     expect(doc!.source).toBe(JobSource.MANUAL);
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(doc!.company).toBe('Direct Co');
@@ -149,12 +149,12 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
   });
 
   it('propagates non-11000 upsert error', async () => {
-    const badDb = new MongoDBStorageAdapter({ mongoUri: MONGODB_URI, dbName: DB_NAME, logger });
+    const badDb = new MongoJobLifecycleAdapter(MONGODB_URI, DB_NAME);
     await badDb.connect();
-    vi.spyOn(badDb, 'upsertJobLifecycle').mockRejectedValueOnce(
+    vi.spyOn(badDb, 'upsert').mockRejectedValueOnce(
       Object.assign(new Error('Disk full'), { code: 9000 })
     );
-    const standalone = new JobIngestor(badDb, { parseEventPort, routingPort });
+    const standalone = new JobIngestor(badDb, parseEventPort, routingPort);
 
     await expect(
       standalone.processIngestCommand({

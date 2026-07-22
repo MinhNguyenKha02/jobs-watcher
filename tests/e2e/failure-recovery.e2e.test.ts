@@ -1,27 +1,26 @@
 import { describe, it, expect, beforeAll, afterAll, vi, afterEach } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { ExtractionScheduler } from '../../src/application/extraction-scheduler.js';
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     parseEvents = [];
@@ -40,7 +39,7 @@ describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
       emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
     };
 
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
   afterAll(async () => {
@@ -63,7 +62,7 @@ describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
       updatedAt: new Date(),
       stageTimestamp: new Date(),
     };
-    await adapter.upsertJobLifecycle(doc as any);
+    await adapter.upsert(doc as any);
     const eqCol = (adapter as any).extractionQueueCollection;
     await eqCol.insertOne({
       _id: joblifecycleId,
@@ -83,7 +82,7 @@ describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
     };
 
     const findJobLifecycle = async (id: string) => {
-      const doc = await adapter.findJobLifecycleById(id);
+      const doc = await adapter.findById(id);
       return doc ? { url: doc.url } : null;
     };
 
@@ -119,7 +118,7 @@ describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
     expect(lastGen).toBeDefined();
     expect(lastGen[1]._id).toBe(joblifecycleId);
 
-    const doc = await adapter.findJobLifecycleById(joblifecycleId);
+    const doc = await adapter.findById(joblifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.PARTIAL_PARSED);
     expect(doc!.status).toBe(JobStatus.ENRICHING);

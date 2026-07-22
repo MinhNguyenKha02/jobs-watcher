@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 function makeTopCvHtml(company: string, role: string): string {
   return '<div class="job-detail__info--title"><h1>' + role + '</h1></div>'
@@ -35,18 +35,17 @@ function makeStage1Partial(overrides = {}): any {
 
 describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEventPort: Record<string, ReturnType<typeof vi.fn>>;
   let routingPort: Record<string, ReturnType<typeof vi.fn>>;
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     parseEventPort = {
@@ -62,7 +61,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       emitRouteFailed: vi.fn((...args: any[]) => Promise.resolve()),
     };
 
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
   afterAll(async () => {
@@ -104,7 +103,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
 
     expect(parseEventPort.emitParseCompleted).toHaveBeenCalledTimes(1);
 
-    const fullDoc = await adapter.findJobLifecycleById(docId);
+    const fullDoc = await adapter.findById(docId);
     expect(fullDoc).not.toBeNull();
     expect(fullDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(fullDoc!.status).toBe(JobStatus.ENRICHED);
@@ -117,7 +116,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
 
     expect(routingPort.emitJobQueued).toHaveBeenCalledTimes(1);
 
-    const routedDoc = await adapter.findJobLifecycleById(docId);
+    const routedDoc = await adapter.findById(docId);
     expect(routedDoc!.status).toBe(JobStatus.QUEUED);
   });
 
@@ -134,7 +133,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       status: JobStatus.ENRICHED,
       matchScore: 85,
     });
-    await adapter.upsertJobLifecycle(partialDoc);
+    await adapter.upsert(partialDoc);
 
     await ingestor.processResolutionCommand({
       joblifecycleId: docId,
@@ -144,7 +143,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
 
     expect(routingPort.emitJobQueued).toHaveBeenCalledTimes(1);
 
-    const routedDoc = await adapter.findJobLifecycleById(docId);
+    const routedDoc = await adapter.findById(docId);
     expect(routedDoc!.status).toBe(JobStatus.QUEUED);
   });
 
@@ -181,7 +180,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     vi.clearAllMocks();
 
     const docId = 'cycle-fail-3b';
-    await adapter.upsertJobLifecycle(makeStage1Partial({
+    await adapter.upsert(makeStage1Partial({
       _id: docId,
       company: 'FailCo3b',
       role: 'Fail Role 3b',
@@ -227,7 +226,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     expect(parseEventPort.emitJobGenerated).toHaveBeenCalledTimes(1);
     expect(parseEventPort.emitParseCompleted).toHaveBeenCalledTimes(1);
 
-    const doc = await adapter.findJobLifecycleById(docId);
+    const doc = await adapter.findById(docId);
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(doc!.matchScore).toBeGreaterThan(0);
@@ -259,7 +258,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       stage: JobStage.FULL_PARSED,
       status: JobStatus.ENRICHED,
     });
-    await adapter.upsertJobLifecycle(partialDoc);
+    await adapter.upsert(partialDoc);
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
@@ -284,7 +283,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       company: 'EmptyCo',
       role: 'Junior Dev',
     });
-    await adapter.upsertJobLifecycle(partialDoc);
+    await adapter.upsert(partialDoc);
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
@@ -295,7 +294,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
 
     expect(parseEventPort.emitParseFailed).toHaveBeenCalledTimes(1);
 
-    const doc = await adapter.findJobLifecycleById(docId);
+    const doc = await adapter.findById(docId);
     expect(doc).not.toBeNull();
     expect(doc!.status).toBe(JobStatus.FAILED);
   });

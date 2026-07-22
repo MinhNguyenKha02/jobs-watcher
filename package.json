@@ -26,8 +26,12 @@
     "setup": "tsx src/cli/setup.ts",
     "pubsub:subscribe": "tsx src/cli/pubsub-subscribe.ts",
     "pubsub:unsubscribe": "tsx src/cli/pubsub-unsubscribe.ts",
-    "eval:fetch-and-trigger": "tsx scripts/eval-fetch-and-trigger.ts",
-    "db:truncate": "SKIP_CONFIRM=1 tsx scripts/db-truncate.ts"
+    "render-server": "tsx src/presentation/tui/tui-stdout-adapter.ts",
+    "action-controller": "tsx src/presentation/tui/tui-stdin-adapter.ts",
+    "eval:fetch-and-trigger": "bash scripts/eval-fetch-and-trigger.sh",
+    "db:truncate": "SKIP_CONFIRM=1 tsx scripts/db-truncate.ts",
+    "build:artifacts": "tsx src/artifacts/build-artifacts.ts",
+    "test:regression": "vitest tests/regression/ -u --passWithNoTests"
   },
   "keywords": [
     "gmail",

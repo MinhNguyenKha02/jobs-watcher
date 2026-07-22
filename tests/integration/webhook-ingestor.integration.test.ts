@@ -1,30 +1,29 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
 
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 const { EventDrivenWebhook } = await import('../../src/infrastructure/inbound/web/event-webhook.js' );
 
 const SAMPLE_HTML = `<html><body>Job alert: Senior Engineer at Acme Inc</body></html>`;
 
 describe('Webhook → Ingestor → MongoDB (full pipeline)', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let mockGmail: any;
   let webhook: EventDrivenWebhook;
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     ingestor = new JobIngestor(adapter);
@@ -65,7 +64,7 @@ describe('Webhook → Ingestor → MongoDB (full pipeline)', () => {
     const col = (adapter as any).jobLifecycleCollection;
     const before = await col.countDocuments({});
 
-    const upsertSpy = vi.spyOn(adapter, 'upsertJobLifecycle');
+    const upsertSpy = vi.spyOn(adapter, 'upsert');
 
     await ingestor.processIngestCommand({
       source: 'browser-auto' as any,

@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 function makeTopCvHtml(company = 'TestCo'): string {
   return '<div class="job-detail__info--title"><h1>Junior Engineer</h1></div>'
@@ -15,18 +15,17 @@ function makeTopCvHtml(company = 'TestCo'): string {
 
 describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: any;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     parseEvents = [];
@@ -45,7 +44,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
       emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
     };
 
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
   afterAll(async () => {
@@ -78,7 +77,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
 
     const generatedEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(generatedEvents.length).toBe(1);
-    const doc = await adapter.findJobLifecycleById('job-after-s4a-job-0');
+    const doc = await adapter.findById('job-after-s4a-job-0');
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.PARTIAL_PARSED);
   });
@@ -96,7 +95,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
       updatedAt: new Date(),
       stageTimestamp: new Date(),
     };
-    await adapter.upsertJobLifecycle(doc);
+    await adapter.upsert(doc);
     vi.spyOn(adapter, 'updateJobStatus').mockRejectedValueOnce(new Error('DB write timeout'));
 
     await ingestor.processResolutionCommand({
@@ -145,7 +144,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
       updatedAt: new Date(),
       stageTimestamp: new Date(),
     };
-    await adapter.upsertJobLifecycle(partialDoc);
+    await adapter.upsert(partialDoc);
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
@@ -157,7 +156,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
 
-    const fullDoc = await adapter.findJobLifecycleById('job-s4-recover');
+    const fullDoc = await adapter.findById('job-s4-recover');
     expect(fullDoc).not.toBeNull();
     expect(fullDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(fullDoc!.status).toBe(JobStatus.ENRICHED);

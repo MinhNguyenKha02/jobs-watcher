@@ -17,7 +17,9 @@ export class MongoJobLifecycleAdapter implements JobLifecyclePort {
     const db = this.client.db(this.dbName);
     this.collection = db.collection<JobLifecycleDocument>(COLLECTIONS.JOB_LIFECYCLE);
     for (const index of INDEXES.JOB_LIFECYCLE) {
-      await this.collection.createIndex(index.key as unknown as Record<string, number>, { unique: index.unique, name: index.name });
+      const opts: Record<string, unknown> = { name: index.name };
+      if (index.unique) opts.unique = true;
+      await this.collection.createIndex(index.key as unknown as Record<string, number>, opts);
     }
     logger.info('[MongoJobLifecycleAdapter] Connected and indexes ensured');
   }

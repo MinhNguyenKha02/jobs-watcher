@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 function htmlFor(role: string, company: string): string {
   return '<div class="job-detail__info--title"><h1>' + role + '</h1></div>'
@@ -15,18 +15,17 @@ function htmlFor(role: string, company: string): string {
 
 describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     parseEvents = [];
@@ -45,7 +44,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
       emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
     };
 
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
   afterAll(async () => {
@@ -74,7 +73,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
       updatedAt: new Date(),
       stageTimestamp: new Date(),
     };
-    await adapter.upsertJobLifecycle(partialDoc as any);
+    await adapter.upsert(partialDoc as any);
 
     const failedBefore = parseEvents.filter(([t]) => t === 'failed').length;
 
@@ -88,7 +87,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     const failedEvents = parseEvents.filter(([t]) => t === 'failed');
     expect(failedEvents.length).toBe(failedBefore + 1);
 
-    const failedDoc = await adapter.findJobLifecycleById(failedJobId);
+    const failedDoc = await adapter.findById(failedJobId);
     expect(failedDoc).not.toBeNull();
     if (failedDoc) {
       expect(failedDoc.status).toBe(JobStatus.FAILED);
@@ -128,7 +127,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
       updatedAt: new Date(),
       stageTimestamp: new Date(),
     };
-    await adapter.upsertJobLifecycle(fullDoc as any);
+    await adapter.upsert(fullDoc as any);
 
     const routeFailedBefore = routingEvents.filter(([t]) => t === 'failed').length;
 
@@ -231,7 +230,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     // Interleave S2 failures (empty HTML) and S3 failures (DB reject)
     for (let i = 0; i < 10; i++) {
       const jobId = `interleave-fail-${i}`;
-      await adapter.upsertJobLifecycle({
+      await adapter.upsert({
         _id: jobId, raw: '<html>x</html>', stage: JobStage.FULL_PARSED,
         status: JobStatus.ENRICHED, source: JobSource.MANUAL,
         company: `FailCo${i}`, role: 'Engineer',
@@ -292,7 +291,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBeGreaterThanOrEqual(1);
 
-    const doc = await adapter.findJobLifecycleById(joblifecycleId);
+    const doc = await adapter.findById(joblifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(doc!.matchScore).toBeGreaterThan(0);
@@ -315,7 +314,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
       updatedAt: new Date(),
       stageTimestamp: new Date(),
     };
-    await adapter.upsertJobLifecycle(partialDoc as any);
+    await adapter.upsert(partialDoc as any);
 
     const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
 

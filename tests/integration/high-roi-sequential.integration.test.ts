@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 function htmlFor(role: string, company: string): string {
   return '<div class="job-detail__info--title"><h1>' + role + '</h1></div>'
@@ -32,18 +32,17 @@ function makeStage1Partial(overrides: any = {}): any {
 
 describe('High-ROI sequential tests (H1-H5)', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     parseEvents = [];
@@ -62,7 +61,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
     };
 
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
   afterAll(async () => {
@@ -101,7 +100,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       const joblifecycleId = genEvents[i][1]._id;
       expect(joblifecycleId).toMatch(/-job-0$/);
 
-      const partialDoc = await adapter.findJobLifecycleById(joblifecycleId);
+      const partialDoc = await adapter.findById(joblifecycleId);
       expect(partialDoc).not.toBeNull();
       expect(partialDoc!.stage).toBe(JobStage.PARTIAL_PARSED);
       expect(partialDoc!.status).toBe(JobStatus.ENRICHING);
@@ -117,7 +116,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       expect(completedEvents.length).toBe(i + 1);
       expect(completedEvents[i][1]).toBe(joblifecycleId);
 
-      const enrichedDoc = await adapter.findJobLifecycleById(joblifecycleId);
+      const enrichedDoc = await adapter.findById(joblifecycleId);
       expect(enrichedDoc).not.toBeNull();
       expect(enrichedDoc!.stage).toBe(JobStage.FULL_PARSED);
       expect(enrichedDoc!.status).toBe(JobStatus.ENRICHED);
@@ -131,7 +130,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
       expect(queuedEvents.length).toBe(i + 1);
 
-      const routedDoc = await adapter.findJobLifecycleById(joblifecycleId);
+      const routedDoc = await adapter.findById(joblifecycleId);
       expect(routedDoc).not.toBeNull();
       expect(routedDoc!.status).toBe(JobStatus.QUEUED);
     }
@@ -143,7 +142,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
   // ── H2: Rapid [c] double-press idempotency ──────────────────────────
   it('H2: Rapid [c] double-press — signal2aManual twice for same partial job', async () => {
     const joblifecycleId = 'h2-double-c';
-    await adapter.upsertJobLifecycle(makeStage1Partial({
+    await adapter.upsert(makeStage1Partial({
       _id: joblifecycleId,
       company: 'DoubleCo',
       role: 'Junior Dev',
@@ -159,7 +158,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
     const completedAfterFirst = parseEvents.filter(([t]) => t === 'completed').length;
     expect(completedAfterFirst).toBe(1);
 
-    const firstDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const firstDoc = await adapter.findById(joblifecycleId);
     expect(firstDoc!.stage).toBe(JobStage.FULL_PARSED);
 
     await ingestor.processIngestCommand({
@@ -172,7 +171,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
     const completedAfterSecond = parseEvents.filter(([t]) => t === 'completed');
     expect(completedAfterSecond.length).toBe(2);
 
-    const secondDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const secondDoc = await adapter.findById(joblifecycleId);
     expect(secondDoc!.stage).toBe(JobStage.FULL_PARSED);
 
     expect(parseEvents.filter(([t]) => t === 'failed').length).toBe(0);
@@ -181,7 +180,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
   // ── H3: [c] then [j] race — S2 arrives after queue ──────────────────
   it('H3: [c] then [j] race — S2 enrichment after queue overwrites QUEUED status (known sequencing gap)', async () => {
     const joblifecycleId = 'h3-enrich-after-queue';
-    await adapter.upsertJobLifecycle(makeStage1Partial({
+    await adapter.upsert(makeStage1Partial({
       _id: joblifecycleId,
       company: 'RaceCo',
       role: 'Junior Dev',
@@ -195,7 +194,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
     const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
     expect(queuedEvents.length).toBe(1);
 
-    const queuedDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const queuedDoc = await adapter.findById(joblifecycleId);
     expect(queuedDoc!.status).toBe(JobStatus.QUEUED);
 
     await ingestor.processIngestCommand({
@@ -208,7 +207,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
 
-    const enrichedDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const enrichedDoc = await adapter.findById(joblifecycleId);
     expect(enrichedDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(enrichedDoc!.matchScore).toBeGreaterThan(0);
 
@@ -237,7 +236,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
     expect(completedEvents.length).toBe(1);
     expect(completedEvents[0][1]).toBe(joblifecycleId);
 
-    const doc = await adapter.findJobLifecycleById(joblifecycleId);
+    const doc = await adapter.findById(joblifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(doc!.status).toBe(JobStatus.ENRICHED);
@@ -251,7 +250,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
   // ── H5: S3 route failure → S4 → S1 next job ────────────────────────
   it('H5: S3 route failure (S4) then next S1 partial processes normally', async () => {
     const docId = 'h5-route-fail';
-    await adapter.upsertJobLifecycle(makeStage1Partial({
+    await adapter.upsert(makeStage1Partial({
       _id: docId,
       company: 'FailCo',
       role: 'Senior Engineer',
@@ -283,7 +282,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);
 
-    const doc = await adapter.findJobLifecycleById('h5-next-job-0');
+    const doc = await adapter.findById('h5-next-job-0');
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.PARTIAL_PARSED);
     expect(doc!.status).toBe(JobStatus.ENRICHING);

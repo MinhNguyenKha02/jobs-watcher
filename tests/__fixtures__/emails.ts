@@ -1,8 +1,11 @@
-// ...existing code...
-
-import { canonicalProfile } from '../../src/db/json.js';
-// Use canonicalProfile as the mockProfile for all tests
-export const mockProfile = canonicalProfile;
+export const mockProfile = {
+  name: 'Test User',
+  email: 'test@example.com',
+  phone: '+84123456789',
+  location: 'Ho Chi Minh City',
+  education: [{ institution: 'Test University', degree: 'Bachelor', field: 'Computer Science' }],
+  links: { linkedin: 'https://linkedin.com/in/testuser', github: 'https://github.com/testuser' },
+};
 
 export const mockParsedJob = {
   title: 'Frontend Developer',

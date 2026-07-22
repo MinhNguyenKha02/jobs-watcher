@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 const FULL_PARSED_HTML = '<html><body>' +
   '<div class="job-detail__info--title"><h1>Junior Backend Developer</h1></div>' +
@@ -15,18 +15,17 @@ const FULL_PARSED_HTML = '<html><body>' +
 
 describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     parseEvents = [];
@@ -45,7 +44,7 @@ describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => 
       emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
     };
 
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
   afterAll(async () => {
@@ -79,7 +78,7 @@ describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
 
-    const doc = await adapter.findJobLifecycleById(joblifecycleId);
+    const doc = await adapter.findById(joblifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(doc!.status).toBe(JobStatus.ENRICHED);
@@ -91,7 +90,7 @@ describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => 
       action: 'queue',
     });
 
-    const queuedDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const queuedDoc = await adapter.findById(joblifecycleId);
     expect(queuedDoc).not.toBeNull();
     expect(queuedDoc!.status).toBe(JobStatus.QUEUED);
 
@@ -116,7 +115,7 @@ describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => 
       action: 'trash',
     });
 
-    const trashedDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const trashedDoc = await adapter.findById(joblifecycleId);
     expect(trashedDoc).not.toBeNull();
     expect(trashedDoc!.status).toBe(JobStatus.TRASHED);
 
@@ -165,7 +164,7 @@ describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
 
-    const doc = await adapter.findJobLifecycleById(joblifecycleId);
+    const doc = await adapter.findById(joblifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(doc!.status).toBe(JobStatus.ENRICHED);

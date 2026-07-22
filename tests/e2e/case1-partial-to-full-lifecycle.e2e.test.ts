@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoDBStorageAdapter } from '../../src/infrastructure/outbound/persistence/mongodb-storage-adapter.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
 const logger = getLogger();
-const { default: JobIngestor } = await import('../../src/application/ingestor.js');
+const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 const TOPCV_HTML = '<div class="job-detail__info--title"><h1>Junior Engineer</h1></div>' +
   '<div class="company-name-label"><a class="name">Case1Co</a></div><div>topcv</div>';
@@ -35,18 +35,17 @@ function makeStage1Partial(overrides: any = {}): any {
 
 describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   let storage: any;
-  let adapter: MongoDBStorageAdapter;
+  let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoDBStorageAdapter({
-      mongoUri: storage.uri,
-      dbName: storage.dbName,
-      logger,
-    });
+    adapter = new MongoJobLifecycleAdapter(
+      storage.uri,
+      storage.dbName,
+    );
     await adapter.connect();
 
     parseEvents = [];
@@ -65,7 +64,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
       emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
     };
 
-    ingestor = new JobIngestor(adapter, { parseEventPort, routingPort });
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
   afterAll(async () => {
@@ -98,7 +97,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
     const joblifecycleId = genEvents[0][1]._id;
     expect(joblifecycleId).toMatch(/-job-0$/);
 
-    const partialDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const partialDoc = await adapter.findById(joblifecycleId);
     expect(partialDoc).not.toBeNull();
     expect(partialDoc!.stage).toBe(JobStage.PARTIAL_PARSED);
     expect(partialDoc!.status).toBe(JobStatus.ENRICHING);
@@ -114,7 +113,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
     expect(completedEvents.length).toBe(1);
     expect(completedEvents[0][1]).toBe(joblifecycleId);
 
-    const enrichedDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const enrichedDoc = await adapter.findById(joblifecycleId);
     expect(enrichedDoc).not.toBeNull();
     expect(enrichedDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(enrichedDoc!.status).toBe(JobStatus.ENRICHED);
@@ -125,7 +124,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
       action: 'queue',
     });
 
-    const routedDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const routedDoc = await adapter.findById(joblifecycleId);
     expect(routedDoc).not.toBeNull();
     expect(routedDoc!.status).toBe(JobStatus.QUEUED);
     expect(routedDoc!.routedAt).toBeInstanceOf(Date);
@@ -153,7 +152,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
       action: 'queue',
     });
 
-    const routedDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const routedDoc = await adapter.findById(joblifecycleId);
     expect(routedDoc).not.toBeNull();
     expect(routedDoc!.status).toBe(JobStatus.QUEUED);
 
@@ -167,7 +166,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
       joblifecycleId,
     });
 
-    const enrichedDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const enrichedDoc = await adapter.findById(joblifecycleId);
     expect(enrichedDoc).not.toBeNull();
     expect(enrichedDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(enrichedDoc!.matchScore).toBeGreaterThan(0);
@@ -202,7 +201,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
       action: 'trash',
     });
 
-    const trashedDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const trashedDoc = await adapter.findById(joblifecycleId);
     expect(trashedDoc).not.toBeNull();
     expect(trashedDoc!.status).toBe(JobStatus.TRASHED);
 
@@ -213,7 +212,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   it('T1d: [c] on already FULL_PARSED job is no-op (B2 guard)', async () => {
     const joblifecycleId = 'e2e-case1-already-full';
     const partialDoc = makeStage1Partial({ _id: joblifecycleId, company: 'AlreadyCo', role: 'Junior Dev' });
-    await adapter.upsertJobLifecycle(partialDoc);
+    await adapter.upsert(partialDoc);
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
@@ -242,7 +241,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   it('T1e: [c] with empty clipboard emits parse.failed (S4 via B1 path)', async () => {
     const joblifecycleId = 'e2e-case1-empty-clip';
     const partialDoc = makeStage1Partial({ _id: joblifecycleId, company: 'EmptyCo', role: 'Junior Dev' });
-    await adapter.upsertJobLifecycle(partialDoc);
+    await adapter.upsert(partialDoc);
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
@@ -254,7 +253,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
     const failedEvents = parseEvents.filter(([t]) => t === 'failed');
     expect(failedEvents.length).toBe(1);
 
-    const failedDoc = await adapter.findJobLifecycleById(joblifecycleId);
+    const failedDoc = await adapter.findById(joblifecycleId);
     expect(failedDoc).not.toBeNull();
     expect(failedDoc!.status).toBe(JobStatus.FAILED);
   });
