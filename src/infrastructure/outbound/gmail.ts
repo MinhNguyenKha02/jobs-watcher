@@ -15,7 +15,7 @@ try {
   const importMeta = eval('import.meta');
   __dir = path.dirname(fileURLToPath(importMeta.url));
 } catch {
-  __dir = process.cwd() + '/src/services';
+  __dir = process.cwd();
 }
 const TOKEN_PATH = path.join(__dir, '../../token.json');
 const CREDENTIALS_PATH = path.join(__dir, '../../credentials.json');

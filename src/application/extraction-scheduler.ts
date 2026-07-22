@@ -82,7 +82,7 @@ export class ExtractionScheduler {
             jobLifecycleId,
             action: 'job_lifecycle_doc_missing',
           });
-        }1
+        }
         const url = jobDoc?.url || '';
         const extractResult = await this.browser.extract(url);
         const rawPayload = extractResult.html;

@@ -133,7 +133,7 @@ export function loadConfig(): Config {
     
     dataSource: {
       type: (process.env.DATA_SOURCE_TYPE as 'db' | 'webhook') || 'webhook',
-      dbPath: process.env.DATA_SOURCE_DB_PATH || path.join(projectRoot, 'src', 'db', 'emails'),
+      dbPath: process.env.DATA_SOURCE_DB_PATH || path.join(projectRoot, 'data', 'emails'),
       batchSize: parseInt(process.env.DATA_SOURCE_BATCH_SIZE || '10', 10),
     },
   };
