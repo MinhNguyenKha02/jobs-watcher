@@ -12,7 +12,7 @@ export class JobReader {
 
   removeEventListener(_eventType: string, _callback: (event: any) => void): void {}
 
-  start(_baseUrl: string): void {
+  start(_baseUrl: string, _token?: string): void {
     logger.info('[JobReader] Started (stub — replace with RabbitMqJobReader)');
   }
 
@@ -20,8 +20,22 @@ export class JobReader {
     logger.info('[JobReader] Stopped');
   }
 
+  connect(): boolean {
+    return true;
+  }
+
+  disconnect(): void {}
+
   isConnected(): boolean {
     return true;
+  }
+
+  getQueueDepth(): number {
+    return this.jobQueue.length;
+  }
+
+  peekNextJob(): Job | null {
+    return this.jobQueue[0] ?? null;
   }
 
   async nextJob(): Promise<Job | null> {
