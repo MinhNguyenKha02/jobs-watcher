@@ -1,92 +1,45 @@
-import { GmailService } from './services/gmail.js';
-import { EventDrivenWebhook } from './services/event-webhook.js';
 import { config } from './config.js';
-import { getLogger } from './services/logger.js';
+import { initLogger, getLogger } from './infrastructure/outbound/logging/logger.js';
+import { MongoJobLifecycleAdapter } from './infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
+import { RabbitMqConnection } from './infrastructure/outbound/rabbitmq/rabbitmq-connection.js';
+import { RabbitMqParseAdapter } from './infrastructure/outbound/rabbitmq/rabbitmq-parse-adapter.js';
+import { RabbitMqRoutingAdapter } from './infrastructure/outbound/rabbitmq/rabbitmq-routing-adapter.js';
+import { JobIngestor } from './application/ingestor.js';
+import { startHealthServer } from './infrastructure/inbound/health/health-adapter.js';
+import { MetricsRegistry } from './infrastructure/outbound/monitoring/metrics-registry.js';
 
+initLogger();
 const logger = getLogger();
 
-// Global state
-let webhook: EventDrivenWebhook | null = null;
-let gmailService: GmailService | null = null;
-let isShuttingDown = false;
+async function main(): Promise<void> {
+  logger.info('[Boot] Starting jobs-watcher', { env: config.nodeEnv });
 
-/**
- * Graceful shutdown handler
- */
-async function shutdown(signal: string) {
-  if (isShuttingDown) return;
-  isShuttingDown = true;
+  const mongoAdapter = new MongoJobLifecycleAdapter(config.mongodb.uri, config.mongodb.dbName);
+  await mongoAdapter.connect();
 
-  logger.info(`Received ${signal}, shutting down gracefully...`);
+  const metricsRegistry = new MetricsRegistry();
 
-  try {
-    if (webhook) {
-      await webhook.stop();
-      logger.info('Webhook server stopped');
-    }
+  const rmq = new RabbitMqConnection({
+    url: process.env.RABBITMQ_URL || 'amqp://localhost',
+    exchange: process.env.RABBITMQ_EXCHANGE || 'jobs.events',
+  });
+  await rmq.connect();
 
-    if (gmailService) {
-      logger.info('Gmail service closed');
-    }
+  const parseAdapter = new RabbitMqParseAdapter(rmq);
+  const routingAdapter = new RabbitMqRoutingAdapter(rmq);
 
-    logger.info('Shutdown complete');
-    process.exit(0);
-  } catch (error: any) {
-    logger.error(`Error during shutdown: ${error.message}`);
-    process.exit(1);
-  }
+  const ingestor = new JobIngestor(
+    mongoAdapter,
+    parseAdapter,
+    routingAdapter,
+  );
+
+  startHealthServer({ port: Number(process.env.HEALTH_PORT || '9090'), metricsRegistry });
+
+  logger.info('[Boot] Startup complete');
 }
 
-/**
- * Uncaught exception handler
- */
-process.on('uncaughtException', (error: Error) => {
-  logger.error(`Uncaught Exception: ${error.message}`);
-  logger.error(error.stack || '');
+main().catch((err) => {
+  logger.error('[Boot] Fatal startup error', { error: err instanceof Error ? err.message : String(err) });
   process.exit(1);
 });
-
-/**
- * Unhandled rejection handler
- */
-process.on('unhandledRejection', (reason: any) => {
-  logger.error(`Unhandled Rejection: ${reason}`);
-  process.exit(1);
-});
-
-/**
- * Graceful shutdown on signals
- */
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
-
-async function main() {
-  try {
-    logger.info('🚀 Starting Jobs Watcher (Event-Driven)...');
-
-    // Validate configuration
-    if (!config.gmail.clientId || !config.gmail.clientSecret) {
-      throw new Error('Gmail credentials not configured. Run: npm run setup');
-    }
-
-    // Initialize Gmail service
-    gmailService = new GmailService();
-    await gmailService.authenticate();
-    logger.info('✅ Authenticated with Gmail');
-
-    // Start event-driven webhook server
-    webhook = new EventDrivenWebhook(gmailService);
-    await webhook.start(config.webhook.port);
-
-    logger.info(`✅ Jobs Watcher is running`);
-    logger.info(`📧 Watching Gmail label: "${config.gmail.labelName}"`);
-    logger.info(`🌐 Webhook listening on port ${config.webhook.port}`);
-    logger.info('⏰ Waiting for job alerts...');
-  } catch (error: any) {
-    logger.error(`Fatal error: ${error.message}`);
-    logger.error(error.stack || '');
-    process.exit(1);
-  }
-}
-
-main();
