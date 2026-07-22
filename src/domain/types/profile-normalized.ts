@@ -229,3 +229,5 @@ export interface ApplicationDraft {
   closingParagraph?: string;
   companyAddress?: string;
 }
+
+export type ApplicationAsset = ApplicationDraft;

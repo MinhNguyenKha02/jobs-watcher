@@ -153,7 +153,7 @@ function calculateSkillsScore(
   }
 
   const jobDescription =
-    `${job.position || ''} ${job.company || ''} ${job.description || ''} ${JSON.stringify(job.details || {})}`.toLowerCase();
+    `${job.role || job.position || ''} ${job.company || ''} ${job.description || ''} ${JSON.stringify(job.details || {})}`.toLowerCase();
 
   const matched: string[] = [];
 
@@ -333,7 +333,7 @@ export function calculateJobScore(
 
   logger.debug('Score calculated', {
     job: job.company,
-    position: job.position,
+    position: job.role || job.position,
     finalScore,
     breakdown: { skillsScore, salaryScore, locationScore },
   });
