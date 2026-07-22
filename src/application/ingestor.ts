@@ -5,7 +5,6 @@ import type { ParsePort } from './ports/parse.port.js';
 import type { RoutingPort } from './ports/routing.port.js';
 import type { JobLifecyclePort } from './ports/job-lifecycle.port.js';
 import type { AssetProducingPort } from './ports/asset-producing.port.js';
-import type { ProfileRetrievalPort } from './ports/profile-retrieval.port.js';
 import type { ProcessIngestCommand, ProcessResolutionCommand } from './commands.js';
 import { JobStage, JobStatus, JobSource, type JobLifecycleDocument } from '../domain/types/job-lifecycle.js';
 
@@ -22,8 +21,7 @@ export class JobIngestor {
     private jobLifecycle: JobLifecyclePort,
     private parsePort: ParsePort,
     private routingPort: RoutingPort,
-    private assetProducingPort?: AssetProducingPort,
-    private profileRetrievalPort?: ProfileRetrievalPort
+    private assetProducingPort?: AssetProducingPort
   ) {}
 
   async processIngestCommand(command: ProcessIngestCommand): Promise<void> {
@@ -68,9 +66,9 @@ export class JobIngestor {
         }
         await this.jobLifecycle.updateStage(jobLifecycleId, JobStage.FULL_PARSED, JobStatus.QUEUED);
         await this.routingPort.emitJobQueued(merged, { source: JobSource.MANUAL });
-        if (this.profileRetrievalPort && existing) {
-          this.profileRetrievalPort.retrieve(existing).catch((err: unknown) => {
-            logger.warn('[ProfileRetrieval] PDF generation failed', { jobLifecycleId, error: err instanceof Error ? err.message : String(err) });
+        if (this.assetProducingPort && existing) {
+          this.assetProducingPort.toAsset(existing).catch((err: unknown) => {
+            logger.warn('[AssetProduction] Asset generation failed', { jobLifecycleId, error: err instanceof Error ? err.message : String(err) });
           });
         }
       } else if (action === 'trash') {

@@ -57,7 +57,7 @@ export class KeyboardHandler {
       process.stdin.on('data', (buffer) => {
         const action = this.keyToAction(buffer);
 
-        if (action !== 'none') {
+        if (action !== KeyAction.NONE) {
           this.listeners.forEach((listener) => listener(action));
         }
       });
@@ -76,7 +76,7 @@ export class KeyboardHandler {
         if (!resolved) {
           resolved = true;
           unsubscribe();
-          resolve('none');
+          resolve(KeyAction.NONE);
         }
       }, timeoutMs) : null;
 
