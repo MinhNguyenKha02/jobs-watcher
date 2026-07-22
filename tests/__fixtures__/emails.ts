@@ -1553,7 +1553,95 @@ const _rawIndeedPlatformHtml2=`
   </div>
  </div>
 </div></div><div role="separator" aria-orientation="horizontal" class="css-1f63e20 e15p7aqh1"><span class="css-8u2krs esbq1260"><span>&amp;nbsp;</span></span></div></div><div id="mosaic-belowFullJobDescription" class="mosaic mosaic-empty-zone"></div><div class="jobsearch-JobMetadataFooter css-1l93qfl eu4oa1w0"><div class="css-16spgjx e37uo190"><div class="css-10ft6qd eu4oa1w0"><div id="mosaic-provider-reportcontent" class="mosaic mosaic-provider-reportcontent" style="--mosaic-placeholder-width: 142.53125px; --mosaic-placeholder-height: 44px;"><div class="mosaic-provider-reportcontent-yl2akf"><div class="mosaic-reportcontent-wrapper button"><button class="mosaic-reportcontent-button desktop mosaic-provider-reportcontent-1hfwffs e8ju0x50"><span class="mosaic-reportcontent-button-icon"></span>Report job</button><!--$--><!--/$--><div class="mosaic-reportcontent-content"></div></div></div></div></div></div></div></div></div></div></div></div></div></div>
-` 
+`
+
+// *LinkedIn SDUi format (full detail page, component-based architecture)
+export const linkedinSduiHtml1 = `<div data-component-type="LazyColumn">
+  <div aria-label="Company, TechCorp Vietnam.">
+    <a href="https://www.linkedin.com/company/techcorp">TechCorp Vietnam</a>
+  </div>
+  <h1><a href="/jobs/view/1111111111/">Senior Software Engineer</a></h1>
+  <div>
+    <span>Ho Chi Minh City, Vietnam</span>
+    <span>·</span>
+    <span>2 weeks ago</span>
+    <span>·</span>
+    <span>Over 50 applicants</span>
+  </div>
+  <button aria-label="Apply on company website">Apply</button>
+  <div class="job-details-fit-level-preferences">
+    <button><strong><li-icon type="check"></li-icon> On-site</strong></button>
+    <button><strong><li-icon type="check"></li-icon> Full-time</strong></button>
+  </div>
+  <div componentkey="JobDetails_AboutTheJob_abc123">
+    <h2>About the job</h2>
+    <span data-testid="expandable-text-box">Senior Software Engineer role at TechCorp Vietnam. We are looking for an experienced engineer to join our team. Responsibilities include designing and implementing scalable systems. Requirements include 5+ years of experience with TypeScript and Node.js.</span>
+  </div>
+  <div componentkey="JobDetails_AboutTheCompany_def456">
+    <h2>About the company</h2>
+    <span data-testid="expandable-text-box">TechCorp Vietnam is a leading technology company with offices across Southeast Asia.</span>
+  </div>
+</div>`;
+
+export const linkedinSduiHtml2 = `<div data-component-type="LazyColumn">
+  <div aria-label="Company, DataCo Analytics.">
+    <a href="https://www.linkedin.com/company/dataco">DataCo Analytics</a>
+  </div>
+  <h1><a href="/jobs/view/2222222222/">Data Analyst</a></h1>
+  <div>
+    <span>Hà Nội, Vietnam</span>
+    <span>·</span>
+    <span>1 month ago</span>
+    <span>·</span>
+    <span>10 applicants</span>
+  </div>
+  <button aria-label="Easy Apply to this job">Easy Apply</button>
+  <div class="job-details-fit-level-preferences">
+    <button><strong><li-icon type="check"></li-icon> Hybrid</strong></button>
+    <button><strong><li-icon type="check"></li-icon> Contract</strong></button>
+  </div>
+  <span>$1,500 - $2,500 a month</span>
+  <div componentkey="JobDetails_AboutTheJob_ghi789">
+    <h2>About the job</h2>
+    <span data-testid="expandable-text-box">Data Analyst position at DataCo Analytics. <strong>Qualifications</strong> Bachelor degree in related field. <strong>Responsibilities</strong> Analyze large datasets and create reports.</span>
+  </div>
+  <div componentkey="JobDetails_AboutTheCompany_jkl012">
+    <h2>About the company</h2>
+    <span data-testid="expandable-text-box">DataCo Analytics provides data-driven insights.</span>
+  </div>
+  <h2>People you can reach out to</h2>
+  <div>Connect with our team members</div>
+</div>`;
+
+export const linkedinSduiHtml3 = `<div data-component-type="LazyColumn">
+  <div aria-label="Company, InnovateCo Ltd.">
+    <a href="https://www.linkedin.com/company/innovateco">InnovateCo Ltd</a>
+  </div>
+  <h1><a href="/jobs/view/3333333333/">Product Manager</a></h1>
+  <div>
+    <span>Da Nang, Vietnam</span>
+    <span>·</span>
+    <span>3 days ago</span>
+    <span>·</span>
+    <span>30 applicants</span>
+  </div>
+  <button aria-label="Apply on company website">Apply</button>
+  <div class="job-details-fit-level-preferences">
+    <button><strong><li-icon type="check"></li-icon> Remote</strong></button>
+    <button><strong><li-icon type="check"></li-icon> Full-time</strong></button>
+  </div>
+  <div componentkey="JobDetails_AboutTheJob_mno345">
+    <h2>About the job</h2>
+    <span data-testid="expandable-text-box">Product Manager role at InnovateCo Ltd. <strong>About This Role</strong> Lead product strategy and execution. <strong>Requirements</strong> 3+ years of product management experience.</span>
+  </div>
+  <div componentkey="JobDetails_AboutTheCompany_pqr678">
+    <h2>About the company</h2>
+    <span data-testid="expandable-text-box">InnovateCo Ltd is an innovative company disrupting the market. Join us to make an impact.</span>
+  </div>
+  <h2>About This Role</h2>
+  <div>Lead product strategy and execution for our platform team.</div>
+</div>`;
+
 
 const _rawTopCvDetailsHtml=`
 <div class="job-detail__body-left">

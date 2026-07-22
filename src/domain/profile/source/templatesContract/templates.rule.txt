@@ -1,0 +1,270 @@
+Metadata: templates.rule.txt
+
+# TemplatesRule
+
+## Purpose
+This file defines the generation rules for `templates.source.ts`.
+
+`templates.source.ts` is a generated recruiter-language layer.
+It is not source truth.
+
+Source truth comes from:
+- `relations.source.ts`
+- `relations.validation.rule.md`
+
+## Role of templates.source.ts
+
+`templates.source.ts` exists to generate:
+- recruiter-facing capability language
+- ATS-facing phrasing
+- vendor exposure phrasing
+
+It must produce language that is natural for:
+- English job postings
+- Vietnamese job postings
+- mixed Vietnamese + English software-market wording
+
+## Template Source Contract
+
+Templates derive capability-language generation from:
+
+- recruiter_surfaces.vi
+- recruiter_surfaces.en
+
+Templates derive retrieval-expansion generation from:
+
+- retrieval_associations
+
+Templates must not invent:
+- new anchors
+- new relation nodes
+- new abstraction layers
+- project names
+- tools as anchors
+- unrelated domain wording
+
+## Allowed Placeholders
+
+Only the following placeholders are allowed in templates:
+
+- `{surface}`
+- `{retrieval_association}`
+
+No other placeholder is allowed unless explicitly added by a breaking-change request.
+
+## Template Families
+
+### 1. Recruiter-language templates
+These are generated from recruiter surfaces.
+
+Examples:
+- `experience with {surface}`
+- `hands-on experience with {surface}`
+- `knowledge of {surface}`
+- `có kinh nghiệm với {surface}`
+- `có kiến thức về {surface}`
+
+These templates must:
+- stay recruiter-readable
+- stay capability-oriented
+- stay vendor-neutral
+- match real JD wording
+
+### 2. Retrieval associations templates
+These are generated from retrieval associations.
+
+Examples:
+- `experience with {retrieval_association}`
+- `hands-on experience with {retrieval_association}`
+- `working knowledge of {retrieval_association}`
+- `đã từng làm việc với {retrieval_association}`
+- `có kinh nghiệm với {retrieval_association}`
+
+These templates must:
+- reference real technologies only
+- remain replaceable
+- support ATS exposure
+- never become anchors
+
+## Language Rules
+
+### English templates
+Must sound like real English job-posting language.
+
+Good:
+- `experience with workflow orchestration`
+- `knowledge of service integration`
+- `hands-on experience with Kafka`
+
+Bad:
+- `knowledge of backend engineering`
+- `experience with Temporal workflow`
+- `understanding of software development`
+
+### Vietnamese templates
+Must sound like real Vietnamese recruiter language.
+
+Good:
+- `có kinh nghiệm với workflow orchestration`
+- `tích hợp hệ thống`
+- `xử lý bất đồng bộ`
+- `đã từng làm việc với Kafka`
+
+Bad:
+- `điều phối quy trình công việc trạng thái hữu hạn`
+- `triển khai cơ chế xử lý tuần tự hóa phân tán`
+- `phát triển nền tảng phần mềm tổng quát`
+
+Vietnamese templates may keep English technical terms when that is the actual market phrasing.
+
+## Generation Rules
+
+### Rule T1: Generate from relations only
+`templates.source.ts` must be derived from:
+- recruiter surfaces
+- retrieval associations
+
+It must not read from:
+- profile prose
+- project titles
+- resume bullets
+- inferred wording outside relations
+
+### Rule T2: Preserve semantic alignment
+For the same anchor, Vietnamese and English templates must express the same capability.
+
+Example:
+- EN: `workflow orchestration`
+- VI: `điều phối workflow`
+
+### Rule T3: Do not over-translate
+Do not force Vietnamese into unnatural full translation if the market uses English technical terms.
+
+Good:
+- `workflow orchestration`
+- `message queue`
+- `REST API`
+
+Bad:
+- `điều phối luồng công việc`
+- `hàng đợi thông điệp`
+- `giao diện lập trình chuyển trạng thái đại diện`
+
+### Rule T4: Keep vendor templates supportive
+Vendor templates may reinforce ATS exposure, but they must not replace recruiter surfaces.
+
+Correct:
+- recruiter surface: `workflow orchestration`
+- vendor surface: `Temporal`
+
+Wrong:
+- recruiter surface: `Temporal workflow`
+
+### Rule T5: Deterministic expansion
+Given the same relation node, template generation must always produce the same family of outputs.
+
+No hidden randomness.
+No manual subjective rewriting during generation.
+
+## Acceptance Criteria
+
+A template node is valid only if it satisfies all of the following:
+
+- generated from relations only
+- uses only `{surface}` and `{retrieval_association}`
+- stays market-natural in both VI and EN
+- supports ATS phrasing
+- supports recruiter phrasing
+- preserves backward-compatible output shape
+- does not introduce new source-level meaning
+
+## Change Scope for Templates
+
+Use this file when:
+- recruiter wording needs refinement
+- Vietnamese market phrasing needs better naturalness
+- English JD wording needs stronger ATS compatibility
+- vendor phrasing needs tightening
+- template coverage needs expansion
+
+Do not use this file when:
+- anchor ontology changes
+- relation adjacency changes
+- relation node meaning changes
+- evidence-backed source truth changes
+
+If the anchor changes, update:
+1. `profile.source.ts`
+2. `relations.source.ts`
+3. then regenerate `templates.source.ts`
+
+If only wording changes, update:
+1. `templates.source.ts`
+2. then regenerate artifacts
+
+## Backward Compatibility
+
+The template output must remain backward-compatible unless the request explicitly asks for a breaking change.
+
+That means:
+- no new fields
+- no removed required fields
+- no layer mixing
+- no source-contract drift
+
+## Output Expectation
+
+`templates.source.ts` must be:
+- copy-paste ready
+- deterministic
+- recruiter-natural
+- ATS-compatible
+- derived from relations
+- safe to reuse in a new chat with no history
+
+
+## Coverage Ownership
+
+templates.source.ts owns recruiter-language
+coverage expansion.
+
+Its purpose is to generate market-observed
+recruiter wording from recruiter_surfaces
+and retrieval_associations.
+
+Coverage expansion is preferred over
+adding more recruiter_surfaces whenever
+the capability meaning remains unchanged.
+
+## Coverage Expansion Rule
+
+templates.source.ts owns recruiter-language
+coverage expansion.
+
+When ATS coverage is insufficient:
+
+1. expand templates first
+2. expand recruiter_surfaces only if
+   market capability vocabulary is missing
+
+Do not move template variants into
+recruiter_surfaces.
+
+## Retrieval Preservation Rule
+
+Generated templates must:
+
+- preserve anchor meaning
+- preserve recruiter_surface meaning
+- remain traceable to exactly one source anchor
+- not introduce unrelated capability meanings
+- remain suitable for ATS and automaton retrieval
+
+## Templates must generate:
+
+- role wording
+- responsibility wording
+- achievement wording
+- implementation wording
+- architecture wording
+- operational wording

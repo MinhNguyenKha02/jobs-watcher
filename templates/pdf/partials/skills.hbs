@@ -1,0 +1,25 @@
+<section class="section">
+
+  <h2>Technical Skills</h2>
+
+  {{#each skillGroups}}
+
+  <div class="skill-row">
+
+    <div class="skill-label">
+
+      {{label}}:
+
+    </div>
+
+    <div class="skill-values">
+
+      {{join skills ", "}}
+
+    </div>
+
+  </div>
+
+  {{/each}}
+
+</section>

@@ -1,0 +1,36 @@
+Metadata: relations.generation.rule.txt
+
+## Purpose
+
+Mandatory population requirements.
+
+Every anchor defined in
+profile.source.types.ts
+must generate:
+
+adjacent
+recruiter_surfaces.en
+recruiter_surfaces.vi
+retrieval_associations
+
+Empty arrays are invalid.
+
+Generation requirements are owned by:
+relations.generation.rule.txt
+
+Coverage requirements are owned by:
+relations.coverage.rule.txt
+
+Validation requirements are owned by:
+relations.validation.rule.txt
+
+## ReplacementGenerationRule
+
+When replacing retrieval_associations,
+the generator shall preserve approximate lexical density.
+
+Replacing low-quality associations with higher-quality
+associations is preferred over deleting entries.
+
+Large reductions in retrieval_association cardinality
+require corpus-supported justification.

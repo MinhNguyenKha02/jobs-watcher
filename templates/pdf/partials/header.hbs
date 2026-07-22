@@ -1,0 +1,41 @@
+<header class="resume-header">
+
+<h1>{{name}}</h1>
+
+<div class="contact">
+
+<span>{{contact.location}}</span>
+
+<span class="separator">•</span>
+
+<a href="mailto:{{contact.email}}">
+{{contact.email}}
+</a>
+
+<span class="separator">•</span>
+
+<span>{{contact.phone}}</span>
+
+{{#if contact.linkedin}}
+
+<span class="separator">•</span>
+
+<a href="{{contact.linkedin}}">
+LinkedIn
+</a>
+
+{{/if}}
+
+{{#if contact.github}}
+
+<span class="separator">•</span>
+
+<a href="{{contact.github}}">
+GitHub
+</a>
+
+{{/if}}
+
+</div>
+
+</header>

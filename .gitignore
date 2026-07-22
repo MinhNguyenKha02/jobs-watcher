@@ -18,3 +18,10 @@ logs/
 coverage/
 test-output/
 .vscode/
+src.bak/
+tests.bak/
+*.json*
+.agents
+.github
+.zed
+test-output/

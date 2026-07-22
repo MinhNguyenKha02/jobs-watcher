@@ -1,0 +1,48 @@
+Metadata: templates.retrieval.rule.txt
+
+## Templates Retrieval Rule
+
+Purpose
+
+Generate ATS-facing retrieval phrases.
+
+Source
+
+retrieval_associations
+
+Allowed output
+
+experience with {retrieval}
+working knowledge of {retrieval}
+familiarity with {retrieval}
+
+Forbidden
+
+new capability meanings
+new anchors
+anchor reinterpretation
+technology-to-capability promotion
+
+## Template Expansion Rules
+
+Generated phrases must:
+
+- preserve anchor semantics
+- preserve recruiter intent
+- preserve ATS intent
+
+Expansion must not generate:
+
+- duplicate phrases
+- morphology-only variants
+- whitespace-only variants
+- punctuation-only variants
+
+Generated phrase must increase
+expected retrieval coverage.
+
+Cross-product generation between:
+
+surface
+×
+retrieval_association

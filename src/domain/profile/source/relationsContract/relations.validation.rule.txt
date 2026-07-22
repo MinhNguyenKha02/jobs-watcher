@@ -1,0 +1,693 @@
+Metadata: relations.validation.rule.txt
+
+# RelationsValidationRule
+
+## Purpose
+This file defines the validation rules for `relations.source.ts` and its downstream use in `templates.source.ts`.
+
+It is the enforcement layer for:
+- bilingual recruiter surfaces
+- retrieval associations
+- adjacency correctness
+- deterministic template generation
+- replacement safety across markets
+
+## Validation Contract
+
+A relation node is valid only if all of the following hold:
+
+- `adjacent` contains only anchor IDs.
+- `recruiter_surfaces.vi` contains only Vietnamese recruiter-facing capability language.
+- `recruiter_surfaces.en` contains only English recruiter-facing capability language.
+- `retrieval_associations` contains recruiter-observed retrieval vocabulary
+associated with the anchor.
+
+It may contain:
+- technologies
+- frameworks
+- protocols
+- patterns
+- architectural terminology
+- market terminology
+
+It must:
+- improve retrieval coverage
+- preserve anchor semantics
+- remain replaceable
+- remain recruiter-searchable
+- remain ATS-searchable
+
+It must not:
+- introduce new anchor meanings
+- contain project names
+- contain resume prose
+- contain role labels
+
+- No field mixes capability, vendor, technology, project, or role layers.
+- The node can generate deterministic template output without inventing new source data.
+
+## Field Rules
+
+### 1. `adjacent`
+Must satisfy all of the following:
+
+- anchor ↔ anchor only
+- same abstraction level
+- represents recruiter co-occurrence, not synonym expansion
+- does not contain vendors, tools, or project names
+
+Valid examples:
+- `workflow_orchestration` ↔ `event_processing`
+- `service_decomposition` ↔ `boundary_definition`
+
+Invalid examples:
+- `workflow_orchestration` ↔ `Temporal`
+- `workflow_orchestration` ↔ `docker`
+- `workflow_orchestration` ↔ `workflow_orchestration`
+
+### 2. `recruiter_surfaces.vi`
+Must satisfy all of the following:
+
+- readable as real Vietnamese job-description language
+- may include English technical terms commonly used in Vietnamese job posts
+- must remain capability language
+- must be vendor-neutral
+- must survive vendor replacement
+- must sound like something a recruiter would search or write
+- recruiter-searchable
+- ATS-searchable
+- reusable across multiple template families
+- meaningful outside templates
+- lexical coverage increasing
+- not merely a template variant
+
+Good examples:
+- `tích hợp hệ thống`
+- `xử lý bất đồng bộ`
+- `workflow orchestration`
+- `thiết kế API`
+- `mô hình hóa dữ liệu`
+
+Bad examples:
+- `điều phối quy trình công việc trạng thái hữu hạn`
+- `MongoDB change stream`
+- `Temporal workflow`
+- `Jobs Watcher`
+
+### 3. `recruiter_surfaces.en`
+Must satisfy all of the following:
+
+- readable as real English job-description language
+- must be recruiter-searchable
+- must remain capability language
+- must be vendor-neutral
+- must survive vendor replacement
+- must map naturally to the anchor
+- recruiter-searchable
+- ATS-searchable
+- reusable across multiple template families
+- meaningful outside templates
+- lexical coverage increasing
+- not merely a template variant
+
+Good examples:
+- `workflow orchestration`
+- `workflow engine`
+- `business process automation`
+- `service integration`
+- `event processing`
+
+Bad examples:
+- `Temporal workflow`
+- `MongoDB change stream`
+- `backend engineer`
+- `software development`
+
+### 4. `retrieval_associations`
+Must satisfy all of the following:
+
+Must contain:
+- recruiter-searchable vocabulary
+- ATS-searchable vocabulary
+- JD-observed vocabulary
+
+May contain:
+- technologies
+- patterns
+- architectural concepts
+
+Must not:
+- introduce new anchor meanings
+- contain project names
+- contain resume prose
+
+Bad examples:
+- project names
+- role labels
+- abstract capability names
+- invented tools
+
+## Retrieval Association Ownership Rule
+
+retrieval_associations do not define anchor meaning.
+
+Anchor meaning is owned exclusively by:
+
+- profile.source.ts anchor
+- recruiter_surfaces
+
+Removing retrieval_associations must not change
+the capability represented by the anchor.
+
+## Bilingual Compliance Rules
+
+### Rule B1
+`recruiter_surfaces.vi` and `recruiter_surfaces.en` must be semantically aligned.
+
+They may differ in surface form, but they must express the same capability.
+
+Example:
+
+```ts
+recruiter_surfaces: {
+  vi: ['tích hợp hệ thống', 'xử lý bất đồng bộ'],
+  en: ['service integration', 'async processing']
+}
+
+### Rule B2
+
+Neither language may introduce a new anchor meaning.
+
+If the English surface says one capability and the Vietnamese surface says another, the node is invalid.
+
+### Rule B3
+
+Do not over-translate Vietnamese recruiter language.
+
+Vietnamese recruiter language may keep English technical terms when those terms are standard in market usage.
+
+Good:
+
+workflow orchestration
+workflow engine
+message queue
+event-driven
+REST API
+
+Bad:
+
+điều phối quy trình công việc trạng thái hữu hạn
+xử lý tuần tự hóa phân tán
+Rule B4
+
+Do not force literal symmetry between vi and en.
+
+The correct goal is market-natural bilingual coverage, not word-for-word translation.
+
+
+## Acceptance Rules
+
+A relation node passes validation only if:
+
+it stays within one abstraction layer
+it supports bilingual recruiter language
+it supports vendor replacement
+it supports ATS exposure
+it can generate templates deterministically
+it remains backward-compatible with existing source shape
+
+supports canonical recruiter vocabulary
+
+supports template expansion
+
+supports ATS retrieval vocabulary generation
+
+supports vendor replacement
+
+supports deterministic artifact generation
+
+A relation node passes recruiter-surface validation only if:
+
+1. recruiter_surfaces represent capability-level recruiter vocabulary
+
+2. recruiter_surfaces are reusable across template families
+
+3. recruiter_surfaces remain vendor-neutral
+
+4. recruiter_surfaces improve ATS retrieval coverage
+
+5. recruiter_surfaces can generate recruiter-natural responsibility templates
+
+6. recruiter_surfaces can generate recruiter-natural requirement templates
+
+7. recruiter_surfaces can generate recruiter-natural preference templates
+
+## Rejection Rules
+
+## Reject the node if any of the following is true:
+
+it uses a tool as a recruiter surface
+it uses a vendor as an anchor
+it mixes capability and technology in one field
+it contains non-market wording
+it contains project-specific wording
+it cannot generate stable bilingual templates
+it breaks anchor ↔ relation ↔ template consistency
+
+## Template Expandability
+
+Every recruiter_surface must naturally fit responsibility, requirement, and preference templates.
+
+Validation test:
+
+experience with {surface}
+knowledge of {surface}
+develop and maintain {surface}
+
+must produce recruiter-natural wording.
+
+Example:
+
+Good:
+
+workflow orchestration
+service integration
+event processing
+
+Bad:
+
+good understanding of workflows
+experience building APIs
+
+because they already contain template semantics.
+
+
+## Retrieval Density Validation
+
+A capability relation node fails validation if:
+
+recruiter_surfaces.en.length < 5
+
+OR
+
+recruiter_surfaces.vi.length < 5
+
+OR
+
+all recruiter_surfaces are lexical variants
+of the same phrase.
+
+Coverage must include distinct recruiter
+retrieval phrases.
+
+## Empty Vocabulary Rejection
+
+Reject node if:
+
+recruiter_surfaces.en is empty
+
+OR
+
+recruiter_surfaces.vi is empty
+
+OR
+
+retrieval_associations is empty
+for capability anchors.
+
+## RetrievalAssociationValidation
+
+Reject if retrieval_associations contains:
+
+- recruiter surface duplicates
+- capability synonyms
+- template wording
+- responsibility wording
+- requirement wording
+
+Accept:
+
+Kafka
+RabbitMQ
+NATS
+Temporal
+Camunda
+
+Reject:
+
+workflow orchestration
+business process automation
+service integration
+event processing
+
+FAIL IF
+
+duplicate surfaces >20%
+
+empty arrays
+
+surface equals association
+
+EN/VI mismatch
+
+less than minimum lexical density
+
+## Retrieval Association Specificity Rule
+A retrieval_association is valid only if it provides
+positive discrimination for the anchor.
+
+Validation:
+
+Compare occurrence frequency in:
+
+A = job descriptions mentioning the anchor
+B = job descriptions not mentioning the anchor
+
+A retrieval_association is valid only if:
+
+P(term | anchor) > P(term | non-anchor)
+
+by a meaningful margin.
+
+Examples:
+
+Express.js
+
+PASS:
+middleware
+express middleware
+express router
+npm
+
+FAIL:
+backend
+api
+performance
+testing
+software development
+
+Example:
+
+npm
+
+appears in many jobs.
+
+But:
+
+P(npm | Express)
+>>
+P(npm | random backend JD)
+
+So npm still has retrieval value.
+
+## Retrieval Association Information Gain Rule
+
+A retrieval_association must increase retrieval
+information gain.
+
+Removing the association should reduce
+anchor-identification accuracy.
+
+If removing the term causes no measurable
+drop in retrieval quality,
+the association is invalid.
+
+Example:
+
+Nuxt:
+
+SSR
+Vue
+Nitro
+hydration
+
+Removing:
+
+SSR
+
+might hurt retrieval.
+
+Valid.
+
+Removing:
+
+web development
+
+Invalid.
+
+## Corpus Frequency Rejection Rule
+
+Reject retrieval_associations that occur
+at high frequency across unrelated
+software-engineering job descriptions.
+
+A retrieval_association fails if:
+
+global_corpus_frequency(term)
+is significantly higher than
+anchor_specific_frequency(term).
+
+Examples:
+
+FAIL:
+backend
+frontend
+testing
+api
+performance
+development
+engineering
+
+PASS:
+BullMQ
+Vitest
+RLS
+Edge Functions
+Vue Router
+Express Middleware
+gRPC Gateway
+
+## RetrievalAssociationFalsePositiveRule
+
+A retrieval_association is invalid if it produces
+systematic false positives during corpus evaluation.
+
+Corpus Validation:
+
+Run Aho-Corasick over representative
+Vietnamese and English software-engineering
+job descriptions.
+
+Reject a retrieval_association if:
+
+false_positive_rate > 20%
+
+or
+
+precision < 80%
+
+for the owning anchor.
+
+## RetrievalAssociationPlatformCoverageRule
+
+Validation corpus must include:
+
+- LinkedIn
+- Indeed Vietnam
+- VietnamWorks
+- ITviec
+- TopCV
+- CareerViet
+- TopDev
+- Glints Vietnam
+- Company career pages
+
+A retrieval_association may not be accepted
+or rejected using a single-platform corpus.
+
+## RetrievalReplacementRule
+
+Rejecting a retrieval_association does not imply reducing
+retrieval coverage.
+
+When a retrieval_association fails validation because of:
+
+- genericity
+- false-positive rate
+- low discriminative score
+- low information gain
+
+the generator SHALL attempt to replace it with a more
+discriminative retrieval_association from the same anchor
+ecosystem.
+
+Deletion is permitted only if no suitable replacement exists.
+
+The objective is to maximize
+
+retrieval precision
+AND
+retrieval recall
+
+rather than minimizing association count.
+
+## RetrievalAssociationPriorityRule
+
+When multiple candidate retrieval_associations exist,
+prefer them in the following order:
+
+1. official technology name
+2. official framework ecosystem term
+3. runtime terminology
+4. protocol terminology
+5. deployment terminology
+6. architecture terminology
+7. vendor ecosystem terminology
+8. generic engineering terminology
+
+Lower-priority generic vocabulary shall be replaced by
+higher-priority discriminative vocabulary whenever possible.
+
+## LexicalRedundancyRule
+
+Reject retrieval_associations that contribute no additional
+lexical retrieval value.
+
+Examples
+
+Reject
+
+Express
+ExpressJS
+Express.js
+
+Keep
+
+Express.js
+Express Router
+Express Middleware
+Express Session
+
+Each retained association must contribute unique retrieval
+evidence for deterministic Aho-Corasick matching.
+
+## CorpusOptimizationRule
+
+Corpus evaluation is authoritative.
+
+When regression testing identifies retrieval_associations
+that consistently generate false positives,
+future generations shall replace those associations with
+higher-discrimination alternatives observed in the corpus.
+
+Corpus evidence takes precedence over ontology-derived
+candidate vocabulary.
+
+## RetrievalFeedbackRule
+
+Generation is iterative.
+
+Corpus evaluation metrics shall be used to improve future
+retrieval_associations.
+
+Observed metrics include:
+
+- precision
+- recall
+- false-positive rate
+- lexical hit rate
+- freeze spots
+- dead phrases
+
+Generation should maximize measured retrieval performance
+rather than static vocabulary count.
+
+## RetrievalAssociationDiscriminationRule
+
+Every retrieval_association must provide measurable
+discriminative power for its owning anchor.
+
+Evidence may include:
+
+- Information Gain
+- Mutual Information
+- Conditional Probability
+- Corpus Precision
+- False Positive Rate
+
+A candidate passes if corpus evaluation demonstrates
+that it improves anchor identification.
+
+The implementation is free to choose the statistical
+measure.
+
+## RetrievalNodePerformanceRule
+
+A relation node is evaluated as a whole.
+
+Validation SHALL optimize the retrieval quality
+of the complete node rather than individual
+retrieval_associations.
+
+Adding or removing one association is acceptable
+only if the aggregate node metrics improve.
+
+Node metrics include:
+
+- Precision
+- Recall
+- F1
+- Mean Hits/JD
+- False Positives/JD
+- Freeze Spots
+- Dead Phrase Count
+
+Node-level metrics take precedence over
+individual association metrics.
+
+## MixedLanguageCorpusRule
+
+Corpus evaluation SHALL include:
+
+- English JDs
+- Vietnamese JDs
+- Mixed Vietnamese-English JDs
+
+Vocabulary that performs well only on one corpus
+may not dominate generation.
+
+## TrieEfficiencyRule
+
+A retrieval_association should maximize
+expected retrieval utility per indexed token.
+
+Reject vocabulary that:
+
+- never matches
+- duplicates another indexed phrase
+- contributes negligible recall
+- contributes negligible precision
+
+The objective is to maximize
+
+Useful Hits
+------------
+Trie Entries
+
+## CandidateRankingRule
+
+Candidate retrieval_associations shall be ranked
+before selection.
+
+Ranking should consider:
+
+- corpus precision
+- corpus recall
+- information gain
+- lexical uniqueness
+- false-positive rate
+- ecosystem relevance
+
+Generation shall prefer the highest-ranked
+combination rather than evaluating candidates
+independently.

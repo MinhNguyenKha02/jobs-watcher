@@ -1,0 +1,136 @@
+Metadata: relations.definition.rule.txt
+
+## Relations Rule
+
+Purpose
+
+Relations are the source layer for recruiter-facing expansion.
+
+They do not store final resume text.
+They store the data needed to generate recruiter language and ATS language.
+
+## Relation contract
+
+Each anchor relation node must contain only:
+
+```ts
+{
+  adjacent: AnchorId[];
+  recruiter_surfaces: {
+    vi: string[];
+    en: string[];
+  };
+  retrieval_associations: string[];
+}
+
+
+## Field definitions
+### adjacent
+
+Anchor-to-anchor relations only.
+
+Rules:
+
+anchor ↔ anchor only
+same abstraction level
+recruiter co-occurrence
+not a synonym list
+not a vendor list
+
+Good:
+
+workflow_orchestration ↔ event_processing
+background_job_processing ↔ message_queue_processing
+
+Bad:
+
+workflow_orchestration ↔ Temporal
+workflow_orchestration ↔ docker
+workflow_orchestration ↔ workflow_orchestration
+recruiter_surfaces
+
+### recruiter_surfaces, recruiter-visible capability language that may appear in:
+
+JD requirements
+JD responsibilities
+recruiter searches
+LinkedIn searches
+
+Required shape:
+
+vi: string[]
+en: string[]
+
+Rules:
+
+Must be capability language
+Must be vendor-neutral
+Must survive vendor replacementterminology
+Must sound like actual JD language
+Must be recruiter-searchable
+Good recruiter surfaces
+
+For workflow_orchestration:
+
+workflow engine
+workflow orchestration
+business process automation
+state machine
+event-driven workflow
+Bad recruiter surfaces
+Temporal workflow
+MongoDB change stream
+BullMQ worker
+Jobs Watcher
+
+
+## retrieval_associations
+
+Recruiter-observed retrieval vocabulary related to the anchor.
+
+Purpose:
+
+- improve ATS retrieval coverage
+- improve recruiter search coverage
+- support template generation
+- support retrieval expansion
+
+May contain:
+
+- technologies
+- frameworks
+- protocols
+- patterns
+- architectural terminology
+- market terminology
+
+Must:
+
+- preserve anchor semantics
+- remain recruiter-searchable
+- remain ATS-searchable
+- remain replaceable
+
+Must not:
+
+- become anchors
+- introduce new capability meanings
+- contain project names
+- contain resume prose
+
+## TECH/CAP/COMP/BEH anchors over profile.source.types.ts usage of relations.source.ts per RELATION NODE REQUIREMENTS
+
+Every tech, cap, comp, beh anchor MUST contain:
+
+- adjacent
+- recruiter_surfaces.en
+- recruiter_surfaces.vi
+- retrieval_associations
+
+Empty arrays are invalid.
+
+The generator MUST NOT emit:
+
+r([], [], [])
+
+for any technology, competency, behavior, capability anchor.

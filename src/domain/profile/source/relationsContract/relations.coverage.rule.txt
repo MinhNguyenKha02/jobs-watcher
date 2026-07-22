@@ -1,0 +1,1271 @@
+Metadata: relations.coverage.rule.txt
+
+# Relations Coverage Rule
+
+## Purpose
+
+Defines coverage requirements for `relations.source.ts`.
+
+This file owns:
+
+* recruiter vocabulary coverage
+* ATS vocabulary coverage
+* retrieval density
+* lexical saturation
+* bilingual recruiter-language coverage
+
+This file does not own:
+
+* anchor semantics
+* relation structure
+* template generation
+* ontology definition
+
+Those are owned elsewhere.
+
+---
+
+## Coverage Ownership
+
+Anchor meaning is owned by:
+
+* profile.source.ts
+* anchors.rule.txt
+
+Relation structure is owned by:
+
+* relations.definition.rule.txt
+
+Coverage quality is owned by:
+
+* relations.coverage.rule.txt
+
+---
+
+## Coverage Goal
+
+Every capability anchor must maximize:
+
+1. recruiter search coverage
+2. ATS search coverage
+3. LinkedIn recruiter search coverage
+4. exact phrase retrieval coverage
+5. bilingual recruiter-language coverage
+
+while preserving:
+
+* anchor meaning
+* abstraction boundaries
+* vendor neutrality at capability level
+
+---
+
+## Coverage Layers
+
+Every capability anchor should contain vocabulary from multiple retrieval layers.
+
+### Precision Layer
+
+Canonical recruiter-recognizable capability vocabulary.
+
+Examples:
+
+api development
+
+service integration
+
+workflow orchestration
+
+database design
+
+### Market Layer
+
+Alternative recruiter wording observed in job descriptions.
+
+Examples:
+
+backend API development
+
+API implementation
+
+business process automation
+
+external system integration
+
+### ATS Layer
+
+Vocabulary commonly searched in ATS systems.
+
+Examples:
+
+REST API development
+
+event-driven workflow
+
+database schema design
+
+query performance optimization
+
+### Recall Layer
+
+Technology, framework, protocol, and vendor vocabulary.
+
+Stored only in:
+
+retrieval_associations
+
+Examples:
+
+Kafka
+
+RabbitMQ
+
+Temporal
+
+PostgreSQL
+
+Docker
+
+---
+
+## Empty Coverage Rejection
+
+Reject a capability relation node if:
+
+recruiter_surfaces.en is empty
+
+or
+
+recruiter_surfaces.vi is empty
+
+or
+
+retrieval_associations is empty
+
+---
+
+## Distinct Retrieval Value Rule
+
+Every recruiter surface must contribute unique retrieval value.
+
+Reject:
+
+workflow orchestration
+
+workflow orchestration experience
+
+workflow orchestration knowledge
+
+These are template variants.
+
+Accept:
+
+workflow orchestration
+
+workflow engine
+
+business process automation
+
+stateful workflow
+
+event-driven workflow
+
+These create distinct retrieval hits.
+
+---
+
+## Lexical Saturation Rule
+
+Generate recruiter surfaces until additional surfaces no longer provide meaningful recruiter-search coverage.
+
+Coverage sources:
+
+* job descriptions
+* ATS terminology
+* recruiter search terminology
+* LinkedIn recruiter terminology
+
+Prefer market-observed wording.
+
+Avoid ontology-only wording.
+
+---
+
+## Bilingual Coverage Rule
+
+Vietnamese and English surfaces must express the same capability.
+
+Coverage density should remain approximately equivalent across languages.
+
+Do not require literal translation.
+
+Prefer recruiter-natural wording.
+
+---
+
+## Retrieval Association Density Rule
+
+retrieval_associations should include:
+
+* technologies
+* frameworks
+* protocols
+* architectural terminology
+* vendor products
+
+commonly associated with the anchor.
+
+The goal is recall expansion.
+
+The goal is not capability definition.
+
+---
+
+## Coverage Acceptance
+
+A relation node passes coverage validation only if:
+
+1. recruiter coverage increases
+2. ATS coverage increases
+3. retrieval recall increases
+4. bilingual coverage exists
+5. lexical density is sufficient
+6. anchor meaning remains unchanged
+
+---
+
+## Optimization Target
+
+The preferred relation node is not the smallest valid node.
+
+The preferred relation node is the highest-coverage node that preserves anchor semantics and source contracts.
+
+
+## Optimization Objective
+
+relations.source.ts exists to maximize recruiter
+and ATS vocabulary coverage.
+
+Each anchor must contain:
+
+- recruiter_surfaces.en
+- recruiter_surfaces.vi
+- retrieval_associations
+
+Coverage Domains:
+ATS, Recruiter, Hiring Manager, JD, LinkedIn, Vietnam.
+
+Minimum Density
+
+recruiter_surfaces.en.length >= 15
+recruiter_surfaces.vi.length >= 15
+retrieval_associations.length >= 15
+
+Sparse nodes are invalid.
+
+Empty nodes are invalid.
+
+Coverage takes precedence over minimal examples.
+
+relations.source.ts is a retrieval layer, not merely a semantic relation layer.
+
+Generation MUST optimize for:
+
+* ATS keyword matching
+* recruiter keyword matching
+* LinkedIn recruiter search matching
+* hiring manager search matching
+* job description phrase matching
+* Aho-Corasick automaton phrase matching
+* bilingual English/Vietnamese market coverage
+
+Generation MUST prioritize real-world software engineering hiring vocabulary over ontology-pure vocabulary.
+
+For every anchor:
+
+recruiter_surfaces.en MUST contain:
+
+* ATS phrases
+* recruiter phrases
+* LinkedIn recruiter phrases
+* hiring-manager phrases
+* common job-description phrases
+* industry synonyms
+
+recruiter_surfaces.vi MUST contain:
+
+* Vietnam recruiter vocabulary
+* Vietnam job-description vocabulary
+* English loanword variants commonly used in Vietnam hiring
+
+retrieval_associations MUST contain:
+
+* technology aliases
+* industry aliases
+* hiring synonyms
+* ATS synonyms
+* market terminology
+
+Sparse nodes are invalid.
+
+Empty recruiter_surfaces are invalid.
+
+Coverage quality takes precedence over minimum contract compliance.
+
+Generation should maximize expected hit rate against:
+
+* LinkedIn
+* Indeed Vietnam
+* TopCV
+* VietnamWorks
+* ITviec
+* TopDev
+* Glints Vietnam
+* CarrerViet
+
+for Fresher-Junior Backend Engineer, Backend Developer and Fresher-Junior Software Engineer, Software Developer job descriptions in English and Vietnamese markets.
+
+## Market Coverage Priority
+
+Generation must maximize aggregate coverage across:
+
+Global:
+- LinkedIn
+- Indeed
+
+Vietnam:
+- VietnamWorks
+- ITviec
+- TopCV
+- CareerViet
+- TopDev
+- Glints Vietnam
+
+Company career pages
+
+No single platform may dominate vocabulary selection.
+
+Generation MUST NOT optimize exclusively for:
+
+- LinkedIn
+- Indeed
+- any single ATS
+
+Vocabulary selection must maximize expected retrieval
+across the combined market corpus.
+
+Coverage Sources:
+
+Global:
+- LinkedIn
+- Indeed
+
+Vietnam:
+- VietnamWorks
+- ITviec
+- TopCV
+- CareerViet
+- TopDev
+- Glints Vietnam
+
+Enterprise Career Sites:
+- Banks
+- Product companies
+- Outsourcing companies
+- Startups
+
+A phrase may not be selected solely because of high
+frequency on one platform.
+
+
+## Recruiter Search Saturation Rule
+
+For every capability anchor:
+
+recruiter_surfaces.en MUST include:
+
+1. canonical recruiter phrase
+2. ATS phrase
+3. LinkedIn recruiter phrase
+4. hiring-manager phrase
+5. job-description phrase
+6. implementation phrase
+7. architecture phrase
+8. operational phrase
+9. delivery phrase
+10. Vietnam-market phrase
+
+Coverage is incomplete until all retrieval categories are represented.
+
+## Duplicate Suppression Rule
+
+Reject lexical variants differing only by:
+
+experience
+knowledge
+understanding
+implementation experience
+hands-on experience
+
+These are template variants, not retrieval variants.
+
+## Retrieval Compatibility
+
+A relation node is valid only if:
+
+- recruiter_surfaces are recruiter-searchable
+- recruiter_surfaces are ATS-searchable
+- recruiter_surfaces support deterministic token generation
+- recruiter_surfaces can be matched directly by retrieval systems
+- recruiter_surfaces remain meaningful without template context
+
+retrieval_associations improve retrieval coverage
+without changing anchor semantics
+
+retrieval_associations are optional retrieval expansion vocabulary.
+
+recruiter_surfaces remain the canonical recruiter-facing capability vocabulary.
+
+
+## Retrieval Coverage Acceptance
+
+A relation node passes retrieval validation only if:
+
+recruiter_surfaces maximize precision coverage
+
+retrieval_associations maximize recall coverage
+
+both remain ATS-searchable
+
+both remain recruiter-searchable
+
+## Retrieval Density Acceptance
+
+recruiter_surfaces contain:
+
+canonical phrase
+alternative market phrase
+abbreviated market phrase (when common)
+
+without introducing semantic drift
+
+Example:
+
+api_development
+
+Current:
+
+api development
+
+Desired:
+
+api development
+rest api development
+backend api development
+api implementation
+api engineering
+
+These are different retrieval hits.
+
+## Surface Density Acceptance
+
+Capability anchors MUST contain:
+
+adjacent.length >= 2
+
+CAP:
+minimum 25 recruiter_surfaces.en
+minimum 25 recruiter_surfaces.vi
+minimum 40 retrieval_associations
+
+TECH:
+minimum 15 recruiter_surfaces.en
+minimum 15 recruiter_surfaces.vi
+minimum 25 retrieval_associations
+
+COMP:
+minimum 12 recruiter_surfaces.en
+minimum 12 recruiter_surfaces.vi
+minimum 20 retrieval_associations
+
+BEH:
+minimum 12 recruiter_surfaces.en
+minimum 12 recruiter_surfaces.vi
+minimum 20 retrieval_associations
+
+Empty recruiter_surfaces invalid.
+Empty retrieval_associations invalid.
+
+No anchor may be sparse.
+
+unless explicitly exempted.
+
+A relation node with empty recruiter_surfaces
+is invalid.
+
+A capability relation node with empty
+retrieval_associations is invalid.
+
+## Coverage Acceptance
+
+Each capability anchor must cover:
+
+- canonical recruiter wording
+- ATS wording
+- LinkedIn recruiter wording
+- market alternative wording
+
+Coverage must be observable in
+recruiter_surfaces.
+
+Single-surface nodes are rejected.
+
+## Retrieval Acceptance
+
+Each capability anchor must:
+
+- contain >= 2 adjacent
+- contain >=15 recruiter_surfaces.en
+- contain >=15 recruiter_surfaces.vi
+- contain >=15 retrieval_associations
+
+Each set must contain:
+
+- ATS terminology
+- recruiter terminology
+- hiring manager terminology
+- LinkedIn search terminology
+- job description terminology
+
+Sparse nodes are invalid.
+
+A retrieval change is accepted only if:
+
+- retrieval coverage increases
+OR
+- retrieval precision increases
+
+while preserving:
+
+- anchor meaning
+- recruiter language consistency
+- template compatibility
+- source contracts
+
+## Market-language rules
+Vietnamese recruiter language
+
+Vietnamese recruiters usually mix Vietnamese and English technical terms.
+
+Good:
+
+tích hợp hệ thống
+tích hợp dịch vụ
+thiết kế API
+xử lý bất đồng bộ
+xử lý sự kiện
+workflow orchestration
+workflow engine
+message queue
+microservices
+
+Do not over-translate.
+
+Bad:
+
+điều phối quy trình công việc trạng thái hữu hạn
+triển khai cơ chế xử lý tuần tự hóa phân tán
+
+Those are too academic and not recruiter-natural.
+
+English recruiter language
+
+Use common JD wording:
+
+## Purpose
+
+Defines retrieval-system requirements for relations.source.ts.
+
+Defines:
+
+- retrieval precision vocabulary
+- retrieval recall vocabulary
+- ATS retrieval coverage
+- recruiter search coverage
+- lexical retrieval density
+- Aho-Corasick indexing compatibility
+
+This file owns retrieval effectiveness.
+
+It does not own:
+
+- anchor semantics
+- recruiter language semantics
+- relation structure
+- template generation
+
+Those are owned elsewhere.
+
+## Retrieval Ownership
+
+Anchor meaning is owned by:
+
+- profile.source.ts
+- recruiter_surfaces
+
+Retrieval expansion is owned by:
+
+- retrieval_associations
+
+Removing retrieval_associations must reduce recall.
+
+Removing retrieval_associations must not change anchor meaning.
+
+## Precision Vocabulary Rule
+
+recruiter_surfaces are precision vocabulary.
+
+Purpose:
+
+- exact matching
+- recruiter searches
+- ATS searches
+- capability retrieval
+
+recruiter_surfaces should maximize:
+
+- precision
+- recruiter recognizability
+- capability specificity
+
+Examples:
+
+Good:
+
+workflow orchestration
+service integration
+event processing
+database design
+
+Bad:
+
+experience with workflow orchestration
+knowledge of event processing
+
+Those are template phrases.
+
+## Recall Vocabulary Rule
+
+retrieval_associations are recall vocabulary.
+
+Purpose:
+
+- technology recall
+- framework recall
+- protocol recall
+- market terminology recall
+
+Examples:
+
+workflow_orchestration
+
+retrieval_associations:
+
+Temporal
+Camunda
+Airflow
+Durable Functions
+
+These improve retrieval coverage.
+
+They do not define the capability.
+
+## Exact Match Rule
+
+A retrieval surface should preferably appear in job descriptions exactly as stored.
+
+Good:
+
+workflow orchestration
+
+Bad:
+
+ability to perform workflow orchestration
+
+Reason:
+
+exact phrase retrieval is stronger than inferred retrieval.
+
+## Phrase Match Rule
+
+Retrieval vocabulary should maximize phrase-level matching.
+
+Prefer:
+
+service integration
+event processing
+database migration
+
+Avoid:
+
+single-token vocabulary where phrase vocabulary exists.
+
+Bad:
+
+integration
+events
+database
+
+Good:
+
+service integration
+event processing
+schema migration
+
+## ATS Compatibility Rule
+
+All retrieval vocabulary must be:
+
+- ATS searchable
+- recruiter searchable
+- LinkedIn searchable
+- JD searchable
+
+Reject vocabulary that is:
+
+- academic only
+- internal terminology
+- ontology terminology
+- low-frequency market wording
+
+## Market Frequency Rule
+
+Prefer vocabulary observed in:
+
+- job descriptions
+- recruiter searches
+- ATS queries
+- LinkedIn recruiter searches
+
+Avoid vocabulary observed only in:
+
+- engineering discussions
+- architecture papers
+- internal company terminology
+
+## Lexical Coverage Rule
+
+Each anchor should contain enough recruiter_surfaces to cover common market wording.
+
+Example:
+
+api_development
+
+Good:
+
+API development
+REST API development
+backend API development
+API implementation
+API engineering
+
+Bad:
+
+API development
+
+Only one surface reduces retrieval coverage.
+
+## Retrieval Density Rule
+
+Each recruiter_surface should contribute unique retrieval value.
+
+Reject:
+
+workflow orchestration
+workflow orchestration experience
+workflow orchestration knowledge
+
+These are template variants.
+
+Accept:
+
+workflow orchestration
+workflow engine
+business process automation
+state machine workflow
+
+These represent distinct retrieval hits.
+
+## Semantic Drift Rule
+
+Retrieval expansion must never change anchor meaning.
+
+Example:
+
+event_processing
+
+Accept:
+
+Kafka
+RabbitMQ
+event streaming
+
+Reject:
+
+microservices architecture
+
+Reason:
+
+adjacent capability expansion is not retrieval expansion.
+
+## Vendor Replacement Rule
+
+retrieval_associations should remain replaceable.
+
+Good:
+
+Kafka
+RabbitMQ
+NATS
+
+Bad:
+
+single-vendor dependency vocabulary
+
+Coverage should survive vendor replacement.
+
+## Aho-Corasick Optimization Rule
+
+Retrieval vocabulary should be suitable for:
+
+- exact string indexing
+- phrase indexing
+- deterministic matching
+
+Vocabulary must:
+
+- be standalone
+- be meaningful without context
+- avoid sentence fragments
+- avoid template wording
+
+Good:
+
+workflow orchestration
+service integration
+event processing
+
+Bad:
+
+experience with workflow orchestration
+responsible for service integration
+
+## Retrieval Validation
+
+A relation node passes retrieval validation only if:
+
+1. recruiter_surfaces maximize precision.
+2. retrieval_associations maximize recall.
+3. anchor meaning remains unchanged.
+4. ATS coverage increases.
+5. recruiter coverage increases.
+6. vocabulary remains vendor-neutral at capability level.
+7. vocabulary supports deterministic Aho-Corasick matching.
+
+## Lexical Saturation Rule
+
+For each anchor:
+
+generate recruiter_surfaces until
+additional surfaces no longer provide
+meaningful recruiter-search coverage.
+
+Prefer:
+
+JD terminology
+ATS terminology
+LinkedIn recruiter terminology
+market terminology
+
+over ontology terminology.
+
+## Retrieval Recall Rule
+
+retrieval_associations must include:
+
+technologies
+frameworks
+protocols
+architectural terminology
+
+commonly associated with the anchor.
+
+Capability nodes with fewer than
+five retrieval associations fail
+retrieval validation.
+
+## Retrieval Objective
+
+relations.source.ts is optimized
+for retrieval quality.
+
+Vocabulary must maximize:
+
+- exact match frequency
+- synonym match frequency
+- recruiter search frequency
+- ATS search frequency
+
+Avoid:
+
+- invented terminology
+- academic terminology
+- low-frequency phrases
+- architecture-only phrases
+
+Prefer:
+
+- market phrases
+- recruiter phrases
+- JD phrases
+- ATS phrases
+
+Every phrase must plausibly occur
+inside a software engineering job description.
+
+## PrecisionBoundaryRule
+
+Coverage optimization is subordinate to anchor precision.
+
+Do not broaden vocabulary beyond
+the anchor capability boundary
+solely to increase hit frequency.
+
+Reject:
+
+software development
+backend development
+application development
+
+when the anchor is:
+
+query_optimization
+workflow_orchestration
+event_processing
+
+Every retrieval phrase must remain
+specific to the anchor capability.
+
+## Precision Vocabulary Rule
+
+Recall Vocabulary Rule
+
+Exact Match Rule
+
+Phrase Match Rule
+
+ATS Compatibility Rule
+
+Aho-Corasick Optimization Rule
+
+## Boundary rule
+retrieval_associations
+MUST expand recruiter recall
+
+MUST NOT merely repeat recruiter surfaces
+
+## Recruiter Search Optimization Rule
+
+Generation MUST optimize expected retrieval frequency against:
+
+LinkedIn Recruiter
+LinkedIn Talent Insights
+Indeed
+VietnamWorks
+ITviec
+TopCV
+TopDev
+Glints
+CareerViet
+
+Vocabulary should prioritize phrases appearing in job descriptions over ontology-derived wording.
+
+## ATS Expansion Rule
+
+For every recruiter surface generate:
+
+canonical phrase
+alternative phrase
+abbreviated phrase
+implementation phrase
+architecture phrase
+delivery phrase
+operational phrase
+
+until lexical saturation.
+
+## Association Expansion Rule
+
+retrieval_associations SHOULD include:
+
+vendors
+frameworks
+libraries
+protocols
+architectural styles
+runtime ecosystems
+deployment environments
+industry aliases
+
+associated with the anchor.
+
+## Purpose 
+Define ATS lexical coverage requirements.
+
+Every anchor must provide:
+
+1. Ontology Layer
+2. Recruiter Layer
+3. Vendor Layer
+4. ATS Layer
+
+Example:
+
+For:
+
+protocolTech.grpc
+
+Ontology
+
+gRPC
+
+Recruiter
+
+grpc services
+grpc api development
+rpc backend communication
+service-to-service communication
+
+Vendor
+
+protobuf
+grpc-gateway
+envoy
+istio
+
+ATS
+
+grpc
+protobuf
+service mesh
+rpc
+microservices communication
+
+## Retrieval Definitions
+
+Surface
+
+A recruiter-visible phrase.
+
+Association
+
+A retrieval-only phrase.
+
+Hit
+
+An Aho-Corasick phrase match.
+
+Coverage
+
+Percentage of job descriptions
+containing at least one phrase.
+
+Density
+
+Hits per job description.
+
+Frequency
+
+Phrase occurrence count
+across corpus.
+
+Freeze Spot
+
+Phrase with zero observed hits.
+
+Dead Phrase
+
+Phrase with hit rate below threshold.
+
+
+## Coverage Density Rule
+
+recruiter_surfaces should maximize market vocabulary coverage for the capability.
+
+Each anchor should contain multiple recruiter-recognizable capability expressions where they represent legitimate market wording.
+
+The goal is lexical coverage, not synonym inflation.
+
+Example:
+
+Good:
+
+workflow orchestration
+workflow engine
+business process automation
+stateful workflow
+
+Bad:
+
+workflow orchestration
+workflow orchestration implementation
+workflow orchestration experience
+workflow orchestration knowledge
+
+These are template variants, not capability variants.
+
+
+## Canonical Surface Quality
+
+recruiter_surfaces must function as canonical capability vocabulary.
+
+Every recruiter_surface must:
+
+- be recruiter recognizable
+- be ATS searchable
+- be capability oriented
+- be vendor neutral
+- be reusable across multiple templates
+- remain meaningful outside template expansion
+
+A recruiter_surface must not depend on surrounding template text to become understandable.
+
+
+## Recruiter Surface Ownership Rule
+
+recruiter_surfaces represent canonical
+market capability vocabulary.
+
+recruiter_surfaces must not contain:
+
+- responsibility wording
+- requirement wording
+- preference wording
+- experience wording
+- template-derived phrasing
+
+Examples
+
+Good:
+workflow orchestration
+workflow engine
+business process automation
+
+Bad:
+experience with workflow orchestration
+workflow orchestration experience
+knowledge of workflow orchestration
+
+
+## Retrieval Precision Validation
+
+Every recruiter_surface must:
+
+- be independently searchable
+- be meaningful without template context
+- be suitable for exact matching
+- be suitable for Aho-Corasick indexing
+
+Reject if:
+
+- contains template wording
+- contains experience wording
+- contains responsibility wording
+- contains requirement wording
+
+Examples:
+
+Good:
+
+workflow orchestration
+service integration
+event processing
+
+Bad:
+
+experience with workflow orchestration
+hands-on workflow orchestration
+knowledge of event processing
+
+
+## Aho-Corasick Retrieval Validation
+
+Every recruiter_surface must:
+
+- be meaningful standalone
+- appear plausibly as exact JD text
+- maximize lexical retrieval density
+- avoid template wording
+- avoid role wording
+- avoid sentence fragments
+
+Reject:
+
+understanding of workflow orchestration
+experience with workflow orchestration
+
+Accept:
+
+workflow orchestration
+workflow engine
+business process automation
+
+===
+
+Coverage quality is measured by
+discriminative retrieval coverage,
+not vocabulary count.
+
+Adding vocabulary that increases
+false-positive rate decreases coverage quality.
+
+## RetrievalOptimizationObjective
+
+Coverage optimization shall maximize
+
+Precision × Recall
+
+subject to:
+
+- anchor semantics preserved
+- abstraction boundaries preserved
+- false-positive rate bounded
+- deterministic retrieval maintained
+
+Generation must not optimize solely for:
+
+- maximum vocabulary size
+- minimum vocabulary size
+
+Vocabulary quality is preferred over vocabulary quantity.
+
+## NodeDiscriminativeCoverageRule
+
+retrieval_associations should collectively provide
+independent retrieval evidence.
+
+Preferred dimensions include:
+
+- framework ecosystem
+- runtime
+- protocol
+- deployment
+- architecture
+- common companion libraries
+
+Avoid concentrating multiple associations on
+the same lexical concept.
+
+Coverage quality is measured by
+discriminative diversity,
+not vocabulary count.

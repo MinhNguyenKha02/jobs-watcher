@@ -1,0 +1,37 @@
+<article class="record">
+
+<header>
+
+<h3>{{title}}</h3>
+
+<div class="record-meta">
+
+<span class="role">
+
+{{position}}
+
+</span>
+
+<span class="period">
+
+{{startDate}} – {{endDate}}
+
+</span>
+
+</div>
+
+</header>
+
+{{> stack techStack}}
+
+{{> bullet-list
+title="Key Contributions"
+items=keyContributions}}
+
+{{> bullet-list
+title="Outcomes"
+items=outcomes}}
+
+{{> links evidences}}
+
+</article>

@@ -1,0 +1,81 @@
+# {{name}}
+
+{{contact.location}} 
+{{contact.email}} 
+{{contact.phone}}
+{{#if contact.linkedin}} 
+{{contact.linkedin}}
+{{/if}}
+{{#if contact.github}} 
+{{contact.github}}
+{{/if}}
+
+# TECHNICAL SKILLS
+
+{{#each skillGroups}}
+## {{label}}
+{{join skills ", "}}
+{{/each}}
+
+# Projects
+{{#each projects}}
+
+## {{title}}
+
+{{#if position}}{{position}}{{/if}} | {{startDate}} – {{endDate}}
+
+**Technical Stack:** {{join techStack " • "}}
+{{#if keyContributions}}
+
+### Key Contributions
+{{#each keyContributions}}
+- {{this}}
+{{/each}}
+{{/if}}
+{{#if outcomes}}
+
+### Outcomes
+{{#each outcomes}}
+- {{this}}
+{{/each}}
+{{/if}}
+{{#if evidences}}
+
+### Project Links
+{{#each evidences}}
+- **{{key}}:** {{#each items}}[{{alias}}]({{url}}){{#unless @last}}, {{/unless}}{{/each}}
+{{/each}}
+{{/if}}
+
+{{/each}}
+
+# Experience
+{{#each experience}}
+
+## {{company}}
+
+{{role}} | {{startDate}} – {{endDate}}
+
+{{#if responsibilities}}
+### Responsibilities
+{{#each responsibilities}}
+- {{this}}
+{{/each}}
+{{/if}}
+{{#if outcomes}}
+
+### Outcomes
+{{#each outcomes}}
+- {{this}}
+{{/each}}
+{{/if}}
+
+{{/each}}
+
+# Education
+
+{{#each education}}
+## {{institution}}
+
+{{degree}} | {{#if startDate}} ({{startDate}} – {{endDate}}){{/if}} | {{#if grade}}Grade: {{grade}}{{/if}}
+{{/each}}

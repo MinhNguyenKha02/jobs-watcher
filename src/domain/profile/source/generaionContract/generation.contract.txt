@@ -1,0 +1,112 @@
+Metadata: generation.contract.txt
+
+Generation Model
+
+Anchor → Relation → Template → Artifact
+
+Ownership
+
+anchors.rule.txt
+owns capability semantics
+
+profile.source.ts
+owns anchor inventory
+
+relations.source.ts
+    owns canonical recruiter-facing capability vocabulary
+
+relations.source.ts
+    owns retrieval vocabulary
+
+recruiter_surfaces
+    own precision vocabulary
+
+retrieval_associations
+    own recall vocabulary
+
+templates.source.ts
+owns recruiter-language expansion
+
+generated artifacts
+own presentation only
+
+anchors.rule.txt
+    owns capability truth
+
+relations.definition.rule.txt
+    owns shape
+
+relations.*.rule.txt
+    owns correctness
+
+    owns market wording
+
+    owns retrieval effectiveness
+
+templates.rule.txt
+    owns language expansion
+
+
+Allowed Change
+
+Target: relations.source.ts
+
+May modify:
+
+* adjacent
+* recruiter_surfaces
+* retrieval_associations
+
+May not modify:
+
+* anchors
+* profile.source.ts
+* profile.source.types.ts
+* templates.source.ts
+* rule files
+
+Generation Invariants
+
+* no extra fields
+* no source shape changes
+* no anchor invention
+* no capability invention
+* no abstraction-layer mixing
+* deterministic generation only
+
+Validation
+
+adjacent
+anchor ↔ anchor only
+
+recruiter_surfaces
+capability vocabulary only
+recruiter-searchable
+ATS-searchable
+vendor-neutral
+
+retrieval_associations
+retrieval vocabulary only
+technologies / frameworks / protocols / patterns
+must not define capability meaning
+
+Template Rule
+
+templates derive capability language only from recruiter_surfaces
+
+templates derive retrieval expansion only from retrieval_associations
+
+templates may not introduce:
+
+* new anchors
+* new capability meanings
+* new relation nodes
+
+Acceptance
+
+* backward-compatible
+* recruiter-natural
+* ATS-compatible
+* deterministic
+* copy-paste ready
+* source-of-truth aligned

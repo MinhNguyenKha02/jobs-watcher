@@ -1,29 +1,47 @@
 [Unit]
-Description=Jobs Watcher webhook + worker
+Description=Jobs Watcher webhook + worker (Development)
 After=network.target mongod.service
-StartLimitIntervalSec=0
+StartLimitIntervalSec=60
+StartLimitBurst=3
 
 [Service]
 Type=simple
-User=jobswatcher
-Group=jobswatcher
-EnvironmentFile=/etc/jobs-watcher.env
-Environment="NODE_ENV=production"
-# Set `INTERNAL_AUTH_TOKEN` and other secrets in /etc/jobs-watcher.env (KEY=VALUE lines)
-WorkingDirectory=/srv/jobs-watcher
-ExecStart=/usr/bin/node /srv/jobs-watcher/dist/index.js
+StandardOutput=journal
+StandardError=journal
+User=jobs-watcher
+Group=jobs-watcher
+
+# Development: Load env from local path
+EnvironmentFile=/home/minh-nguyen/node_projects/jobs-watcher/.env
+Environment="NODE_ENV=development"
+Environment="MONGODB_URI=mongodb://localhost:27017/jobs-watcher"
+Environment="PLAYWRIGHT_BROWSERS_PATH=/home/minh-nguyen/.cache/ms-playwright"
+
+# Development: Use local project directory
+WorkingDirectory=/home/minh-nguyen/node_projects/jobs-watcher
+# Use v22 Node.js from nvm for ES2020+ syntax support (lru-cache, optional chaining)
+ExecStart=/home/minh-nguyen/.nvm/versions/node/v22.12.0/bin/node /home/minh-nguyen/node_projects/jobs-watcher/dist/src/index.js
+
 Restart=on-failure
 RestartSec=5
 UMask=0027
-# Ensure socket directory ownership (adjust if using /tmp)
+
+# Socket directory: Use XDG_RUNTIME_DIR for dev (typically /run/user/UID)
 RuntimeDirectory=jobs-watcher
-RuntimeDirectoryMode=0750
+RuntimeDirectoryMode=0770
+RuntimeDirectoryPreserve=restart
 
 [Install]
 WantedBy=multi-user.target
 
-# Notes:
-# - /srv/jobs-watcher is a placeholder path where release artifacts are expected to be installed.
-#   Adjust WorkingDirectory and ExecStart to match your deployment layout.
-# - Create the `jobswatcher` system user and group and ensure the runtime directory exists
-#   and is owned by that user. Configure secrets in /etc/jobs-watcher.env (owner root, group jobswatcher, mode 0640).
+# ============================================================================
+# DEVELOPMENT NOTES:
+# ============================================================================
+# This is a development configuration. For production:
+# 1. Update User/Group to jobs-watcher (system user)
+# 2. Use /srv/jobs-watcher for WorkingDirectory
+# 3. Use system Node.js binary or absolute path to v22+
+# 4. Use /etc/jobs-watcher.env for EnvironmentFile
+# 5. Consider using socket activation for better security
+# 6. Run: sudo systemctl daemon-reload && sudo systemctl restart jobs-watcher
+# ============================================================================

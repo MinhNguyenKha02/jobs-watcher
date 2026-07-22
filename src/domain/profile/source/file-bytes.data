@@ -1,0 +1,2972 @@
+Metadata: 
+Anchors.rule.txt
+
+
+# Anchors Rule
+
+## Definition
+
+An anchor is not a skill list item.
+
+An anchor is a stable, evidence-backed capability node that can expand into recruiter language.
+
+anchor → relations → templates → resume exposure
+
+## Anchor contract
+
+An anchor must satisfy all of the following:
+
+1. Evidence-backed  
+   A project or experience must prove it.
+
+2. Capability, not tool  
+   It must describe a capability the market can search for, not a technology, product, or vendor.
+
+3. One capability only  
+   One anchor = one retrieval node.
+
+4. Stable over jobs  
+   The anchor should survive technology replacement and remain valid across job postings.
+
+5. Recruiter-recognizable  
+   A recruiter should plausibly search for the capability.
+
+6. Expandable into recruiter language  
+   The anchor must be able to generate recruiter-facing surfaces through relations and templates.
+
+## Strong Anchor Test
+
+Before adding or keeping an anchor, verify:
+
+### 1. Can a project or experience prove it?
+- Yes → continue
+- No → reject
+
+### 2. Would a recruiter search it?
+- Yes → continue
+- No → reject
+
+### 3. Is it a capability rather than a tool?
+- Yes → continue
+- No → move to tech layer
+
+### 4. Can it expand into recruiter language?
+Example:
+- `workflow_orchestration`
+  - workflow engine
+  - state machine
+  - saga orchestration
+  - business process automation
+
+If not, reject.
+
+### 5. Can it survive vendor replacement?
+Example:
+- `workflow_orchestration`
+  - Temporal
+  - Camunda
+  - Airflow
+
+If the node still makes sense after vendor replacement, it is valid.
+
+### 6. Is it one capability only?
+- `authentication_implementation` → good
+- `authentication_and_authorization` → bad
+
+## Rule for profile.source.ts
+
+Every anchor in `profile.source.ts` must satisfy:
+
+### Rule A1: Evidence-backed
+Good:
+- `database_design`
+- `schema_migration`
+- `query_optimization`
+
+Bad:
+- `backend_engineering`
+- `software_development`
+- `problem_solving`
+
+### Rule A2: Capability, not tool
+Good:
+- `api_development`
+- `authentication_implementation`
+- `workflow_orchestration`
+
+Bad:
+- `swagger`
+- `postman`
+- `jwt`
+- `docker`
+
+### Rule A3: One capability = one retrieval node
+Good:
+- `background_job_processing`
+
+Bad:
+- `background_job_processing_and_orchestration`
+
+### Rule A4: Stable over jobs
+Good:
+- `realtime_communication`
+- `service_integration`
+- `event_processing`
+
+Bad:
+- `websocket_backend`
+- `grpc_server_development`
+
+## Forbidden anchor types
+
+Do not use these as anchors:
+
+- project names
+- tool names
+- vendor names
+- broad role labels
+- competency interpretations
+- mixed abstraction labels
+
+### Bad examples
+- `backend_engineering`
+- `software_engineering`
+- `teamwork`
+- `ownership`
+- `leadership`
+- `docker`
+- `jwt`
+- `postgresql`
+- `mongodb`
+- `nodejs`
+
+## Better anchor pattern
+
+Anchor must be directly observable from evidence.
+
+Good:
+- `api_development`
+- `database_design`
+- `workflow_orchestration`
+- `authentication_implementation`
+- `query_optimization`
+
+## Abstraction rule
+
+Every anchor belongs to one layer only.
+
+- Capability layer
+- Technology layer
+- Vendor layer
+- Pattern layer
+
+Do not mix them.
+
+### Good separation
+- Capability: `query_optimization`
+- Technology: `postgresql`
+- Vendor: `supabase`
+- Pattern: `repository_pattern`Metadata: retrieval.evaluation.rule.txt
+
+Retrieval Association Evaluation
+
+A retrieval_association is valid only if:
+
+- appears in recruiter searches
+- appears in job descriptions
+- appears in ATS searches
+- improves retrieval coverage
+
+Removing the retrieval_association
+reduces retrieval coverage
+but does not change anchor meaning.
+
+## Evaluation Metrics
+
+For every anchor:
+
+Measure:
+
+Coverage Score
+Density Score
+Frequency Score
+Freeze Spot Count
+Dead Phrase Count
+
+Coverage Score
+
+Job descriptions matched
+÷
+total job descriptions
+
+Density Score
+
+Total hits
+÷
+matched job descriptions
+
+Freeze Spot Count
+
+Phrases never matched.
+
+Dead Phrase Count
+
+Phrases matched below threshold.
+
+Acceptance
+
+Coverage >= 80%
+
+Freeze Spots <= 10%
+
+Dead Phrases <= 20%
+
+Average Density >= targetMetadata: templates.retrieval.rule.txt
+
+## Templates Retrieval Rule
+
+Purpose
+
+Generate ATS-facing retrieval phrases.
+
+Source
+
+retrieval_associations
+
+Allowed output
+
+experience with {retrieval}
+working knowledge of {retrieval}
+familiarity with {retrieval}
+
+Forbidden
+
+new capability meanings
+new anchors
+anchor reinterpretation
+technology-to-capability promotion
+
+## Template Expansion Rules
+
+Generated phrases must:
+
+- preserve anchor semantics
+- preserve recruiter intent
+- preserve ATS intent
+
+Expansion must not generate:
+
+- duplicate phrases
+- morphology-only variants
+- whitespace-only variants
+- punctuation-only variants
+
+Generated phrase must increase
+expected retrieval coverage.
+
+Cross-product generation between:
+
+surface
+×
+retrieval_associationMetadata: generation.contract.txt
+
+Generation Model
+
+Anchor → Relation → Template → Artifact
+
+Ownership
+
+anchors.rule.txt
+owns capability semantics
+
+profile.source.ts
+owns anchor inventory
+
+relations.source.ts
+    owns canonical recruiter-facing capability vocabulary
+
+relations.source.ts
+    owns retrieval vocabulary
+
+recruiter_surfaces
+    own precision vocabulary
+
+retrieval_associations
+    own recall vocabulary
+
+templates.source.ts
+owns recruiter-language expansion
+
+generated artifacts
+own presentation only
+
+anchors.rule.txt
+    owns capability truth
+
+relations.definition.rule.txt
+    owns shape
+
+relations.*.rule.txt
+    owns correctness
+
+    owns market wording
+
+    owns retrieval effectiveness
+
+templates.rule.txt
+    owns language expansion
+
+
+Allowed Change
+
+Target: relations.source.ts
+
+May modify:
+
+* adjacent
+* recruiter_surfaces
+* retrieval_associations
+
+May not modify:
+
+* anchors
+* profile.source.ts
+* profile.source.types.ts
+* templates.source.ts
+* rule files
+
+Generation Invariants
+
+* no extra fields
+* no source shape changes
+* no anchor invention
+* no capability invention
+* no abstraction-layer mixing
+* deterministic generation only
+
+Validation
+
+adjacent
+anchor ↔ anchor only
+
+recruiter_surfaces
+capability vocabulary only
+recruiter-searchable
+ATS-searchable
+vendor-neutral
+
+retrieval_associations
+retrieval vocabulary only
+technologies / frameworks / protocols / patterns
+must not define capability meaning
+
+Template Rule
+
+templates derive capability language only from recruiter_surfaces
+
+templates derive retrieval expansion only from retrieval_associations
+
+templates may not introduce:
+
+* new anchors
+* new capability meanings
+* new relation nodes
+
+Acceptance
+
+* backward-compatible
+* recruiter-natural
+* ATS-compatible
+* deterministic
+* copy-paste ready
+* source-of-truth aligned
+Metadata: relations.coverage.rule.txt
+
+# Relations Coverage Rule
+
+## Purpose
+
+Defines coverage requirements for `relations.source.ts`.
+
+This file owns:
+
+* recruiter vocabulary coverage
+* ATS vocabulary coverage
+* retrieval density
+* lexical saturation
+* bilingual recruiter-language coverage
+
+This file does not own:
+
+* anchor semantics
+* relation structure
+* template generation
+* ontology definition
+
+Those are owned elsewhere.
+
+---
+
+## Coverage Ownership
+
+Anchor meaning is owned by:
+
+* profile.source.ts
+* anchors.rule.txt
+
+Relation structure is owned by:
+
+* relations.definition.rule.txt
+
+Coverage quality is owned by:
+
+* relations.coverage.rule.txt
+
+---
+
+## Coverage Goal
+
+Every capability anchor must maximize:
+
+1. recruiter search coverage
+2. ATS search coverage
+3. LinkedIn recruiter search coverage
+4. exact phrase retrieval coverage
+5. bilingual recruiter-language coverage
+
+while preserving:
+
+* anchor meaning
+* abstraction boundaries
+* vendor neutrality at capability level
+
+---
+
+## Coverage Layers
+
+Every capability anchor should contain vocabulary from multiple retrieval layers.
+
+### Precision Layer
+
+Canonical recruiter-recognizable capability vocabulary.
+
+Examples:
+
+api development
+
+service integration
+
+workflow orchestration
+
+database design
+
+### Market Layer
+
+Alternative recruiter wording observed in job descriptions.
+
+Examples:
+
+backend API development
+
+API implementation
+
+business process automation
+
+external system integration
+
+### ATS Layer
+
+Vocabulary commonly searched in ATS systems.
+
+Examples:
+
+REST API development
+
+event-driven workflow
+
+database schema design
+
+query performance optimization
+
+### Recall Layer
+
+Technology, framework, protocol, and vendor vocabulary.
+
+Stored only in:
+
+retrieval_associations
+
+Examples:
+
+Kafka
+
+RabbitMQ
+
+Temporal
+
+PostgreSQL
+
+Docker
+
+---
+
+## Empty Coverage Rejection
+
+Reject a capability relation node if:
+
+recruiter_surfaces.en is empty
+
+or
+
+recruiter_surfaces.vi is empty
+
+or
+
+retrieval_associations is empty
+
+---
+
+## Distinct Retrieval Value Rule
+
+Every recruiter surface must contribute unique retrieval value.
+
+Reject:
+
+workflow orchestration
+
+workflow orchestration experience
+
+workflow orchestration knowledge
+
+These are template variants.
+
+Accept:
+
+workflow orchestration
+
+workflow engine
+
+business process automation
+
+stateful workflow
+
+event-driven workflow
+
+These create distinct retrieval hits.
+
+---
+
+## Lexical Saturation Rule
+
+Generate recruiter surfaces until additional surfaces no longer provide meaningful recruiter-search coverage.
+
+Coverage sources:
+
+* job descriptions
+* ATS terminology
+* recruiter search terminology
+* LinkedIn recruiter terminology
+
+Prefer market-observed wording.
+
+Avoid ontology-only wording.
+
+---
+
+## Bilingual Coverage Rule
+
+Vietnamese and English surfaces must express the same capability.
+
+Coverage density should remain approximately equivalent across languages.
+
+Do not require literal translation.
+
+Prefer recruiter-natural wording.
+
+---
+
+## Retrieval Association Density Rule
+
+retrieval_associations should include:
+
+* technologies
+* frameworks
+* protocols
+* architectural terminology
+* vendor products
+
+commonly associated with the anchor.
+
+The goal is recall expansion.
+
+The goal is not capability definition.
+
+---
+
+## Coverage Acceptance
+
+A relation node passes coverage validation only if:
+
+1. recruiter coverage increases
+2. ATS coverage increases
+3. retrieval recall increases
+4. bilingual coverage exists
+5. lexical density is sufficient
+6. anchor meaning remains unchanged
+
+---
+
+## Optimization Target
+
+The preferred relation node is not the smallest valid node.
+
+The preferred relation node is the highest-coverage node that preserves anchor semantics and source contracts.
+
+
+## Optimization Objective
+
+relations.source.ts exists to maximize recruiter
+and ATS vocabulary coverage.
+
+Each anchor must contain:
+
+- recruiter_surfaces.en
+- recruiter_surfaces.vi
+- retrieval_associations
+
+Coverage Domains:
+ATS, Recruiter, Hiring Manager, JD, LinkedIn, Vietnam.
+
+Minimum Density
+
+recruiter_surfaces.en.length >= 15
+recruiter_surfaces.vi.length >= 15
+retrieval_associations.length >= 15
+
+Sparse nodes are invalid.
+
+Empty nodes are invalid.
+
+Coverage takes precedence over minimal examples.
+
+relations.source.ts is a retrieval layer, not merely a semantic relation layer.
+
+Generation MUST optimize for:
+
+* ATS keyword matching
+* recruiter keyword matching
+* LinkedIn recruiter search matching
+* hiring manager search matching
+* job description phrase matching
+* Aho-Corasick automaton phrase matching
+* bilingual English/Vietnamese market coverage
+
+Generation MUST prioritize real-world software engineering hiring vocabulary over ontology-pure vocabulary.
+
+For every anchor:
+
+recruiter_surfaces.en MUST contain:
+
+* ATS phrases
+* recruiter phrases
+* LinkedIn recruiter phrases
+* hiring-manager phrases
+* common job-description phrases
+* industry synonyms
+
+recruiter_surfaces.vi MUST contain:
+
+* Vietnam recruiter vocabulary
+* Vietnam job-description vocabulary
+* English loanword variants commonly used in Vietnam hiring
+
+retrieval_associations MUST contain:
+
+* technology aliases
+* industry aliases
+* hiring synonyms
+* ATS synonyms
+* market terminology
+
+Sparse nodes are invalid.
+
+Empty recruiter_surfaces are invalid.
+
+Coverage quality takes precedence over minimum contract compliance.
+
+Generation should maximize expected hit rate against:
+
+* LinkedIn
+* Indeed Vietnam
+* TopCV
+* VietnamWorks
+* ITviec
+* TopDev
+* Glints Vietnam
+* CarrerViet
+
+for Fresher-Junior Backend Engineer, Backend Developer and Fresher-Junior Software Engineer, Software Developer job descriptions in English and Vietnamese markets.
+
+## Market Coverage Priority
+
+Generation must maximize aggregate coverage across:
+
+Global:
+- LinkedIn
+- Indeed
+
+Vietnam:
+- VietnamWorks
+- ITviec
+- TopCV
+- CareerViet
+- TopDev
+- Glints Vietnam
+
+Company career pages
+
+No single platform may dominate vocabulary selection.
+
+Generation MUST NOT optimize exclusively for:
+
+- LinkedIn
+- Indeed
+- any single ATS
+
+Vocabulary selection must maximize expected retrieval
+across the combined market corpus.
+
+Coverage Sources:
+
+Global:
+- LinkedIn
+- Indeed
+
+Vietnam:
+- VietnamWorks
+- ITviec
+- TopCV
+- CareerViet
+- TopDev
+- Glints Vietnam
+
+Enterprise Career Sites:
+- Banks
+- Product companies
+- Outsourcing companies
+- Startups
+
+A phrase may not be selected solely because of high
+frequency on one platform.
+
+
+## Recruiter Search Saturation Rule
+
+For every capability anchor:
+
+recruiter_surfaces.en MUST include:
+
+1. canonical recruiter phrase
+2. ATS phrase
+3. LinkedIn recruiter phrase
+4. hiring-manager phrase
+5. job-description phrase
+6. implementation phrase
+7. architecture phrase
+8. operational phrase
+9. delivery phrase
+10. Vietnam-market phrase
+
+Coverage is incomplete until all retrieval categories are represented.
+
+## Duplicate Suppression Rule
+
+Reject lexical variants differing only by:
+
+experience
+knowledge
+understanding
+implementation experience
+hands-on experience
+
+These are template variants, not retrieval variants.
+
+## Retrieval Compatibility
+
+A relation node is valid only if:
+
+- recruiter_surfaces are recruiter-searchable
+- recruiter_surfaces are ATS-searchable
+- recruiter_surfaces support deterministic token generation
+- recruiter_surfaces can be matched directly by retrieval systems
+- recruiter_surfaces remain meaningful without template context
+
+retrieval_associations improve retrieval coverage
+without changing anchor semantics
+
+retrieval_associations are optional retrieval expansion vocabulary.
+
+recruiter_surfaces remain the canonical recruiter-facing capability vocabulary.
+
+
+## Retrieval Coverage Acceptance
+
+A relation node passes retrieval validation only if:
+
+recruiter_surfaces maximize precision coverage
+
+retrieval_associations maximize recall coverage
+
+both remain ATS-searchable
+
+both remain recruiter-searchable
+
+## Retrieval Density Acceptance
+
+recruiter_surfaces contain:
+
+canonical phrase
+alternative market phrase
+abbreviated market phrase (when common)
+
+without introducing semantic drift
+
+Example:
+
+api_development
+
+Current:
+
+api development
+
+Desired:
+
+api development
+rest api development
+backend api development
+api implementation
+api engineering
+
+These are different retrieval hits.
+
+## Surface Density Acceptance
+
+Capability anchors MUST contain:
+
+adjacent.length >= 2
+
+CAP:
+minimum 25 recruiter_surfaces.en
+minimum 25 recruiter_surfaces.vi
+minimum 40 retrieval_associations
+
+TECH:
+minimum 15 recruiter_surfaces.en
+minimum 15 recruiter_surfaces.vi
+minimum 25 retrieval_associations
+
+COMP:
+minimum 12 recruiter_surfaces.en
+minimum 12 recruiter_surfaces.vi
+minimum 20 retrieval_associations
+
+BEH:
+minimum 12 recruiter_surfaces.en
+minimum 12 recruiter_surfaces.vi
+minimum 20 retrieval_associations
+
+Empty recruiter_surfaces invalid.
+Empty retrieval_associations invalid.
+
+No anchor may be sparse.
+
+unless explicitly exempted.
+
+A relation node with empty recruiter_surfaces
+is invalid.
+
+A capability relation node with empty
+retrieval_associations is invalid.
+
+## Coverage Acceptance
+
+Each capability anchor must cover:
+
+- canonical recruiter wording
+- ATS wording
+- LinkedIn recruiter wording
+- market alternative wording
+
+Coverage must be observable in
+recruiter_surfaces.
+
+Single-surface nodes are rejected.
+
+## Retrieval Acceptance
+
+Each capability anchor must:
+
+- contain >= 2 adjacent
+- contain >=15 recruiter_surfaces.en
+- contain >=15 recruiter_surfaces.vi
+- contain >=15 retrieval_associations
+
+Each set must contain:
+
+- ATS terminology
+- recruiter terminology
+- hiring manager terminology
+- LinkedIn search terminology
+- job description terminology
+
+Sparse nodes are invalid.
+
+A retrieval change is accepted only if:
+
+- retrieval coverage increases
+OR
+- retrieval precision increases
+
+while preserving:
+
+- anchor meaning
+- recruiter language consistency
+- template compatibility
+- source contracts
+
+## Market-language rules
+Vietnamese recruiter language
+
+Vietnamese recruiters usually mix Vietnamese and English technical terms.
+
+Good:
+
+tích hợp hệ thống
+tích hợp dịch vụ
+thiết kế API
+xử lý bất đồng bộ
+xử lý sự kiện
+workflow orchestration
+workflow engine
+message queue
+microservices
+
+Do not over-translate.
+
+Bad:
+
+điều phối quy trình công việc trạng thái hữu hạn
+triển khai cơ chế xử lý tuần tự hóa phân tán
+
+Those are too academic and not recruiter-natural.
+
+English recruiter language
+
+Use common JD wording:
+
+## Purpose
+
+Defines retrieval-system requirements for relations.source.ts.
+
+Defines:
+
+- retrieval precision vocabulary
+- retrieval recall vocabulary
+- ATS retrieval coverage
+- recruiter search coverage
+- lexical retrieval density
+- Aho-Corasick indexing compatibility
+
+This file owns retrieval effectiveness.
+
+It does not own:
+
+- anchor semantics
+- recruiter language semantics
+- relation structure
+- template generation
+
+Those are owned elsewhere.
+
+## Retrieval Ownership
+
+Anchor meaning is owned by:
+
+- profile.source.ts
+- recruiter_surfaces
+
+Retrieval expansion is owned by:
+
+- retrieval_associations
+
+Removing retrieval_associations must reduce recall.
+
+Removing retrieval_associations must not change anchor meaning.
+
+## Precision Vocabulary Rule
+
+recruiter_surfaces are precision vocabulary.
+
+Purpose:
+
+- exact matching
+- recruiter searches
+- ATS searches
+- capability retrieval
+
+recruiter_surfaces should maximize:
+
+- precision
+- recruiter recognizability
+- capability specificity
+
+Examples:
+
+Good:
+
+workflow orchestration
+service integration
+event processing
+database design
+
+Bad:
+
+experience with workflow orchestration
+knowledge of event processing
+
+Those are template phrases.
+
+## Recall Vocabulary Rule
+
+retrieval_associations are recall vocabulary.
+
+Purpose:
+
+- technology recall
+- framework recall
+- protocol recall
+- market terminology recall
+
+Examples:
+
+workflow_orchestration
+
+retrieval_associations:
+
+Temporal
+Camunda
+Airflow
+Durable Functions
+
+These improve retrieval coverage.
+
+They do not define the capability.
+
+## Exact Match Rule
+
+A retrieval surface should preferably appear in job descriptions exactly as stored.
+
+Good:
+
+workflow orchestration
+
+Bad:
+
+ability to perform workflow orchestration
+
+Reason:
+
+exact phrase retrieval is stronger than inferred retrieval.
+
+## Phrase Match Rule
+
+Retrieval vocabulary should maximize phrase-level matching.
+
+Prefer:
+
+service integration
+event processing
+database migration
+
+Avoid:
+
+single-token vocabulary where phrase vocabulary exists.
+
+Bad:
+
+integration
+events
+database
+
+Good:
+
+service integration
+event processing
+schema migration
+
+## ATS Compatibility Rule
+
+All retrieval vocabulary must be:
+
+- ATS searchable
+- recruiter searchable
+- LinkedIn searchable
+- JD searchable
+
+Reject vocabulary that is:
+
+- academic only
+- internal terminology
+- ontology terminology
+- low-frequency market wording
+
+## Market Frequency Rule
+
+Prefer vocabulary observed in:
+
+- job descriptions
+- recruiter searches
+- ATS queries
+- LinkedIn recruiter searches
+
+Avoid vocabulary observed only in:
+
+- engineering discussions
+- architecture papers
+- internal company terminology
+
+## Lexical Coverage Rule
+
+Each anchor should contain enough recruiter_surfaces to cover common market wording.
+
+Example:
+
+api_development
+
+Good:
+
+API development
+REST API development
+backend API development
+API implementation
+API engineering
+
+Bad:
+
+API development
+
+Only one surface reduces retrieval coverage.
+
+## Retrieval Density Rule
+
+Each recruiter_surface should contribute unique retrieval value.
+
+Reject:
+
+workflow orchestration
+workflow orchestration experience
+workflow orchestration knowledge
+
+These are template variants.
+
+Accept:
+
+workflow orchestration
+workflow engine
+business process automation
+state machine workflow
+
+These represent distinct retrieval hits.
+
+## Semantic Drift Rule
+
+Retrieval expansion must never change anchor meaning.
+
+Example:
+
+event_processing
+
+Accept:
+
+Kafka
+RabbitMQ
+event streaming
+
+Reject:
+
+microservices architecture
+
+Reason:
+
+adjacent capability expansion is not retrieval expansion.
+
+## Vendor Replacement Rule
+
+retrieval_associations should remain replaceable.
+
+Good:
+
+Kafka
+RabbitMQ
+NATS
+
+Bad:
+
+single-vendor dependency vocabulary
+
+Coverage should survive vendor replacement.
+
+## Aho-Corasick Optimization Rule
+
+Retrieval vocabulary should be suitable for:
+
+- exact string indexing
+- phrase indexing
+- deterministic matching
+
+Vocabulary must:
+
+- be standalone
+- be meaningful without context
+- avoid sentence fragments
+- avoid template wording
+
+Good:
+
+workflow orchestration
+service integration
+event processing
+
+Bad:
+
+experience with workflow orchestration
+responsible for service integration
+
+## Retrieval Validation
+
+A relation node passes retrieval validation only if:
+
+1. recruiter_surfaces maximize precision.
+2. retrieval_associations maximize recall.
+3. anchor meaning remains unchanged.
+4. ATS coverage increases.
+5. recruiter coverage increases.
+6. vocabulary remains vendor-neutral at capability level.
+7. vocabulary supports deterministic Aho-Corasick matching.
+
+## Lexical Saturation Rule
+
+For each anchor:
+
+generate recruiter_surfaces until
+additional surfaces no longer provide
+meaningful recruiter-search coverage.
+
+Prefer:
+
+JD terminology
+ATS terminology
+LinkedIn recruiter terminology
+market terminology
+
+over ontology terminology.
+
+## Retrieval Recall Rule
+
+retrieval_associations must include:
+
+technologies
+frameworks
+protocols
+architectural terminology
+
+commonly associated with the anchor.
+
+Capability nodes with fewer than
+five retrieval associations fail
+retrieval validation.
+
+## Retrieval Objective
+
+relations.source.ts is optimized
+for retrieval quality.
+
+Vocabulary must maximize:
+
+- exact match frequency
+- synonym match frequency
+- recruiter search frequency
+- ATS search frequency
+
+Avoid:
+
+- invented terminology
+- academic terminology
+- low-frequency phrases
+- architecture-only phrases
+
+Prefer:
+
+- market phrases
+- recruiter phrases
+- JD phrases
+- ATS phrases
+
+Every phrase must plausibly occur
+inside a software engineering job description.
+
+## PrecisionBoundaryRule
+
+Coverage optimization is subordinate to anchor precision.
+
+Do not broaden vocabulary beyond
+the anchor capability boundary
+solely to increase hit frequency.
+
+Reject:
+
+software development
+backend development
+application development
+
+when the anchor is:
+
+query_optimization
+workflow_orchestration
+event_processing
+
+Every retrieval phrase must remain
+specific to the anchor capability.
+
+## Precision Vocabulary Rule
+
+Recall Vocabulary Rule
+
+Exact Match Rule
+
+Phrase Match Rule
+
+ATS Compatibility Rule
+
+Aho-Corasick Optimization Rule
+
+## Boundary rule
+retrieval_associations
+MUST expand recruiter recall
+
+MUST NOT merely repeat recruiter surfaces
+
+## Recruiter Search Optimization Rule
+
+Generation MUST optimize expected retrieval frequency against:
+
+LinkedIn Recruiter
+LinkedIn Talent Insights
+Indeed
+VietnamWorks
+ITviec
+TopCV
+TopDev
+Glints
+CareerViet
+
+Vocabulary should prioritize phrases appearing in job descriptions over ontology-derived wording.
+
+## ATS Expansion Rule
+
+For every recruiter surface generate:
+
+canonical phrase
+alternative phrase
+abbreviated phrase
+implementation phrase
+architecture phrase
+delivery phrase
+operational phrase
+
+until lexical saturation.
+
+## Association Expansion Rule
+
+retrieval_associations SHOULD include:
+
+vendors
+frameworks
+libraries
+protocols
+architectural styles
+runtime ecosystems
+deployment environments
+industry aliases
+
+associated with the anchor.
+
+## Purpose 
+Define ATS lexical coverage requirements.
+
+Every anchor must provide:
+
+1. Ontology Layer
+2. Recruiter Layer
+3. Vendor Layer
+4. ATS Layer
+
+Example:
+
+For:
+
+protocolTech.grpc
+
+Ontology
+
+gRPC
+
+Recruiter
+
+grpc services
+grpc api development
+rpc backend communication
+service-to-service communication
+
+Vendor
+
+protobuf
+grpc-gateway
+envoy
+istio
+
+ATS
+
+grpc
+protobuf
+service mesh
+rpc
+microservices communication
+
+## Retrieval Definitions
+
+Surface
+
+A recruiter-visible phrase.
+
+Association
+
+A retrieval-only phrase.
+
+Hit
+
+An Aho-Corasick phrase match.
+
+Coverage
+
+Percentage of job descriptions
+containing at least one phrase.
+
+Density
+
+Hits per job description.
+
+Frequency
+
+Phrase occurrence count
+across corpus.
+
+Freeze Spot
+
+Phrase with zero observed hits.
+
+Dead Phrase
+
+Phrase with hit rate below threshold.
+
+
+## Coverage Density Rule
+
+recruiter_surfaces should maximize market vocabulary coverage for the capability.
+
+Each anchor should contain multiple recruiter-recognizable capability expressions where they represent legitimate market wording.
+
+The goal is lexical coverage, not synonym inflation.
+
+Example:
+
+Good:
+
+workflow orchestration
+workflow engine
+business process automation
+stateful workflow
+
+Bad:
+
+workflow orchestration
+workflow orchestration implementation
+workflow orchestration experience
+workflow orchestration knowledge
+
+These are template variants, not capability variants.
+
+
+## Canonical Surface Quality
+
+recruiter_surfaces must function as canonical capability vocabulary.
+
+Every recruiter_surface must:
+
+- be recruiter recognizable
+- be ATS searchable
+- be capability oriented
+- be vendor neutral
+- be reusable across multiple templates
+- remain meaningful outside template expansion
+
+A recruiter_surface must not depend on surrounding template text to become understandable.
+
+
+## Recruiter Surface Ownership Rule
+
+recruiter_surfaces represent canonical
+market capability vocabulary.
+
+recruiter_surfaces must not contain:
+
+- responsibility wording
+- requirement wording
+- preference wording
+- experience wording
+- template-derived phrasing
+
+Examples
+
+Good:
+workflow orchestration
+workflow engine
+business process automation
+
+Bad:
+experience with workflow orchestration
+workflow orchestration experience
+knowledge of workflow orchestration
+
+
+## Retrieval Precision Validation
+
+Every recruiter_surface must:
+
+- be independently searchable
+- be meaningful without template context
+- be suitable for exact matching
+- be suitable for Aho-Corasick indexing
+
+Reject if:
+
+- contains template wording
+- contains experience wording
+- contains responsibility wording
+- contains requirement wording
+
+Examples:
+
+Good:
+
+workflow orchestration
+service integration
+event processing
+
+Bad:
+
+experience with workflow orchestration
+hands-on workflow orchestration
+knowledge of event processing
+
+
+## Aho-Corasick Retrieval Validation
+
+Every recruiter_surface must:
+
+- be meaningful standalone
+- appear plausibly as exact JD text
+- maximize lexical retrieval density
+- avoid template wording
+- avoid role wording
+- avoid sentence fragments
+
+Reject:
+
+understanding of workflow orchestration
+experience with workflow orchestration
+
+Accept:
+
+workflow orchestration
+workflow engine
+business process automation
+
+===
+
+Coverage quality is measured by
+discriminative retrieval coverage,
+not vocabulary count.
+
+Adding vocabulary that increases
+false-positive rate decreases coverage quality.
+
+## RetrievalOptimizationObjective
+
+Coverage optimization shall maximize
+
+Precision × Recall
+
+subject to:
+
+- anchor semantics preserved
+- abstraction boundaries preserved
+- false-positive rate bounded
+- deterministic retrieval maintained
+
+Generation must not optimize solely for:
+
+- maximum vocabulary size
+- minimum vocabulary size
+
+Vocabulary quality is preferred over vocabulary quantity.
+
+## NodeDiscriminativeCoverageRule
+
+retrieval_associations should collectively provide
+independent retrieval evidence.
+
+Preferred dimensions include:
+
+- framework ecosystem
+- runtime
+- protocol
+- deployment
+- architecture
+- common companion libraries
+
+Avoid concentrating multiple associations on
+the same lexical concept.
+
+Coverage quality is measured by
+discriminative diversity,
+not vocabulary count.Metadata: relations.definition.rule.txt
+
+## Relations Rule
+
+Purpose
+
+Relations are the source layer for recruiter-facing expansion.
+
+They do not store final resume text.
+They store the data needed to generate recruiter language and ATS language.
+
+## Relation contract
+
+Each anchor relation node must contain only:
+
+```ts
+{
+  adjacent: AnchorId[];
+  recruiter_surfaces: {
+    vi: string[];
+    en: string[];
+  };
+  retrieval_associations: string[];
+}
+
+
+## Field definitions
+### adjacent
+
+Anchor-to-anchor relations only.
+
+Rules:
+
+anchor ↔ anchor only
+same abstraction level
+recruiter co-occurrence
+not a synonym list
+not a vendor list
+
+Good:
+
+workflow_orchestration ↔ event_processing
+background_job_processing ↔ message_queue_processing
+
+Bad:
+
+workflow_orchestration ↔ Temporal
+workflow_orchestration ↔ docker
+workflow_orchestration ↔ workflow_orchestration
+recruiter_surfaces
+
+### recruiter_surfaces, recruiter-visible capability language that may appear in:
+
+JD requirements
+JD responsibilities
+recruiter searches
+LinkedIn searches
+
+Required shape:
+
+vi: string[]
+en: string[]
+
+Rules:
+
+Must be capability language
+Must be vendor-neutral
+Must survive vendor replacementterminology
+Must sound like actual JD language
+Must be recruiter-searchable
+Good recruiter surfaces
+
+For workflow_orchestration:
+
+workflow engine
+workflow orchestration
+business process automation
+state machine
+event-driven workflow
+Bad recruiter surfaces
+Temporal workflow
+MongoDB change stream
+BullMQ worker
+Jobs Watcher
+
+
+## retrieval_associations
+
+Recruiter-observed retrieval vocabulary related to the anchor.
+
+Purpose:
+
+- improve ATS retrieval coverage
+- improve recruiter search coverage
+- support template generation
+- support retrieval expansion
+
+May contain:
+
+- technologies
+- frameworks
+- protocols
+- patterns
+- architectural terminology
+- market terminology
+
+Must:
+
+- preserve anchor semantics
+- remain recruiter-searchable
+- remain ATS-searchable
+- remain replaceable
+
+Must not:
+
+- become anchors
+- introduce new capability meanings
+- contain project names
+- contain resume prose
+
+## TECH/CAP/COMP/BEH anchors over profile.source.types.ts usage of relations.source.ts per RELATION NODE REQUIREMENTS
+
+Every tech, cap, comp, beh anchor MUST contain:
+
+- adjacent
+- recruiter_surfaces.en
+- recruiter_surfaces.vi
+- retrieval_associations
+
+Empty arrays are invalid.
+
+The generator MUST NOT emit:
+
+r([], [], [])
+
+for any technology, competency, behavior, capability anchor.Metadata: relations.generation.rule.txt
+
+## Purpose
+
+Mandatory population requirements.
+
+Every anchor defined in
+profile.source.types.ts
+must generate:
+
+adjacent
+recruiter_surfaces.en
+recruiter_surfaces.vi
+retrieval_associations
+
+Empty arrays are invalid.
+
+Generation requirements are owned by:
+relations.generation.rule.txt
+
+Coverage requirements are owned by:
+relations.coverage.rule.txt
+
+Validation requirements are owned by:
+relations.validation.rule.txt
+
+## ReplacementGenerationRule
+
+When replacing retrieval_associations,
+the generator shall preserve approximate lexical density.
+
+Replacing low-quality associations with higher-quality
+associations is preferred over deleting entries.
+
+Large reductions in retrieval_association cardinality
+require corpus-supported justification.Metadata: relations.population.rule.txt
+
+## Purpose
+
+Defines mandatory population rules for all
+relation nodes.
+
+Relations.source.ts may never emit empty
+recruiter_surfaces or retrieval_associations
+for any anchor defined in profile.source.types.ts.
+
+## Rule:
+
+### Capability anchor
+
+CAP anchors generate:
+
+recruiter_surfaces
+    from recruiter language
+
+retrieval_associations
+    from ecosystem language
+
+
+Example:
+
+workflow_orchestration
+
+must generate
+
+recruiter_surfaces.en = [
+ "workflow orchestration",
+ "workflow engine",
+ "business process automation",
+ "workflow automation",
+ "state machine workflow",
+ ...
+]
+
+### Tech anchor 
+
+TECH anchors MUST NOT be empty.
+
+Technology anchors generate:
+
+recruiter_surfaces
+    from recruiter-facing usage language
+
+retrieval_associations
+    from ecosystem vocabulary
+
+
+Example:
+
+languageTech.go
+
+must produce
+
+recruiter_surfaces.en = [
+ "golang development",
+ "go backend development",
+ "go microservices",
+ "go services",
+ "backend development with go",
+ ...
+]
+
+and
+
+retrieval_associations = [
+ "Gin",
+ "Fiber",
+ "Echo",
+ "Go modules",
+ "gRPC",
+ "PostgreSQL",
+ "Docker",
+ "Kubernetes",
+ ...
+]
+
+### Surface derivation algorithm
+
+For each anchor:
+
+Generate recruiter_surfaces from:
+
+1 canonical recruiter phrase
+2 ATS phrase
+3 LinkedIn recruiter phrase
+4 hiring manager phrase
+5 market phrase
+6 Vietnam market phrase
+7 abbreviation phrase
+8 alternative JD phrase
+
+until
+
+lexical saturation
+
+
+### Template compatibility validation
+
+Every recruiter_surface MUST pass:
+
+develop and maintain {surface}
+
+experience with {surface}
+
+knowledge of {surface}
+
+Example:
+
+Good
+
+API development
+workflow orchestration
+service integration
+
+Bad
+
+experience with APIs
+building APIs
+API implementation experience
+
+because templates will duplicate wording.
+
+### Vendor template compatibility
+
+Every retrieval_association must naturally fit:
+
+experience with {retrieval_association}
+
+working knowledge of {retrieval_association}
+
+ability to integrate {retrieval_association}
+
+Good:
+
+Kafka
+RabbitMQ
+Temporal
+PostgreSQL
+Docker
+
+Bad:
+
+event processing
+workflow orchestration
+backend development
+
+## DensityStabilityRule
+
+Retrieval association density should remain relatively
+stable across generations unless supported by corpus
+evaluation.
+
+Large reductions indicate possible recall regression
+and require validation.Metadata: relations.template.rule.txt
+RULE 1
+
+recruiter_surfaces MUST produce natural recruiter language
+when inserted into:
+
+develop and maintain {surface}
+experience with {surface}
+knowledge of {surface}
+
+RULE 2
+
+retrieval_associations MUST produce natural ecosystem language
+when inserted into:
+
+experience with {retrieval_association}
+working knowledge of {retrieval_association}
+ability to integrate {retrieval_association}
+
+RULE 3
+
+If generated phrase sounds unnatural,
+surface is invalid.Metadata: relations.validation.rule.txt
+
+# RelationsValidationRule
+
+## Purpose
+This file defines the validation rules for `relations.source.ts` and its downstream use in `templates.source.ts`.
+
+It is the enforcement layer for:
+- bilingual recruiter surfaces
+- retrieval associations
+- adjacency correctness
+- deterministic template generation
+- replacement safety across markets
+
+## Validation Contract
+
+A relation node is valid only if all of the following hold:
+
+- `adjacent` contains only anchor IDs.
+- `recruiter_surfaces.vi` contains only Vietnamese recruiter-facing capability language.
+- `recruiter_surfaces.en` contains only English recruiter-facing capability language.
+- `retrieval_associations` contains recruiter-observed retrieval vocabulary
+associated with the anchor.
+
+It may contain:
+- technologies
+- frameworks
+- protocols
+- patterns
+- architectural terminology
+- market terminology
+
+It must:
+- improve retrieval coverage
+- preserve anchor semantics
+- remain replaceable
+- remain recruiter-searchable
+- remain ATS-searchable
+
+It must not:
+- introduce new anchor meanings
+- contain project names
+- contain resume prose
+- contain role labels
+
+- No field mixes capability, vendor, technology, project, or role layers.
+- The node can generate deterministic template output without inventing new source data.
+
+## Field Rules
+
+### 1. `adjacent`
+Must satisfy all of the following:
+
+- anchor ↔ anchor only
+- same abstraction level
+- represents recruiter co-occurrence, not synonym expansion
+- does not contain vendors, tools, or project names
+
+Valid examples:
+- `workflow_orchestration` ↔ `event_processing`
+- `service_decomposition` ↔ `boundary_definition`
+
+Invalid examples:
+- `workflow_orchestration` ↔ `Temporal`
+- `workflow_orchestration` ↔ `docker`
+- `workflow_orchestration` ↔ `workflow_orchestration`
+
+### 2. `recruiter_surfaces.vi`
+Must satisfy all of the following:
+
+- readable as real Vietnamese job-description language
+- may include English technical terms commonly used in Vietnamese job posts
+- must remain capability language
+- must be vendor-neutral
+- must survive vendor replacement
+- must sound like something a recruiter would search or write
+- recruiter-searchable
+- ATS-searchable
+- reusable across multiple template families
+- meaningful outside templates
+- lexical coverage increasing
+- not merely a template variant
+
+Good examples:
+- `tích hợp hệ thống`
+- `xử lý bất đồng bộ`
+- `workflow orchestration`
+- `thiết kế API`
+- `mô hình hóa dữ liệu`
+
+Bad examples:
+- `điều phối quy trình công việc trạng thái hữu hạn`
+- `MongoDB change stream`
+- `Temporal workflow`
+- `Jobs Watcher`
+
+### 3. `recruiter_surfaces.en`
+Must satisfy all of the following:
+
+- readable as real English job-description language
+- must be recruiter-searchable
+- must remain capability language
+- must be vendor-neutral
+- must survive vendor replacement
+- must map naturally to the anchor
+- recruiter-searchable
+- ATS-searchable
+- reusable across multiple template families
+- meaningful outside templates
+- lexical coverage increasing
+- not merely a template variant
+
+Good examples:
+- `workflow orchestration`
+- `workflow engine`
+- `business process automation`
+- `service integration`
+- `event processing`
+
+Bad examples:
+- `Temporal workflow`
+- `MongoDB change stream`
+- `backend engineer`
+- `software development`
+
+### 4. `retrieval_associations`
+Must satisfy all of the following:
+
+Must contain:
+- recruiter-searchable vocabulary
+- ATS-searchable vocabulary
+- JD-observed vocabulary
+
+May contain:
+- technologies
+- patterns
+- architectural concepts
+
+Must not:
+- introduce new anchor meanings
+- contain project names
+- contain resume prose
+
+Bad examples:
+- project names
+- role labels
+- abstract capability names
+- invented tools
+
+## Retrieval Association Ownership Rule
+
+retrieval_associations do not define anchor meaning.
+
+Anchor meaning is owned exclusively by:
+
+- profile.source.ts anchor
+- recruiter_surfaces
+
+Removing retrieval_associations must not change
+the capability represented by the anchor.
+
+## Bilingual Compliance Rules
+
+### Rule B1
+`recruiter_surfaces.vi` and `recruiter_surfaces.en` must be semantically aligned.
+
+They may differ in surface form, but they must express the same capability.
+
+Example:
+
+```ts
+recruiter_surfaces: {
+  vi: ['tích hợp hệ thống', 'xử lý bất đồng bộ'],
+  en: ['service integration', 'async processing']
+}
+
+### Rule B2
+
+Neither language may introduce a new anchor meaning.
+
+If the English surface says one capability and the Vietnamese surface says another, the node is invalid.
+
+### Rule B3
+
+Do not over-translate Vietnamese recruiter language.
+
+Vietnamese recruiter language may keep English technical terms when those terms are standard in market usage.
+
+Good:
+
+workflow orchestration
+workflow engine
+message queue
+event-driven
+REST API
+
+Bad:
+
+điều phối quy trình công việc trạng thái hữu hạn
+xử lý tuần tự hóa phân tán
+Rule B4
+
+Do not force literal symmetry between vi and en.
+
+The correct goal is market-natural bilingual coverage, not word-for-word translation.
+
+
+## Acceptance Rules
+
+A relation node passes validation only if:
+
+it stays within one abstraction layer
+it supports bilingual recruiter language
+it supports vendor replacement
+it supports ATS exposure
+it can generate templates deterministically
+it remains backward-compatible with existing source shape
+
+supports canonical recruiter vocabulary
+
+supports template expansion
+
+supports ATS retrieval vocabulary generation
+
+supports vendor replacement
+
+supports deterministic artifact generation
+
+A relation node passes recruiter-surface validation only if:
+
+1. recruiter_surfaces represent capability-level recruiter vocabulary
+
+2. recruiter_surfaces are reusable across template families
+
+3. recruiter_surfaces remain vendor-neutral
+
+4. recruiter_surfaces improve ATS retrieval coverage
+
+5. recruiter_surfaces can generate recruiter-natural responsibility templates
+
+6. recruiter_surfaces can generate recruiter-natural requirement templates
+
+7. recruiter_surfaces can generate recruiter-natural preference templates
+
+## Rejection Rules
+
+## Reject the node if any of the following is true:
+
+it uses a tool as a recruiter surface
+it uses a vendor as an anchor
+it mixes capability and technology in one field
+it contains non-market wording
+it contains project-specific wording
+it cannot generate stable bilingual templates
+it breaks anchor ↔ relation ↔ template consistency
+
+## Template Expandability
+
+Every recruiter_surface must naturally fit responsibility, requirement, and preference templates.
+
+Validation test:
+
+experience with {surface}
+knowledge of {surface}
+develop and maintain {surface}
+
+must produce recruiter-natural wording.
+
+Example:
+
+Good:
+
+workflow orchestration
+service integration
+event processing
+
+Bad:
+
+good understanding of workflows
+experience building APIs
+
+because they already contain template semantics.
+
+
+## Retrieval Density Validation
+
+A capability relation node fails validation if:
+
+recruiter_surfaces.en.length < 5
+
+OR
+
+recruiter_surfaces.vi.length < 5
+
+OR
+
+all recruiter_surfaces are lexical variants
+of the same phrase.
+
+Coverage must include distinct recruiter
+retrieval phrases.
+
+## Empty Vocabulary Rejection
+
+Reject node if:
+
+recruiter_surfaces.en is empty
+
+OR
+
+recruiter_surfaces.vi is empty
+
+OR
+
+retrieval_associations is empty
+for capability anchors.
+
+## RetrievalAssociationValidation
+
+Reject if retrieval_associations contains:
+
+- recruiter surface duplicates
+- capability synonyms
+- template wording
+- responsibility wording
+- requirement wording
+
+Accept:
+
+Kafka
+RabbitMQ
+NATS
+Temporal
+Camunda
+
+Reject:
+
+workflow orchestration
+business process automation
+service integration
+event processing
+
+FAIL IF
+
+duplicate surfaces >20%
+
+empty arrays
+
+surface equals association
+
+EN/VI mismatch
+
+less than minimum lexical density
+
+## Retrieval Association Specificity Rule
+A retrieval_association is valid only if it provides
+positive discrimination for the anchor.
+
+Validation:
+
+Compare occurrence frequency in:
+
+A = job descriptions mentioning the anchor
+B = job descriptions not mentioning the anchor
+
+A retrieval_association is valid only if:
+
+P(term | anchor) > P(term | non-anchor)
+
+by a meaningful margin.
+
+Examples:
+
+Express.js
+
+PASS:
+middleware
+express middleware
+express router
+npm
+
+FAIL:
+backend
+api
+performance
+testing
+software development
+
+Example:
+
+npm
+
+appears in many jobs.
+
+But:
+
+P(npm | Express)
+>>
+P(npm | random backend JD)
+
+So npm still has retrieval value.
+
+## Retrieval Association Information Gain Rule
+
+A retrieval_association must increase retrieval
+information gain.
+
+Removing the association should reduce
+anchor-identification accuracy.
+
+If removing the term causes no measurable
+drop in retrieval quality,
+the association is invalid.
+
+Example:
+
+Nuxt:
+
+SSR
+Vue
+Nitro
+hydration
+
+Removing:
+
+SSR
+
+might hurt retrieval.
+
+Valid.
+
+Removing:
+
+web development
+
+Invalid.
+
+## Corpus Frequency Rejection Rule
+
+Reject retrieval_associations that occur
+at high frequency across unrelated
+software-engineering job descriptions.
+
+A retrieval_association fails if:
+
+global_corpus_frequency(term)
+is significantly higher than
+anchor_specific_frequency(term).
+
+Examples:
+
+FAIL:
+backend
+frontend
+testing
+api
+performance
+development
+engineering
+
+PASS:
+BullMQ
+Vitest
+RLS
+Edge Functions
+Vue Router
+Express Middleware
+gRPC Gateway
+
+## RetrievalAssociationFalsePositiveRule
+
+A retrieval_association is invalid if it produces
+systematic false positives during corpus evaluation.
+
+Corpus Validation:
+
+Run Aho-Corasick over representative
+Vietnamese and English software-engineering
+job descriptions.
+
+Reject a retrieval_association if:
+
+false_positive_rate > 20%
+
+or
+
+precision < 80%
+
+for the owning anchor.
+
+## RetrievalAssociationPlatformCoverageRule
+
+Validation corpus must include:
+
+- LinkedIn
+- Indeed Vietnam
+- VietnamWorks
+- ITviec
+- TopCV
+- CareerViet
+- TopDev
+- Glints Vietnam
+- Company career pages
+
+A retrieval_association may not be accepted
+or rejected using a single-platform corpus.
+
+## RetrievalReplacementRule
+
+Rejecting a retrieval_association does not imply reducing
+retrieval coverage.
+
+When a retrieval_association fails validation because of:
+
+- genericity
+- false-positive rate
+- low discriminative score
+- low information gain
+
+the generator SHALL attempt to replace it with a more
+discriminative retrieval_association from the same anchor
+ecosystem.
+
+Deletion is permitted only if no suitable replacement exists.
+
+The objective is to maximize
+
+retrieval precision
+AND
+retrieval recall
+
+rather than minimizing association count.
+
+## RetrievalAssociationPriorityRule
+
+When multiple candidate retrieval_associations exist,
+prefer them in the following order:
+
+1. official technology name
+2. official framework ecosystem term
+3. runtime terminology
+4. protocol terminology
+5. deployment terminology
+6. architecture terminology
+7. vendor ecosystem terminology
+8. generic engineering terminology
+
+Lower-priority generic vocabulary shall be replaced by
+higher-priority discriminative vocabulary whenever possible.
+
+## LexicalRedundancyRule
+
+Reject retrieval_associations that contribute no additional
+lexical retrieval value.
+
+Examples
+
+Reject
+
+Express
+ExpressJS
+Express.js
+
+Keep
+
+Express.js
+Express Router
+Express Middleware
+Express Session
+
+Each retained association must contribute unique retrieval
+evidence for deterministic Aho-Corasick matching.
+
+## CorpusOptimizationRule
+
+Corpus evaluation is authoritative.
+
+When regression testing identifies retrieval_associations
+that consistently generate false positives,
+future generations shall replace those associations with
+higher-discrimination alternatives observed in the corpus.
+
+Corpus evidence takes precedence over ontology-derived
+candidate vocabulary.
+
+## RetrievalFeedbackRule
+
+Generation is iterative.
+
+Corpus evaluation metrics shall be used to improve future
+retrieval_associations.
+
+Observed metrics include:
+
+- precision
+- recall
+- false-positive rate
+- lexical hit rate
+- freeze spots
+- dead phrases
+
+Generation should maximize measured retrieval performance
+rather than static vocabulary count.
+
+## RetrievalAssociationDiscriminationRule
+
+Every retrieval_association must provide measurable
+discriminative power for its owning anchor.
+
+Evidence may include:
+
+- Information Gain
+- Mutual Information
+- Conditional Probability
+- Corpus Precision
+- False Positive Rate
+
+A candidate passes if corpus evaluation demonstrates
+that it improves anchor identification.
+
+The implementation is free to choose the statistical
+measure.
+
+## RetrievalNodePerformanceRule
+
+A relation node is evaluated as a whole.
+
+Validation SHALL optimize the retrieval quality
+of the complete node rather than individual
+retrieval_associations.
+
+Adding or removing one association is acceptable
+only if the aggregate node metrics improve.
+
+Node metrics include:
+
+- Precision
+- Recall
+- F1
+- Mean Hits/JD
+- False Positives/JD
+- Freeze Spots
+- Dead Phrase Count
+
+Node-level metrics take precedence over
+individual association metrics.
+
+## MixedLanguageCorpusRule
+
+Corpus evaluation SHALL include:
+
+- English JDs
+- Vietnamese JDs
+- Mixed Vietnamese-English JDs
+
+Vocabulary that performs well only on one corpus
+may not dominate generation.
+
+## TrieEfficiencyRule
+
+A retrieval_association should maximize
+expected retrieval utility per indexed token.
+
+Reject vocabulary that:
+
+- never matches
+- duplicates another indexed phrase
+- contributes negligible recall
+- contributes negligible precision
+
+The objective is to maximize
+
+Useful Hits
+------------
+Trie Entries
+
+## CandidateRankingRule
+
+Candidate retrieval_associations shall be ranked
+before selection.
+
+Ranking should consider:
+
+- corpus precision
+- corpus recall
+- information gain
+- lexical uniqueness
+- false-positive rate
+- ecosystem relevance
+
+Generation shall prefer the highest-ranked
+combination rather than evaluating candidates
+independently.
+// profile.source.types.ts
+export enum backendCapability {
+  api_development = 'api-development',  
+  api_design = 'api-design',
+  service_integration = 'service-integration',
+  background_job_processing = 'background-job-processing',
+  concurrent_processing = 'concurrent-processing',
+  message_queue_processing = 'message-queue-processing',
+  event_processing = 'event-processing',
+  workflow_orchestration = 'workflow-orchestration',
+  // caching = 'caching',
+}
+  
+export enum architectureCapability {
+  // clean_architecture = 'clean-architecture',
+  // hexagonal_architecture = 'hexagonal-architecture',
+  // event_driven_architecture = 'event-driven-architecture',
+  // microservices_architecture = 'microservices architecture',
+  // modular_monolith = 'modular-monolith',
+  
+  service_decomposition= 'service-decomposition',
+  dependency_inversion= 'dependency-inversion',
+  domain_modeling= 'domain-modeling',
+  interface_abstraction= 'interface-abstraction',
+  data_flow_design= 'data-flow-design',
+  boundary_definition= 'boundary-definition',
+  module_design= 'module-design',
+  integration_design = 'integration-design',
+  architectural_documentation= 'architectural-documentation',
+}
+
+export enum testingCapability {
+  unit_testing = 'unit-testing',
+  integration_testing = 'integration-testing',
+  regression_testing = 'regression-testing',
+  api_testing = 'api-testing',
+  test_automation = 'test-automation',
+  end_to_end_testing = 'end-to-end-testing',
+  // manual_testing = 'manual-testing',
+}
+
+export enum databaseCapability {
+  query_optimization = 'query-optimization',
+  database_design = 'database-design',
+  data_modeling = 'data-modeling',
+  database_indexing = 'database-indexing',
+  schema_migration = 'schema-migration',
+  data_consistency = 'data-consistency',
+}
+
+export enum observabilityCapability {
+  structured_logging = 'structured-logging',
+  monitoring = 'monitoring',
+  distributed_tracing= 'distributed-tracing',
+}
+
+export enum infrastructureCapability {
+  containerized_deployment = 'containerized-deployment',
+  linux_service_management = 'linux-service-management',
+  development_workflow_automation = 'development-workflow-automation',
+  cloud_deployment = 'cloud-deployment',
+  ci_cd_automation = 'ci_cd_automation',
+  configuration_management='configuration_management',
+  environment_management='environment_management',
+}
+
+export enum communicationCapability {
+  request_response_communication= 'request_response_communication',
+  streaming_communication = 'streaming_communication',
+  event_based_communication = 'event_based_communication',
+}
+
+export enum securityCapability {
+  authentication_implementation = 'authentication_implementation',
+  authorization_control = 'authorization_control',
+  input_validation = 'input-validation',
+  rate_limiting = 'rate-limiting',
+}
+
+// Additional enums for competencies and behaviors
+export enum engineeringCompetency {
+  maintainable_system_design = 'maintainable-system-design',
+  testing_discipline = 'testing-discipline',
+  production_operations = 'production-operations',
+  service_operations= 'service-operations',
+  service_reliability = 'service-reliability',
+}
+
+export enum executionCompetency {
+  delivery_focus = 'delivery-focus',
+  workflow_consistency = 'workflow-consistency',
+  attention_to_detail = 'attention-to-detail',
+}
+
+export enum collaborationCompetency {
+  technical_communication = 'technical-communication',
+  cross_functional_collaboration = 'cross-functional-collaboration',
+  agile_collaboration = 'agile-collaboration',
+  code_review_participation = 'code-review-participation',
+  sprint_planning_participation = 'sprint-planning-participation',
+}
+
+export enum ownershipBehavior {
+  ownership = 'ownership',
+  initiative_taking = 'initiative-taking',
+}
+
+export enum engineeringBehavior {
+  structured_debugging = 'structured-debugging',
+  iterative_refinement = 'iterative-refinement',
+  engineering_discipline = 'engineering-discipline',
+} 
+// enums for technologies
+export enum protocolTech {
+  websocket = 'websocket',
+  restful_api = 'restful-api',
+  graphql='graphql',
+  pubsub='pubsub',
+  webhooks='webhooks',
+  unix_domain_sockets = 'unix-domain-sockets',
+  grpc = 'grpc',
+  rpc='rpc',
+  abi_interface='abi interface',
+  sse = 'server-sent-events',
+  rabbitmq = 'rabbitmq',
+}
+
+export enum languageTech {
+  go = 'go',
+  typescript = 'typescript',
+  javascript = 'javascript',
+  sql = 'sql',
+  c = 'c',
+  php = 'php',
+  bash = 'bash',
+  python = 'python',
+}
+
+export enum backendFrameworkTech {
+  nodejs = 'nodejs',
+  expressjs = 'expressjs',
+  gin = 'gin',
+  laravel = 'laravel',
+  django = 'django',
+  nuxtjs = 'nuxtjs',
+}
+
+export enum testingTech {
+  vitest = 'vitest',
+  jest = 'jest',
+  playwright = 'playwright',
+  gotesting = 'go testing',
+  ctesting = 'c testing',
+}
+export enum infrastructureTech {
+  docker = 'docker',
+  ubuntu = 'ubuntu',
+  aws = 'aws',
+  google_cloud = 'google-cloud',
+  cloudflare = 'cloudflare',
+  github_actions = 'github-actions',
+  git = 'git',
+}
+  
+export enum databaseTech {
+  postgresql = 'postgresql',
+  mongodb = 'mongodb',
+  redis = 'redis',
+  supabase = 'supabase',
+}
+
+export enum observabilityTech {
+  pino = 'pino',
+  prometheus = 'prometheus',
+  opentelemetry = 'opentelemetry',
+}
+
+export enum securityTech {
+  jwt = 'jwt',
+  oauth = 'oauth 2.0',
+}
+export enum foundationCapability {
+  data_structures = 'data-structures',
+  algorithms = 'algorithms',
+  system_design = 'system-design',
+  oop = 'oop',
+  database_fundamentals = 'database-fundamentals',
+  networking_fundamentals = 'networking-fundamentals',
+  operating_systems_fundamentals = 'operating-systems-fundamentals',
+  sdlc = 'sdlc',
+}
+import {
+  foundationCapability,
+  backendCapability,
+  architectureCapability,
+  testingCapability,
+  databaseCapability,
+  observabilityCapability,
+  infrastructureCapability,
+  communicationCapability,
+  securityCapability,
+  engineeringCompetency,
+  executionCompetency,
+  collaborationCompetency,
+  ownershipBehavior,
+  engineeringBehavior,
+  protocolTech,
+  languageTech,
+  backendFrameworkTech,
+  infrastructureTech,
+  databaseTech,
+  testingTech,
+  securityTech,
+} from './profile.source.types.js';
+
+export type RecruiterSurfaces = {
+  en: string[];
+  vi: string[];
+};
+
+export interface RelationNode {
+  adjacent: string[];
+  recruiter_surfaces: RecruiterSurfaces;
+  retrieval_associations: string[];
+}
+
+type RelationCategory = Record<string, RelationNode>;
+type RelationSection = Record<string, RelationCategory>;
+
+export interface RelationsSource {
+  cap: RelationSection;
+  comp: RelationSection;
+  beh: RelationSection;
+  tech: RelationSection;
+}
+
+const r = (
+  adjacent: string[],
+  en: string[],
+  vi: string[],
+  retrieval_associations: string[] = []
+): RelationNode => ({
+  adjacent,
+  recruiter_surfaces: { en, vi },
+  retrieval_associations,
+});
+export const relationsSource: RelationsSource = {
+  cap: {
+    foundation: {
+
+    },
+    backend: {
+
+    },
+    architecture: {
+
+    },
+    testing: {
+    },
+    database: {
+
+    },
+    observability: {
+
+    }
+    // ... from profile.source.ts and profile.source.types.ts
+  },
+  comp: {
+    //... from profile.source.ts and profile.source.types.ts
+  },
+  beh: {
+    //... from profile.source.ts and profile.source.types.ts
+  },
+  tech: {
+    //... from profile.source.ts and profile.source.types.ts
+  },
+} as const satisfies RelationsSource;

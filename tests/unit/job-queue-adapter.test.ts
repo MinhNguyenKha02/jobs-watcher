@@ -1,22 +1,22 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import type { MongoClient } from 'mongodb';
 
-import { MongoJobQueue } from '../../src/services/storage/job-queue-adapter.js';
+import { MongoJobQueue } from '../../src/infrastructure/outbound/persistence/job-queue-adapter.js';
 
 describe('MongoJobQueue enqueue dedup', () => {
   const makeQueue = () => {
     const collection = {
-      createIndex: jest.fn(async () => 'messageId_1'),
-      updateOne: jest.fn(async () => ({ upsertedCount: 0, upsertedId: null as string | null })),
-      insertOne: jest.fn(async () => ({ insertedId: 'inserted-1' })),
+      createIndex: vi.fn(async () => 'messageId_1'),
+      updateOne: vi.fn(async () => ({ upsertedCount: 0, upsertedId: null as string | null })),
+      insertOne: vi.fn(async () => ({ insertedId: 'inserted-1' })),
     };
 
     const db = {
-      collection: jest.fn().mockReturnValue(collection),
+      collection: vi.fn().mockReturnValue(collection),
     };
 
     const client = {
-      db: jest.fn().mockReturnValue(db),
+      db: vi.fn().mockReturnValue(db),
     };
 
     const queue = new MongoJobQueue(client as unknown as MongoClient);

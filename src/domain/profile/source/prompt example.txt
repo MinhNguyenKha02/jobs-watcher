@@ -1,0 +1,97 @@
+Goal: <exact requested outcome>
+
+ChangeType:
+<AnchorChange | RelationChange | VendorChange | RecruiterLanguageChange | TemplateChange | EvidenceChange>
+
+Target: <file allowed to change>
+
+ReadOnly: <all files that cannot be modified>
+
+SourceOfTruth:
+anchors.rule.txt
+relations.*.rule.txt
+templates.rule.txt
+contract.txt
+change-scope.rule.txt
+
+ArtifactOwnership:
+anchors.rule.txt owns anchor semantics.
+relations.*.rule.txt owns relation semantics.
+templates.rule.txt owns recruiter-language expansion semantics.
+
+profile.source.ts owns evidence-backed anchor inventory.
+relations.source.ts owns recruiter-facing capability vocabulary.
+templates.source.ts owns recruiter-language coverage expansion.
+
+ChangeDefinition:
+
+Allowed:
+
+* ...
+
+Forbidden:
+
+* ...
+
+ChangeScope:
+
+* modify only requested nodes
+* keep unchanged nodes unchanged
+* no unrelated rewrites
+
+Files:
+
+* anchors.rule.txt
+* change-scope.rule.txt
+* contract.txt
+* practical.rule.txt
+* relations.acceptance.rule.txt
+* relations.definition.rule.txt
+* relations.generation.rule.txt
+* relations.recruiter-language.rule.txt
+* relations.validation.rule.txt
+* profile.source.ts
+* profile.source.types.ts
+* relations.source.ts
+* templates.source.ts
+
+NormativePriority:
+
+1. anchors.rule.txt
+2. relations.definition.rule.txt
+3. relations.validation.rule.txt
+4. relations.acceptance.rule.txt
+5. relations.generation.rule.txt
+6. relations.recruiter-language.rule.txt
+7. templates.rule.txt
+8. source files
+9. generated artifacts
+
+ConflictResolution:
+
+* rules > source files
+* source files > generated artifacts
+* normative definitions > examples
+* examples never override rules
+
+GenerationInvariants:
+
+* no extra fields
+* no source shape changes
+* no abstraction-layer mixing
+* no semantic invention
+* no anchor invention
+* no recruiter-surface template leakage
+* deterministic generation only
+
+AcceptanceCriteria:
+
+* backward-compatible output shape
+* copy-paste ready
+* source-of-truth aligned
+* deterministic
+* recruiter-natural
+* ATS-compatible
+
+Output:
+<exact file(s) expected>

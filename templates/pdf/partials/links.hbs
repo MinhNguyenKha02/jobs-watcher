@@ -1,0 +1,31 @@
+{{#if this}}
+
+<section class="field">
+
+<h4>Project Links</h4>
+
+<div class="links">
+
+{{#each this}}
+
+<strong>{{key}}: </strong>
+
+{{#each items}}
+
+<a href="{{url}}">{{alias}}</a>{{#unless @last}}<span class="separator">•</span>{{/unless}}
+
+{{/each}}
+
+{{#unless @last}}
+
+<span class="separator">•</span>
+
+{{/unless}}
+
+{{/each}}
+
+</div>
+
+</section>
+
+{{/if}}

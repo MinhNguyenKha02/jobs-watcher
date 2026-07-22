@@ -1,7 +1,7 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 import type { Job } from '../../src/types.js';
-import { enrichJobFromHtml } from '../../src/ui/services/htmlEnricher.js';
+import { enrichJobFromHtml } from '../../src/presentation/tui/services/htmlEnricher.js';
 import {
   topCVDetailPageHTML,
   indeedDetailPageHTML,
@@ -248,7 +248,7 @@ describe('enrichJobFromHtml - HTML Enrichment Service', () => {
 
   describe('Callback Behavior', () => {
     it('should call onJobUpdate callback with enriched job', async () => {
-      const updateCallback = jest.fn();
+      const updateCallback = vi.fn();
 
       await enrichJobFromHtml(topCVDetailPageHTML, originalJob, updateCallback, () => {});
 
@@ -261,7 +261,7 @@ describe('enrichJobFromHtml - HTML Enrichment Service', () => {
     });
 
     it('should call onMatchScoreUpdate callback with number score', async () => {
-      const scoreCallback = jest.fn();
+      const scoreCallback = vi.fn();
 
       await enrichJobFromHtml(topCVDetailPageHTML, originalJob, () => {}, scoreCallback);
 
@@ -271,8 +271,8 @@ describe('enrichJobFromHtml - HTML Enrichment Service', () => {
     });
 
     it('should call callbacks only after successful parsing', async () => {
-      const updateCallback = jest.fn();
-      const scoreCallback = jest.fn();
+      const updateCallback = vi.fn();
+      const scoreCallback = vi.fn();
 
       await enrichJobFromHtml('', originalJob, updateCallback, scoreCallback);
 

@@ -1,0 +1,169 @@
+Metadata: 
+Anchors.rule.txt
+
+
+# Anchors Rule
+
+## Definition
+
+An anchor is not a skill list item.
+
+An anchor is a stable, evidence-backed capability node that can expand into recruiter language.
+
+anchor → relations → templates → resume exposure
+
+## Anchor contract
+
+An anchor must satisfy all of the following:
+
+1. Evidence-backed  
+   A project or experience must prove it.
+
+2. Capability, not tool  
+   It must describe a capability the market can search for, not a technology, product, or vendor.
+
+3. One capability only  
+   One anchor = one retrieval node.
+
+4. Stable over jobs  
+   The anchor should survive technology replacement and remain valid across job postings.
+
+5. Recruiter-recognizable  
+   A recruiter should plausibly search for the capability.
+
+6. Expandable into recruiter language  
+   The anchor must be able to generate recruiter-facing surfaces through relations and templates.
+
+## Strong Anchor Test
+
+Before adding or keeping an anchor, verify:
+
+### 1. Can a project or experience prove it?
+- Yes → continue
+- No → reject
+
+### 2. Would a recruiter search it?
+- Yes → continue
+- No → reject
+
+### 3. Is it a capability rather than a tool?
+- Yes → continue
+- No → move to tech layer
+
+### 4. Can it expand into recruiter language?
+Example:
+- `workflow_orchestration`
+  - workflow engine
+  - state machine
+  - saga orchestration
+  - business process automation
+
+If not, reject.
+
+### 5. Can it survive vendor replacement?
+Example:
+- `workflow_orchestration`
+  - Temporal
+  - Camunda
+  - Airflow
+
+If the node still makes sense after vendor replacement, it is valid.
+
+### 6. Is it one capability only?
+- `authentication_implementation` → good
+- `authentication_and_authorization` → bad
+
+## Rule for profile.source.ts
+
+Every anchor in `profile.source.ts` must satisfy:
+
+### Rule A1: Evidence-backed
+Good:
+- `database_design`
+- `schema_migration`
+- `query_optimization`
+
+Bad:
+- `backend_engineering`
+- `software_development`
+- `problem_solving`
+
+### Rule A2: Capability, not tool
+Good:
+- `api_development`
+- `authentication_implementation`
+- `workflow_orchestration`
+
+Bad:
+- `swagger`
+- `postman`
+- `jwt`
+- `docker`
+
+### Rule A3: One capability = one retrieval node
+Good:
+- `background_job_processing`
+
+Bad:
+- `background_job_processing_and_orchestration`
+
+### Rule A4: Stable over jobs
+Good:
+- `realtime_communication`
+- `service_integration`
+- `event_processing`
+
+Bad:
+- `websocket_backend`
+- `grpc_server_development`
+
+## Forbidden anchor types
+
+Do not use these as anchors:
+
+- project names
+- tool names
+- vendor names
+- broad role labels
+- competency interpretations
+- mixed abstraction labels
+
+### Bad examples
+- `backend_engineering`
+- `software_engineering`
+- `teamwork`
+- `ownership`
+- `leadership`
+- `docker`
+- `jwt`
+- `postgresql`
+- `mongodb`
+- `nodejs`
+
+## Better anchor pattern
+
+Anchor must be directly observable from evidence.
+
+Good:
+- `api_development`
+- `database_design`
+- `workflow_orchestration`
+- `authentication_implementation`
+- `query_optimization`
+
+## Abstraction rule
+
+Every anchor belongs to one layer only.
+
+- Capability layer
+- Technology layer
+- Vendor layer
+- Pattern layer
+
+Do not mix them.
+
+### Good separation
+- Capability: `query_optimization`
+- Technology: `postgresql`
+- Vendor: `supabase`
+- Pattern: `repository_pattern`

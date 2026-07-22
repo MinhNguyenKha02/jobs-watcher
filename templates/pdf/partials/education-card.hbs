@@ -1,0 +1,41 @@
+<article class="record">
+
+<header>
+
+<h3>{{institution}}</h3>
+
+<div class="record-meta">
+
+<span class="degree">
+
+{{degree}}
+
+</span>
+
+{{#if startDate}}
+
+<span class="separator">•</span>
+
+<span class="period">
+
+{{startDate}} – {{endDate}}
+
+</span>
+
+{{/if}}
+
+</div>
+</header>
+
+{{#if grade}}
+<section class="field">
+<h4>
+
+  Grade: <span class="grade">{{grade}}</span> 
+
+  </h4>
+
+</section>
+{{/if}}
+
+</article>

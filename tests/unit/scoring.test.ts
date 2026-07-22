@@ -1,5 +1,5 @@
-import { describe, it, expect } from '@jest/globals';
-import { calculateJobScore, DEFAULT_SCORING_CONFIG } from '../../src/services/scoring/score-matcher.js';
+import { describe, it, expect } from 'vitest';
+import { calculateJobScore, DEFAULT_SCORING_CONFIG } from '../../src/domain/scoring/score-matcher.js';
 import type { Job, Profile } from '../../src/types.js';
 
 describe('scoreMatcherEngine - calculateJobScore', () => {

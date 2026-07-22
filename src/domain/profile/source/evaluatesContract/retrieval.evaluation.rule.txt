@@ -1,0 +1,56 @@
+Metadata: retrieval.evaluation.rule.txt
+
+Retrieval Association Evaluation
+
+A retrieval_association is valid only if:
+
+- appears in recruiter searches
+- appears in job descriptions
+- appears in ATS searches
+- improves retrieval coverage
+
+Removing the retrieval_association
+reduces retrieval coverage
+but does not change anchor meaning.
+
+## Evaluation Metrics
+
+For every anchor:
+
+Measure:
+
+Coverage Score
+Density Score
+Frequency Score
+Freeze Spot Count
+Dead Phrase Count
+
+Coverage Score
+
+Job descriptions matched
+÷
+total job descriptions
+
+Density Score
+
+Total hits
+÷
+matched job descriptions
+
+Freeze Spot Count
+
+Phrases never matched.
+
+Dead Phrase Count
+
+Phrases matched below threshold.
+
+Acceptance
+
+Coverage >= 80%
+
+Freeze Spots <= 10%
+
+Dead Phrases <= 20%
+
+Average Density >= target

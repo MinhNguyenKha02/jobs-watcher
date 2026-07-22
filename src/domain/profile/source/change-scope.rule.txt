@@ -1,0 +1,74 @@
+# Change Scope Contract
+
+Purpose
+
+Defines how changes propagate through the generation system.
+
+Change Types
+
+Evidence Change
+Anchor Ontology Change
+Relation Change
+Retrieval Vocabulary Change 
+Template Change
+
+Cascade Rules
+
+Anchor Change
+    profile
+    -> relations
+    -> templates
+    -> artifacts
+
+Relation Change
+    relations
+    -> templates
+    -> artifacts
+
+Template Change
+    templates
+    -> artifacts
+
+Evidence Change Without Ontology Change
+    profile only
+
+Scope Rules
+
+Only modify explicitly requested nodes.
+
+Keep unchanged nodes unchanged.
+
+Do not rewrite unrelated ontology.
+
+Do not invent new fields.
+
+Regeneration Rules
+
+Never edit generated artifacts directly.
+
+Regenerate only downstream dependencies.
+
+Determinism
+
+Same input
+    => same files
+
+Same source delta
+    => same modified nodes
+
+Same unchanged nodes
+    => same output
+
+## OutputMode
+
+CompleteFileReplacement
+
+Return the entire
+relations.source.ts
+
+Do not return:
+
+- patches
+- diffs
+- partial nodes
+- abbreviated examples

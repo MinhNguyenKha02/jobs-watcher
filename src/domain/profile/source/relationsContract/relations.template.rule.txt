@@ -1,0 +1,23 @@
+Metadata: relations.template.rule.txt
+RULE 1
+
+recruiter_surfaces MUST produce natural recruiter language
+when inserted into:
+
+develop and maintain {surface}
+experience with {surface}
+knowledge of {surface}
+
+RULE 2
+
+retrieval_associations MUST produce natural ecosystem language
+when inserted into:
+
+experience with {retrieval_association}
+working knowledge of {retrieval_association}
+ability to integrate {retrieval_association}
+
+RULE 3
+
+If generated phrase sounds unnatural,
+surface is invalid.

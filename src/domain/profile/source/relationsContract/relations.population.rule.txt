@@ -1,0 +1,159 @@
+Metadata: relations.population.rule.txt
+
+## Purpose
+
+Defines mandatory population rules for all
+relation nodes.
+
+Relations.source.ts may never emit empty
+recruiter_surfaces or retrieval_associations
+for any anchor defined in profile.source.types.ts.
+
+## Rule:
+
+### Capability anchor
+
+CAP anchors generate:
+
+recruiter_surfaces
+    from recruiter language
+
+retrieval_associations
+    from ecosystem language
+
+
+Example:
+
+workflow_orchestration
+
+must generate
+
+recruiter_surfaces.en = [
+ "workflow orchestration",
+ "workflow engine",
+ "business process automation",
+ "workflow automation",
+ "state machine workflow",
+ ...
+]
+
+### Tech anchor 
+
+TECH anchors MUST NOT be empty.
+
+Technology anchors generate:
+
+recruiter_surfaces
+    from recruiter-facing usage language
+
+retrieval_associations
+    from ecosystem vocabulary
+
+
+Example:
+
+languageTech.go
+
+must produce
+
+recruiter_surfaces.en = [
+ "golang development",
+ "go backend development",
+ "go microservices",
+ "go services",
+ "backend development with go",
+ ...
+]
+
+and
+
+retrieval_associations = [
+ "Gin",
+ "Fiber",
+ "Echo",
+ "Go modules",
+ "gRPC",
+ "PostgreSQL",
+ "Docker",
+ "Kubernetes",
+ ...
+]
+
+### Surface derivation algorithm
+
+For each anchor:
+
+Generate recruiter_surfaces from:
+
+1 canonical recruiter phrase
+2 ATS phrase
+3 LinkedIn recruiter phrase
+4 hiring manager phrase
+5 market phrase
+6 Vietnam market phrase
+7 abbreviation phrase
+8 alternative JD phrase
+
+until
+
+lexical saturation
+
+
+### Template compatibility validation
+
+Every recruiter_surface MUST pass:
+
+develop and maintain {surface}
+
+experience with {surface}
+
+knowledge of {surface}
+
+Example:
+
+Good
+
+API development
+workflow orchestration
+service integration
+
+Bad
+
+experience with APIs
+building APIs
+API implementation experience
+
+because templates will duplicate wording.
+
+### Vendor template compatibility
+
+Every retrieval_association must naturally fit:
+
+experience with {retrieval_association}
+
+working knowledge of {retrieval_association}
+
+ability to integrate {retrieval_association}
+
+Good:
+
+Kafka
+RabbitMQ
+Temporal
+PostgreSQL
+Docker
+
+Bad:
+
+event processing
+workflow orchestration
+backend development
+
+## DensityStabilityRule
+
+Retrieval association density should remain relatively
+stable across generations unless supported by corpus
+evaluation.
+
+Large reductions indicate possible recall regression
+and require validation.

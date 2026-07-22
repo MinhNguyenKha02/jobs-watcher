@@ -3,9 +3,9 @@ import { fileURLToPath } from 'url';
  * Unit tests for Profile Parser (Phase 3A.1 Sprint 1)
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeEach } from 'vitest';
 
-import { ProfileParser, ProfileSnapshotLoader } from '../../src/services/profile/profile-parser.js';
+import { ProfileParser, ProfileSnapshotLoader } from '../../src/domain/profile/profile-parser.js';
 import type { ProfileNormalized } from '../../src/types/profile-normalized.js';
 
 describe('ProfileParser', () => {
