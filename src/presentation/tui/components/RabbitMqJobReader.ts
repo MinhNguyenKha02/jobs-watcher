@@ -1,6 +1,7 @@
-import amqplib, { type Channel, type ChannelModel, type ConsumeMessage } from 'amqplib';
+import amqplib, { type Channel, type ConsumeMessage } from 'amqplib';
 import type { Job } from '../../../domain/types/job.js';
 import { getLogger } from '../../../infrastructure/outbound/logging/logger.js';
+import { createTraceContext } from '../../../infrastructure/outbound/monitoring/trace-context.js';
 
 const logger = getLogger();
 
@@ -27,7 +28,7 @@ interface S2BufferEntry {
 type EventCallback = (event: any) => void;
 
 export class RabbitMqJobReader {
-  private connection: ChannelModel | null = null;
+  private connection: amqplib.Connection | null = null;
   private s1channel: Channel | null = null;
   private s2channel: Channel | null = null;
   private s34channel: Channel | null = null;
@@ -72,38 +73,34 @@ export class RabbitMqJobReader {
 
   async connect(): Promise<void> {
     try {
-      const conn = await amqplib.connect(this.baseUrl);
-      this.connection = conn;
-      const s1 = await conn.createChannel();
-      const s2 = await conn.createChannel();
-      const s34 = await conn.createChannel();
-      this.s1channel = s1;
-      this.s2channel = s2;
-      this.s34channel = s34;
+      this.connection = await amqplib.connect(this.baseUrl);
+      this.s1channel = await this.connection.createChannel();
+      this.s2channel = await this.connection.createChannel();
+      this.s34channel = await this.connection.createChannel();
 
-      await s1.assertExchange(EXCHANGE, 'topic', { durable: true });
-      await s1.assertQueue(S1_QUEUE, { durable: true });
-      await s2.assertQueue(S2_QUEUE, { durable: true });
-      await s34.assertQueue(S34_QUEUE, { durable: true });
+      await this.s1channel.assertExchange(EXCHANGE, 'topic', { durable: true });
+      await this.s1channel.assertQueue(S1_QUEUE, { durable: true });
+      await this.s1channel.assertQueue(S2_QUEUE, { durable: true });
+      await this.s1channel.assertQueue(S34_QUEUE, { durable: true });
 
-      await s1.bindQueue(S1_QUEUE, EXCHANGE, 'job.generated');
-      await s2.bindQueue(S2_QUEUE, EXCHANGE, 'job.parse.completed');
-      await s34.bindQueue(S34_QUEUE, EXCHANGE, 'job.queue');
-      await s34.bindQueue(S34_QUEUE, EXCHANGE, 'job.trash');
-      await s34.bindQueue(S34_QUEUE, EXCHANGE, 'job.route.failed');
-      await s34.bindQueue(S34_QUEUE, EXCHANGE, 'job.parse.failed');
+      await this.s1channel.bindQueue(S1_QUEUE, EXCHANGE, 'job.generated');
+      await this.s2channel.bindQueue(S2_QUEUE, EXCHANGE, 'job.parse.completed');
+      await this.s34channel.bindQueue(S34_QUEUE, EXCHANGE, 'job.queue');
+      await this.s34channel.bindQueue(S34_QUEUE, EXCHANGE, 'job.trash');
+      await this.s34channel.bindQueue(S34_QUEUE, EXCHANGE, 'job.route.failed');
+      await this.s34channel.bindQueue(S34_QUEUE, EXCHANGE, 'job.parse.failed');
 
-      await s1.prefetch(PREFETCH);
-      await s2.prefetch(PREFETCH);
-      await s34.prefetch(PREFETCH);
+      await this.s1channel.prefetch(PREFETCH);
+      await this.s2channel.prefetch(PREFETCH);
+      await this.s34channel.prefetch(PREFETCH);
 
-      await s1.consume(S1_QUEUE, (msg) => {
+      await this.s1channel.consume(S1_QUEUE, (msg) => {
         if (msg) this.onMessageS1(msg);
       });
-      await s2.consume(S2_QUEUE, (msg) => {
+      await this.s2channel.consume(S2_QUEUE, (msg) => {
         if (msg) this.onMessageS2(msg);
       });
-      await s34.consume(S34_QUEUE, (msg) => {
+      await this.s34channel.consume(S34_QUEUE, (msg) => {
         if (msg) this.onMessageS3S4(msg);
       });
 
