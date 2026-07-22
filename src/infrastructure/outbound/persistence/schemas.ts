@@ -1,31 +1,4 @@
-export interface JobLifecycleDocument {
-  _id: string;
-  raw: string;
-  gmailMeta?: {
-    messageId: string;
-    body: string;
-    threadId?: string;
-    from?: string;
-    to?: string;
-    subject?: string;
-  };
-  company: string;
-  role: string;
-  description?: string;
-  salary?: string;
-  location?: string;
-  url?: string;
-  details?: Record<string, unknown>;
-  deadline?: string;
-  easyApply?: boolean;
-  stage: string;
-  status: string;
-  source: string;
-  createdAt: Date;
-  updatedAt: Date;
-  stageTimestamp: Date;
-  routedAt?: Date;
-}
+export type { JobLifecycleDocument } from '../../domain/types/job-lifecycle.js';
 
 export interface ExtractionQueueDocument {
   _id: string;
