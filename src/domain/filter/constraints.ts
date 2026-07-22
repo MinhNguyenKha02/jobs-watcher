@@ -107,8 +107,8 @@ export function matchesRole(
   return { passed: false, reasons: ['non-software role'], reason: 'non-software role' };
 }
 
-export function matchesLang(input: string|DetailsObject|undefined|null): { passed: boolean; reasons?: string[]; reason?: string } {
-  const text = normalizeText(input)
+export function matchesLang(input: string|DetailsObject|undefined|null, description?: string): { passed: boolean; reasons?: string[]; reason?: string } {
+  const text = normalizeText(input, description);
   for (const pattern of LANG_PATTERNS) {
     if (pattern.test(text)) return { passed: true };
   }

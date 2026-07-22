@@ -21,17 +21,20 @@ export function hybridJobFilter(job: Partial<Job>, options?: FilterOptions): Job
   const sinceTier = options?.sinceTier ?? 1;
 
   if (sinceTier === 1) {
-    const role = job.role || (job as any).position || '';
-    const descText = `${role} ${job.description || ''}`;
+    const role = job.role || '';
 
     const t1 = matchesRole(role);
     if (!t1.passed) return { passed: false, reasons: t1.reasons || [] };
 
-    const t2 = matchesLang(descText);
-    if (!t2.passed) return { passed: false, reasons: t2.reasons || [] };
+    if (job.description) {
+      const t2 = matchesLang(job.description);
+      if (!t2.passed) return { passed: false, reasons: t2.reasons || [] };
+    }
 
     return { passed: true, reasons: [] };
   }
+  const t2 = matchesLang(job.details, job.description);
+  if (!t2.passed) return { passed: false, reasons: t2.reasons || [] };
   const t4 = matchesExperience(job.details, job.description);
   if (!t4.passed) return { passed: false, reasons: t4.reasons || [] };
 
