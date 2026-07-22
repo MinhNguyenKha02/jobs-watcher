@@ -8,7 +8,7 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 
-import { clipboardGetter } from '../../../infrastructure/inbound/cli/clipboard-getter.js';
+import { clipboardGetter } from '../services/clipboard-getter.js';
 import { getLogger } from '../../../infrastructure/outbound/logging/logger.js';
 import { postJsonOverUds, type UdsRequestOptions } from '../../../infrastructure/utils/uds-http.js';
 

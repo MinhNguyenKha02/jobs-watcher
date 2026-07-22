@@ -1,7 +1,7 @@
-import amqplib, { type Channel, type ConsumeMessage } from 'amqplib';
-import type { Job } from '../../../domain/types/job.js';
+import amqplib, { type Channel, type ChannelModel, type ConsumeMessage } from 'amqplib';
 import { getLogger } from '../../../infrastructure/outbound/logging/logger.js';
-import { createTraceContext } from '../../../infrastructure/outbound/monitoring/trace-context.js';
+import { ActionEvent } from '../../../domain/types/action-event.js';
+import { setCurrentJob, clearCurrentJob, getCurrentJob, getQueueMode } from '../shared-tui-state.js';
 
 const logger = getLogger();
 
@@ -25,10 +25,7 @@ interface S2BufferEntry {
   timestamp: number;
 }
 
-type EventCallback = (event: any) => void;
-
 export class RabbitMqJobReader {
-  private connection: amqplib.Connection | null = null;
   private s1channel: Channel | null = null;
   private s2channel: Channel | null = null;
   private s34channel: Channel | null = null;
@@ -40,110 +37,61 @@ export class RabbitMqJobReader {
   private deliveryTagsS2 = new Map<string, number[]>();
   private deferredS2Buffer = new Map<string, S2BufferEntry>();
 
-  private listeners = new Map<string, Set<EventCallback>>();
   private connected = false;
-  private stopped = false;
   private evictTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private baseUrl: string) {}
 
-  addEventListener(eventType: string, callback: EventCallback): void {
-    if (!this.listeners.has(eventType)) {
-      this.listeners.set(eventType, new Set());
-    }
-    this.listeners.get(eventType)!.add(callback);
-  }
-
-  removeEventListener(eventType: string, callback: EventCallback): void {
-    this.listeners.get(eventType)?.delete(callback);
-  }
-
-  private emit(eventType: string, data: Record<string, unknown>): void {
-    const listeners = this.listeners.get(eventType);
-    if (!listeners) return;
-    for (const cb of listeners) {
-      try { cb({ data, payload: data }); } catch (e) {
-        logger.warn('[RMQReader] Listener error', { eventType, error: String(e) });
-      }
-    }
-  }
-
   getQueueDepth(): number { return this.pendingJobs.length; }
   isConnected(): boolean { return this.connected; }
 
-  async connect(): Promise<void> {
+  async start(): Promise<void> {
     try {
-      this.connection = await amqplib.connect(this.baseUrl);
-      this.s1channel = await this.connection.createChannel();
-      this.s2channel = await this.connection.createChannel();
-      this.s34channel = await this.connection.createChannel();
+      const conn = await amqplib.connect(this.baseUrl);
+      const s1 = await conn.createChannel();
+      const s2 = await conn.createChannel();
+      const s34 = await conn.createChannel();
+      this.s1channel = s1;
+      this.s2channel = s2;
+      this.s34channel = s34;
 
-      await this.s1channel.assertExchange(EXCHANGE, 'topic', { durable: true });
-      await this.s1channel.assertQueue(S1_QUEUE, { durable: true });
-      await this.s1channel.assertQueue(S2_QUEUE, { durable: true });
-      await this.s1channel.assertQueue(S34_QUEUE, { durable: true });
+      await s1.assertExchange(EXCHANGE, 'topic', { durable: true });
+      await s1.assertQueue(S1_QUEUE, { durable: true });
+      await s2.assertQueue(S2_QUEUE, { durable: true });
+      await s34.assertQueue(S34_QUEUE, { durable: true });
 
-      await this.s1channel.bindQueue(S1_QUEUE, EXCHANGE, 'job.generated');
-      await this.s2channel.bindQueue(S2_QUEUE, EXCHANGE, 'job.parse.completed');
-      await this.s34channel.bindQueue(S34_QUEUE, EXCHANGE, 'job.queue');
-      await this.s34channel.bindQueue(S34_QUEUE, EXCHANGE, 'job.trash');
-      await this.s34channel.bindQueue(S34_QUEUE, EXCHANGE, 'job.route.failed');
-      await this.s34channel.bindQueue(S34_QUEUE, EXCHANGE, 'job.parse.failed');
+      await s1.bindQueue(S1_QUEUE, EXCHANGE, ActionEvent.GENERATED);
+      await s2.bindQueue(S2_QUEUE, EXCHANGE, ActionEvent.PARSE_COMPLETED);
+      await s34.bindQueue(S34_QUEUE, EXCHANGE, ActionEvent.QUEUED);
+      await s34.bindQueue(S34_QUEUE, EXCHANGE, ActionEvent.TRASHED);
+      await s34.bindQueue(S34_QUEUE, EXCHANGE, ActionEvent.ROUTE_FAILED);
+      await s34.bindQueue(S34_QUEUE, EXCHANGE, ActionEvent.PARSE_FAILED);
 
-      await this.s1channel.prefetch(PREFETCH);
-      await this.s2channel.prefetch(PREFETCH);
-      await this.s34channel.prefetch(PREFETCH);
+      await s1.prefetch(PREFETCH);
+      await s2.prefetch(PREFETCH);
+      await s34.prefetch(PREFETCH);
 
-      await this.s1channel.consume(S1_QUEUE, (msg) => {
-        if (msg) this.onMessageS1(msg);
-      });
-      await this.s2channel.consume(S2_QUEUE, (msg) => {
-        if (msg) this.onMessageS2(msg);
-      });
-      await this.s34channel.consume(S34_QUEUE, (msg) => {
-        if (msg) this.onMessageS3S4(msg);
-      });
+      await s1.consume(S1_QUEUE, (msg) => { if (msg) this.onMessageS1(msg); });
+      await s2.consume(S2_QUEUE, (msg) => { if (msg) this.onMessageS2(msg); });
+      await s34.consume(S34_QUEUE, (msg) => { if (msg) this.onMessageS3S4(msg); });
 
       this.evictTimer = setInterval(() => this.evictStaleDeferred(), 5000);
       this.connected = true;
-      logger.info('[RMQReader] Connected, 3 consumers active');
+      logger.info('[RMQReader] Started, 3 consumers active');
     } catch (err) {
-      logger.error('[RMQReader] Connection failed', { error: String(err) });
+      logger.error('[RMQReader] Start failed', { error: String(err) });
       this.connected = false;
     }
   }
 
-  disconnect(): void {
-    this.stopped = true;
+  stop(): void {
     this.connected = false;
     if (this.evictTimer) clearInterval(this.evictTimer);
     this.nackAllPending();
     [this.s1channel, this.s2channel, this.s34channel].forEach((ch) => {
       if (ch) ch.close().catch(() => {});
     });
-    if (this.connection) {
-      this.connection.close().catch(() => {});
-      this.connection = null;
-    }
-  }
-
-  start(_url?: string): void {
-    if (!this.connected) {
-      this.connect().catch((err) => logger.error('[RMQReader] start failed', { error: String(err) }));
-    }
-  }
-
-  stop(): void { this.disconnect(); }
-
-  nextJob(): Job | null {
-    if (this.pendingJobs.length === 0) return null;
-    const pending = this.pendingJobs.shift()!;
-    this.currentJobId = pending.id;
-    return pending.job as unknown as Job;
-  }
-
-  peekNextJob(): Job | null {
-    return (this.pendingJobs[0]?.job as unknown as Job) ?? null;
+    logger.info('[RMQReader] Stopped');
   }
 
   setQueueMode(mode: boolean): void {
@@ -156,19 +104,17 @@ export class RabbitMqJobReader {
       const id = (payload._id ?? payload.jobLifecycleId) as string;
       if (!id) { this.s1channel!.ack(msg); return; }
 
-      this.deliveryTagsS1.set(id, (this.deliveryTagsS1.get(id) ?? []).concat(msg.fields.deliveryTag));
+      const tags = this.deliveryTagsS1.get(id) ?? [];
+      tags.push(msg.fields.deliveryTag);
+      this.deliveryTagsS1.set(id, tags);
 
       this.drainDeferredS2(id);
 
-      pendingLoop:
       if (!this.pendingJobs.some((p) => p.id === id)) {
-        for (const p of this.pendingJobs) {
-          if (p.id === id) break pendingLoop;
-        }
         this.pendingJobs.push({ id, job: payload, stage: 'PARTIAL' });
       }
 
-      this.emit('job.generated', payload);
+      logger.info('[SIGNAL-1] job.generated', { id, company: payload.company, stage: 'PARTIAL' });
       this.autoAdvance();
     } catch (err) {
       logger.warn('[RMQReader:C1] Error', { error: String(err) });
@@ -182,7 +128,9 @@ export class RabbitMqJobReader {
       const id = (payload._id ?? payload.jobLifecycleId) as string;
       if (!id) { this.s2channel!.ack(msg); return; }
 
-      this.deliveryTagsS2.set(id, (this.deliveryTagsS2.get(id) ?? []).concat(msg.fields.deliveryTag));
+      const tags = this.deliveryTagsS2.get(id) ?? [];
+      tags.push(msg.fields.deliveryTag);
+      this.deliveryTagsS2.set(id, tags);
 
       const existingIdx = this.pendingJobs.findIndex((p) => p.id === id);
       if (existingIdx !== -1) {
@@ -191,13 +139,17 @@ export class RabbitMqJobReader {
           job: { ...this.pendingJobs[existingIdx].job, ...payload },
           stage: 'FULL_PARSED',
         };
-        this.emit('job.parse.completed', this.pendingJobs[existingIdx].job);
+        logger.info('[SIGNAL-2] job.parse.completed — merged in pending', { id });
       } else if (this.currentJobId === id) {
-        this.emit('job.parse.completed', payload);
+        setCurrentJob(id, { ...getCurrentJob().job, ...payload } as any, 'FULL_PARSED');
+        logger.info('[SIGNAL-2] job.parse.completed — IPC enriched displayed job', { id });
       } else if (!this.queueMode) {
-        this.ackOrphanedTags(id, 'S2');
-        this.pendingJobs.push({ id, job: payload, stage: 'FULL_PARSED' });
-        this.emit('job.parse.completed', payload);
+        if (this.currentJobId !== null) {
+          this.ackAllForJob(this.currentJobId);
+        }
+        setCurrentJob(id, payload as any, 'FULL_PARSED');
+        this.currentJobId = id;
+        logger.info('[SIGNAL-2] job.parse.completed — direct mode set', { id });
       } else {
         if (this.deferredS2Buffer.size >= DEFERRED_S2_MAX) {
           logger.warn('[RMQReader:C2] DeferredS2Buffer full, nacking', { id });
@@ -226,14 +178,14 @@ export class RabbitMqJobReader {
 
       if (this.currentJobId === id) {
         this.currentJobId = null;
-
+        clearCurrentJob();
         const routingKey = msg.fields.routingKey;
-        if (routingKey === 'job.queue') {
-          this.emit('job.route.queued', payload);
-        } else if (routingKey === 'job.trash') {
-          this.emit('job.route.trashed', payload);
-        } else if (routingKey === 'job.parse.failed' || routingKey === 'job.route.failed') {
-          this.emit('job.parse.failed', payload);
+        if (routingKey === ActionEvent.QUEUED) {
+          logger.info('[SIGNAL-3] job.queued', { id });
+        } else if (routingKey === ActionEvent.TRASHED) {
+          logger.info('[SIGNAL-3] job.trashed', { id });
+        } else if (routingKey === ActionEvent.PARSE_FAILED || routingKey === ActionEvent.ROUTE_FAILED) {
+          logger.info('[SIGNAL-4] job.failed', { id, routingKey });
         }
       }
 
@@ -261,28 +213,19 @@ export class RabbitMqJobReader {
     }
   }
 
-  private ackOrphanedTags(id: string, source: string): void {
-    const map = source === 'S1' ? this.deliveryTagsS1 : this.deliveryTagsS2;
-    const channel = source === 'S1' ? this.s1channel : this.s2channel;
-    const tags = map.get(id);
-    if (tags && channel) {
-      for (const tag of tags) {
-        channel.ack({ fields: { deliveryTag: tag } } as ConsumeMessage, false);
-      }
-      map.delete(id);
-    }
-  }
-
   private autoAdvance(): void {
     if (!this.queueMode) return;
-    if (this.currentJobId) return; // already displaying one
+    if (this.currentJobId !== null) return;
     if (this.pendingJobs.length === 0) return;
-    this.currentJobId = this.pendingJobs[0]!.id;
-    this.emit('auto-advance', { job: this.pendingJobs[0]!.job });
+    const next = this.pendingJobs.shift()!;
+    this.currentJobId = next.id;
+    setCurrentJob(next.id, next.job as any, next.stage);
+    logger.info('[RMQReader] Auto-advanced to next job', { id: next.id, stage: next.stage });
   }
 
   private removeFromPending(id: string): void {
-    this.pendingJobs = this.pendingJobs.filter((p) => p.id !== id);
+    const idx = this.pendingJobs.findIndex((j) => j.id === id);
+    if (idx !== -1) this.pendingJobs.splice(idx, 1);
   }
 
   private drainDeferredS2(id: string): void {
@@ -300,8 +243,7 @@ export class RabbitMqJobReader {
     } else {
       this.pendingJobs.push({ id, job: entry.payload, stage: 'FULL_PARSED' });
     }
-
-    this.emit('job.parse.completed', entry.payload);
+    logger.info('[RMQReader] Deferred S2 drained', { id });
   }
 
   private evictStaleDeferred(): void {
@@ -309,7 +251,7 @@ export class RabbitMqJobReader {
     for (const [id, entry] of this.deferredS2Buffer) {
       if (now - entry.timestamp > DEFERRED_S2_TTL) {
         logger.warn('[RMQReader] Evicting stale deferred S2', { id });
-        this.ackOrphanedTags(id, 'S2');
+        this.s2channel?.nack({ fields: { deliveryTag: entry.deliveryTag } } as ConsumeMessage, false, false);
         this.deferredS2Buffer.delete(id);
       }
     }

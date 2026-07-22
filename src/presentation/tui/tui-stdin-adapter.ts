@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 
-import { clipboardGetter } from '../../infrastructure/inbound/cli/clipboard-getter.js';
+import { clipboardGetter } from './services/clipboard-getter.js';
 import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 
 import { KeyboardHandler, KeyAction } from './components/KeyboardHandler.js';

@@ -8,7 +8,7 @@ import type { Job } from '../../domain/types/job.js';
 
 const logger = createLogger('TUI-State');
 
-export type CurrentJobStage = 'PARTIAL' | 'FULL_PARSED' | 'CLIPBOARD_SCORED' | null;
+export type CurrentJobStage = 'PARTIAL' | 'FULL_PARSED' | null;
 
 export type ModalType = 'PREVIEW_VIEWER';
 
@@ -105,10 +105,8 @@ function readSharedStateFromDisk(): TuiSharedState {
         jobLifecycleId: typeof old.messageId === 'string' ? old.messageId : null,
         job: old.job && typeof old.job === 'object' ? (old.job as Job) : null,
         stage:
-          old.stage === 'PARTIAL' ||
-          old.stage === 'FULL_PARSED' ||
-          old.stage === 'CLIPBOARD_SCORED'
-            ? old.stage
+          old.stage === 'PARTIAL' || old.stage === 'FULL_PARSED' || old.stage === 'CLIPBOARD_SCORED'
+            ? (old.stage === 'CLIPBOARD_SCORED' ? 'FULL_PARSED' : old.stage)
             : null,
         editedFields:
           old.editedFields && typeof old.editedFields === 'object'
@@ -150,10 +148,8 @@ function parseModeSubState(raw: Record<string, unknown>): ModeSubState {
     jobLifecycleId: typeof raw.jobLifecycleId === 'string' ? raw.jobLifecycleId : (typeof raw.messageId === 'string' ? raw.messageId : null),
     job: raw.job && typeof raw.job === 'object' ? (raw.job as Job) : null,
     stage:
-      raw.stage === 'PARTIAL' ||
-      raw.stage === 'FULL_PARSED' ||
-      raw.stage === 'CLIPBOARD_SCORED'
-        ? raw.stage
+      raw.stage === 'PARTIAL' || raw.stage === 'FULL_PARSED' || raw.stage === 'CLIPBOARD_SCORED'
+        ? (raw.stage === 'CLIPBOARD_SCORED' ? 'FULL_PARSED' : raw.stage)
         : null,
     editedFields:
       raw.editedFields && typeof raw.editedFields === 'object'
