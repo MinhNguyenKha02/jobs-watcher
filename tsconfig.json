@@ -29,6 +29,6 @@
     "emitDeclarationOnly": false,
     "noEmit": false
   },
-  "include": ["src/**/*", "tests/**/*"],
+  "include": ["src/**/*", "tests/__fixtures__/**/*"],
   "exclude": ["node_modules", "dist"]
 }
