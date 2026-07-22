@@ -1,8 +1,8 @@
 /**
  * Render Server - TUI Render Process
  *
- * Render-only process: Displays jobs from SSE stream
- * No keyboard input handling (handled by action-controller.ts)
+ * Render-only process: Displays jobs from RabbitMQ stream (3-queue topology)
+ * No keyboard input handling (handled by tui-stdin-adapter.ts)
  * 
  * State Lifecycle:
  * - Signal 1 (job.generated): setCurrentJob(job, 'PARTIAL')
@@ -10,7 +10,7 @@
  * - Signal 3 (job.routed): clearCurrentJob() → back to IDLE
  * 
  * Features:
- * - Event-driven SSE subscription (no polling)
+ * - Event-driven RMQ subscription (no polling)
  * - Single active job (FIFO queue)
  * - Full ANSI redraw per frame
  * - All logs to stderr, UI to stdout
@@ -20,7 +20,7 @@
 import { getLogger } from '../../infrastructure/outbound/logging/logger.js';
 import type { Job } from '../../domain/types/job.js';
 
-import { JobReader as SseJobReader } from './components/JobReader.js';
+import { RabbitMqJobReader } from './components/RabbitMqJobReader.js';
 import { JobCardRenderer, type CardStatus } from './components/JobCardRenderer.js';
 import { AnsiTerminal } from './components/AnsiTerminal.js';
 import { renderPreviewViewerModal } from './components/PreviewViewerModal.js';
@@ -32,8 +32,7 @@ const logger = getLogger();
 type TuiState = 'IDLE' | 'DISPLAY';
 
 export interface OpsTuiConfig {
-  sseBaseUrl: string;
-  sseToken?: string;
+  rmqUrl: string;
   socketPath?: string;
   udsToken?: string;
   pollIntervalMs?: number;
@@ -42,7 +41,7 @@ export interface OpsTuiConfig {
 
 export class OpsTuiApp {
   private config: OpsTuiConfig;
-  private sseReader: SseJobReader;
+  private rmqReader: RabbitMqJobReader;
   private renderer: JobCardRenderer;
   private ansiTerminal: AnsiTerminal;
 
@@ -55,7 +54,7 @@ export class OpsTuiApp {
 
   constructor(config: OpsTuiConfig) {
     this.config = config;
-    this.sseReader = new SseJobReader(config.sseBaseUrl, config.sseToken);
+    this.rmqReader = new RabbitMqJobReader(config.rmqUrl);
     this.renderer = new JobCardRenderer();
     this.ansiTerminal = new AnsiTerminal();
   }
@@ -71,9 +70,9 @@ export class OpsTuiApp {
       // Enable ANSI terminal raw mode
       this.ansiTerminal.enableRawMode();
 
-      // Connect to SSE
-      await this.sseReader.connect();
-      logger.info('[render-server] ✓ SSE connected');
+      // Connect to RabbitMQ
+      await this.rmqReader.connect();
+      logger.info('[render-server] ✓ RMQ connected');
 
       // Register signal listeners for state lifecycle
       this.registerSignalListeners();
@@ -90,13 +89,13 @@ export class OpsTuiApp {
   }
 
   /**
-   * Register listeners for SSE signals (job.generated, job.parse.completed, job.routed)
+   * Register listeners for RMQ signals (job.generated, job.parse.completed, job.routed)
    */
   private registerSignalListeners(): void {
     logger.info('[render-server] Registering signal listeners...');
     
     // Signal 1: job.generated - job enters system with PARTIAL data
-    this.sseReader.addEventListener('job.generated', (event: any) => {
+    this.rmqReader.addEventListener('job.generated', (event: any) => {
       logger.info('[SIGNAL-1] 📨 Received job.generated event (raw)', {
         eventType: event.type,
         hasData: !!event.data,
@@ -134,7 +133,7 @@ export class OpsTuiApp {
           jobLifecycleId,
           company,
           position,
-          queueDepth: this.sseReader.getQueueDepth(),
+          queueDepth: this.rmqReader.getQueueDepth(),
         });
 
         logger.info('[SIGNAL-1] ✅ Signal processed (state updated by render loop only)', {
@@ -152,7 +151,7 @@ export class OpsTuiApp {
     // Unified guard for both modes:
     //   - Queue mode: enrichment for displayed job (currentJob must exist, jobLifecycleId must match)
     //   - Direct mode: fresh job arrival via [i] → UDS → ingestor → SSE (currentJob may be null)
-    this.sseReader.addEventListener('job.parse.completed', (event: any) => {
+    this.rmqReader.addEventListener('job.parse.completed', (event: any) => {
       logger.info('[SIGNAL-2] 📨 Received job.parse.completed event', {
         eventType: event.type,
         dataPreview: String(event.data || event.payload).substring(0, 60),
@@ -223,19 +222,19 @@ export class OpsTuiApp {
     });
 
     // Signal 3a: job.route.queued
-    this.sseReader.addEventListener('job.route.queued', (event: any) =>
+    this.rmqReader.addEventListener('job.route.queued', (event: any) =>
       this.onRouteEvent(event, 'route.queued'));
 
     // Signal 3b: job.route.trashed
-    this.sseReader.addEventListener('job.route.trashed', (event: any) =>
+    this.rmqReader.addEventListener('job.route.trashed', (event: any) =>
       this.onRouteEvent(event, 'route.trashed'));
 
     // Signal 4: job.parse.failed
-    this.sseReader.addEventListener('job.parse.failed', (event: any) =>
+    this.rmqReader.addEventListener('job.parse.failed', (event: any) =>
       this.onRouteEvent(event, 'parse.failed'));
 
     // Signal 4: job.route.failed
-    this.sseReader.addEventListener('job.route.failed', (event: any) =>
+    this.rmqReader.addEventListener('job.route.failed', (event: any) =>
       this.onRouteEvent(event, 'route.failed'));
 
     logger.info('[render-server] ✅ Signal listeners registered');
@@ -307,7 +306,7 @@ export class OpsTuiApp {
       // Restore terminal mode
       this.ansiTerminal.restoreTerminal();
 
-      this.sseReader.disconnect();
+      this.rmqReader.disconnect();
       clearCurrentJob();
       logger.info('[render-server] ✓ Graceful shutdown complete');
     } catch (err) {
@@ -338,7 +337,7 @@ export class OpsTuiApp {
           this.renderFrame(this.currentJob);
         }
 
-        // Modal updates from action-controller (e.g., [p] preview)
+        // Modal updates from tui-stdin-adapter (e.g., [p] preview)
         const modalSignature = JSON.stringify(stateFileJob.modal ?? null);
         if (modalSignature !== this.lastRenderedModalSignature) {
           this.lastRenderedModalSignature = modalSignature;
@@ -364,11 +363,11 @@ export class OpsTuiApp {
         }
 
         // Non-blocking peek — poll queue so mode changes can be checked
-        if (!this.sseReader.peekNextJob()) {
+        if (!this.rmqReader.peekNextJob()) {
           await this.sleep(200);
           continue;
         }
-        this.currentJob = await this.sseReader.nextJob();
+        this.currentJob = await this.rmqReader.nextJob();
         if (!this.currentJob) continue;
 
         const jobLifecycleId = this.currentJob._id;
@@ -402,7 +401,7 @@ export class OpsTuiApp {
             jobLifecycleId,
             company: this.currentJob.company,
             wasState,
-            queueDepth: this.sseReader.getQueueDepth?.() ?? 0,
+            queueDepth: this.rmqReader.getQueueDepth?.() ?? 0,
           });
         } else {
           logger.debug('[RENDER] SKIP render (same ID)', {
@@ -412,7 +411,7 @@ export class OpsTuiApp {
           });
         }
 
-        // SSE events (job.parse.completed, job.routed) will trigger re-renders
+        // RMQ events (job.parse.completed, job.routed) will trigger re-renders
         // via Signal listeners (see registerSignalListeners)
       } catch (err) {
         logger.error('[render-server] Error in main loop', { error: String(err) });
@@ -432,7 +431,7 @@ export class OpsTuiApp {
     }
 
     const cardStatus: CardStatus = {
-      sseConnected: this.sseReader.isConnected(),
+      sseConnected: this.rmqReader.isConnected(),
       udsReady: true,
       state: this.state,
       message: '',
@@ -503,13 +502,11 @@ async function main() {
   
   if (isRenderOnly) {
     try {
-      const INTERNAL_TOKEN = process.env.INTERNAL_AUTH_TOKEN || '';
       const config: OpsTuiConfig = {
-        sseBaseUrl: 'http://127.0.0.1:3000/events',
-        sseToken: INTERNAL_TOKEN,
+        rmqUrl: process.env.RMQ_URL || 'amqp://guest:guest@127.0.0.1:5672',
       };
 
-      logger.info('[render-server] Creating OpsTuiApp with config', { sseBaseUrl: config.sseBaseUrl });
+      logger.info('[render-server] Creating OpsTuiApp with config', { rmqUrl: config.rmqUrl });
       const app = new OpsTuiApp(config);
       logger.info('[render-server] Calling app.start()');
       await app.start();
