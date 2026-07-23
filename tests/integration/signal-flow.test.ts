@@ -110,7 +110,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.FULL_PARSED,
       rawPayload: html,
-      joblifecycleId: id,
+      jobLifecycleId: id,
     });
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalledTimes(1);
@@ -133,12 +133,12 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     });
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
-    const joblifecycleId = parseEventPort.emitCompleted.mock.calls[0][0];
+    const jobLifecycleId = parseEventPort.emitCompleted.mock.calls[0][0];
 
-    await ingestor.processResolutionCommand({ joblifecycleId, action: 'queue' });
+    await ingestor.processResolutionCommand({ jobLifecycleId, action: 'queue' });
 
     expect(routingPort.emitJobQueued).toHaveBeenCalled();
-    const doc = await adapter.findById(joblifecycleId);
+    const doc = await adapter.findById(jobLifecycleId);
     expect(doc?.status).toBe(JobStatus.QUEUED);
   });
 
@@ -152,12 +152,12 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     });
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
-    const joblifecycleId = parseEventPort.emitCompleted.mock.calls[0][0];
+    const jobLifecycleId = parseEventPort.emitCompleted.mock.calls[0][0];
 
-    await ingestor.processResolutionCommand({ joblifecycleId, action: 'trash' });
+    await ingestor.processResolutionCommand({ jobLifecycleId, action: 'trash' });
 
     expect(routingPort.emitJobTrashed).toHaveBeenCalled();
-    const doc = await adapter.findById(joblifecycleId);
+    const doc = await adapter.findById(jobLifecycleId);
     expect(doc?.status).toBe(JobStatus.TRASHED);
   });
 
@@ -171,10 +171,10 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     });
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
-    const joblifecycleId = parseEventPort.emitCompleted.mock.calls[0][0];
+    const jobLifecycleId = parseEventPort.emitCompleted.mock.calls[0][0];
 
     await expect(
-      ingestor.processResolutionCommand({ joblifecycleId, action: 'invalid' as any })
+      ingestor.processResolutionCommand({ jobLifecycleId, action: 'invalid' as any })
     ).resolves.toBeUndefined();
 
     // Should not emit any routing event for unknown action

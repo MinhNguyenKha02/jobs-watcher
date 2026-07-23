@@ -165,9 +165,9 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
       extract: vi.fn().mockResolvedValue({ html: INDEED_DETAIL_HTML }),
     };
 
-    const joblifecycleId = 'e2e-sched-1';
+    const jobLifecycleId = 'e2e-sched-1';
     const partialDoc = {
-      _id: joblifecycleId,
+      _id: jobLifecycleId,
       raw: '<html><body>partial</body></html>',
       stage: JobStage.PARTIAL_PARSED,
       status: JobStatus.ENRICHING,
@@ -184,8 +184,8 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
 
     const eqCol = (adapter as any).extractionQueueCollection;
     await eqCol.insertOne({
-      _id: joblifecycleId,
-      joblifecycleId,
+      _id: jobLifecycleId,
+      jobLifecycleId,
       createdAt: new Date(),
     });
 
@@ -227,7 +227,7 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
       expect(completedEvents.length).toBeGreaterThanOrEqual(1);
     }, { interval: 100, timeout: 10000 });
 
-    const fullDoc = await adapter.findById(joblifecycleId);
+    const fullDoc = await adapter.findById(jobLifecycleId);
     expect(fullDoc).not.toBeNull();
     expect(fullDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(fullDoc!.status).toBe(JobStatus.ENRICHED);

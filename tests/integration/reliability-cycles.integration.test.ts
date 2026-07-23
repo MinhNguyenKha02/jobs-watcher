@@ -61,7 +61,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: '',
-      joblifecycleId: 'job-fail-s4a',
+      jobLifecycleId: 'job-fail-s4a',
     });
 
     const failedEvents = parseEvents.filter(([t]) => t === 'failed');
@@ -98,7 +98,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
     vi.spyOn(adapter, 'updateJobStatus').mockRejectedValueOnce(new Error('DB write timeout'));
 
     await ingestor.processResolutionCommand({
-      joblifecycleId: 'job-fail-s4b',
+      jobLifecycleId: 'job-fail-s4b',
       action: 'queue',
       editedKVs: {},
     });
@@ -124,7 +124,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: '',
-      joblifecycleId: 'job-s4-empty',
+      jobLifecycleId: 'job-s4-empty',
     });
 
     const failBefore = parseEvents.filter(([t]) => t === 'failed').length;
@@ -149,7 +149,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: makeTopCvHtml('RecoveryCo'),
-      joblifecycleId: 'job-s4-recover',
+      jobLifecycleId: 'job-s4-recover',
     });
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');

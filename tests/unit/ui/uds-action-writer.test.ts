@@ -99,7 +99,7 @@ describe('UdsActionWriter reliability', () => {
       await writer.queue('job-q', { company: 'Updated' });
       const callArg = mockPostJsonOverUds.mock.calls[0][1];
       expect(callArg).toMatchObject({
-        joblifecycleId: 'job-q',
+        jobLifecycleId: 'job-q',
         action: 'queue',
         source: 'ops-tui',
         editedKVs: { company: 'Updated' },
@@ -110,7 +110,7 @@ describe('UdsActionWriter reliability', () => {
       await writer.trash('job-t', { reason: 'not interested' });
       const callArg = mockPostJsonOverUds.mock.calls[0][1];
       expect(callArg).toMatchObject({
-        joblifecycleId: 'job-t',
+        jobLifecycleId: 'job-t',
         action: 'trash',
         source: 'ops-tui',
         editedKVs: { reason: 'not interested' },

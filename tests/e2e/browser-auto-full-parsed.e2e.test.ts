@@ -62,13 +62,13 @@ describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => 
   });
 
   it('T2a: S2 via BROWSER_AUTO→[j] queue (no S1 needed, full already)', async () => {
-    const joblifecycleId = 'e2e-c2-full-arrival';
+    const jobLifecycleId = 'e2e-c2-full-arrival';
 
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.FULL_PARSED,
       rawPayload: FULL_PARSED_HTML,
-      joblifecycleId,
+      jobLifecycleId,
     });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
@@ -77,7 +77,7 @@ describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
 
-    const doc = await adapter.findById(joblifecycleId);
+    const doc = await adapter.findById(jobLifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(doc!.status).toBe(JobStatus.ENRICHED);
@@ -85,11 +85,11 @@ describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => 
     expect(doc!.matchedSkills).toBeDefined();
 
     await ingestor.processResolutionCommand({
-      joblifecycleId,
+      jobLifecycleId,
       action: 'queue',
     });
 
-    const queuedDoc = await adapter.findById(joblifecycleId);
+    const queuedDoc = await adapter.findById(jobLifecycleId);
     expect(queuedDoc).not.toBeNull();
     expect(queuedDoc!.status).toBe(JobStatus.QUEUED);
 
@@ -97,31 +97,31 @@ describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => 
   });
 
   it('T2b: S2 via BROWSER_AUTO→[d] trash', async () => {
-    const joblifecycleId = 'e2e-c2-full-trash';
+    const jobLifecycleId = 'e2e-c2-full-trash';
 
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.FULL_PARSED,
       rawPayload: FULL_PARSED_HTML,
-      joblifecycleId,
+      jobLifecycleId,
     });
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
 
     await ingestor.processResolutionCommand({
-      joblifecycleId,
+      jobLifecycleId,
       action: 'trash',
     });
 
-    const trashedDoc = await adapter.findById(joblifecycleId);
+    const trashedDoc = await adapter.findById(jobLifecycleId);
     expect(trashedDoc).not.toBeNull();
     expect(trashedDoc!.status).toBe(JobStatus.TRASHED);
 
     expect(routingEvents.filter(([t]) => t === 'trashed').length).toBe(1);
   });
 
-  it('T2c: S2 without joblifecycleId creates clip-* doc (browser-auto fallback)', async () => {
+  it('T2c: S2 without jobLifecycleId creates clip-* doc (browser-auto fallback)', async () => {
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.FULL_PARSED,
@@ -140,7 +140,7 @@ describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => 
 
   it('T2d: S1→S2 inside same tick (browser-auto merge) then [j]', async () => {
     const messageId = 'e2e-c2-merged';
-    const joblifecycleId = `${messageId}-job-0`;
+    const jobLifecycleId = `${messageId}-job-0`;
 
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
@@ -151,25 +151,25 @@ describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => 
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);
-    expect(genEvents[0][1]._id).toBe(joblifecycleId);
+    expect(genEvents[0][1]._id).toBe(jobLifecycleId);
 
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.FULL_PARSED,
       rawPayload: FULL_PARSED_HTML,
-      joblifecycleId,
+      jobLifecycleId,
     });
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
 
-    const doc = await adapter.findById(joblifecycleId);
+    const doc = await adapter.findById(jobLifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(doc!.status).toBe(JobStatus.ENRICHED);
 
     await ingestor.processResolutionCommand({
-      joblifecycleId,
+      jobLifecycleId,
       action: 'queue',
     });
 

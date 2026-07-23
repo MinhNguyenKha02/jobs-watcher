@@ -54,9 +54,9 @@ describe('Boundary failures at adapter boundaries', () => {
       req.on('end', () => {
         try {
           const parsed = JSON.parse(body);
-          if (!parsed.joblifecycleId || typeof parsed.joblifecycleId !== 'string') {
+          if (!parsed.jobLifecycleId || typeof parsed.jobLifecycleId !== 'string') {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'missing joblifecycleId' }));
+            res.end(JSON.stringify({ error: 'missing jobLifecycleId' }));
             return;
           }
           res.writeHead(202, { 'Content-Type': 'application/json' });

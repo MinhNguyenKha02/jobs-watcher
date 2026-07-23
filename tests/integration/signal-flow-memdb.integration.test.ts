@@ -69,7 +69,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
     await adapter.upsert(doc);
 
     await ingestor.processResolutionCommand({
-      joblifecycleId: 'it-queue-1',
+      jobLifecycleId: 'it-queue-1',
       action: 'queue',
       editedKVs: {},
     });
@@ -87,7 +87,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
     await adapter.upsert(doc);
 
     await ingestor.processResolutionCommand({
-      joblifecycleId: 'it-trash-1',
+      jobLifecycleId: 'it-trash-1',
       action: 'trash',
       editedKVs: { reason: 'not interested' },
     });
@@ -100,12 +100,12 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
     expect(trashedEvent).toBeDefined();
   });
 
-  it('processResolutionCommand with invalid joblifecycleId emits routeFailed', async () => {
+  it('processResolutionCommand with invalid jobLifecycleId emits routeFailed', async () => {
     const parseBefore = parseEvents.length;
     const routeBefore = routingEvents.length;
 
     await ingestor.processResolutionCommand({
-      joblifecycleId: 'it-nonexistent',
+      jobLifecycleId: 'it-nonexistent',
       action: 'queue',
       editedKVs: {},
     });
@@ -117,7 +117,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
     const doc = makeDoc({ _id: 'it-multi-1', company: 'MultiCorp', role: 'Dev' });
     await adapter.upsert(doc);
 
-    await ingestor.processResolutionCommand({ joblifecycleId: 'it-multi-1', action: 'queue', editedKVs: {} });
+    await ingestor.processResolutionCommand({ jobLifecycleId: 'it-multi-1', action: 'queue', editedKVs: {} });
     expect(routingEvents.filter(([t]) => t === 'queued').length).toBeGreaterThanOrEqual(1);
 
     const stored = await adapter.findById('it-multi-1');

@@ -20,7 +20,7 @@ describe('MongoExtractionQueueAdapter', () => {
   });
 
   describe('enqueue', () => {
-    it('upserts with $setOnInsert for a joblifecycleId', async () => {
+    it('upserts with $setOnInsert for a jobLifecycleId', async () => {
       collection.updateOne.mockResolvedValue({ acknowledged: true } as any);
 
       await adapter.enqueue('job-1');
@@ -44,7 +44,7 @@ describe('MongoExtractionQueueAdapter', () => {
 
   describe('dequeue', () => {
     it('returns the oldest job and removes it (FIFO)', async () => {
-      const doc = { _id: 'job-1', joblifecycleId: 'job-1', createdAt: new Date('2024-01-01') };
+      const doc = { _id: 'job-1', jobLifecycleId: 'job-1', createdAt: new Date('2024-01-01') };
       collection.findOneAndDelete.mockResolvedValue(doc);
 
       const result = await adapter.dequeue();

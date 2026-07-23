@@ -34,7 +34,7 @@ describe('shared-tui-state', () => {
   describe('getCurrentJob / setCurrentJob', () => {
     it('returns default state before any job is set', () => {
       const state = getCurrentJob();
-      expect(state.joblifecycleId).toBeNull();
+      expect(state.jobLifecycleId).toBeNull();
       expect(state.job).toBeNull();
       expect(state.stage).toBeNull();
     });
@@ -44,7 +44,7 @@ describe('shared-tui-state', () => {
       setCurrentJob('job-1', job, JobStage.FULL_PARSED);
 
       const state = getCurrentJob();
-      expect(state.joblifecycleId).toBe('job-1');
+      expect(state.jobLifecycleId).toBe('job-1');
       expect(state.job?.company).toBe('Acme');
       expect(state.stage).toBe(JobStage.FULL_PARSED);
     });
@@ -69,7 +69,7 @@ describe('shared-tui-state', () => {
       setCurrentJob('job-2', job2, JobStage.FULL_PARSED);
 
       const state = getCurrentJob();
-      expect(state.joblifecycleId).toBe('job-1');
+      expect(state.jobLifecycleId).toBe('job-1');
     });
 
     it('allows overwrite for different job ID in direct mode (B17 — latest wins)', () => {
@@ -79,13 +79,13 @@ describe('shared-tui-state', () => {
       setCurrentJob('direct-1', job1, JobStage.FULL_PARSED);
 
       const state1 = getCurrentJob();
-      expect(state1.joblifecycleId).toBe('direct-1');
+      expect(state1.jobLifecycleId).toBe('direct-1');
 
       const job2 = { _id: 'direct-2', company: 'SecondCo', role: 'Role2' } as any;
       setCurrentJob('direct-2', job2, JobStage.FULL_PARSED);
 
       const state2 = getCurrentJob();
-      expect(state2.joblifecycleId).toBe('direct-2');
+      expect(state2.jobLifecycleId).toBe('direct-2');
       expect(state2.job?.company).toBe('SecondCo');
 
       setQueueMode(true);
@@ -107,17 +107,17 @@ describe('shared-tui-state', () => {
     it('maintains separate sub-states per mode', () => {
       const jobQ = { _id: 'q-job', company: 'QueueCo', role: 'Engineer' } as any;
       setCurrentJob('q-job', jobQ, JobStage.PARTIAL_PARSED);
-      expect(getCurrentJob().joblifecycleId).toBe('q-job');
+      expect(getCurrentJob().jobLifecycleId).toBe('q-job');
 
       setQueueMode(false);
-      expect(getCurrentJob().joblifecycleId).toBeNull();
+      expect(getCurrentJob().jobLifecycleId).toBeNull();
 
       const jobD = { _id: 'd-job', company: 'DirectCo', role: 'Dev' } as any;
       setCurrentJob('d-job', jobD, JobStage.FULL_PARSED);
-      expect(getCurrentJob().joblifecycleId).toBe('d-job');
+      expect(getCurrentJob().jobLifecycleId).toBe('d-job');
 
       setQueueMode(true);
-      expect(getCurrentJob().joblifecycleId).toBe('q-job');
+      expect(getCurrentJob().jobLifecycleId).toBe('q-job');
     });
   });
 
@@ -128,7 +128,7 @@ describe('shared-tui-state', () => {
       clearCurrentJob();
 
       const state = getCurrentJob();
-      expect(state.joblifecycleId).toBeNull();
+      expect(state.jobLifecycleId).toBeNull();
       expect(state.job).toBeNull();
       expect(state.stage).toBeNull();
     });
@@ -164,18 +164,18 @@ describe('shared-tui-state', () => {
 
       const raw = readFileSync(TEST_STATE_PATH, 'utf8');
       const parsed = JSON.parse(raw);
-      expect(parsed.queue.joblifecycleId).toBe('job-disk');
+      expect(parsed.queue.jobLifecycleId).toBe('job-disk');
     });
 
     it('reads existing state file on getCurrentJob', () => {
       writeFileSync(TEST_STATE_PATH, JSON.stringify({
         version: 2, queueMode: true, updatedAt: null,
-        queue: { joblifecycleId: 'file-job', job: { _id: 'file-job', company: 'FileCo' }, stage: 'full_parsed', editedFields: null, modal: null },
-        direct: { joblifecycleId: null, job: null, stage: null, editedFields: null, modal: null },
+        queue: { jobLifecycleId: 'file-job', job: { _id: 'file-job', company: 'FileCo' }, stage: 'full_parsed', editedFields: null, modal: null },
+        direct: { jobLifecycleId: null, job: null, stage: null, editedFields: null, modal: null },
       }), 'utf8');
 
       const state = getCurrentJob();
-      expect(state.joblifecycleId).toBe('file-job');
+      expect(state.jobLifecycleId).toBe('file-job');
       expect(state.job?.company).toBe('FileCo');
     });
   });
@@ -202,7 +202,7 @@ describe('shared-tui-state', () => {
       expect(() => setCurrentJob('job-blocked', job, JobStage.FULL_PARSED)).toThrow('Could not acquire lock');
 
       const state = getCurrentJob();
-      expect(state.joblifecycleId).toBeNull();
+      expect(state.jobLifecycleId).toBeNull();
       expect(state.job).toBeNull();
 
       unlinkSync(lockPath);
@@ -218,13 +218,13 @@ describe('shared-tui-state', () => {
       expect(() => setCurrentJob('job-blocked', job, JobStage.FULL_PARSED)).toThrow('Could not acquire lock');
 
       const state = getCurrentJob();
-      expect(state.joblifecycleId).toBeNull();
+      expect(state.jobLifecycleId).toBeNull();
 
       unlinkSync(lockPath);
 
       setCurrentJob('job-blocked', job, JobStage.FULL_PARSED);
       const state2 = getCurrentJob();
-      expect(state2.joblifecycleId).toBe('job-blocked');
+      expect(state2.jobLifecycleId).toBe('job-blocked');
     });
   });
 });

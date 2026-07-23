@@ -7,7 +7,7 @@ describe('PreviewViewerModal', () => {
   const sampleLines = Array.from({ length: 50 }, (_, i) => `Line ${i + 1}: test content here`);
 
   const baseState: any = {
-    joblifecycleId: 'job-1',
+    jobLifecycleId: 'job-1',
     job: { _id: 'job-1', company: 'Co' },
     stage: JobStage.FULL_PARSED,
     modal: null,

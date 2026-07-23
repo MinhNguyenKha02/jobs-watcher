@@ -80,7 +80,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: '',
-      joblifecycleId: failedJobId,
+      jobLifecycleId: failedJobId,
     });
 
     const failedEvents = parseEvents.filter(([t]) => t === 'failed');
@@ -132,7 +132,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
 
     (adapter as any).updateJobStatus = vi.fn().mockRejectedValue(new Error('DB write conflict'));
 
-    const command = { joblifecycleId: routeFailId, action: 'queue' as const, editedKVs: {} };
+    const command = { jobLifecycleId: routeFailId, action: 'queue' as const, editedKVs: {} };
     await ingestor.processResolutionCommand(command);
 
     vi.restoreAllMocks();
@@ -172,7 +172,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: htmlFor('Junior Engineer', 'EnrichCo'),
-      joblifecycleId: s1JoblifecycleId,
+      jobLifecycleId: s1JoblifecycleId,
     });
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
@@ -200,7 +200,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
         source: JobSource.MANUAL,
         stage: JobStage.FULL_PARSED,
         rawPayload: '',
-        joblifecycleId: `rate-fail-${i}`,
+        jobLifecycleId: `rate-fail-${i}`,
       });
     }
 
@@ -239,12 +239,12 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
       if (i % 2 === 0) {
         await ingestor.processIngestCommand({
           source: JobSource.MANUAL, stage: JobStage.FULL_PARSED,
-          rawPayload: '', joblifecycleId: jobId,
+          rawPayload: '', jobLifecycleId: jobId,
         });
       } else {
         vi.spyOn(adapter, 'updateJobStatus').mockRejectedValueOnce(new Error('DB timeout'));
         await ingestor.processResolutionCommand({
-          joblifecycleId: jobId, action: 'queue', editedKVs: {},
+          jobLifecycleId: jobId, action: 'queue', editedKVs: {},
         });
       }
     }
@@ -268,7 +268,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
 
   it('concurrent S1+S2 from different sources does not corrupt job (interleaving)', async () => {
     const messageId = 'concurrent-s1-s2';
-    const joblifecycleId = `${messageId}-job-0`;
+    const jobLifecycleId = `${messageId}-job-0`;
 
     await Promise.all([
       ingestor.processIngestCommand({
@@ -279,7 +279,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
       ingestor.processIngestCommand({
         source: JobSource.BROWSER_AUTO, stage: JobStage.FULL_PARSED,
         rawPayload: htmlFor('Junior Engineer', 'ConcurrentCo'),
-        joblifecycleId,
+        jobLifecycleId,
       }),
     ]);
 
@@ -290,7 +290,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBeGreaterThanOrEqual(1);
 
-    const doc = await adapter.findById(joblifecycleId);
+    const doc = await adapter.findById(jobLifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(doc!.matchScore).toBeGreaterThan(0);
@@ -299,7 +299,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
   });
 
 
-  it('signal2aManual with joblifecycleId processes valid HTML successfully', async () => {
+  it('signal2aManual with jobLifecycleId processes valid HTML successfully', async () => {
     const docId = 'b9-integration-job';
     const partialDoc = {
       _id: docId,
@@ -321,7 +321,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: htmlFor('Junior Engineer', 'B9IntegCo'),
-      joblifecycleId: docId,
+      jobLifecycleId: docId,
     });
 
     const completedAfter = parseEvents.filter(([t]) => t === 'completed').length;

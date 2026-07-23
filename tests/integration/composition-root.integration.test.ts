@@ -83,7 +83,7 @@ describe('Composition root — bootstrap with real storage', () => {
       stageTimestamp: new Date(),
     } as any);
 
-    await ingestor.processResolutionCommand({ joblifecycleId: jobId, action: 'queue' });
+    await ingestor.processResolutionCommand({ jobLifecycleId: jobId, action: 'queue' });
 
     const updated = await adapter.findById(jobId);
     expect(updated).toBeDefined();
@@ -134,7 +134,7 @@ describe('Composition root — bootstrap with real storage', () => {
       stageTimestamp: new Date(),
     } as any);
 
-    await ingestor.processResolutionCommand({ joblifecycleId: jobId, action: 'trash' });
+    await ingestor.processResolutionCommand({ jobLifecycleId: jobId, action: 'trash' });
 
     const updated = await adapter.findById(jobId);
     expect(updated).toBeDefined();
@@ -185,14 +185,14 @@ describe('Composition root — bootstrap with real storage', () => {
     } as any);
 
     await ingestor.processResolutionCommand({
-      joblifecycleId: jobId,
+      jobLifecycleId: jobId,
       action: 'queue',
       editedKVs: { role: 'Senior Developer', salary: '$5000' },
     });
 
     expect(routingPort.emitJobQueued).toHaveBeenCalledWith(
       expect.objectContaining({
-        joblifecycleId: jobId,
+        jobLifecycleId: jobId,
         role: 'Senior Developer',
         salary: '$5000',
       }),

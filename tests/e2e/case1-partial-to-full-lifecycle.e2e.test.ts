@@ -93,10 +93,10 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);
-    const joblifecycleId = genEvents[0][1]._id;
-    expect(joblifecycleId).toMatch(/-job-0$/);
+    const jobLifecycleId = genEvents[0][1]._id;
+    expect(jobLifecycleId).toMatch(/-job-0$/);
 
-    const partialDoc = await adapter.findById(joblifecycleId);
+    const partialDoc = await adapter.findById(jobLifecycleId);
     expect(partialDoc).not.toBeNull();
     expect(partialDoc!.stage).toBe(JobStage.PARTIAL_PARSED);
     expect(partialDoc!.status).toBe(JobStatus.ENRICHING);
@@ -105,25 +105,25 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: CLIPBOARD_HTML,
-      joblifecycleId,
+      jobLifecycleId,
     });
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
-    expect(completedEvents[0][1]).toBe(joblifecycleId);
+    expect(completedEvents[0][1]).toBe(jobLifecycleId);
 
-    const enrichedDoc = await adapter.findById(joblifecycleId);
+    const enrichedDoc = await adapter.findById(jobLifecycleId);
     expect(enrichedDoc).not.toBeNull();
     expect(enrichedDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(enrichedDoc!.status).toBe(JobStatus.ENRICHED);
     expect(enrichedDoc!.matchScore).toBeGreaterThan(0);
 
     await ingestor.processResolutionCommand({
-      joblifecycleId,
+      jobLifecycleId,
       action: 'queue',
     });
 
-    const routedDoc = await adapter.findById(joblifecycleId);
+    const routedDoc = await adapter.findById(jobLifecycleId);
     expect(routedDoc).not.toBeNull();
     expect(routedDoc!.status).toBe(JobStatus.QUEUED);
     expect(routedDoc!.routedAt).toBeInstanceOf(Date);
@@ -144,14 +144,14 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);
-    const joblifecycleId = genEvents[0][1]._id;
+    const jobLifecycleId = genEvents[0][1]._id;
 
     await ingestor.processResolutionCommand({
-      joblifecycleId,
+      jobLifecycleId,
       action: 'queue',
     });
 
-    const routedDoc = await adapter.findById(joblifecycleId);
+    const routedDoc = await adapter.findById(jobLifecycleId);
     expect(routedDoc).not.toBeNull();
     expect(routedDoc!.status).toBe(JobStatus.QUEUED);
 
@@ -162,10 +162,10 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: CLIPBOARD_HTML,
-      joblifecycleId,
+      jobLifecycleId,
     });
 
-    const enrichedDoc = await adapter.findById(joblifecycleId);
+    const enrichedDoc = await adapter.findById(jobLifecycleId);
     expect(enrichedDoc).not.toBeNull();
     expect(enrichedDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(enrichedDoc!.matchScore).toBeGreaterThan(0);
@@ -183,24 +183,24 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);
-    const joblifecycleId = genEvents[0][1]._id;
+    const jobLifecycleId = genEvents[0][1]._id;
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: CLIPBOARD_HTML,
-      joblifecycleId,
+      jobLifecycleId,
     });
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
 
     await ingestor.processResolutionCommand({
-      joblifecycleId,
+      jobLifecycleId,
       action: 'trash',
     });
 
-    const trashedDoc = await adapter.findById(joblifecycleId);
+    const trashedDoc = await adapter.findById(jobLifecycleId);
     expect(trashedDoc).not.toBeNull();
     expect(trashedDoc!.status).toBe(JobStatus.TRASHED);
 
@@ -209,15 +209,15 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   });
 
   it('T1d: [c] on already FULL_PARSED job is no-op (B2 guard)', async () => {
-    const joblifecycleId = 'e2e-case1-already-full';
-    const partialDoc = makeStage1Partial({ _id: joblifecycleId, company: 'AlreadyCo', role: 'Junior Dev' });
+    const jobLifecycleId = 'e2e-case1-already-full';
+    const partialDoc = makeStage1Partial({ _id: jobLifecycleId, company: 'AlreadyCo', role: 'Junior Dev' });
     await adapter.upsert(partialDoc);
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: CLIPBOARD_HTML,
-      joblifecycleId,
+      jobLifecycleId,
     });
 
     const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
@@ -227,7 +227,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: CLIPBOARD_HTML,
-      joblifecycleId,
+      jobLifecycleId,
     });
 
     const completedAfter = parseEvents.filter(([t]) => t === 'completed').length;
@@ -238,21 +238,21 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   });
 
   it('T1e: [c] with empty clipboard emits parse.failed (S4 via B1 path)', async () => {
-    const joblifecycleId = 'e2e-case1-empty-clip';
-    const partialDoc = makeStage1Partial({ _id: joblifecycleId, company: 'EmptyCo', role: 'Junior Dev' });
+    const jobLifecycleId = 'e2e-case1-empty-clip';
+    const partialDoc = makeStage1Partial({ _id: jobLifecycleId, company: 'EmptyCo', role: 'Junior Dev' });
     await adapter.upsert(partialDoc);
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: '',
-      joblifecycleId,
+      jobLifecycleId,
     });
 
     const failedEvents = parseEvents.filter(([t]) => t === 'failed');
     expect(failedEvents.length).toBe(1);
 
-    const failedDoc = await adapter.findById(joblifecycleId);
+    const failedDoc = await adapter.findById(jobLifecycleId);
     expect(failedDoc).not.toBeNull();
     expect(failedDoc!.status).toBe(JobStatus.FAILED);
   });

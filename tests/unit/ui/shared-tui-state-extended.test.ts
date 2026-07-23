@@ -36,30 +36,30 @@ describe('shared-tui-state extended: mode toggle mid-job', () => {
   it('mode toggle clears active display (different substate per mode)', () => {
     const job = { _id: 'job-q', company: 'QueueCo', role: 'Engineer' } as any;
     setCurrentJob('job-q', job, JobStage.PARTIAL_PARSED);
-    expect(getCurrentJob().joblifecycleId).toBe('job-q');
+    expect(getCurrentJob().jobLifecycleId).toBe('job-q');
 
     setQueueMode(false);
-    expect(getCurrentJob().joblifecycleId).toBeNull();
+    expect(getCurrentJob().jobLifecycleId).toBeNull();
     expect(getCurrentJob().job).toBeNull();
 
     setQueueMode(true);
-    expect(getCurrentJob().joblifecycleId).toBe('job-q');
+    expect(getCurrentJob().jobLifecycleId).toBe('job-q');
   });
 
   it('direct mode job preserved when toggling back and forth', () => {
     setQueueMode(false);
     const directJob = { _id: 'job-d', company: 'DirectCo', role: 'Dev' } as any;
     setCurrentJob('job-d', directJob, JobStage.FULL_PARSED);
-    expect(getCurrentJob().joblifecycleId).toBe('job-d');
+    expect(getCurrentJob().jobLifecycleId).toBe('job-d');
 
     setQueueMode(true);
-    expect(getCurrentJob().joblifecycleId).toBeNull();
+    expect(getCurrentJob().jobLifecycleId).toBeNull();
 
     const queueJob = { _id: 'job-q2', company: 'QueueCo2', role: 'Engineer' } as any;
     setCurrentJob('job-q2', queueJob, JobStage.PARTIAL_PARSED);
 
     setQueueMode(false);
-    expect(getCurrentJob().joblifecycleId).toBe('job-d');
+    expect(getCurrentJob().jobLifecycleId).toBe('job-d');
     expect(getCurrentJob().job?.company).toBe('DirectCo');
   });
 
@@ -70,7 +70,7 @@ describe('shared-tui-state extended: mode toggle mid-job', () => {
 
     setQueueMode(true);
     setCurrentJob('job-d1', job1, JobStage.FULL_PARSED);
-    expect(getCurrentJob().joblifecycleId).toBe('job-d1');
+    expect(getCurrentJob().jobLifecycleId).toBe('job-d1');
   });
 
   it('clearCurrentJob only clears active mode', () => {
@@ -83,10 +83,10 @@ describe('shared-tui-state extended: mode toggle mid-job', () => {
     setCurrentJob('job-clear-q', queueJob, JobStage.PARTIAL_PARSED);
 
     clearCurrentJob();
-    expect(getCurrentJob().joblifecycleId).toBeNull();
+    expect(getCurrentJob().jobLifecycleId).toBeNull();
 
     setQueueMode(false);
-    expect(getCurrentJob().joblifecycleId).toBe('job-clear-d');
+    expect(getCurrentJob().jobLifecycleId).toBe('job-clear-d');
   });
 });
 
@@ -106,7 +106,7 @@ describe('shared-tui-state extended: setCurrentJob guard', () => {
     setCurrentJob('job-b', job2, JobStage.FULL_PARSED);
 
     const state = getCurrentJob();
-    expect(state.joblifecycleId).toBe('job-a');
+    expect(state.jobLifecycleId).toBe('job-a');
     expect(state.job?.company).toBe('ACo');
   });
 
@@ -118,7 +118,7 @@ describe('shared-tui-state extended: setCurrentJob guard', () => {
     setCurrentJob('job-same', job2, JobStage.FULL_PARSED);
 
     const state = getCurrentJob();
-    expect(state.joblifecycleId).toBe('job-same');
+    expect(state.jobLifecycleId).toBe('job-same');
     expect(state.stage).toBe(JobStage.FULL_PARSED);
     expect(state.job?.role).toBe('Senior Engineer');
     expect(state.job?.matchScore).toBe(90);
@@ -133,7 +133,7 @@ describe('shared-tui-state extended: setCurrentJob guard', () => {
     const job2 = { _id: 'job-y', company: 'YCo', role: 'Senior' } as any;
     setCurrentJob('job-y', job2, JobStage.FULL_PARSED);
 
-    expect(getCurrentJob().joblifecycleId).toBe('job-y');
+    expect(getCurrentJob().jobLifecycleId).toBe('job-y');
   });
 });
 
@@ -182,7 +182,7 @@ describe('shared-tui-state extended: modal interaction', () => {
 
     clearModal();
     expect(getCurrentJob().modal).toBeNull();
-    expect(getCurrentJob().joblifecycleId).toBe('job-cm');
+    expect(getCurrentJob().jobLifecycleId).toBe('job-cm');
   });
 });
 
@@ -198,7 +198,7 @@ describe('shared-tui-state extended: file persistence edge cases', () => {
     writeFileSync(TEST_STATE_PATH, 'not valid json', 'utf8');
 
     const state = getCurrentJob();
-    expect(state.joblifecycleId).toBeNull();
+    expect(state.jobLifecycleId).toBeNull();
     expect(state.version).toBe(2);
   });
 
@@ -214,7 +214,7 @@ describe('shared-tui-state extended: file persistence edge cases', () => {
 
     const state = getCurrentJob();
     expect(state.version).toBe(2);
-    expect(state.joblifecycleId).toBe('v1-msg-id');
+    expect(state.jobLifecycleId).toBe('v1-msg-id');
     expect(state.job?.company).toBe('V1Co');
     expect(state.stage).toBe(JobStage.PARTIAL_PARSED);
   });

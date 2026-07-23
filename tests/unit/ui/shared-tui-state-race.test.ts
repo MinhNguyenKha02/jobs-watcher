@@ -40,7 +40,7 @@ describe('T3: Shared state file race condition', () => {
     ]);
 
     const state = getCurrentJob();
-    expect(state.joblifecycleId).toBe('race-job-1');
+    expect(state.jobLifecycleId).toBe('race-job-1');
     expect(state.job?.company).toBe('Alpha');
     expect(state.stage).toBe(JobStage.PARTIAL_PARSED);
   });
@@ -55,7 +55,7 @@ describe('T3: Shared state file race condition', () => {
     ]);
 
     const state = getCurrentJob();
-    expect(state.joblifecycleId === 'race-job-3' || state.joblifecycleId === 'race-job-4').toBe(true);
+    expect(state.jobLifecycleId === 'race-job-3' || state.jobLifecycleId === 'race-job-4').toBe(true);
   });
 
   it('concurrent queue mode toggle and setCurrentJob', async () => {
@@ -66,7 +66,7 @@ describe('T3: Shared state file race condition', () => {
     ]);
 
     const state = getCurrentJob();
-    expect(state.joblifecycleId).toBe('race-job-5');
+    expect(state.jobLifecycleId).toBe('race-job-5');
     expect(state.stage).toBe(JobStage.FULL_PARSED);
   });
 
@@ -80,7 +80,7 @@ describe('T3: Shared state file race condition', () => {
     await Promise.all(ops);
 
     const final = getCurrentJob();
-    expect(final.joblifecycleId).toBe('race-seq-0');
+    expect(final.jobLifecycleId).toBe('race-seq-0');
   });
 
   it('lock file is cleaned after write failure simulation', async () => {
@@ -92,6 +92,6 @@ describe('T3: Shared state file race condition', () => {
     expect(existsSync(TEST_STATE_PATH + '.lock')).toBe(false);
 
     const state = getCurrentJob();
-    expect(state.joblifecycleId).toBe('race-job-lock');
+    expect(state.jobLifecycleId).toBe('race-job-lock');
   });
 });

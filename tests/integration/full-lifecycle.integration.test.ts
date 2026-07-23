@@ -97,7 +97,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: makeTopCvHtml(company, role),
-      joblifecycleId: docId,
+      jobLifecycleId: docId,
     });
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalledTimes(1);
@@ -108,7 +108,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     expect(fullDoc!.status).toBe(JobStatus.ENRICHED);
 
     await ingestor.processResolutionCommand({
-      joblifecycleId: docId,
+      jobLifecycleId: docId,
       action: 'queue',
       editedKVs: {},
     });
@@ -135,7 +135,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     await adapter.upsert(partialDoc);
 
     await ingestor.processResolutionCommand({
-      joblifecycleId: docId,
+      jobLifecycleId: docId,
       action: 'queue',
       editedKVs: {},
     });
@@ -159,7 +159,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: '',
-      joblifecycleId: 'fail-s4-1',
+      jobLifecycleId: 'fail-s4-1',
     });
 
     expect(parseEventPort.emitFailed).toHaveBeenCalledTimes(1);
@@ -190,7 +190,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     vi.spyOn(adapter, 'updateJobStatus').mockRejectedValueOnce(new Error('DB write timeout'));
 
     await ingestor.processResolutionCommand({
-      joblifecycleId: docId,
+      jobLifecycleId: docId,
       action: 'queue',
       editedKVs: {},
     });
@@ -219,7 +219,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.FULL_PARSED,
       rawPayload: makeTopCvHtml('ArrivalCo', 'Junior Engineer'),
-      joblifecycleId: docId,
+      jobLifecycleId: docId,
     });
 
     expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
@@ -231,7 +231,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     expect(doc!.matchScore).toBeGreaterThan(0);
   });
 
-  it('S2 via BROWSER_AUTO without joblifecycleId creates doc and emits completed', async () => {
+  it('S2 via BROWSER_AUTO without jobLifecycleId creates doc and emits completed', async () => {
     await clearCollections();
     vi.clearAllMocks();
 
@@ -263,7 +263,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: makeTopCvHtml('DoubleCo', 'Junior Engineer'),
-      joblifecycleId: docId,
+      jobLifecycleId: docId,
     });
 
     const completedEvents = parseEventPort.emitCompleted.mock.calls.filter(
@@ -288,7 +288,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: '',
-      joblifecycleId: docId,
+      jobLifecycleId: docId,
     });
 
     expect(parseEventPort.emitFailed).toHaveBeenCalledTimes(1);
@@ -298,7 +298,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     expect(doc!.status).toBe(JobStatus.FAILED);
   });
 
-  it('signal2aManual without joblifecycleId silently drops (B9 fix — no fake ID)', async () => {
+  it('signal2aManual without jobLifecycleId silently drops (B9 fix — no fake ID)', async () => {
     await clearCollections();
     vi.clearAllMocks();
 

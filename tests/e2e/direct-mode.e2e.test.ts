@@ -97,9 +97,9 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
   });
 
   it('Signal 2a upgrades PARTIAL_PARSED to FULL_PARSED with merged fields', async () => {
-    const joblifecycleId = 'e2e-2a-1';
+    const jobLifecycleId = 'e2e-2a-1';
     const partialDoc = {
-      _id: joblifecycleId,
+      _id: jobLifecycleId,
       raw: '<html><body>partial</body></html>',
       stage: JobStage.PARTIAL_PARSED,
       status: JobStatus.ENRICHING,
@@ -119,11 +119,11 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: CLIPBOARD_HTML,
-      joblifecycleId,
+      jobLifecycleId,
       receivedAt: new Date(),
     });
 
-    const fullDoc = await adapter.findById(joblifecycleId);
+    const fullDoc = await adapter.findById(jobLifecycleId);
     expect(fullDoc).not.toBeNull();
     expect(fullDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(fullDoc!.status).toBe(JobStatus.ENRICHED);
@@ -138,9 +138,9 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
   });
 
   it('Signal 2a with empty payload fails gracefully', async () => {
-    const joblifecycleId = 'e2e-2a-empty';
+    const jobLifecycleId = 'e2e-2a-empty';
     const partialDoc = {
-      _id: joblifecycleId,
+      _id: jobLifecycleId,
       raw: '<html><body>partial</body></html>',
       stage: JobStage.PARTIAL_PARSED,
       status: JobStatus.ENRICHING,
@@ -159,14 +159,14 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: EMPTY_HTML,
-      joblifecycleId,
+      jobLifecycleId,
       receivedAt: new Date(),
     });
 
     const failedEvents = parseEvents.filter(([t]) => t === 'failed');
     expect(failedEvents.length).toBe(failedBefore + 1);
 
-    const doc = await adapter.findById(joblifecycleId);
+    const doc = await adapter.findById(jobLifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.status).toBe(JobStatus.FAILED);
   });

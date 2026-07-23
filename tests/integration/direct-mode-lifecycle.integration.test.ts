@@ -122,7 +122,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
     routingEvents.length = 0;
 
     await ingestor.processResolutionCommand({
-      joblifecycleId: clipDoc._id,
+      jobLifecycleId: clipDoc._id,
       action: 'queue',
       editedKVs: {},
     });
@@ -152,7 +152,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
     routingEvents.length = 0;
 
     await ingestor.processResolutionCommand({
-      joblifecycleId: clipDoc._id,
+      jobLifecycleId: clipDoc._id,
       action: 'trash',
       editedKVs: { reason: 'not matching' },
     });

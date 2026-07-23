@@ -46,15 +46,15 @@ describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
     await storage.stop();
   });
 
-  async function seedJob(joblifecycleId: string, url: string) {
+  async function seedJob(jobLifecycleId: string, url: string) {
     const doc = {
-      _id: joblifecycleId,
+      _id: jobLifecycleId,
       raw: '<html><body>partial</body></html>',
       stage: JobStage.PARTIAL_PARSED,
       status: JobStatus.ENRICHING,
       source: JobSource.BROWSER_AUTO,
-      company: `TestCorp-${joblifecycleId}`,
-      role: `Junior Backend Developer ${joblifecycleId}`,
+      company: `TestCorp-${jobLifecycleId}`,
+      role: `Junior Backend Developer ${jobLifecycleId}`,
       description: 'TypeScript developer needed',
       url,
       createdAt: new Date(),
@@ -64,15 +64,15 @@ describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
     await adapter.upsert(doc as any);
     const eqCol = (adapter as any).extractionQueueCollection;
     await eqCol.insertOne({
-      _id: joblifecycleId,
-      joblifecycleId,
+      _id: jobLifecycleId,
+      jobLifecycleId,
       createdAt: new Date(),
     });
   }
 
   it('browser extraction failure triggers fallback: processIngest PARTIAL_PARSED + empty + emitGenerated', async () => {
-    const joblifecycleId = 'e2e-fail-1';
-    await seedJob(joblifecycleId, 'https://example.com/fail');
+    const jobLifecycleId = 'e2e-fail-1';
+    await seedJob(jobLifecycleId, 'https://example.com/fail');
 
     const mockBrowser = {
       start: vi.fn().mockResolvedValue(undefined),
@@ -115,9 +115,9 @@ describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     const lastGen = genEvents[genEvents.length - 1];
     expect(lastGen).toBeDefined();
-    expect(lastGen[1]._id).toBe(joblifecycleId);
+    expect(lastGen[1]._id).toBe(jobLifecycleId);
 
-    const doc = await adapter.findById(joblifecycleId);
+    const doc = await adapter.findById(jobLifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.PARTIAL_PARSED);
     expect(doc!.status).toBe(JobStatus.ENRICHING);
@@ -126,11 +126,11 @@ describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
   }, 30000);
 
   it('fallback with null job lifecycle logs error and does not emit', async () => {
-    const joblifecycleId = 'e2e-null-doc-1';
+    const jobLifecycleId = 'e2e-null-doc-1';
     const eqCol = (adapter as any).extractionQueueCollection;
     await eqCol.insertOne({
-      _id: joblifecycleId,
-      joblifecycleId,
+      _id: jobLifecycleId,
+      jobLifecycleId,
       createdAt: new Date(),
     });
 

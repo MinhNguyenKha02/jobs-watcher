@@ -39,7 +39,7 @@ describe('UDS Server Integration', () => {
             source: JobSource.MANUAL,
             stage: JobStage.FULL_PARSED,
             rawPayload: htmlPayload,
-            joblifecycleId: job.joblifecycleId || undefined,
+            jobLifecycleId: job.jobLifecycleId || undefined,
             metadata: {
               subject: (job.subject as string) || '',
               from: (job.from as string) || '',
@@ -64,9 +64,9 @@ describe('UDS Server Integration', () => {
       req.on('end', async () => {
         try {
           const parsed = JSON.parse(body || '{}');
-          const joblifecycleId = String(parsed?.joblifecycleId ?? '');
+          const jobLifecycleId = String(parsed?.jobLifecycleId ?? '');
           const action = (parsed?.action || 'queue') as 'queue' | 'trash';
-          const resolutionCommand = { joblifecycleId, action, editedKVs: parsed?.editedKVs ?? undefined };
+          const resolutionCommand = { jobLifecycleId, action, editedKVs: parsed?.editedKVs ?? undefined };
           await ingestorMock.processResolutionCommand(resolutionCommand);
           res.writeHead(202, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ accepted: true }));
@@ -159,48 +159,48 @@ describe('UDS Server Integration', () => {
       expect(body.error).toContain('requires html');
     });
 
-    it('accepts ingest with joblifecycleId', async () => {
-      const res = await postJson('/internal/ingest', { html: '<html/>', joblifecycleId: 'existing-job-1' });
+    it('accepts ingest with jobLifecycleId', async () => {
+      const res = await postJson('/internal/ingest', { html: '<html/>', jobLifecycleId: 'existing-job-1' });
       expect(res.statusCode).toBe(202);
     });
   });
 
   describe('POST /internal/action', () => {
     it('accepts queue action', async () => {
-      const res = await postJson('/internal/action', { joblifecycleId: 'job-1', action: 'queue' });
+      const res = await postJson('/internal/action', { jobLifecycleId: 'job-1', action: 'queue' });
       expect(res.statusCode).toBe(202);
       const body = JSON.parse(await collectBody(res));
       expect(body.accepted).toBe(true);
       expect(ingestorMock.processResolutionCommand).toHaveBeenCalledWith(
-        expect.objectContaining({ joblifecycleId: 'job-1', action: 'queue' })
+        expect.objectContaining({ jobLifecycleId: 'job-1', action: 'queue' })
       );
     });
 
     it('accepts trash action', async () => {
-      const res = await postJson('/internal/action', { joblifecycleId: 'job-2', action: 'trash' });
+      const res = await postJson('/internal/action', { jobLifecycleId: 'job-2', action: 'trash' });
       expect(res.statusCode).toBe(202);
     });
 
     it('accepts action with editedKVs', async () => {
       const res = await postJson('/internal/action', {
-        joblifecycleId: 'job-3',
+        jobLifecycleId: 'job-3',
         action: 'queue',
         editedKVs: { role: 'Updated Role', salary: '$2000' },
       });
       expect(res.statusCode).toBe(202);
       expect(ingestorMock.processResolutionCommand).toHaveBeenCalledWith(
         expect.objectContaining({
-          joblifecycleId: 'job-3',
+          jobLifecycleId: 'job-3',
           editedKVs: { role: 'Updated Role', salary: '$2000' },
         })
       );
     });
 
-    it('handles missing joblifecycleId', async () => {
+    it('handles missing jobLifecycleId', async () => {
       const res = await postJson('/internal/action', { action: 'queue' });
       expect(res.statusCode).toBe(202);
       expect(ingestorMock.processResolutionCommand).toHaveBeenCalledWith(
-        expect.objectContaining({ joblifecycleId: '' })
+        expect.objectContaining({ jobLifecycleId: '' })
       );
     });
   });
@@ -279,9 +279,9 @@ describe('UDS Server Integration', () => {
 
     it('handles concurrent requests', async () => {
       const payloads = [
-        { html: '<html>job1</html>', joblifecycleId: 'concurrent-1' },
-        { html: '<html>job2</html>', joblifecycleId: 'concurrent-2' },
-        { html: '<html>job3</html>', joblifecycleId: 'concurrent-3' },
+        { html: '<html>job1</html>', jobLifecycleId: 'concurrent-1' },
+        { html: '<html>job2</html>', jobLifecycleId: 'concurrent-2' },
+        { html: '<html>job3</html>', jobLifecycleId: 'concurrent-3' },
       ];
       const results = await Promise.all(payloads.map(p => postJson('/internal/ingest', p)));
       results.forEach(res => expect(res.statusCode).toBe(202));
