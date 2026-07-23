@@ -1,108 +1,80 @@
-import { HtmlJobParser, type ParsedJobData } from './html-job-parser.js';
-
-/**
- * Job extraction service - handles extracting jobs from email HTML
- * Supports multiple job formats (TopCV multi-job, single job)
- * Used by: analyze-raw-emails.ts, htmlEnricher.ts
- */
+import * as cheerio from 'cheerio';
+import { type Job } from '../../types/job.js';
 
 export class JobExtractionService {
-  private parser: HtmlJobParser;
-
-  constructor() {
-    this.parser = new HtmlJobParser();
-  }
-
-  /**
-   * Extract all jobs from email HTML
-   * Handles TopCV multi-job format and fallback to single-job parsing
-   *
-   * @param html - Email HTML content
-   * @returns Array of parsed job data (may be empty if no jobs found)
-   */
-  extractAllJobs(html: string): ParsedJobData[] {
-    const jobs: ParsedJobData[] = [];
-
-    // Check if this is TopCV with multiple job-items
+  extractAllJobs(html: string): Partial<Job>[] {
     if (html.includes('job-item') && html.includes('topcv')) {
       const jobs = this.extractTopCVJobs(html);
-      if (jobs.length > 0) {
-        return jobs;
-      }
+      if (jobs.length > 0) return jobs;
     }
-
-    // Fall back to single-job parsing for Indeed, LinkedIn, etc.
-    const singleJob = this.parser.parseJobFromHtml(html);
-    if (singleJob && singleJob.role) {
-      jobs.push(singleJob);
+    if (html.includes('indeed') && html.includes('Job Alert')) {
+      const jobs = this.extractIndeedJobs(html);
+      if (jobs.length > 0) return jobs;
     }
+    return [];
+  }
 
+  private extractTopCVJobs(html: string): Partial<Job>[] {
+    const $ = cheerio.load(html);
+    const jobs: Partial<Job>[] = [];
+    $('a.job-item-link').each((_, el) => {
+      const item = $(el);
+      const role = item.find('.title span').text().trim();
+      const company = item.find('.company span').text().trim();
+      if (!role || !company) return;
+      const salary = item.find('.text-primary b').text().trim();
+      const url = item.attr('href') || '';
+      let location = '';
+      let deadline = '';
+      item.find('div.topcv-job-item > div:not([class])').each((_, d) => {
+        const text = $(d).text().trim();
+        if (/ngày để ứng tuyển/i.test(text)) deadline = text;
+        else if (/Hà Nội|Hồ Chí Minh|Đà Nẵng|TP\.HCM/i.test(text)) location = text;
+      });
+      jobs.push({
+        role,
+        company,
+        location: location || undefined,
+        salary: salary || undefined,
+        url: url || undefined,
+        deadline: deadline || undefined,
+      });
+    });
     return jobs;
   }
 
-  /**
-   * Extract multiple jobs from TopCV email format
-   * TopCV sends emails with multiple job items in a single email
-   *
-   * @param html - TopCV email HTML
-   * @returns Array of parsed jobs from TopCV format
-   */
-  private extractTopCVJobs(html: string): ParsedJobData[] {
-    const jobs: ParsedJobData[] = [];
-
-    // Match: <a class="job-item-link" href="...">...<div class="job-item">...</div>...</a>
-    const jobPattern = /<a[^>]*class="[^"]*job-item-link[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
-    const matches = [...html.matchAll(jobPattern)];
-
-    for (const match of matches) {
-      const url = match[1] || '';
-      const jobBlock = match[2] || '';
-
-      // Extract title from <div class="title"><span>...</span></div>
-      const titleMatch = jobBlock.match(
-        /<div[^>]*class="[^"]*title[^"]*"[^>]*>[\s\n]*<span[^>]*>([^<]+)<\/span>/
-      );
-      const title = titleMatch?.[1]?.trim() || '';
-
-      // Extract company from <div class="company"><span>...</span></div>
-      const companyMatch = jobBlock.match(
-        /<div[^>]*class="[^"]*company[^"]*"[^>]*>[\s\n]*<span[^>]*>([^<]+)<\/span>/
-      );
-      const company = companyMatch?.[1]?.trim() || '';
-
-      // Extract location (city names)
-      const locationMatch = jobBlock.match(
-        />\s*(Hà Nội|Hồ Chí Minh|Đà Nẵng|TP\.HCM|Ho Chi Minh|Ha Noi|Da Nang)\s*</i
-      );
-      const location = locationMatch?.[1]?.trim() || '';
-
-      // Extract salary from <b> inside text-primary
-      const salaryMatch = jobBlock.match(
-        /<div[^>]*class="[^"]*text-primary[^"]*"[^>]*>[\s\n]*<b[^>]*>([^<]+)<\/b>/
-      );
-      const salary = salaryMatch?.[1]?.trim() || '';
-
-      if (title && company) {
-        jobs.push({
-          role: title,
-          company,
-          location,
-          salary,
-          url,
-          source: 'topcv',
-        });
-      }
-    }
-
+  private extractIndeedJobs(html: string): Partial<Job>[] {
+    const $ = cheerio.load(html);
+    const jobs: Partial<Job>[] = [];
+    $('td.pb-24').each((_, el) => {
+      const item = $(el);
+      const role = item.find('h2.strong-text-link a').text().trim();
+      const url = item.find('h2.strong-text-link a').attr('href') || '';
+      if (!role || !url) return;
+      const company = item.find('td[style*="color:#2d2d2d"]').first().text().trim();
+      const locTds = item.find('td[style*="color:#2d2d2d"]');
+      const location = locTds.length > 1 ? $(locTds[1]).text().trim() : '';
+      const salary = item.find('strong').first().text().trim();
+      const description = item.find('td[style*="color:#767676"]').text().trim();
+      const deadline = item.find('td[style*="font-size:12px"]').text().trim();
+      const easyApply = item.text().includes('Easily apply');
+      jobs.push({
+        role,
+        company,
+        location: location || undefined,
+        salary: salary || undefined,
+        description: description || undefined,
+        url,
+        deadline: deadline || undefined,
+        easyApply,
+      });
+    });
     return jobs;
   }
 }
 
-/**
- * Singleton instance for job extraction
- */
 const jobExtractionService = new JobExtractionService();
 
-export function extractAllJobs(html: string): ParsedJobData[] {
+export function extractAllJobs(html: string): Partial<Job>[] {
   return jobExtractionService.extractAllJobs(html);
 }
