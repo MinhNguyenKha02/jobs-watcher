@@ -94,7 +94,6 @@ export class JobIngestor {
     }
   }
 
-  /** BROWSER_AUTO PARTIAL_PARSED: email HTML → extract → filter → enqueue (has url) or emitGenerated (no url) */
   private async signal1BrowserAutoXorManual(
     rawPayload: string,
     metadata?: ProcessIngestCommand['metadata']
@@ -130,7 +129,7 @@ export class JobIngestor {
 
       const doc: Partial<JobLifecycleDocument> = {
         _id: jobLifeCycleId,
-        raw: rawPayload,
+        raw: "",
         gmailMeta: metadata ? {
           messageId: metadata.messageId || `msg-${Date.now()}`,
           body: rawPayload,
@@ -335,19 +334,10 @@ export class JobIngestor {
     }
 
     const s1Doc: Partial<JobLifecycleDocument> = {
-      _id: jobLifecycleId || generateFallbackId(),
-      raw: rawPayload,
-      gmailMeta: stage1Partial?.gmailMeta,
-      role: stage1Partial?.role || 'Unknown',
-      company: stage1Partial?.company || 'Unknown',
-      description: stage1Partial?.description || '',
-      stage: JobStage.PARTIAL_PARSED,
-      status: JobStatus.ENRICHING,
-      source: JobSource.BROWSER_AUTO,
+      ...stage1Partial,
       updatedAt: new Date(),
-      createdAt: stage1Partial?.createdAt || new Date(),
       stageTimestamp: new Date(),
-    };
+    }
 
     await this.parsePort.emitGenerated(s1Doc, {
       stage: JobStage.PARTIAL_PARSED,
@@ -385,6 +375,16 @@ export class JobIngestor {
       stageTimestamp: new Date(),
       createdAt: stage1Partial?.createdAt || new Date(),
     };
+
+
+    const passed = hybridJobFilter(doc, {sinceTier: 2});
+    
+    if (!passed.passed) {
+      logger.info('Filter rejected job at stage 2', { jobLifecycleId, reasons: passed.reasons });
+      this.metricsRegistry?.jobErrors.inc({ stage: 's2', error_type: 'filter_rejected' });
+      await this.routingPort.emitJobTrashed(jobLifecycleId || s1Doc._id!, `Filter rejected at stage 2: ${passed.reasons.join('; ')}`);
+      return;
+    }
 
     await this.jobLifecycle.upsert(doc);
     this.metricsRegistry?.jobStageTotal.inc({ stage: 's2', status: 'enriched' });
