@@ -15,7 +15,7 @@ const MODAL_WIDTH = 70;
  * Render the preview viewer modal
  * Displays clipboard content with pagination controls
  */
-export function renderPreviewViewerModal(modal: PreviewViewerModal, state: CurrentJobState): string {
+export function renderPreviewViewerModal(modal: PreviewViewerModal): string {
   const lines: string[] = [];
 
   // Calculate centering

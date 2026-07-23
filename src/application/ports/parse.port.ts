@@ -7,7 +7,7 @@ export interface ParsePort {
     source: JobSource.BROWSER_AUTO | JobSource.MANUAL;
   }): Promise<void>;
 
-  emitCompleted(jobLifecycleId: string, job: Partial<JobLifecycleDocument>, context: {
+  emitCompleted(job: Partial<JobLifecycleDocument>, context: {
     stage: JobStage.FULL_PARSED;
     source: JobSource;
   }): Promise<void>;

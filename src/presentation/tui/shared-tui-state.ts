@@ -29,7 +29,6 @@ export interface CurrentJobState {
   jobLifecycleId: string | null;
   job: Job | null;
   stage: CurrentJobStage;
-  editedFields: Record<string, unknown> | null;
   modal: ModalState;
   updatedAt: string | null;
 }
@@ -285,7 +284,6 @@ export function getCurrentJob(): CurrentJobState {
     jobLifecycleId: sub.jobLifecycleId,
     job: sub.job,
     stage: sub.stage,
-    editedFields: sub.editedFields,
     modal: sub.modal,
     updatedAt: root.updatedAt,
   };

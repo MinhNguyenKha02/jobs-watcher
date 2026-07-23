@@ -162,7 +162,7 @@ export class OpsTuiApp {
       let modalFrame = '';
 
       if (state.modal.type === 'PREVIEW_VIEWER') {
-        modalFrame = renderPreviewViewerModal(state.modal, state);
+        modalFrame = renderPreviewViewerModal(state.modal);
       } else {
         logger.warn('Unknown modal type', { modalType: state.modal.type });
         return;

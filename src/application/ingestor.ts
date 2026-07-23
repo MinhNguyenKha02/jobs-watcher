@@ -50,47 +50,48 @@ export class JobIngestor {
   }
 
   async processResolutionCommand(command: ProcessResolutionCommand): Promise<void> {
-    const { jobLifecycleId, action, editedKVs } = command;
+    const { jobLifecycleId, action } = command;
     if (!jobLifecycleId || !action) return;
 
     try {
+      
       const existing = await this.queryWithRetry(jobLifecycleId);
-      const merged: Partial<JobLifecycleDocument> = {
-        ...(existing || {}),
-        ...(editedKVs || {}),
-        _id: jobLifecycleId,
-        updatedAt: new Date(),
-      };
-
+      if (!existing) {
+        logger.warn('Resolution action failed — no existing job lifecycle found', { jobLifecycleId, action });
+        this.metricsRegistry?.jobErrors.inc({ stage: '2', error_type: 'missing_job during routing' });
+        await this.routingPort.emitRouteFailed(jobLifecycleId, 'No existing job lifecycle found');
+        return;
+      }
       if (action === 'queue') {
         if (existing && existing.status !== JobStatus.ENRICHED) {
           logger.warn('[j] guard: rejecting queue action — job not ENRICHED', {
-            jobLifecycleId, status: existing.status,
+            jobLifecycleId: existing._id,
+            status: existing.status,
           });
           return;
         }
-        await this.jobLifecycle.updateStage(jobLifecycleId, JobStage.FULL_PARSED, JobStatus.QUEUED);
+        await this.jobLifecycle.updateStage(existing._id, JobStage.FULL_PARSED, JobStatus.QUEUED);
         this.metricsRegistry?.jobStageTotal.inc({ stage: 's3', status: 'queued' });
         if (existing?.stageTimestamp) {
           const durationSec = (Date.now() - new Date(existing.stageTimestamp).getTime()) / 1000;
           this.metricsRegistry?.jobStageDuration.observe({ stage: 's2_s3' }, durationSec);
         }
-        await this.routingPort.emitJobQueued(merged, { source: JobSource.MANUAL });
+        await this.routingPort.emitJobQueued(existing._id, { source: JobSource.MANUAL });
         if (this.assetProducingPort && existing) {
           this.assetProducingPort.toAsset(existing).catch((err: unknown) => {
-            logger.warn('Asset generation failed', { jobLifecycleId, error: err instanceof Error ? err.message : String(err) });
+            logger.warn('Asset generation failed', { jobLifecycleId: existing._id, error: err instanceof Error ? err.message : String(err) });
           });
         }
       } else if (action === 'trash') {
-        await this.jobLifecycle.updateStage(jobLifecycleId, JobStage.FULL_PARSED, JobStatus.TRASHED);
+        await this.jobLifecycle.updateStage(existing._id, JobStage.FULL_PARSED, JobStatus.TRASHED);
         this.metricsRegistry?.jobStageTotal.inc({ stage: 's3', status: 'trashed' });
-        await this.routingPort.emitJobTrashed(jobLifecycleId, 'operator:trash', { operatorEdits: editedKVs });
+        await this.routingPort.emitJobTrashed(existing._id, 'operator:trash');
       }
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       logger.warn('Resolution action failed', { jobLifecycleId, action, reason });
       this.metricsRegistry?.jobErrors.inc({ stage: 'resolution', error_type: action || 'unknown' });
-      await this.routingPort.emitRouteFailed(jobLifecycleId, reason, { operatorEdits: editedKVs });
+      await this.routingPort.emitRouteFailed(jobLifecycleId, reason);
     }
   }
 
@@ -264,7 +265,7 @@ export class JobIngestor {
       const durationSec = (Date.now() - new Date(stage1Partial.stageTimestamp).getTime()) / 1000;
       this.metricsRegistry?.jobStageDuration.observe({ stage: 's1_s2' }, durationSec);
     }
-    await this.parsePort.emitCompleted(jobLifecycleId, doc, {
+    await this.parsePort.emitCompleted(doc, {
       stage: JobStage.FULL_PARSED,
       source: JobSource.MANUAL,
     });
@@ -317,7 +318,7 @@ export class JobIngestor {
 
     this.metricsRegistry?.jobsBrokered.inc({ source: JobSource.MANUAL });
     this.metricsRegistry?.jobStageTotal.inc({ stage: 's2', status: 'enriched' });
-    await this.parsePort.emitCompleted(doc._id!, doc, {
+    await this.parsePort.emitCompleted(doc, {
       stage: JobStage.FULL_PARSED,
       source: JobSource.MANUAL,
     });
@@ -392,7 +393,7 @@ export class JobIngestor {
       const durationSec = (Date.now() - new Date(stage1Partial.stageTimestamp).getTime()) / 1000;
       this.metricsRegistry?.jobStageDuration.observe({ stage: 's1_s2' }, durationSec);
     }
-    await this.parsePort.emitCompleted(jobLifecycleId || s1Doc._id!, doc, {
+    await this.parsePort.emitCompleted(doc, {
       stage: JobStage.FULL_PARSED,
       source: JobSource.BROWSER_AUTO,
     });

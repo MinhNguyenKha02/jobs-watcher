@@ -169,8 +169,8 @@ export class ActionController {
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-       const stack = err instanceof Error ? err.stack : '';
-       logger.error(' Action dispatch failed', { action, error: errorMsg, stack });
+      const stack = err instanceof Error ? err.stack : '';
+      logger.error(' Action dispatch failed', { action, error: errorMsg, stack });
     }
   }
 
@@ -248,7 +248,7 @@ export class ActionController {
 
       // M2: add to processed set only AFTER successful UDS send
       const udsStart = Date.now();
-      await this.udsWriter.queue(state.jobLifecycleId, {});
+      await this.udsWriter.queue(state.jobLifecycleId);
       const udsTook = Date.now() - udsStart;
 
       this.addProcessedId(state.jobLifecycleId);
@@ -285,7 +285,7 @@ export class ActionController {
 
       // M2: add to processed set only AFTER successful UDS send
       const udsStart = Date.now();
-      await this.udsWriter.trash(state.jobLifecycleId, {});
+      await this.udsWriter.trash(state.jobLifecycleId);
       const udsTook = Date.now() - udsStart;
 
       this.addProcessedId(state.jobLifecycleId);
@@ -398,6 +398,19 @@ export class ActionController {
       logger.info('ignored in direct mode');
       return;
     }
+
+    logger.debug('Reading clipboard...');
+
+    const clipboardArr = await clipboardGetter();
+    const htmlPayload = clipboardArr[0];
+
+    if (!htmlPayload) {
+      logger.warn('Clipboard empty or not HTML');
+      return;
+    }
+
+    logger.debug('Ingesting clipboard as Stage 2...');
+
     const current = getCurrentJob();
     try {
       if (!current || !current.jobLifecycleId) {
@@ -415,7 +428,7 @@ export class ActionController {
         return;
       }
 
-      const htmlPayload = await this.udsWriter.webhookIngest(current.jobLifecycleId);
+      await this.udsWriter.webhookIngest(current.jobLifecycleId);
 
       logger.info('Stage 2 parse triggered successfully', {
         jobLifecycleId: current.jobLifecycleId,
@@ -438,7 +451,7 @@ export class ActionController {
     // 1. Extract URL (safely handle possible null job)
     const url = current.job 
       ? ((current.job as unknown as Record<string, unknown>)?.url || 
-         (current.job as unknown as Record<string, unknown>)?.link)
+        (current.job as unknown as Record<string, unknown>)?.link)
       : undefined;
       
     if (typeof url !== 'string' || !url) {

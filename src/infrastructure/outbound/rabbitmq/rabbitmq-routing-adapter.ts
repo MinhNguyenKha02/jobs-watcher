@@ -10,10 +10,10 @@ export class RabbitMqRoutingAdapter implements RoutingPort {
     private traceCtx?: TraceContext
   ) {}
 
-  async emitJobQueued(job: Partial<JobLifecycleDocument>, context?: unknown): Promise<void> {
+  async emitJobQueued(jobLifecycleId: string, context?: unknown): Promise<void> {
     const channel = this.rmq.getChannel();
     const headers = this.traceCtx ? traceContextToHeaders(this.traceCtx) : {};
-    channel.publish(this.rmq.getExchange(), ActionEvent.QUEUED, Buffer.from(JSON.stringify({ job, context })), {
+    channel.publish(this.rmq.getExchange(), ActionEvent.QUEUED, Buffer.from(JSON.stringify({ jobLifecycleId, context })), {
       headers,
       persistent: true,
     });

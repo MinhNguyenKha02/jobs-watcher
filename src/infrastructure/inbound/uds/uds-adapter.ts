@@ -77,7 +77,6 @@ export class UdsAdapter {
       const command: ProcessResolutionCommand = {
         jobLifecycleId: body.jobLifecycleId,
         action: body.action,
-        editedKVs: body.editedKVs,
       };
       if (!command.jobLifecycleId || !command.action) {
         res.writeHead(400, { 'Content-Type': 'application/json' });

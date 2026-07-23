@@ -19,10 +19,10 @@ export class RabbitMqParseAdapter implements ParsePort {
     });
   }
 
-  async emitCompleted(jobLifecycleId: string, job: Partial<JobLifecycleDocument>, _context: unknown): Promise<void> {
+  async emitCompleted(job: Partial<JobLifecycleDocument>, _context: unknown): Promise<void> {
     const channel = this.rmq.getChannel();
     const headers = this.traceCtx ? traceContextToHeaders(this.traceCtx) : {};
-    channel.publish(this.rmq.getExchange(), ActionEvent.PARSE_COMPLETED, Buffer.from(JSON.stringify({ jobLifecycleId, job })), {
+    channel.publish(this.rmq.getExchange(), ActionEvent.PARSE_COMPLETED, Buffer.from(JSON.stringify({ job })), {
       headers,
       persistent: true,
     });

@@ -2,7 +2,15 @@ import amqplib, { type Channel, type ChannelModel, type ConsumeMessage } from 'a
 import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
 import { ActionEvent } from '../../../domain/types/action-event.js';
 import { JobStage } from '../../../domain/types/job-lifecycle.js';
-import { setCurrentJob, clearCurrentJob, getCurrentJob, getQueueMode } from '../shared-tui-state.js';
+import { JobLifecycleDocument } from '../../../infrastructure/outbound/persistence/schemas.js';
+import {
+  setCurrentJob,
+  clearCurrentJob,
+  getCurrentJob,
+  getQueueMode,
+  setQueueMode,
+} from '../shared-tui-state.js';
+import { Job } from '../../../domain/types/job.js';
 
 const logger = createLogger('RMQReader');
 
@@ -15,13 +23,12 @@ const DEFERRED_S2_MAX = 10;
 const DEFERRED_S2_TTL = 30_000;
 
 interface PendingJob {
-  readonly id: string;
-  readonly job: Record<string, unknown>;
+  readonly job: Partial<JobLifecycleDocument>;
   stage: JobStage.PARTIAL_PARSED | JobStage.FULL_PARSED;
 }
 
 interface S2BufferEntry {
-  payload: Record<string, unknown>;
+  payload: Partial<JobLifecycleDocument>;
   deliveryTag: number;
   timestamp: number;
 }
@@ -33,7 +40,6 @@ export class RabbitMqJobReader {
 
   private pendingJobs: PendingJob[] = [];
   private currentJobId: string | null = null;
-  private queueMode = true;
   private deliveryTagsS1 = new Map<string, number[]>();
   private deliveryTagsS2 = new Map<string, number[]>();
   private deferredS2Buffer = new Map<string, S2BufferEntry>();
@@ -43,8 +49,12 @@ export class RabbitMqJobReader {
 
   constructor(private baseUrl: string) {}
 
-  getQueueDepth(): number { return this.pendingJobs.length; }
-  isConnected(): boolean { return this.connected; }
+  getQueueDepth(): number {
+    return this.pendingJobs.length;
+  }
+  isConnected(): boolean {
+    return this.connected;
+  }
 
   async start(): Promise<void> {
     try {
@@ -72,9 +82,15 @@ export class RabbitMqJobReader {
       await s2.prefetch(PREFETCH);
       await s34.prefetch(PREFETCH);
 
-      await s1.consume(S1_QUEUE, (msg) => { if (msg) this.onMessageS1(msg); });
-      await s2.consume(S2_QUEUE, (msg) => { if (msg) this.onMessageS2(msg); });
-      await s34.consume(S34_QUEUE, (msg) => { if (msg) this.onMessageS3S4(msg); });
+      await s1.consume(S1_QUEUE, (msg) => {
+        if (msg) this.onMessageS1(msg);
+      });
+      await s2.consume(S2_QUEUE, (msg) => {
+        if (msg) this.onMessageS2(msg);
+      });
+      await s34.consume(S34_QUEUE, (msg) => {
+        if (msg) this.onMessageS3S4(msg);
+      });
 
       this.evictTimer = setInterval(() => this.evictStaleDeferred(), 5000);
       this.connected = true;
@@ -95,15 +111,18 @@ export class RabbitMqJobReader {
     logger.info('Stopped');
   }
 
-  setQueueMode(mode: boolean): void {
-    this.queueMode = mode;
+  private getQueueMode(): boolean {
+    return getQueueMode();
   }
 
   private onMessageS1(msg: ConsumeMessage): void {
     try {
-      const payload = JSON.parse(msg.content.toString()) as Record<string, unknown>;
-      const id = (payload._id ?? payload.jobLifecycleId) as string;
-      if (!id) { this.s1channel!.ack(msg); return; }
+      const payload = JSON.parse(msg.content.toString()) as Partial<JobLifecycleDocument>;
+      const id = payload._id as string;
+      if (!id) {
+        this.s1channel!.ack(msg);
+        return;
+      }
 
       const tags = this.deliveryTagsS1.get(id) ?? [];
       tags.push(msg.fields.deliveryTag);
@@ -111,11 +130,15 @@ export class RabbitMqJobReader {
 
       this.drainDeferredS2(id);
 
-      if (!this.pendingJobs.some((p) => p.id === id)) {
-        this.pendingJobs.push({ id, job: payload, stage: JobStage.PARTIAL_PARSED });
+      if (!this.pendingJobs.some((p) => p.job._id === id)) {
+        this.pendingJobs.push({ job: payload, stage: JobStage.PARTIAL_PARSED });
       }
 
-      logger.info('job.generated', { id, company: payload.company, stage: JobStage.PARTIAL_PARSED });
+      logger.info('job.generated', {
+        id,
+        company: payload.company,
+        stage: JobStage.PARTIAL_PARSED,
+      });
       this.autoAdvance();
     } catch (err) {
       logger.warn('C1 Error', { error: String(err) });
@@ -125,15 +148,18 @@ export class RabbitMqJobReader {
 
   private onMessageS2(msg: ConsumeMessage): void {
     try {
-      const payload = JSON.parse(msg.content.toString()) as Record<string, unknown>;
-      const id = (payload._id ?? payload.jobLifecycleId) as string;
-      if (!id) { this.s2channel!.ack(msg); return; }
+      const payload = JSON.parse(msg.content.toString()) as Partial<JobLifecycleDocument>;
+      const id = payload._id as string;
+      if (!id) {
+        this.s2channel!.ack(msg);
+        return;
+      }
 
       const tags = this.deliveryTagsS2.get(id) ?? [];
       tags.push(msg.fields.deliveryTag);
       this.deliveryTagsS2.set(id, tags);
 
-      const existingIdx = this.pendingJobs.findIndex((p) => p.id === id);
+      const existingIdx = this.pendingJobs.findIndex((p) => p.job._id === id);
       if (existingIdx !== -1) {
         this.pendingJobs[existingIdx] = {
           ...this.pendingJobs[existingIdx],
@@ -144,7 +170,7 @@ export class RabbitMqJobReader {
       } else if (this.currentJobId === id) {
         setCurrentJob(id, { ...getCurrentJob().job, ...payload } as any, JobStage.FULL_PARSED);
         logger.info('job.parse.completed — IPC enriched displayed job', { id });
-      } else if (!this.queueMode) {
+      } else if (this.getQueueMode()===false) {
         if (this.currentJobId !== null) {
           this.ackAllForJob(this.currentJobId);
         }
@@ -157,7 +183,11 @@ export class RabbitMqJobReader {
           this.s2channel!.nack(msg, false, true);
           return;
         }
-        this.deferredS2Buffer.set(id, { payload, deliveryTag: msg.fields.deliveryTag, timestamp: Date.now() });
+        this.deferredS2Buffer.set(id, {
+          payload,
+          deliveryTag: msg.fields.deliveryTag,
+          timestamp: Date.now(),
+        });
         logger.debug('S2 deferred', { id });
       }
     } catch (err) {
@@ -168,9 +198,12 @@ export class RabbitMqJobReader {
 
   private onMessageS3S4(msg: ConsumeMessage): void {
     try {
-      const payload = JSON.parse(msg.content.toString()) as Record<string, unknown>;
-      const id = (payload._id ?? payload.jobLifecycleId) as string;
-      if (!id) { this.s34channel!.ack(msg); return; }
+      const payload = JSON.parse(msg.content.toString()) as string;
+      const id = payload
+      if (!id) {
+        this.s34channel!.ack(msg);
+        return;
+      }
 
       this.ackAllForJob(id);
       this.s34channel!.ack(msg);
@@ -185,12 +218,15 @@ export class RabbitMqJobReader {
           logger.info('job.queued', { id });
         } else if (routingKey === ActionEvent.TRASHED) {
           logger.info('job.trashed', { id });
-        } else if (routingKey === ActionEvent.PARSE_FAILED || routingKey === ActionEvent.ROUTE_FAILED) {
+        } else if (
+          routingKey === ActionEvent.PARSE_FAILED ||
+          routingKey === ActionEvent.ROUTE_FAILED
+        ) {
           logger.info('job.failed', { id, routingKey });
         }
       }
 
-      if (this.queueMode) this.autoAdvance();
+      this.autoAdvance();
     } catch (err) {
       logger.warn('C3 Error', { error: String(err) });
       this.s34channel!.nack(msg, false, true);
@@ -215,17 +251,17 @@ export class RabbitMqJobReader {
   }
 
   private autoAdvance(): void {
-    if (!this.queueMode) return;
+    if (this.getQueueMode()===false) return;
     if (this.currentJobId !== null) return;
     if (this.pendingJobs.length === 0) return;
     const next = this.pendingJobs.shift()!;
-    this.currentJobId = next.id;
-    setCurrentJob(next.id, next.job as any, next.stage);
-    logger.info('Auto-advanced to next job', { id: next.id, stage: next.stage });
+    this.currentJobId = next.job._id as string;
+    setCurrentJob(next.job._id as string, next.job as Job, next.stage);
+    logger.info('Auto-advanced to next job', { id: next.job._id, stage: next.stage });
   }
 
   private removeFromPending(id: string): void {
-    const idx = this.pendingJobs.findIndex((j) => j.id === id);
+    const idx = this.pendingJobs.findIndex((j) => j.job._id === id);
     if (idx !== -1) this.pendingJobs.splice(idx, 1);
   }
 
@@ -234,7 +270,7 @@ export class RabbitMqJobReader {
     if (!entry) return;
     this.deferredS2Buffer.delete(id);
 
-    const existingIdx = this.pendingJobs.findIndex((p) => p.id === id);
+    const existingIdx = this.pendingJobs.findIndex((p) => p.job._id === id);
     if (existingIdx !== -1) {
       this.pendingJobs[existingIdx] = {
         ...this.pendingJobs[existingIdx],
@@ -242,7 +278,7 @@ export class RabbitMqJobReader {
         stage: JobStage.FULL_PARSED,
       };
     } else {
-      this.pendingJobs.push({ id, job: entry.payload, stage: JobStage.FULL_PARSED });
+      this.pendingJobs.push({ job: entry.payload, stage: JobStage.FULL_PARSED });
     }
     logger.info('Deferred S2 drained', { id });
   }
@@ -252,7 +288,11 @@ export class RabbitMqJobReader {
     for (const [id, entry] of this.deferredS2Buffer) {
       if (now - entry.timestamp > DEFERRED_S2_TTL) {
         logger.warn('Evicting stale deferred S2', { id });
-        this.s2channel?.nack({ fields: { deliveryTag: entry.deliveryTag } } as ConsumeMessage, false, false);
+        this.s2channel?.nack(
+          { fields: { deliveryTag: entry.deliveryTag } } as ConsumeMessage,
+          false,
+          false
+        );
         this.deferredS2Buffer.delete(id);
       }
     }

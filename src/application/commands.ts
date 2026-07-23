@@ -20,5 +20,4 @@ export type ResolutionAction = 'queue' | 'trash';
 export interface ProcessResolutionCommand {
   jobLifecycleId: string;
   action: ResolutionAction;
-  editedKVs?: Record<string, unknown>;
 }

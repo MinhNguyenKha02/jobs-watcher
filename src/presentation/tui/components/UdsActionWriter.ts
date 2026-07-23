@@ -47,12 +47,10 @@ export class UdsActionWriter {
   /**
    * Send a queue action for a job.
    */
-  async queue(jobLifecycleId: string, editedKVs?: Record<string, unknown>, job?: any): Promise<void> {
+  async queue(jobLifecycleId: string): Promise<void> {
     const payload: ActionPayload = {
       jobLifecycleId,
       action: OperatorAction.QUEUE,
-      editedKVs,
-      source: 'ops-tui',
     };
     
     await this.sendAction(payload);
@@ -61,12 +59,10 @@ export class UdsActionWriter {
   /**
    * Send a trash action for a job.
    */
-  async trash(jobLifecycleId: string, editedKVs?: Record<string, unknown>, job?: any): Promise<void> {
+  async trash(jobLifecycleId: string): Promise<void> {
     const payload: ActionPayload = {
       jobLifecycleId,
       action: OperatorAction.TRASH,
-      editedKVs,
-      source: 'ops-tui',
     };
     
     await this.sendAction(payload);
@@ -84,10 +80,8 @@ export class UdsActionWriter {
         throw new Error('Clipboard content is empty');
       }
 
-      // Create a hash of the clipboard content for deduplication tracking
-      const hash = createHash('sha256').update(html).digest('hex');
 
-      logger.debug('Pasting HTML from clipboard (webhook stage 2)', { size: html.length, hash: hash.substring(0, 8), jobLifecycleId });
+      logger.debug('Pasting HTML from clipboard (webhook stage 2)', { size: html.length, jobLifecycleId });
 
       // POST to /internal/ingest?webhook=true endpoint
       const ingestOpts: UdsRequestOptions = {
@@ -100,12 +94,6 @@ export class UdsActionWriter {
 
       const ingestPayload: Record<string, any> = {
         html,
-        source: 'webhook-clipboard',
-        meta: {
-          hash,
-          size: html.length,
-          timestamp: new Date().toISOString(),
-        },
       };
 
       // Include jobLifecycleId if provided (for webhook stage 2 enrichment)
