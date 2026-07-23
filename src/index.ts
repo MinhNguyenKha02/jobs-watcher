@@ -5,6 +5,7 @@ import { RabbitMqConnection } from './infrastructure/outbound/rabbitmq/rabbitmq-
 import { RabbitMqParseAdapter } from './infrastructure/outbound/rabbitmq/rabbitmq-parse-adapter.js';
 import { RabbitMqRoutingAdapter } from './infrastructure/outbound/rabbitmq/rabbitmq-routing-adapter.js';
 import { JobIngestor } from './application/ingestor.js';
+import { UdsAdapter } from './infrastructure/inbound/uds/uds-adapter.js';
 import { startHealthServer } from './infrastructure/inbound/health/health-adapter.js';
 import { MetricsRegistry } from './infrastructure/outbound/monitoring/metrics-registry.js';
 import { SystemMonitor } from './infrastructure/outbound/monitoring/system-monitor.js';
@@ -40,6 +41,12 @@ async function main(): Promise<void> {
   );
 
   startHealthServer({ port: Number(process.env.HEALTH_PORT || '9090'), metricsRegistry, systemMonitor });
+
+  const udsAdapter = new UdsAdapter(ingestor, {
+    socketPath: process.env.UDS_SOCKET_PATH || '/run/jobs-watcher/ingest.sock',
+    token: process.env.INTERNAL_AUTH_TOKEN,
+  });
+  await udsAdapter.start();
 
   logger.info('Startup complete');
 }
