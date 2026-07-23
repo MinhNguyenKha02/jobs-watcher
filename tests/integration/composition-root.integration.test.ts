@@ -7,33 +7,17 @@ describe('Composition root — bootstrap with real storage', () => {
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    vi.mock('../../src/services/gmail.js', () => ({
+    vi.mock('../../src/infrastructure/outbound/gmail.js', () => ({
       GmailService: vi.fn(() => ({ authenticate: vi.fn().mockResolvedValue(undefined) })),
     }));
-    vi.mock('../../src/services/mongodb-validator.js', () => ({
-      validateMongoTopology: vi.fn().mockResolvedValue(undefined),
-    }));
-    vi.mock('../../src/services/browser/browser-extractor.js', () => ({
+    vi.mock('../../src/infrastructure/outbound/browser/browser-extractor.js', () => ({
       PlaywrightBrowserAdapter: vi.fn(() => ({ start: vi.fn(), stop: vi.fn() })),
     }));
-    vi.mock('../../src/cli/data-listening.js', () => ({
-      runDataListening: vi.fn(),
-    }));
-    vi.mock('../../src/services/event-webhook.js', () => ({
-      EventDrivenWebhook: vi.fn(() => ({
-        connect: vi.fn().mockResolvedValue(undefined),
+    vi.mock('../../src/infrastructure/inbound/web/webhook-adapter.js', () => ({
+      WebhookAdapter: vi.fn(() => ({
         start: vi.fn().mockResolvedValue(undefined),
         stop: vi.fn().mockResolvedValue(undefined),
       })),
-    }));
-    vi.mock('../../src/bootstrap/execution-mode.js', () => ({
-      detectExecutionMode: vi.fn(() => ({
-        mode: 'TEST', isProduction: false, isTest: true, isFixture: false, isHeadless: false,
-      })),
-      initializeModeContext: vi.fn(),
-    }));
-    vi.mock('../../src/services/queue-metrics.js', () => ({
-      metrics: { getMetrics: () => ({}) },
     }));
   });
 
@@ -54,20 +38,18 @@ describe('Composition root — bootstrap with real storage', () => {
     );
     await adapter.connect();
 
+    const parseEventPort = {
+      emitGenerated: vi.fn(),
+      emitCompleted: vi.fn(),
+      emitFailed: vi.fn(),
+    };
     const routingPort = {
       emitJobQueued: vi.fn(),
       emitJobTrashed: vi.fn(),
       emitRouteFailed: vi.fn(),
     };
 
-    const ingestor = new JobIngestor(adapter, {
-      parseEventPort: {
-        emitGenerated: vi.fn(),
-        emitCompleted: vi.fn(),
-        emitFailed: vi.fn(),
-      },
-      routingPort,
-    });
+    const ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
 
     const jobId = 'comp-root-test-queue-001';
     await adapter.upsert({
@@ -77,7 +59,7 @@ describe('Composition root — bootstrap with real storage', () => {
       body: '<html>test</html>',
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
-      status: JobStatus.PENDING,
+      status: JobStatus.ENRICHED,
       createdAt: new Date(),
       updatedAt: new Date(),
       stageTimestamp: new Date(),
@@ -105,20 +87,18 @@ describe('Composition root — bootstrap with real storage', () => {
     );
     await adapter.connect();
 
+    const parseEventPort = {
+      emitGenerated: vi.fn(),
+      emitCompleted: vi.fn(),
+      emitFailed: vi.fn(),
+    };
     const routingPort = {
       emitJobQueued: vi.fn(),
       emitJobTrashed: vi.fn(),
       emitRouteFailed: vi.fn(),
     };
 
-    const ingestor = new JobIngestor(adapter, {
-      parseEventPort: {
-        emitGenerated: vi.fn(),
-        emitCompleted: vi.fn(),
-        emitFailed: vi.fn(),
-      },
-      routingPort,
-    });
+    const ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
 
     const jobId = 'comp-root-test-trash-001';
     await adapter.upsert({
@@ -128,7 +108,7 @@ describe('Composition root — bootstrap with real storage', () => {
       body: '<html>test</html>',
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
-      status: JobStatus.PENDING,
+      status: JobStatus.ENRICHED,
       createdAt: new Date(),
       updatedAt: new Date(),
       stageTimestamp: new Date(),
@@ -155,20 +135,18 @@ describe('Composition root — bootstrap with real storage', () => {
     );
     await adapter.connect();
 
+    const parseEventPort = {
+      emitGenerated: vi.fn(),
+      emitCompleted: vi.fn(),
+      emitFailed: vi.fn(),
+    };
     const routingPort = {
       emitJobQueued: vi.fn(),
       emitJobTrashed: vi.fn(),
       emitRouteFailed: vi.fn(),
     };
 
-    const ingestor = new JobIngestor(adapter, {
-      parseEventPort: {
-        emitGenerated: vi.fn(),
-        emitCompleted: vi.fn(),
-        emitFailed: vi.fn(),
-      },
-      routingPort,
-    });
+    const ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
 
     const jobId = 'comp-root-test-edit-001';
     await adapter.upsert({
@@ -178,7 +156,7 @@ describe('Composition root — bootstrap with real storage', () => {
       body: '<html>test</html>',
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
-      status: JobStatus.PENDING,
+      status: JobStatus.ENRICHED,
       createdAt: new Date(),
       updatedAt: new Date(),
       stageTimestamp: new Date(),

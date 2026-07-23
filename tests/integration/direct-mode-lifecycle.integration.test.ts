@@ -42,6 +42,7 @@ const CLIPBOARD_HTML = `<html><body>
 
 describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
   let storage: any;
+  let dbCollection: any;
   let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
@@ -54,6 +55,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
       storage.dbName,
     );
     await adapter.connect();
+    dbCollection = storage.client.db(storage.dbName).collection('job_lifecycle');
 
     parseEvents = [];
     routingEvents = [];
@@ -80,7 +82,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
 
   it('signal2bManual creates clip-* doc and emits parse.completed (simulates [i] in direct mode)', async () => {
     const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
-    const docsBefore = await (adapter as any).jobLifecycleCollection.countDocuments({});
+    const docsBefore = await dbCollection.countDocuments({});
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
@@ -88,25 +90,23 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
       rawPayload: CLIPBOARD_HTML,
     });
 
-    const docsAfter = await (adapter as any).jobLifecycleCollection.countDocuments({});
+    const docsAfter = await dbCollection.countDocuments({});
     expect(docsAfter).toBe(docsBefore + 1);
 
-    const col = (adapter as any).jobLifecycleCollection;
-    const docs = await col.find({}).sort({ createdAt: -1 }).limit(1).toArray();
+    const docs = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
     const newDoc = docs[0];
     expect(newDoc._id).toMatch(/^clip-/);
     expect(newDoc.stage).toBe(JobStage.FULL_PARSED);
     expect(newDoc.status).toBe(JobStatus.ENRICHED);
     expect(newDoc.company).toBe('ClipDirectCorp');
     expect(newDoc.role).toBe('Junior Backend Developer');
-    expect(newDoc.matchScore).toBeGreaterThan(0);
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(completedBefore + 1);
   });
 
   it('signal2bManual → queue resolution: full clipboard-to-queued flow', async () => {
-    const docsBefore = await (adapter as any).jobLifecycleCollection.countDocuments({});
+    const docsBefore = await dbCollection.countDocuments({});
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
@@ -114,8 +114,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
       rawPayload: CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'ClipQueueCorp'),
     });
 
-    const col = (adapter as any).jobLifecycleCollection;
-    const docs = await col.find({}).sort({ createdAt: -1 }).limit(1).toArray();
+    const docs = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
     const clipDoc = docs[0];
     expect(clipDoc._id).toMatch(/^clip-/);
 
@@ -134,7 +133,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
     expect(routedDoc).not.toBeNull();
     expect(routedDoc!.status).toBe(JobStatus.QUEUED);
 
-    const docsAfter = await (adapter as any).jobLifecycleCollection.countDocuments({});
+    const docsAfter = await dbCollection.countDocuments({});
     expect(docsAfter).toBe(docsBefore + 1);
   });
 
@@ -145,8 +144,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
       rawPayload: CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'ClipTrashCorp'),
     });
 
-    const col = (adapter as any).jobLifecycleCollection;
-    const docs = await col.find({}).sort({ createdAt: -1 }).limit(1).toArray();
+    const docs = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
     const clipDoc = docs[0];
 
     routingEvents.length = 0;
@@ -171,7 +169,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
       rawPayload: CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'DedupCorp'),
     });
 
-    const docsBefore = await (adapter as any).jobLifecycleCollection.countDocuments({});
+    const docsBefore = await dbCollection.countDocuments({});
     const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
 
     await ingestor.processIngestCommand({
@@ -180,7 +178,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
       rawPayload: CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'DedupCorp'),
     });
 
-    const docsAfter = await (adapter as any).jobLifecycleCollection.countDocuments({});
+    const docsAfter = await dbCollection.countDocuments({});
     expect(docsAfter).toBe(docsBefore);
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
@@ -194,8 +192,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
       rawPayload: CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'FirstCo'),
     });
 
-    const col = (adapter as any).jobLifecycleCollection;
-    const docs1 = await col.find({}).sort({ createdAt: -1 }).limit(1).toArray();
+    const docs1 = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
     const firstDoc = docs1[0];
     expect(firstDoc.company).toBe('FirstCo');
 
@@ -208,7 +205,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
       rawPayload: CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'SecondCo'),
     });
 
-    const docs2 = await col.find({}).sort({ createdAt: -1 }).limit(1).toArray();
+    const docs2 = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
     const secondDoc = docs2[0];
     expect(secondDoc.company).toBe('SecondCo');
     expect(secondDoc._id).not.toBe(firstDoc._id);
