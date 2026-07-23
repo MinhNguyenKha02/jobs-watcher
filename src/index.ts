@@ -1,7 +1,7 @@
 import { config } from './config.js';
 import { initLogger, createLogger } from './infrastructure/outbound/logging/logger.js';
 import { MongoJobLifecycleAdapter } from './infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
-import { RabbitMqConnection } from './infrastructure/outbound/rabbitmq/rabbitmq-connection.js';
+import { RabbitMqConnection } from './infrastructure/outbound/rabbitmq/rabbitmq-connection-adapter.js';
 import { RabbitMqParseAdapter } from './infrastructure/outbound/rabbitmq/rabbitmq-parse-adapter.js';
 import { RabbitMqRoutingAdapter } from './infrastructure/outbound/rabbitmq/rabbitmq-routing-adapter.js';
 import { JobIngestor } from './application/ingestor.js';
