@@ -1,22 +1,11 @@
 import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
-import type { JobDetails } from '../../types/job.js';
+import type { Job, JobDetails } from '../../types/job.js';
 import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
 
 const logger = createLogger('HtmlParser');
 
-export interface ParsedJobData {
-  role?: string;
-  company?: string;
-  location?: string;
-  salary?: string;
-  description?: string;
-  details?: JobDetails;
-  url?: string;
-  source?: 'topcv' | 'indeed' | 'linkedin' | 'unknown';
-  deadline?: string;
-  easyApply?: boolean;
-}
+export type ParsedJobData = Partial<Job>;
 
 function cleanText(input: string): string {
   return input.replace(/[\s\n]+/g, ' ').trim();
@@ -263,7 +252,7 @@ export class HtmlJobParser {
           hasUrl: !!topcvJob.url,
           hasDescription: !!topcvJob.description,
         });
-        return { ...topcvJob, source: 'topcv' };
+        return topcvJob;
       }
 
       const indeedJob = this.parseIndeed($);
@@ -276,7 +265,7 @@ export class HtmlJobParser {
           hasUrl: !!indeedJob.url,
           hasDescription: !!indeedJob.description,
         });
-        return { ...indeedJob, source: 'indeed' };
+        return indeedJob;
       }
 
       const linkedInJob = this.parseLinkedIn($);
@@ -289,7 +278,7 @@ export class HtmlJobParser {
           hasUrl: !!linkedInJob.url,
           hasDescription: !!linkedInJob.description,
         });
-        return { ...linkedInJob, source: 'linkedin' };
+        return linkedInJob;
       }
 
       const linkedInSduiJob = this.parseLinkedInSdui($);
@@ -303,7 +292,7 @@ export class HtmlJobParser {
           hasUrl: !!linkedInSduiJob.url,
           hasDescription: !!linkedInSduiJob.description,
         });
-        return { ...linkedInSduiJob, source: 'linkedin' };
+        return linkedInSduiJob;
       }
 
       logger.debug('No supported job format detected');
