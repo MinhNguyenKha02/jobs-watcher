@@ -15,8 +15,8 @@ mkdir -p "$ROOT_DIR/logs"
 
 # 1. Fetch new emails (outputs messageIds to a temp file)
 node --loader ts-node/esm --experimental-specifier-resolution=node <<'EOF'
-import { GmailService } from '../../src/infrastructure/inbound/gmail/gmail.js';
-import { config } from '../../src/config.js';
+import { GmailService } from './src/infrastructure/outbound/gmail.js';
+import { config } from './src/config.js';
 import fs from 'fs';
 
 async function main() {
