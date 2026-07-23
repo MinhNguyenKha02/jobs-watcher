@@ -13,6 +13,7 @@ import {
   setQueueMode,
   type ModalState,
 } from './shared-tui-state.js';
+import { JobStage } from '../../domain/types/job-lifecycle.js';
 
 const logger = createLogger('TUI-Actions');
 
@@ -407,7 +408,7 @@ export class ActionController {
         return;
       }
 
-      if (current.stage === 'FULL_PARSED') {
+      if (current.stage === JobStage.FULL_PARSED) {
         logger.info('ignored — job already fully parsed', {
           jobLifecycleId: current.jobLifecycleId,
         });

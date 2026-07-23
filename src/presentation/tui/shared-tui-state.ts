@@ -5,10 +5,11 @@ import { homedir } from 'node:os';
 
 import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 import type { Job } from '../../domain/types/job.js';
+import { JobStage } from '../../domain/types/job-lifecycle.js';
 
 const logger = createLogger('TUI-State');
 
-export type CurrentJobStage = 'PARTIAL' | 'FULL_PARSED' | null;
+export type CurrentJobStage = JobStage.PARTIAL_PARSED | JobStage.FULL_PARSED | null;
 
 export type ModalType = 'PREVIEW_VIEWER';
 
@@ -104,10 +105,9 @@ function readSharedStateFromDisk(): TuiSharedState {
       const queue: ModeSubState = {
         jobLifecycleId: typeof old.messageId === 'string' ? old.messageId : null,
         job: old.job && typeof old.job === 'object' ? (old.job as Job) : null,
-        stage:
-          old.stage === 'PARTIAL' || old.stage === 'FULL_PARSED' || old.stage === 'CLIPBOARD_SCORED'
-            ? (old.stage === 'CLIPBOARD_SCORED' ? 'FULL_PARSED' : old.stage)
-            : null,
+        stage: old.stage === JobStage.PARTIAL_PARSED || old.stage === 'PARTIAL' ? JobStage.PARTIAL_PARSED
+          : old.stage === JobStage.FULL_PARSED || old.stage === 'FULL_PARSED' ? JobStage.FULL_PARSED
+          : null,
         editedFields:
           old.editedFields && typeof old.editedFields === 'object'
             ? (old.editedFields as Record<string, unknown>)
@@ -147,10 +147,9 @@ function parseModeSubState(raw: Record<string, unknown>): ModeSubState {
   return {
     jobLifecycleId: typeof raw.jobLifecycleId === 'string' ? raw.jobLifecycleId : (typeof raw.messageId === 'string' ? raw.messageId : null),
     job: raw.job && typeof raw.job === 'object' ? (raw.job as Job) : null,
-    stage:
-      raw.stage === 'PARTIAL' || raw.stage === 'FULL_PARSED' || raw.stage === 'CLIPBOARD_SCORED'
-        ? (raw.stage === 'CLIPBOARD_SCORED' ? 'FULL_PARSED' : raw.stage)
-        : null,
+    stage: raw.stage === JobStage.PARTIAL_PARSED || raw.stage === 'PARTIAL' ? JobStage.PARTIAL_PARSED
+      : raw.stage === JobStage.FULL_PARSED || raw.stage === 'FULL_PARSED' ? JobStage.FULL_PARSED
+      : null,
     editedFields:
       raw.editedFields && typeof raw.editedFields === 'object'
         ? (raw.editedFields as Record<string, unknown>)
@@ -238,7 +237,7 @@ function persist(root: TuiSharedState): void {
   writeSharedStateToDisk(root);
 }
 
-export function setCurrentJob(jobLifecycleId: string, job: Job, stage: CurrentJobStage = 'FULL_PARSED'): void {
+export function setCurrentJob(jobLifecycleId: string, job: Job, stage: CurrentJobStage = JobStage.FULL_PARSED): void {
   withExclusiveLock(() => {
     const root = readSharedStateFromDisk();
     const key = activeModeKey(root.queueMode);

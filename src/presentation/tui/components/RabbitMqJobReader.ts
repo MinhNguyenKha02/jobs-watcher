@@ -1,6 +1,7 @@
 import amqplib, { type Channel, type ChannelModel, type ConsumeMessage } from 'amqplib';
 import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
 import { ActionEvent } from '../../../domain/types/action-event.js';
+import { JobStage } from '../../../domain/types/job-lifecycle.js';
 import { setCurrentJob, clearCurrentJob, getCurrentJob, getQueueMode } from '../shared-tui-state.js';
 
 const logger = createLogger('RMQReader');
@@ -16,7 +17,7 @@ const DEFERRED_S2_TTL = 30_000;
 interface PendingJob {
   readonly id: string;
   readonly job: Record<string, unknown>;
-  stage: 'PARTIAL' | 'FULL_PARSED';
+  stage: JobStage.PARTIAL_PARSED | JobStage.FULL_PARSED;
 }
 
 interface S2BufferEntry {
@@ -111,10 +112,10 @@ export class RabbitMqJobReader {
       this.drainDeferredS2(id);
 
       if (!this.pendingJobs.some((p) => p.id === id)) {
-        this.pendingJobs.push({ id, job: payload, stage: 'PARTIAL' });
+        this.pendingJobs.push({ id, job: payload, stage: JobStage.PARTIAL_PARSED });
       }
 
-      logger.info('job.generated', { id, company: payload.company, stage: 'PARTIAL' });
+      logger.info('job.generated', { id, company: payload.company, stage: JobStage.PARTIAL_PARSED });
       this.autoAdvance();
     } catch (err) {
       logger.warn('C1 Error', { error: String(err) });
@@ -137,17 +138,17 @@ export class RabbitMqJobReader {
         this.pendingJobs[existingIdx] = {
           ...this.pendingJobs[existingIdx],
           job: { ...this.pendingJobs[existingIdx].job, ...payload },
-          stage: 'FULL_PARSED',
+          stage: JobStage.FULL_PARSED,
         };
         logger.info('job.parse.completed — merged in pending', { id });
       } else if (this.currentJobId === id) {
-        setCurrentJob(id, { ...getCurrentJob().job, ...payload } as any, 'FULL_PARSED');
+        setCurrentJob(id, { ...getCurrentJob().job, ...payload } as any, JobStage.FULL_PARSED);
         logger.info('job.parse.completed — IPC enriched displayed job', { id });
       } else if (!this.queueMode) {
         if (this.currentJobId !== null) {
           this.ackAllForJob(this.currentJobId);
         }
-        setCurrentJob(id, payload as any, 'FULL_PARSED');
+        setCurrentJob(id, payload as any, JobStage.FULL_PARSED);
         this.currentJobId = id;
         logger.info('job.parse.completed — direct mode set', { id });
       } else {
@@ -238,10 +239,10 @@ export class RabbitMqJobReader {
       this.pendingJobs[existingIdx] = {
         ...this.pendingJobs[existingIdx],
         job: { ...this.pendingJobs[existingIdx].job, ...entry.payload },
-        stage: 'FULL_PARSED',
+        stage: JobStage.FULL_PARSED,
       };
     } else {
-      this.pendingJobs.push({ id, job: entry.payload, stage: 'FULL_PARSED' });
+      this.pendingJobs.push({ id, job: entry.payload, stage: JobStage.FULL_PARSED });
     }
     logger.info('Deferred S2 drained', { id });
   }

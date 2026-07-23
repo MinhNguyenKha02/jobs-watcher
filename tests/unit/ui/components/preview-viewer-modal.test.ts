@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { JobStage } from '../../../../src/domain/types/job-lifecycle.js';
 
 const { renderPreviewViewerModal } = await import('../../../../src/presentation/tui/components/PreviewViewerModal.js' );
 
@@ -8,7 +9,7 @@ describe('PreviewViewerModal', () => {
   const baseState: any = {
     joblifecycleId: 'job-1',
     job: { _id: 'job-1', company: 'Co' },
-    stage: 'FULL_PARSED',
+    stage: JobStage.FULL_PARSED,
     modal: null,
   };
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { unlinkSync, existsSync } from 'node:fs';
+import { JobStage } from '../../../src/domain/types/job-lifecycle.js';
 
 const TEST_STATE_PATH = '/tmp/test-tui-state-race.json';
 if (existsSync(TEST_STATE_PATH)) unlinkSync(TEST_STATE_PATH);
@@ -34,23 +35,23 @@ describe('T3: Shared state file race condition', () => {
     const job2 = { _id: 'race-job-2', company: 'Beta', role: 'Engineer B' } as any;
 
     await Promise.all([
-      setCurrentJob('race-job-1', job1, 'PARTIAL'),
-      setCurrentJob('race-job-2', job2, 'FULL_PARSED'),
+      setCurrentJob('race-job-1', job1, JobStage.PARTIAL_PARSED),
+      setCurrentJob('race-job-2', job2, JobStage.FULL_PARSED),
     ]);
 
     const state = getCurrentJob();
     expect(state.joblifecycleId).toBe('race-job-1');
     expect(state.job?.company).toBe('Alpha');
-    expect(state.stage).toBe('PARTIAL');
+    expect(state.stage).toBe(JobStage.PARTIAL_PARSED);
   });
 
   it('concurrent clearCurrentJob + setCurrentJob proves race exists (either outcome valid)', async () => {
     const job = { _id: 'race-job-3', company: 'Gamma', role: 'Engineer C' } as any;
-    setCurrentJob('race-job-3', job, 'FULL_PARSED');
+    setCurrentJob('race-job-3', job, JobStage.FULL_PARSED);
 
     await Promise.all([
       clearCurrentJob(),
-      setCurrentJob('race-job-4', { _id: 'race-job-4', company: 'Delta', role: 'Engineer D' } as any, 'PARTIAL'),
+      setCurrentJob('race-job-4', { _id: 'race-job-4', company: 'Delta', role: 'Engineer D' } as any, JobStage.PARTIAL_PARSED),
     ]);
 
     const state = getCurrentJob();
@@ -61,12 +62,12 @@ describe('T3: Shared state file race condition', () => {
     await Promise.all([
       setQueueMode(false),
       setQueueMode(true),
-      setCurrentJob('race-job-5', { _id: 'race-job-5', company: 'Epsilon', role: 'Engineer E' } as any, 'FULL_PARSED'),
+      setCurrentJob('race-job-5', { _id: 'race-job-5', company: 'Epsilon', role: 'Engineer E' } as any, JobStage.FULL_PARSED),
     ]);
 
     const state = getCurrentJob();
     expect(state.joblifecycleId).toBe('race-job-5');
-    expect(state.stage).toBe('FULL_PARSED');
+    expect(state.stage).toBe(JobStage.FULL_PARSED);
   });
 
   it('rapid sequential set/get across modes does not lose writes', async () => {
@@ -74,7 +75,7 @@ describe('T3: Shared state file race condition', () => {
     for (let i = 0; i < 20; i++) {
       const id = `race-seq-${i}`;
       const job = { _id: id, company: `SeqCorp${i}`, role: `Engineer ${i}` } as any;
-      ops.push(setCurrentJob(id, job, i % 2 === 0 ? 'FULL_PARSED' : 'PARTIAL'));
+      ops.push(setCurrentJob(id, job, i % 2 === 0 ? JobStage.FULL_PARSED : JobStage.PARTIAL_PARSED));
     }
     await Promise.all(ops);
 
@@ -86,7 +87,7 @@ describe('T3: Shared state file race condition', () => {
     expect(existsSync(TEST_STATE_PATH + '.lock')).toBe(false);
 
     const job = { _id: 'race-job-lock', company: 'LockCorp', role: 'Engineer' } as any;
-    setCurrentJob('race-job-lock', job, 'FULL_PARSED');
+    setCurrentJob('race-job-lock', job, JobStage.FULL_PARSED);
 
     expect(existsSync(TEST_STATE_PATH + '.lock')).toBe(false);
 

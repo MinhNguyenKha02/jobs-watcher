@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, writeFileSync, readFileSync, unlinkSync, existsSync, renameSync, openSync, closeSync } from 'node:fs';
+import { JobStage } from '../../../src/domain/types/job-lifecycle.js';
 
 const TEST_STATE_PATH = '/tmp/test-tui-state.json';
 if (existsSync(TEST_STATE_PATH)) unlinkSync(TEST_STATE_PATH);
@@ -40,32 +41,32 @@ describe('shared-tui-state', () => {
 
     it('sets and gets a job', () => {
       const job = { _id: 'job-1', company: 'Acme', role: 'Junior Engineer' } as any;
-      setCurrentJob('job-1', job, 'FULL_PARSED');
+      setCurrentJob('job-1', job, JobStage.FULL_PARSED);
 
       const state = getCurrentJob();
       expect(state.joblifecycleId).toBe('job-1');
       expect(state.job?.company).toBe('Acme');
-      expect(state.stage).toBe('FULL_PARSED');
+      expect(state.stage).toBe(JobStage.FULL_PARSED);
     });
 
     it('updates stage on second call with same ID', () => {
       const job = { _id: 'job-1', company: 'Acme', role: 'Junior Engineer' } as any;
-      setCurrentJob('job-1', job, 'PARTIAL');
+      setCurrentJob('job-1', job, JobStage.PARTIAL_PARSED);
 
       const enriched = { ...job, matchScore: 85 };
-      setCurrentJob('job-1', enriched, 'FULL_PARSED');
+      setCurrentJob('job-1', enriched, JobStage.FULL_PARSED);
 
       const state = getCurrentJob();
-      expect(state.stage).toBe('FULL_PARSED');
+      expect(state.stage).toBe(JobStage.FULL_PARSED);
       expect(state.job?.matchScore).toBe(85);
     });
 
     it('rejects overwrite for different job ID in queue mode', () => {
       const job1 = { _id: 'job-1', company: 'Acme', role: 'Engineer' } as any;
-      setCurrentJob('job-1', job1, 'PARTIAL');
+      setCurrentJob('job-1', job1, JobStage.PARTIAL_PARSED);
 
       const job2 = { _id: 'job-2', company: 'Beta', role: 'Dev' } as any;
-      setCurrentJob('job-2', job2, 'FULL_PARSED');
+      setCurrentJob('job-2', job2, JobStage.FULL_PARSED);
 
       const state = getCurrentJob();
       expect(state.joblifecycleId).toBe('job-1');
@@ -75,13 +76,13 @@ describe('shared-tui-state', () => {
       setQueueMode(false);
 
       const job1 = { _id: 'direct-1', company: 'FirstCo', role: 'Role1' } as any;
-      setCurrentJob('direct-1', job1, 'FULL_PARSED');
+      setCurrentJob('direct-1', job1, JobStage.FULL_PARSED);
 
       const state1 = getCurrentJob();
       expect(state1.joblifecycleId).toBe('direct-1');
 
       const job2 = { _id: 'direct-2', company: 'SecondCo', role: 'Role2' } as any;
-      setCurrentJob('direct-2', job2, 'FULL_PARSED');
+      setCurrentJob('direct-2', job2, JobStage.FULL_PARSED);
 
       const state2 = getCurrentJob();
       expect(state2.joblifecycleId).toBe('direct-2');
@@ -105,14 +106,14 @@ describe('shared-tui-state', () => {
 
     it('maintains separate sub-states per mode', () => {
       const jobQ = { _id: 'q-job', company: 'QueueCo', role: 'Engineer' } as any;
-      setCurrentJob('q-job', jobQ, 'PARTIAL');
+      setCurrentJob('q-job', jobQ, JobStage.PARTIAL_PARSED);
       expect(getCurrentJob().joblifecycleId).toBe('q-job');
 
       setQueueMode(false);
       expect(getCurrentJob().joblifecycleId).toBeNull();
 
       const jobD = { _id: 'd-job', company: 'DirectCo', role: 'Dev' } as any;
-      setCurrentJob('d-job', jobD, 'FULL_PARSED');
+      setCurrentJob('d-job', jobD, JobStage.FULL_PARSED);
       expect(getCurrentJob().joblifecycleId).toBe('d-job');
 
       setQueueMode(true);
@@ -123,7 +124,7 @@ describe('shared-tui-state', () => {
   describe('clearCurrentJob', () => {
     it('clears the active sub-state', () => {
       const job = { _id: 'job-clear', company: 'ClearCo', role: 'Engineer' } as any;
-      setCurrentJob('job-clear', job, 'FULL_PARSED');
+      setCurrentJob('job-clear', job, JobStage.FULL_PARSED);
       clearCurrentJob();
 
       const state = getCurrentJob();
@@ -136,7 +137,7 @@ describe('shared-tui-state', () => {
   describe('modal functions', () => {
     it('setPreviewViewerModal shows modal', () => {
       const job = { _id: 'job-modal', company: 'ModalCo', role: 'Engineer' } as any;
-      setCurrentJob('job-modal', job, 'FULL_PARSED');
+      setCurrentJob('job-modal', job, JobStage.FULL_PARSED);
       setPreviewViewerModal('line1\nline2\nline3', 2);
 
       const state = getCurrentJob();
@@ -147,7 +148,7 @@ describe('shared-tui-state', () => {
 
     it('clearModal removes modal', () => {
       const job = { _id: 'job-modal', company: 'ModalCo', role: 'Engineer' } as any;
-      setCurrentJob('job-modal', job, 'FULL_PARSED');
+      setCurrentJob('job-modal', job, JobStage.FULL_PARSED);
       setPreviewViewerModal('content', 5);
       expect(getCurrentJob().modal).not.toBeNull();
 
@@ -159,7 +160,7 @@ describe('shared-tui-state', () => {
   describe('file persistence', () => {
     it('writes state file on setCurrentJob (verify on disk)', () => {
       const job = { _id: 'job-disk', company: 'DiskCo', role: 'Engineer' } as any;
-      setCurrentJob('job-disk', job, 'FULL_PARSED');
+      setCurrentJob('job-disk', job, JobStage.FULL_PARSED);
 
       const raw = readFileSync(TEST_STATE_PATH, 'utf8');
       const parsed = JSON.parse(raw);
@@ -169,7 +170,7 @@ describe('shared-tui-state', () => {
     it('reads existing state file on getCurrentJob', () => {
       writeFileSync(TEST_STATE_PATH, JSON.stringify({
         version: 2, queueMode: true, updatedAt: null,
-        queue: { joblifecycleId: 'file-job', job: { _id: 'file-job', company: 'FileCo' }, stage: 'FULL_PARSED', editedFields: null, modal: null },
+        queue: { joblifecycleId: 'file-job', job: { _id: 'file-job', company: 'FileCo' }, stage: 'full_parsed', editedFields: null, modal: null },
         direct: { joblifecycleId: null, job: null, stage: null, editedFields: null, modal: null },
       }), 'utf8');
 
@@ -185,7 +186,7 @@ describe('shared-tui-state', () => {
     it('creates lock file before write and removes it after', () => {
       const lockPath = TEST_STATE_PATH + '.lock';
       const job = { _id: 'job-lock', company: 'LockCo', role: 'Engineer' } as any;
-      setCurrentJob('job-lock', job, 'FULL_PARSED');
+      setCurrentJob('job-lock', job, JobStage.FULL_PARSED);
 
       expect(existsSync(lockPath)).toBe(false);
       expect(existsSync(TEST_STATE_PATH)).toBe(true);
@@ -198,7 +199,7 @@ describe('shared-tui-state', () => {
       closeSync(fd);
 
       const job = { _id: 'job-blocked', company: 'BlockedCo', role: 'Engineer' } as any;
-      expect(() => setCurrentJob('job-blocked', job, 'FULL_PARSED')).toThrow('Could not acquire lock');
+      expect(() => setCurrentJob('job-blocked', job, JobStage.FULL_PARSED)).toThrow('Could not acquire lock');
 
       const state = getCurrentJob();
       expect(state.joblifecycleId).toBeNull();
@@ -214,14 +215,14 @@ describe('shared-tui-state', () => {
       closeSync(fd);
 
       const job = { _id: 'job-blocked', company: 'BlockedCo', role: 'Engineer' } as any;
-      expect(() => setCurrentJob('job-blocked', job, 'FULL_PARSED')).toThrow('Could not acquire lock');
+      expect(() => setCurrentJob('job-blocked', job, JobStage.FULL_PARSED)).toThrow('Could not acquire lock');
 
       const state = getCurrentJob();
       expect(state.joblifecycleId).toBeNull();
 
       unlinkSync(lockPath);
 
-      setCurrentJob('job-blocked', job, 'FULL_PARSED');
+      setCurrentJob('job-blocked', job, JobStage.FULL_PARSED);
       const state2 = getCurrentJob();
       expect(state2.joblifecycleId).toBe('job-blocked');
     });
