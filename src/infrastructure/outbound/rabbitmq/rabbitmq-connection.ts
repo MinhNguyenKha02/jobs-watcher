@@ -1,7 +1,7 @@
 import amqplib, { type Channel } from 'amqplib';
-import { getLogger } from '../logging/logger.js';
+import { createLogger } from '../logging/logger.js';
 
-const logger = getLogger();
+const logger = createLogger('RabbitMq');
 
 export interface RabbitMqConfig {
   url: string;
@@ -18,7 +18,7 @@ export class RabbitMqConnection {
     this.connection = await amqplib.connect(this.config.url);
     this.channel = await this.connection.createChannel();
     await this.channel.assertExchange(this.config.exchange, 'topic', { durable: true });
-    logger.info('[RabbitMq] Connected to exchange', { exchange: this.config.exchange });
+    logger.info('Connected to exchange', { exchange: this.config.exchange });
   }
 
   async disconnect(): Promise<void> {
@@ -26,7 +26,7 @@ export class RabbitMqConnection {
       await this.channel?.close();
       await this.connection?.close();
     } catch (err) {
-      logger.warn('[RabbitMq] Disconnect error', { error: err instanceof Error ? err.message : String(err) });
+      logger.warn('Disconnect error', { error: err instanceof Error ? err.message : String(err) });
     }
   }
 

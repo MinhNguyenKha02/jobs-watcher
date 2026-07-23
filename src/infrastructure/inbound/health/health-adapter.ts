@@ -1,9 +1,9 @@
 import express, { type Request, type Response } from 'express';
-import { getLogger } from '../../outbound/logging/logger.js';
+import { createLogger } from '../../outbound/logging/logger.js';
 import type { MetricsRegistry } from '../../outbound/monitoring/metrics-registry.js';
 import { SystemMonitor } from '../../outbound/monitoring/system-monitor.js';
 
-const logger = getLogger();
+const logger = createLogger('Health');
 
 export interface HealthOptions {
   port: number;
@@ -48,7 +48,7 @@ export function startHealthServer(opts: HealthOptions): void {
       res.set('Content-Type', 'text/plain; charset=utf-8');
       res.send(metrics);
     } catch (err) {
-      logger.error('[Health] Failed to serve metrics', { error: err instanceof Error ? err.message : String(err) });
+      logger.error('Failed to serve metrics', { error: err instanceof Error ? err.message : String(err) });
       res.status(500).send('Internal Server Error');
     }
   });
@@ -67,12 +67,12 @@ export function startHealthServer(opts: HealthOptions): void {
       }
       res.json(parsed);
     } catch (err) {
-      logger.error('[Health] Failed to serve /health/observability', { error: err instanceof Error ? err.message : String(err) });
+      logger.error('Failed to serve /health/observability', { error: err instanceof Error ? err.message : String(err) });
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
 
   app.listen(opts.port, () => {
-    logger.info(`[Health] Server listening on port ${opts.port}`);
+    logger.info('Server listening', { port: opts.port });
   });
 }

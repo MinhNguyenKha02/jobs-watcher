@@ -1,9 +1,9 @@
 import { MongoClient, type Collection } from 'mongodb';
-import { getLogger } from '../logging/logger.js';
+import { createLogger } from '../logging/logger.js';
 import type { JobLifecyclePort } from '../../../application/ports/job-lifecycle.port.js';
 import { COLLECTIONS, INDEXES, type JobLifecycleDocument } from './schemas.js';
 
-const logger = getLogger();
+const logger = createLogger('MongoJobLifecycle');
 
 export class MongoJobLifecycleAdapter implements JobLifecyclePort {
   private collection: Collection<JobLifecycleDocument> | null = null;
@@ -21,7 +21,7 @@ export class MongoJobLifecycleAdapter implements JobLifecyclePort {
       if (index.unique) opts.unique = true;
       await this.collection.createIndex(index.key as unknown as Record<string, number>, opts);
     }
-    logger.info('[MongoJobLifecycleAdapter] Connected and indexes ensured');
+    logger.info('Connected and indexes ensured');
   }
 
   async disconnect(): Promise<void> {

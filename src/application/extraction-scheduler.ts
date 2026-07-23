@@ -1,9 +1,10 @@
-import { getLogger } from '../infrastructure/outbound/logging/logger.js';
+import { createLogger } from '../infrastructure/outbound/logging/logger.js';
 import { JobSource, JobStage } from '../domain/types/job-lifecycle.js';
 import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
 import type { BrowserPort } from './ports/browser.port.js';
+import type { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
 
-const logger = getLogger();
+const logger = createLogger('ExtractionScheduler');
 const WORKER_COUNT = 3;
 
 type ProcessIngestCommand = (command: {
@@ -25,6 +26,7 @@ export class ExtractionScheduler {
     private browser: BrowserPort,
     private processIngest: ProcessIngestCommand,
     private findJobLifecycle: FindJobLifecycle,
+    private metricsRegistry?: MetricsRegistry,
   ) {}
 
   async start(): Promise<void> {
@@ -38,7 +40,7 @@ export class ExtractionScheduler {
       const worker = this.runWorker(i);
       this.workers.push(worker);
     }
-    logger.info('[ExtractionScheduler] Started', { workers: WORKER_COUNT });
+    logger.info('Started', { workers: WORKER_COUNT });
   }
 
   private wakeOneWorker(): void {
@@ -64,21 +66,24 @@ export class ExtractionScheduler {
   }
 
   private async runWorker(workerId: number): Promise<void> {
-    logger.info('[ExtractionScheduler] Worker started', { workerId });
+    logger.info('Worker started', { workerId });
     while (!this.stopRequested) {
       let jobLifecycleId: string | undefined;
+      let startMs = 0;
       try {
         const item = await this.queue.dequeue();
         if (!item) {
           await this.waitForTurn();
           continue;
         }
-        logger.info('[ExtractionScheduler] Worker dequeued job', { workerId, jobLifecycleId: item.jobLifecycleId });
-
         jobLifecycleId = item.jobLifecycleId;
+        startMs = Date.now();
+        logger.info('Worker dequeued job', { workerId, jobLifecycleId });
+        this.metricsRegistry?.jobsInFlight.inc({ stage: 's1' });
+
         const jobDoc = await this.findJobLifecycle(jobLifecycleId);
         if (!jobDoc) {
-          logger.error('[ExtractionScheduler] findJobLifecycle returned null after dequeue — job lifecycle doc missing', {
+          logger.error('findJobLifecycle returned null after dequeue — job lifecycle doc missing', {
             jobLifecycleId,
             action: 'job_lifecycle_doc_missing',
           });
@@ -92,9 +97,16 @@ export class ExtractionScheduler {
           rawPayload,
           jobLifecycleId: jobLifecycleId,
         });
+        this.metricsRegistry?.jobsInFlight.dec({ stage: 's1' });
+        if (startMs > 0) {
+          const durationSec = (Date.now() - startMs) / 1000;
+          this.metricsRegistry?.jobStageDuration.observe({ stage: 'extraction' }, durationSec);
+        }
       } catch (extractErr) {
         const errMsg = extractErr instanceof Error ? extractErr.message : String(extractErr);
-        logger.warn('[ExtractionScheduler] Extraction failed', { workerId, jobLifecycleId, error: errMsg });
+        logger.warn('Extraction failed', { workerId, jobLifecycleId, error: errMsg });
+        this.metricsRegistry?.jobsInFlight.dec({ stage: 's1' });
+        this.metricsRegistry?.jobErrors.inc({ stage: 'extraction', error_type: 'browser' });
         await this.processIngest({
           source: JobSource.BROWSER_AUTO,
           stage: JobStage.PARTIAL_PARSED,
@@ -103,7 +115,7 @@ export class ExtractionScheduler {
         });
       }
     }
-    logger.info('[ExtractionScheduler] Worker stopped', { workerId });
+    logger.info('Worker stopped', { workerId });
   }
 
   async stop(): Promise<void> {
@@ -115,6 +127,6 @@ export class ExtractionScheduler {
     await Promise.all(this.workers);
     await this.browser.stop();
     this.running = false;
-    logger.info('[ExtractionScheduler] Stopped');
+    logger.info('Stopped');
   }
 }

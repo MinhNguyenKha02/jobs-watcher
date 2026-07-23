@@ -1,9 +1,9 @@
 import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import type { JobDetails } from '../../types/job.js';
-import { getLogger } from '../../../infrastructure/outbound/logging/logger.js';
+import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
 
-const logger = getLogger();
+const logger = createLogger('HtmlParser');
 
 export interface ParsedJobData {
   role?: string;
@@ -309,7 +309,7 @@ export class HtmlJobParser {
       logger.debug('No supported job format detected');
       return null;
     } catch (err) {
-      logger.warn(`HTML parse error: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn('HTML parse error', { error: err instanceof Error ? err.message : String(err) });
       return null;
     }
   }

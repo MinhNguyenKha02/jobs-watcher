@@ -46,17 +46,17 @@ export class ActionController {
    */
   async start(): Promise<void> {
     try {
-      logger.info('[action-controller] 🚀 Starting Action Controller');
+      logger.info('Starting Action Controller');
 
       // Attach keyboard handler
       await this.keyboard.attach();
-      logger.info('[action-controller] ✓ Keyboard attached');
+      logger.info(' ✓ Keyboard attached');
 
       // Main event loop
       this.isRunning = true;
       await this.mainLoop();
     } catch (err) {
-      logger.error('[action-controller] Fatal error', { error: String(err) });
+      logger.error(' Fatal error', { error: String(err) });
       throw err;
     } finally {
       this.stop();
@@ -69,14 +69,14 @@ export class ActionController {
   stop(): void {
     if (!this.isRunning) return;
 
-    logger.info('[action-controller] Shutting down...');
+    logger.info(' Shutting down...');
     this.isRunning = false;
 
     try {
       this.keyboard.detach();
-      logger.info('[action-controller] ✓ Graceful shutdown complete');
+      logger.info(' ✓ Graceful shutdown complete');
     } catch (err) {
-      logger.warn('[action-controller] Error during shutdown', { error: String(err) });
+      logger.warn(' Error during shutdown', { error: String(err) });
     }
   }
 
@@ -94,10 +94,10 @@ export class ActionController {
         }
 
         // Dispatch the action
-        logger.info('[action-controller] Action received', { action });
+        logger.info(' Action received', { action });
         await this.dispatchAction(action);
       } catch (err) {
-        logger.error('[action-controller] Error in main loop', { error: String(err) });
+        logger.error(' Error in main loop', { error: String(err) });
         await this.sleep(500);
       }
     }
@@ -136,9 +136,7 @@ export class ActionController {
           break;
 
         case KeyAction.WEBHOOK_STAGE2_PARSE:
-           logger.info('[action-controller] [c] About to call handleWebhookStage2Parse');
           await this.handleWebhookStage2Parse();
-           logger.info('[action-controller] [c] handleWebhookStage2Parse completed');
           break;
 
         case KeyAction.OPEN:
@@ -154,7 +152,7 @@ export class ActionController {
           break;
 
         case KeyAction.QUIT:
-          logger.info('[action-controller] User quit requested');
+          logger.info(' User quit requested');
           this.stop();
           break;
 
@@ -162,16 +160,16 @@ export class ActionController {
         case KeyAction.MODAL_SCROLL_UP:
         case KeyAction.MODAL_SCROLL_DOWN:
           // These should only be used when a modal is active
-          logger.warn('[action-controller] Modal action received but no modal active', { action });
+          logger.warn(' Modal action received but no modal active', { action });
           break;
 
         default:
-          logger.warn('[action-controller] Unknown action', { action });
+          logger.warn(' Unknown action', { action });
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
        const stack = err instanceof Error ? err.stack : '';
-       logger.error('[action-controller] Action dispatch failed', { action, error: errorMsg, stack });
+       logger.error(' Action dispatch failed', { action, error: errorMsg, stack });
     }
   }
 
@@ -190,13 +188,13 @@ export class ActionController {
           await this.handlePreviewClose();
         } else {
           await this.handlePreviewClose();
-          logger.info('[MODAL] Preview modal closed for action passthrough', { action });
+          logger.info(' Preview modal closed for action passthrough', { action });
           await this.dispatchAction(action);
         }
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      logger.error('[action-controller] Modal input handling failed', { action, modalType: modal.type, error: errorMsg });
+      logger.error(' Modal input handling failed', { action, modalType: modal.type, error: errorMsg });
     }
   }
 
@@ -207,51 +205,43 @@ export class ActionController {
     try {
       const { updatePreviewPage } = await import('./shared-tui-state.js');
       updatePreviewPage('up');
-      logger.debug('[MODAL] Preview scrolled up');
     } catch (err) {
-      logger.error('[MODAL] Preview scroll up failed', { error: String(err) });
+      logger.error('Preview scroll up failed', { error: String(err) });
     }
   }
 
-  /**
-   * Modal Action Handler: Scroll preview down (next page)
-   */
   private async handlePreviewScrollDown(): Promise<void> {
     try {
       const { updatePreviewPage } = await import('./shared-tui-state.js');
       updatePreviewPage('down');
-      logger.debug('[MODAL] Preview scrolled down');
     } catch (err) {
-      logger.error('[MODAL] Preview scroll down failed', { error: String(err) });
+      logger.error('Preview scroll down failed', { error: String(err) });
     }
   }
 
-  /**
-   * Modal Action Handler: Close preview modal
-   */
   private async handlePreviewClose(): Promise<void> {
     try {
       clearModal();
-      logger.info('[MODAL] Preview modal closed');
+      logger.info('Preview modal closed');
     } catch (err) {
-      logger.error('[MODAL] Preview close failed', { error: String(err) });
+      logger.error(' Preview close failed', { error: String(err) });
     }
   }
 
   /**
-   * Action: Queue job - send to job_queue via UDS (stderr output with [ROUTE] tag)
+   * Action: Queue job - send to job_queue via UDS (stderr output with  tag)
    */
   private async handleQueue(): Promise<void> {
     try {
       const state = getCurrentJob();
 
       if (!state.jobLifecycleId) {
-        logger.warn('[ROUTE] No job selected', { jobLifecycleId: null });
+        logger.warn(' No job selected', { jobLifecycleId: null });
         return;
       }
 
       if (this.processedJobLifecycleIds.has(state.jobLifecycleId)) {
-        logger.warn('[ROUTE] Job already being processed', { jobLifecycleId: state.jobLifecycleId });
+        logger.warn(' Job already being processed', { jobLifecycleId: state.jobLifecycleId });
         return;
       }
 
@@ -262,7 +252,7 @@ export class ActionController {
 
       this.addProcessedId(state.jobLifecycleId);
 
-      logger.info('[ROUTE] Action executed', {
+      logger.debug('Action executed', {
         action: 'queue',
         jobLifecycleId: state.jobLifecycleId,
         Signal: 3,
@@ -270,25 +260,25 @@ export class ActionController {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      logger.error('[ROUTE] Action failed', { action: 'queue', error: message });
+      logger.error('Action failed', { action: 'queue', error: message });
       console.log(`[ROUTE] Action failed (queue): ${message}`);
     }
   }
 
   /**
-   * Action: Trash job - send to job_trash via UDS (stderr output with [ROUTE] tag)
+   * Action: Trash job - send to job_trash via UDS (stderr output with  tag)
    */
   private async handleTrash(): Promise<void> {
     try {
       const state = getCurrentJob();
 
       if (!state.jobLifecycleId) {
-        logger.warn('[ROUTE] No job selected', { jobLifecycleId: null });
+        logger.warn(' No job selected', { jobLifecycleId: null });
         return;
       }
 
       if (this.processedJobLifecycleIds.has(state.jobLifecycleId)) {
-        logger.warn('[ROUTE] Job already being processed', { jobLifecycleId: state.jobLifecycleId });
+        logger.warn(' Job already being processed', { jobLifecycleId: state.jobLifecycleId });
         return;
       }
 
@@ -299,7 +289,7 @@ export class ActionController {
 
       this.addProcessedId(state.jobLifecycleId);
 
-      logger.info('[ROUTE] Action executed', {
+      logger.debug('Action executed', {
         action: 'trash',
         jobLifecycleId: state.jobLifecycleId,
         Signal: 3,
@@ -307,7 +297,7 @@ export class ActionController {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      logger.error('[ROUTE] Action failed', { action: 'trash', error: message });
+      logger.error('Action failed', { action: 'trash', error: message });
       console.log(`[ROUTE] Action failed (trash): ${message}`);
     }
   }
@@ -322,7 +312,7 @@ export class ActionController {
     try {
       // Queue mode: preview requires a displayed job
       if (queueMode && (!current.jobLifecycleId || !current.job)) {
-        logger.warn('[PREVIEW] No job available in queue mode', { jobLifecycleId: null });
+        logger.warn(' No job available in queue mode', { jobLifecycleId: null });
         return;
       }
 
@@ -333,15 +323,15 @@ export class ActionController {
 
         if (clipboardHtml) {
           setPreviewViewerModal(clipboardHtml, 20);
-          logger.info('[PREVIEW] Showing clipboard content in modal');
+          logger.info(' Showing clipboard content in modal');
         } else {
-          logger.info('[PREVIEW] Clipboard empty');
+          logger.info(' Clipboard empty');
         }
       } catch (err) {
-        logger.warn('[PREVIEW] Failed to read clipboard', { error: String(err) });
+        logger.warn(' Failed to read clipboard', { error: String(err) });
       }
     } catch (err) {
-      logger.error('[PREVIEW] Preview failed', { error: String(err) });
+      logger.error(' Preview failed', { error: String(err) });
     }
   }
 
@@ -350,22 +340,22 @@ export class ActionController {
    */
   private async handleIngest(): Promise<void> {
     if (getQueueMode()) {
-      logger.info('[ACTION] [i] ignored in queue mode');
+      logger.info('ignored in queue mode');
       console.log('[i] ignored in queue mode — press [b] to switch to direct mode');
       return;
     }
     try {
-      logger.info('[ACTION] Reading clipboard...');
+      logger.debug('Reading clipboard...');
 
       const clipboardArr = await clipboardGetter();
       const htmlPayload = clipboardArr[0];
 
       if (!htmlPayload) {
-        logger.warn('[ACTION] Clipboard empty or not HTML');
+        logger.warn('Clipboard empty or not HTML');
         return;
       }
 
-      logger.info('[ACTION] Ingesting clipboard as Stage 2...');
+      logger.debug('Ingesting clipboard as Stage 2...');
 
       // Send to UDS /internal/ingest without jobLifecycleId (auto-generated as 'clip-...')
       const headers: Record<string, string> = {};
@@ -393,9 +383,9 @@ export class ActionController {
         throw new Error(`Ingest failed: ${res.statusCode} ${res.body}`);
       }
 
-      logger.info('[ACTION] Clipboard ingestion triggered');
+      logger.info(' Clipboard ingestion triggered');
     } catch (err) {
-      logger.error('[ACTION] Clipboard ingest failed', { error: String(err) });
+      logger.error(' Clipboard ingest failed', { error: String(err) });
     }
   }
 
@@ -404,47 +394,34 @@ export class ActionController {
    */
   private async handleWebhookStage2Parse(): Promise<void> {
     if (!getQueueMode()) {
-      logger.info('[action-controller] [c] ignored in direct mode');
+      logger.info('ignored in direct mode');
       return;
     }
     const current = getCurrentJob();
-      logger.info('[action-controller] [c] getCurrentJob() returned', { jobLifecycleId: current?.jobLifecycleId });
     try {
-      logger.info('[action-controller] 📝 [c] Stage 2 Parse action started');
-
-      // Validate job state exists
       if (!current || !current.jobLifecycleId) {
-        logger.error('[action-controller] [c] No job jobLifecycleId available', {
+        logger.error('No job jobLifecycleId available', {
           hasJob: !!current,
           jobLifecycleId: current?.jobLifecycleId,
         });
         return;
       }
 
-      // B1: Guard — reject [c] if job is already FULL_PARSED (would corrupt enriched fields)
       if (current.stage === 'FULL_PARSED') {
-        logger.info('[action-controller] [c] ignored — job already fully parsed', {
+        logger.info('ignored — job already fully parsed', {
           jobLifecycleId: current.jobLifecycleId,
         });
         return;
       }
 
-      logger.info('[action-controller] [c] Preparing Stage 2 parse', {
-        jobLifecycleId: current.jobLifecycleId,
-      });
-
-      logger.info('[action-controller] [c] Sending webhook stage 2 ingest via UDS helper', {
-        jobLifecycleId: current.jobLifecycleId,
-      });
-
       const htmlPayload = await this.udsWriter.webhookIngest(current.jobLifecycleId);
 
-      logger.info('[action-controller] [c] Stage 2 parse triggered successfully', {
+      logger.info('Stage 2 parse triggered successfully', {
         jobLifecycleId: current.jobLifecycleId,
         payloadSize: htmlPayload.length,
       });
     } catch (err) {
-      logger.error('[action-controller] [c] Stage 2 parse failed', {
+      logger.error('Stage 2 parse failed', {
         error: String(err),
         stack: err instanceof Error ? err.stack : undefined,
       });
@@ -452,7 +429,7 @@ export class ActionController {
   }
 
   /**
-   * Action: Open URL - log to stderr with [URL] tag (GUI or headless)
+   * Action: Open URL - log to stderr with  tag (GUI or headless)
    */
   private async handleOpenUrl(): Promise<void> {
     const current = getCurrentJob();
@@ -464,7 +441,7 @@ export class ActionController {
       : undefined;
       
     if (typeof url !== 'string' || !url) {
-      logger.info('[URL] No URL available in job', { jobLifecycleId: current.jobLifecycleId });
+      logger.info(' No URL available in job', { jobLifecycleId: current.jobLifecycleId });
       console.log('[o] No URL available for this job');
       return;
     }
@@ -481,7 +458,7 @@ export class ActionController {
             detached: true,
             stdio: 'ignore',
           }).unref();
-          logger.info('[URL] Opened in GUI browser', {
+          logger.info(' Opened in GUI browser', {
             jobLifecycleId: current.jobLifecycleId,
             url,
             urlBytes: url.length,
@@ -490,7 +467,7 @@ export class ActionController {
           });
           opened = true;
         } catch (err) {
-          logger.debug('[URL] Browser open failed', { error: String(err) });
+          logger.debug(' Browser open failed', { error: String(err) });
         }
       }
 
@@ -501,7 +478,7 @@ export class ActionController {
             detached: true,
             stdio: 'ignore',
           }).unref();
-          logger.info('[URL] Opened in GUI browser', {
+          logger.info(' Opened in GUI browser', {
             jobLifecycleId: current.jobLifecycleId,
             url,
             urlBytes: url.length,
@@ -510,14 +487,14 @@ export class ActionController {
           });
           opened = true;
         } catch (err) {
-          logger.debug('[URL] xdg-open failed', { error: String(err) });
+          logger.debug(' xdg-open failed', { error: String(err) });
         }
       }
 
       // 3. Fallback: Log URL with job context (no screen clear)
       if (!opened) {
         const jobData = current.job as unknown as Record<string, unknown>;
-        logger.info('[URL] Fallback mode - manual copy-paste', {
+        logger.info(' Fallback mode - manual copy-paste', {
           jobLifecycleId: current.jobLifecycleId,
           url,
           urlBytes: url.length,
@@ -531,7 +508,7 @@ export class ActionController {
         });
       }
     } catch (err) {
-      logger.error('[URL] OpenURL failed', { error: String(err) });
+      logger.error(' OpenURL failed', { error: String(err) });
     }
   }
 
@@ -543,19 +520,19 @@ export class ActionController {
     try {
       const newMode = !getQueueMode();
       setQueueMode(newMode);
-      logger.info('[MODE] Queue mode toggled', {
+      logger.info(' Queue mode toggled', {
         from: newMode ? 'direct' : 'queue',
         to: newMode ? 'queue' : 'direct',
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      logger.error('[ROUTE] Action failed', { action: 'queue', error: message });
+      logger.error(' Action failed', { action: 'queue', error: message });
       console.error(`[ROUTE] Queue failed: ${message}`);
     }
   }
 
   /**
-   * Action: Trash job - send to job_trash via UDS (stderr output with [ROUTE] tag)
+   * Action: Trash job - send to job_trash via UDS (stderr output with  tag)
    */
   private async handleHelp(): Promise<void> {
     const helpText = KeyboardHandler.showHelp();
@@ -563,7 +540,7 @@ export class ActionController {
     // Show help
     console.log(helpText);
 
-    logger.info('[action-controller] Help displayed');
+    logger.info(' Help displayed');
   }
 
   private addProcessedId(id: string): void {
@@ -597,7 +574,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 
   controller.start().catch((err) => {
-    logger.error('[action-controller] Fatal error', { error: err });
+    logger.error(' Fatal error', { error: err });
     process.exit(1);
   });
 }

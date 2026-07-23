@@ -1,7 +1,4 @@
 import type { Job } from '../../../domain/types/job.js';
-import { getLogger } from '../../../infrastructure/outbound/logging/logger.js';
-
-const logger = getLogger();
 
 export class JobReader {
   private jobQueue: Job[] = [];
@@ -13,11 +10,9 @@ export class JobReader {
   removeEventListener(_eventType: string, _callback: (event: any) => void): void {}
 
   start(_baseUrl: string, _token?: string): void {
-    logger.info('[JobReader] Started (stub — replace with RabbitMqJobReader)');
   }
 
   stop(): void {
-    logger.info('[JobReader] Stopped');
   }
 
   connect(): boolean {

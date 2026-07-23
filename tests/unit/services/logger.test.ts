@@ -1,54 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ConsoleLogger, getLogger, setLogger, createLogger, setLoggerJsonMode } from '../../../src/infrastructure/outbound/logging/logger.js' ;
-
-describe('ConsoleLogger', () => {
-  let consoleErrorSpy: any;
-  let consoleWarnSpy: any;
-
-  beforeEach(() => {
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-  });
-
-  it('formats info messages with prefix and level', () => {
-    const logger = new ConsoleLogger('test-prefix');
-    logger.info('hello world');
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[test-prefix]'));
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('INFO'));
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('hello world'));
-  });
-
-  it('includes context in JSON format', () => {
-    const logger = new ConsoleLogger('test', true);
-    logger.info('msg', { key: 'val' });
-    const call = consoleErrorSpy.mock.calls[0][0];
-    const parsed = JSON.parse(call);
-    expect(parsed.prefix).toBe('test');
-    expect(parsed.message).toBe('msg');
-    expect(parsed.key).toBe('val');
-  });
-
-  it('appends context to non-JSON output', () => {
-    const logger = new ConsoleLogger('test');
-    logger.warn('warning', { count: 5 });
-    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('{"count":5}'));
-  });
-
-  it('debug calls console.error', () => {
-    const logger = new ConsoleLogger('test');
-    logger.debug('debug msg');
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('DEBUG'));
-  });
-
-  it('error calls console.error', () => {
-    const logger = new ConsoleLogger('test');
-    logger.error('error msg');
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('ERROR'));
-  });
-});
+import { describe, it, expect, vi } from 'vitest';
+import { getLogger, setLogger, createLogger, initLogger } from '../../../src/infrastructure/outbound/logging/logger.js';
 
 describe('global logger', () => {
-  it('getLogger returns a logger by default', () => {
+  it('getLogger returns a default logger', () => {
     const logger = getLogger();
     expect(logger).toBeDefined();
     expect(typeof logger.info).toBe('function');
@@ -60,16 +14,55 @@ describe('global logger', () => {
     expect(getLogger()).toBe(mockLogger);
   });
 
-  it('createLogger returns a ConsoleLogger', () => {
+  it('createLogger returns an ILogger', () => {
     const logger = createLogger('my-app');
-    expect(logger).toBeInstanceOf(ConsoleLogger);
+    expect(logger).toBeDefined();
+    expect(typeof logger.info).toBe('function');
+    expect(typeof logger.error).toBe('function');
+    expect(typeof logger.warn).toBe('function');
+    expect(typeof logger.debug).toBe('function');
   });
 
-  it('setLoggerJsonMode recreates global logger in JSON mode', () => {
-    const original = getLogger();
-    setLogger(new ConsoleLogger('test'));
-    setLoggerJsonMode(true);
-    const updated = getLogger();
-    expect(updated).not.toBe(original);
+  it('initLogger sets the global logger', () => {
+    initLogger();
+    const logger = getLogger();
+    expect(logger).toBeDefined();
+    expect(typeof logger.info).toBe('function');
+  });
+});
+
+describe('ILogger interface', () => {
+  let logger: ReturnType<typeof createLogger>;
+
+  beforeEach(() => {
+    logger = createLogger('test');
+  });
+
+  it('info accepts message only', () => {
+    expect(() => logger.info('hello')).not.toThrow();
+  });
+
+  it('info accepts message with context', () => {
+    expect(() => logger.info('msg', { key: 'val' })).not.toThrow();
+  });
+
+  it('warn accepts message with context', () => {
+    expect(() => logger.warn('warning', { count: 5 })).not.toThrow();
+  });
+
+  it('error accepts message', () => {
+    expect(() => logger.error('error msg')).not.toThrow();
+  });
+
+  it('error accepts message with context', () => {
+    expect(() => logger.error('error msg', { err: 'fail' })).not.toThrow();
+  });
+
+  it('debug accepts message', () => {
+    expect(() => logger.debug('debug msg')).not.toThrow();
+  });
+
+  it('debug accepts message with context', () => {
+    expect(() => logger.debug('debug msg', { detail: true })).not.toThrow();
   });
 });

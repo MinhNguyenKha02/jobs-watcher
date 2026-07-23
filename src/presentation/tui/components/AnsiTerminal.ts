@@ -5,7 +5,7 @@
  * Handles raw mode, cursor movement, clearing, styling, and safe restoration.
  */
 
-import { getLogger } from '../../../infrastructure/outbound/logging/logger.js';
+import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
 
 export class AnsiTerminal {
   private originalRawMode: boolean = false;
@@ -21,7 +21,7 @@ export class AnsiTerminal {
         process.stdin.setRawMode(true);
       }
     } catch (err) {
-      getLogger().error('Failed to enable raw mode', { error: err });
+      createLogger('AnsiTerminal').error('Failed to enable raw mode', { error: err });
     }
   }
 
@@ -34,7 +34,7 @@ export class AnsiTerminal {
         process.stdin.setRawMode(false);
       }
     } catch (err) {
-      getLogger().error('Failed to restore terminal', { error: err });
+      createLogger('AnsiTerminal').error('Failed to restore terminal', { error: err });
     }
   }
 

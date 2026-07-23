@@ -1,10 +1,10 @@
 import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { type Browser, type BrowserContext, type Page } from 'playwright';
-import { getLogger } from '../logging/logger.js';
+import { createLogger } from '../logging/logger.js';
 
 chromium.use(StealthPlugin());
-const logger = getLogger();
+const logger = createLogger('BrowserExtractor');
 
 export class PlaywrightBrowserAdapter {
   private browser: Browser | null = null;
@@ -24,7 +24,7 @@ export class PlaywrightBrowserAdapter {
       args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'],
     });
     this.context = await this.browser.newContext();
-    logger.info('[BrowserExtractor] Playwright browser started', { headless: this.headless });
+    logger.info('Playwright browser started', { headless: this.headless });
   }
 
   async extract(url: string): Promise<{ html: string }> {
@@ -35,16 +35,16 @@ export class PlaywrightBrowserAdapter {
     try {
       await page.goto(url, { waitUntil: 'networkidle', timeout: this.timeout });
       const html = await page.evaluate<string>(`document.body.innerHTML`);
-      logger.info('[BrowserExtractor] Extracted HTML', { url: page.url(), htmlLength: html.length });
+      logger.info('Extracted HTML', { url: page.url(), htmlLength: html.length });
       return { html };
     } finally {
       try {
         await page.close();
       } catch (closeErr) {
-        logger.warn('[BrowserExtractor] page.close failed, recreating context', { error: String(closeErr) });
+        logger.warn('page.close failed, recreating context', { error: String(closeErr) });
         if (this.browser) {
           try { await this.context?.close(); } catch (ctxCloseErr) {
-            logger.warn('[BrowserExtractor] context.close failed');
+            logger.warn('context.close failed');
           }
           this.context = await this.browser.newContext();
         }
@@ -61,6 +61,6 @@ export class PlaywrightBrowserAdapter {
       await this.browser.close();
       this.browser = null;
     }
-    logger.info('[BrowserExtractor] Playwright browser stopped');
+    logger.info('Playwright browser stopped');
   }
 }

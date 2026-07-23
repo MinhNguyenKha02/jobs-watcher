@@ -1,6 +1,6 @@
-import { getLogger } from '../logging/logger.js';
+import { createLogger } from '../logging/logger.js';
 
-const logger = getLogger();
+const logger = createLogger('System');
 
 export interface SystemSnapshot {
   rssMb: number;
@@ -53,13 +53,4 @@ export class SystemMonitor {
     return Math.max(0, Math.round(cpuPercent * 100) / 100);
   }
 
-  logSnapshot(context: string): void {
-    const snap = this.snapshot();
-    logger.info(`[System] ${context}`, {
-      rssMb: snap.rssMb,
-      heapUsedMb: snap.heapUsedMb,
-      cpuPercent: snap.cpuPercent,
-      eventLoopLagMs: snap.eventLoopLagMs,
-    });
-  }
 }

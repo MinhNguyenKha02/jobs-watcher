@@ -1,5 +1,5 @@
 import { config } from './config.js';
-import { initLogger, getLogger } from './infrastructure/outbound/logging/logger.js';
+import { initLogger, createLogger } from './infrastructure/outbound/logging/logger.js';
 import { MongoJobLifecycleAdapter } from './infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { RabbitMqConnection } from './infrastructure/outbound/rabbitmq/rabbitmq-connection.js';
 import { RabbitMqParseAdapter } from './infrastructure/outbound/rabbitmq/rabbitmq-parse-adapter.js';
@@ -10,10 +10,10 @@ import { MetricsRegistry } from './infrastructure/outbound/monitoring/metrics-re
 import { SystemMonitor } from './infrastructure/outbound/monitoring/system-monitor.js';
 
 initLogger();
-const logger = getLogger();
+const logger = createLogger('Boot');
 
 async function main(): Promise<void> {
-  logger.info('[Boot] Starting jobs-watcher', { env: config.nodeEnv });
+  logger.info('Starting jobs-watcher', { env: config.nodeEnv });
 
   const mongoAdapter = new MongoJobLifecycleAdapter(config.mongodb.uri, config.mongodb.dbName);
   await mongoAdapter.connect();
@@ -34,14 +34,17 @@ async function main(): Promise<void> {
     mongoAdapter,
     parseAdapter,
     routingAdapter,
+    undefined,
+    undefined,
+    metricsRegistry,
   );
 
   startHealthServer({ port: Number(process.env.HEALTH_PORT || '9090'), metricsRegistry, systemMonitor });
 
-  logger.info('[Boot] Startup complete');
+  logger.info('Startup complete');
 }
 
 main().catch((err) => {
-  logger.error('[Boot] Fatal startup error', { error: err instanceof Error ? err.message : String(err) });
+  logger.error('Fatal startup error', { error: err instanceof Error ? err.message : String(err) });
   process.exit(1);
 });

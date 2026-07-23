@@ -105,6 +105,7 @@ function createPinoLogger(): pino.Logger {
   });
 }
 
+let pinoRoot: pino.Logger | undefined;
 let globalLogger: PinoLogger | SilentLogger = new SilentLogger();
 
 export function getLogger(): ILogger {
@@ -112,16 +113,15 @@ export function getLogger(): ILogger {
 }
 
 export function setLogger(logger: ILogger): void {
-  if (logger instanceof PinoLogger || logger instanceof SilentLogger) {
-    globalLogger = logger;
-  }
+  globalLogger = logger;
 }
 
 export function createLogger(prefix: string): ILogger {
-  const pinoLogger = createPinoLogger().child({ prefix });
-  return new PinoLogger(pinoLogger);
+  const root = pinoRoot ?? createPinoLogger();
+  return new PinoLogger(root.child({ prefix }));
 }
 
 export function initLogger(): void {
-  globalLogger = new PinoLogger(createPinoLogger());
+  pinoRoot = createPinoLogger();
+  globalLogger = new PinoLogger(pinoRoot);
 }

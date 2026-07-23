@@ -13,7 +13,7 @@ import { AdjacencyProducer } from '../producers/adjacency.producer.js';
 import { AnchorEvidenceProducer } from '../producers/anchor-evidence.producer.js';
 
 import { serializeMap, serializeNestedSetMap } from '../serializers/map.serializer.js';
-import { getLogger } from '../../../../infrastructure/outbound/logging/logger.js';
+import { createLogger } from '../../../../infrastructure/outbound/logging/logger.js';
 
 import { ensureArtifactDirectory, writeArtifactFile } from '../utils/artifact-file.util.js';
 
@@ -57,7 +57,7 @@ export async function buildArtifacts(): Promise<void> {
     }),
   ]);
 
-  getLogger().info('Artifacts built successfully.');
+  createLogger('ArtifactBuilder').info('Artifacts built successfully');
 }
 
 // Run directly when invoked as CLI script
@@ -69,7 +69,7 @@ const isMainModule = process.argv[1] && (
 );
 if (isMainModule) {
   buildArtifacts().catch((error) => {
-    getLogger().error(String(error));
+    createLogger('ArtifactBuilder').error('Build failed', { error: String(error) });
     process.exit(1);
   });
 }

@@ -1,10 +1,10 @@
 import path from 'node:path';
-import { getLogger } from '../logging/logger.js';
+import { createLogger } from '../logging/logger.js';
 import type { AssetProducingPort } from '../../../application/ports/asset-producing.port.js';
 import type { JobLifecycleDocument } from '../persistence/schemas.js';
 import { renderPdf } from './pdf-renderer.js';
 
-const logger = getLogger();
+const logger = createLogger('AssetProducer');
 
 export class AssetProducingAdapter implements AssetProducingPort {
   private outputDir: string;
@@ -43,7 +43,7 @@ export class AssetProducingAdapter implements AssetProducingPort {
     };
 
     const pdfPath = await renderPdf(asset, this.outputDir, { format: 'A4' });
-    logger.info('[AssetProducingAdapter] Generated PDF asset', { id, pdfPath });
+    logger.info('Generated PDF asset', { id, pdfPath });
     return pdfPath;
   }
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MongoExtractionQueueAdapter } from '../../../src/infrastructure/outbound/persistence/extraction-queue-adapter.js' ;
+import { MongoExtractionQueueAdapter } from '../../../src/infrastructure/outbound/persistence/extraction-queue-adapter.js';
+import { MetricsRegistry } from '../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
 
 function createMockCollection() {
   return {
@@ -15,7 +16,7 @@ describe('MongoExtractionQueueAdapter', () => {
 
   beforeEach(() => {
     collection = createMockCollection();
-    adapter = new MongoExtractionQueueAdapter(collection as any);
+    adapter = new MongoExtractionQueueAdapter(collection as any, new MetricsRegistry());
   });
 
   describe('enqueue', () => {

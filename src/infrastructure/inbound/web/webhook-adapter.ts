@@ -1,10 +1,10 @@
 import express, { type Request, type Response } from 'express';
-import { getLogger } from '../../outbound/logging/logger.js';
+import { createLogger } from '../../outbound/logging/logger.js';
 import type { JobIngestor } from '../../../application/ingestor.js';
 import { JobStage, JobSource } from '../../../domain/types/job-lifecycle.js';
 import type { ProcessIngestCommand } from '../../../application/commands.js';
 
-const logger = getLogger();
+const logger = createLogger('Webhook');
 
 import type { Server } from 'http';
 
@@ -68,14 +68,14 @@ export class WebhookAdapter {
             const ids = await this.gmail.getMessagesSinceHistory(historyId);
             gmailMessageId = ids[0] || '';
           }
-          logger.info('[Webhook] PubSub push', { historyId, emailAddress: decoded.emailAddress, gmailMessageId });
+          logger.info('PubSub push', { historyId, emailAddress: decoded.emailAddress, gmailMessageId });
         } else if (raw && typeof raw === 'object' && typeof raw.messageId === 'string') {
           gmailMessageId = raw.messageId as string;
-          logger.info('[Webhook] Simulated push', { gmailMessageId });
+          logger.info('Simulated push', { gmailMessageId });
         }
 
         if (!gmailMessageId) {
-          logger.warn('[Webhook] No messageId resolved — skipping');
+          logger.warn('No messageId resolved — skipping');
           res.status(202).json({ status: 'accepted', messageId: '' });
           return;
         }
@@ -87,7 +87,7 @@ export class WebhookAdapter {
         const to = this.gmail.extractHeader(gmailMsg, 'To');
 
         if (!rawPayload.trim()) {
-          logger.warn('[Webhook] Empty email body after extraction', { gmailMessageId });
+          logger.warn('Empty email body after extraction', { gmailMessageId });
           res.status(202).json({ status: 'accepted', messageId: gmailMessageId });
           return;
         }
@@ -109,13 +109,13 @@ export class WebhookAdapter {
         await this.ingestor.processIngestCommand(command);
         res.status(202).json({ status: 'accepted', messageId: gmailMessageId });
       } catch (err) {
-        logger.error('[Webhook] Processing failed', { error: err instanceof Error ? err.message : String(err) });
+        logger.error('Processing failed', { error: err instanceof Error ? err.message : String(err) });
         res.status(500).json({ status: 'error', error: 'Internal server error' });
       }
     });
 
     this.server = app.listen(port, () => {
-      logger.info(`[Webhook] Listening on port ${port}${path}`);
+      logger.info('Listening', { port, path });
     });
   }
 }

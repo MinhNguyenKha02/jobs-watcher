@@ -1,4 +1,4 @@
-import { getLogger } from '../../infrastructure/outbound/logging/logger.js';
+import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 import type { Job } from '../../domain/types/job.js';
 
 import { RabbitMqJobReader } from './components/RabbitMqJobReader.js';
@@ -8,7 +8,7 @@ import { renderPreviewViewerModal } from './components/PreviewViewerModal.js';
 import { clearCurrentJob, setCurrentJob, getCurrentJob, getQueueMode, resetState } from './shared-tui-state.js';
 import type { CurrentJobState } from './shared-tui-state.js';
 
-const logger = getLogger();
+const logger = createLogger('TUI');
 
 type TuiState = 'IDLE' | 'DISPLAY';
 
@@ -42,7 +42,7 @@ export class OpsTuiApp {
 
   async start(): Promise<void> {
     try {
-      logger.info('[render-server] Starting Render Server');
+      logger.info('Starting Render Server');
       resetState();
 
       this.ansiTerminal.enableRawMode();
@@ -52,7 +52,7 @@ export class OpsTuiApp {
       this.isRunning = true;
       await this.mainLoop();
     } catch (err) {
-      logger.error('[render-server] Fatal error', { error: String(err) });
+      logger.error('Fatal error', { error: String(err) });
       throw err;
     } finally {
       this.stop();
@@ -61,16 +61,16 @@ export class OpsTuiApp {
 
   stop(): void {
     if (!this.isRunning) return;
-    logger.info('[render-server] Shutting down...');
+    logger.info('Shutting down...');
     this.isRunning = false;
 
     try {
       this.ansiTerminal.restoreTerminal();
       this.rmqReader.stop();
       clearCurrentJob();
-      logger.info('[render-server] Graceful shutdown complete');
+      logger.info('Graceful shutdown complete');
     } catch (err) {
-      logger.warn('[render-server] Error during shutdown', { error: String(err) });
+      logger.warn('Error during shutdown', { error: String(err) });
     }
   }
 
@@ -123,7 +123,7 @@ export class OpsTuiApp {
 
         await this.sleep(100);
       } catch (err) {
-        logger.error('[render-server] Error in main loop', { error: String(err) });
+        logger.error('Error in main loop', { error: String(err) });
         await this.sleep(1000);
       }
     }
@@ -149,7 +149,7 @@ export class OpsTuiApp {
     try {
       this.ansiTerminal.write('\x1b[H\x1b[J' + frame + '\n');
     } catch (err) {
-      logger.error('[RENDER] Failed to write frame', {
+      logger.error('Failed to write frame', {
         error: String(err),
         jobLifecycleId: job?._id,
       });
@@ -163,21 +163,13 @@ export class OpsTuiApp {
 
       if (state.modal.type === 'PREVIEW_VIEWER') {
         modalFrame = renderPreviewViewerModal(state.modal, state);
-        logger.debug('[RENDER] Rendering PREVIEW_VIEWER modal', {
-          jobLifecycleId: state.jobLifecycleId,
-          currentPage: state.modal.currentPage,
-          maxPages: state.modal.maxPages,
-        });
       } else {
-        logger.warn('[RENDER] Unknown modal type', { modalType: state.modal.type });
+        logger.warn('Unknown modal type', { modalType: state.modal.type });
         return;
       }
       this.ansiTerminal.write('\x1b[H\x1b[J' + modalFrame + '\n');
-      logger.debug('[RENDER] Modal frame written to terminal', {
-        modalType: state.modal.type,
-      });
     } catch (err) {
-      logger.error('[RENDER] Failed to render modal', {
+      logger.error('Failed to render modal', {
         error: String(err),
         modalType: state.modal?.type,
       });
@@ -193,7 +185,7 @@ async function main() {
   const args = process.argv.slice(2);
   const isRenderOnly = args.includes('--render-only');
 
-  logger.info('[render-server] Starting with args:', { args, isRenderOnly });
+  logger.debug('Starting with args', { args, isRenderOnly });
 
   if (isRenderOnly) {
     try {
@@ -201,24 +193,23 @@ async function main() {
         rmqUrl: process.env.RMQ_URL || 'amqp://guest:guest@127.0.0.1:5672',
       };
 
-      logger.info('[render-server] Creating OpsTuiApp with config', { rmqUrl: config.rmqUrl });
+      logger.debug('Creating OpsTuiApp with config', { rmqUrl: config.rmqUrl });
       const app = new OpsTuiApp(config);
-      logger.info('[render-server] Calling app.start()');
       await app.start();
     } catch (err) {
-      logger.error('[render-server] Fatal error in main', {
+      logger.error('Fatal error in main', {
         error: err instanceof Error ? err.message : String(err),
         stack: err instanceof Error ? err.stack : undefined,
       });
       process.exit(1);
     }
   } else {
-    logger.info('[render-server] No --render-only flag, exiting');
+    logger.info('No --render-only flag, exiting');
     process.exit(0);
   }
 }
 
 main().catch((err) => {
-  console.error('[render-server] Unhandled error in main:', err);
+  console.error('Unhandled error in main:', err);
   process.exit(1);
 });

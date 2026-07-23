@@ -9,10 +9,10 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 
 import { clipboardGetter } from '../services/clipboard-getter.js';
-import { getLogger } from '../../../infrastructure/outbound/logging/logger.js';
+import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
 import { postJsonOverUds, type UdsRequestOptions } from '../../../infrastructure/utils/uds-http.js';
 
-const logger = getLogger();
+const logger = createLogger('UdsAction');
 
 export enum OperatorAction {
   QUEUE = 'queue',
@@ -87,7 +87,7 @@ export class UdsActionWriter {
       // Create a hash of the clipboard content for deduplication tracking
       const hash = createHash('sha256').update(html).digest('hex');
 
-      logger.info('📋 Pasting HTML from clipboard (webhook stage 2)', { size: html.length, hash: hash.substring(0, 8), jobLifecycleId });
+      logger.debug('Pasting HTML from clipboard (webhook stage 2)', { size: html.length, hash: hash.substring(0, 8), jobLifecycleId });
 
       // POST to /internal/ingest?webhook=true endpoint
       const ingestOpts: UdsRequestOptions = {
@@ -118,11 +118,11 @@ export class UdsActionWriter {
         throw new Error(`Webhook ingest failed: ${res.statusCode} ${res.body}`);
       }
 
-      logger.info('✓ Webhook stage 2 clipboard ingest posted to server', { jobLifecycleId });
+      logger.info('Webhook stage 2 clipboard ingest posted to server', { jobLifecycleId });
       return html;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      logger.error('❌ Webhook ingest failed', { error: message });
+      logger.error('Webhook ingest failed', { error: message });
       throw err;
     }
   }
@@ -138,21 +138,24 @@ export class UdsActionWriter {
         if (res.statusCode < 200 || res.statusCode >= 300) {
           throw new Error(`Action failed: ${res.statusCode}`);
         }
-        logger.debug(`✓ Action sent: ${payload.action}`, { jobLifecycleId: payload.jobLifecycleId });
+        logger.debug('Action sent', { action: payload.action, jobLifecycleId: payload.jobLifecycleId });
         return;
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         if (attempt < maxRetries) {
-          logger.warn(`❌ Action failed (attempt ${attempt}/${maxRetries}), retrying...`, {
+          logger.warn('Action failed, retrying', {
             jobLifecycleId: payload.jobLifecycleId,
             action: payload.action,
+            attempt,
+            maxRetries,
             error: message,
           });
           await new Promise(r => setTimeout(r, 100 * Math.pow(2, attempt - 1)));
         } else {
-          logger.error(`❌ Action failed after ${maxRetries} attempts`, {
+          logger.error('Action failed after max attempts', {
             jobLifecycleId: payload.jobLifecycleId,
             action: payload.action,
+            maxRetries,
             error: message,
           });
           throw err;

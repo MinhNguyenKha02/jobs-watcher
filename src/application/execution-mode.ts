@@ -54,12 +54,12 @@ export function detectExecutionMode(): ModeContext {
   };
 
   // Log at bootstrap for audit trail
-  console.log(`[BOOTSTRAP] Execution mode detected: ${mode}`, {
+  console.log('[BOOTSTRAP] Execution mode detected:', mode, JSON.stringify({
     INGRESS_FIXTURE_MODE: process.env.INGRESS_FIXTURE_MODE,
     TEST_RUNNER: process.env.TEST_RUNNER,
     NODE_ENV: process.env.NODE_ENV,
     HEADLESS: process.env.HEADLESS,
-  });
+  }));
 
   return context;
 }

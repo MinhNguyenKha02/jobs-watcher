@@ -1,9 +1,9 @@
 import amqplib, { type Channel, type ChannelModel, type ConsumeMessage } from 'amqplib';
-import { getLogger } from '../../../infrastructure/outbound/logging/logger.js';
+import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
 import { ActionEvent } from '../../../domain/types/action-event.js';
 import { setCurrentJob, clearCurrentJob, getCurrentJob, getQueueMode } from '../shared-tui-state.js';
 
-const logger = getLogger();
+const logger = createLogger('RMQReader');
 
 const EXCHANGE = 'jobs.events';
 const S1_QUEUE = 'tui.s1';
@@ -77,9 +77,9 @@ export class RabbitMqJobReader {
 
       this.evictTimer = setInterval(() => this.evictStaleDeferred(), 5000);
       this.connected = true;
-      logger.info('[RMQReader] Started, 3 consumers active');
+      logger.info('Started, 3 consumers active');
     } catch (err) {
-      logger.error('[RMQReader] Start failed', { error: String(err) });
+      logger.error('Start failed', { error: String(err) });
       this.connected = false;
     }
   }
@@ -91,7 +91,7 @@ export class RabbitMqJobReader {
     [this.s1channel, this.s2channel, this.s34channel].forEach((ch) => {
       if (ch) ch.close().catch(() => {});
     });
-    logger.info('[RMQReader] Stopped');
+    logger.info('Stopped');
   }
 
   setQueueMode(mode: boolean): void {
@@ -114,10 +114,10 @@ export class RabbitMqJobReader {
         this.pendingJobs.push({ id, job: payload, stage: 'PARTIAL' });
       }
 
-      logger.info('[SIGNAL-1] job.generated', { id, company: payload.company, stage: 'PARTIAL' });
+      logger.info('job.generated', { id, company: payload.company, stage: 'PARTIAL' });
       this.autoAdvance();
     } catch (err) {
-      logger.warn('[RMQReader:C1] Error', { error: String(err) });
+      logger.warn('C1 Error', { error: String(err) });
       this.s1channel!.nack(msg, false, true);
     }
   }
@@ -139,28 +139,28 @@ export class RabbitMqJobReader {
           job: { ...this.pendingJobs[existingIdx].job, ...payload },
           stage: 'FULL_PARSED',
         };
-        logger.info('[SIGNAL-2] job.parse.completed — merged in pending', { id });
+        logger.info('job.parse.completed — merged in pending', { id });
       } else if (this.currentJobId === id) {
         setCurrentJob(id, { ...getCurrentJob().job, ...payload } as any, 'FULL_PARSED');
-        logger.info('[SIGNAL-2] job.parse.completed — IPC enriched displayed job', { id });
+        logger.info('job.parse.completed — IPC enriched displayed job', { id });
       } else if (!this.queueMode) {
         if (this.currentJobId !== null) {
           this.ackAllForJob(this.currentJobId);
         }
         setCurrentJob(id, payload as any, 'FULL_PARSED');
         this.currentJobId = id;
-        logger.info('[SIGNAL-2] job.parse.completed — direct mode set', { id });
+        logger.info('job.parse.completed — direct mode set', { id });
       } else {
         if (this.deferredS2Buffer.size >= DEFERRED_S2_MAX) {
-          logger.warn('[RMQReader:C2] DeferredS2Buffer full, nacking', { id });
+          logger.warn('DeferredS2Buffer full, nacking', { id });
           this.s2channel!.nack(msg, false, true);
           return;
         }
         this.deferredS2Buffer.set(id, { payload, deliveryTag: msg.fields.deliveryTag, timestamp: Date.now() });
-        logger.debug('[RMQReader:C2] S2 deferred', { id });
+        logger.debug('S2 deferred', { id });
       }
     } catch (err) {
-      logger.warn('[RMQReader:C2] Error', { error: String(err) });
+      logger.warn('C2 Error', { error: String(err) });
       this.s2channel!.nack(msg, false, true);
     }
   }
@@ -181,17 +181,17 @@ export class RabbitMqJobReader {
         clearCurrentJob();
         const routingKey = msg.fields.routingKey;
         if (routingKey === ActionEvent.QUEUED) {
-          logger.info('[SIGNAL-3] job.queued', { id });
+          logger.info('job.queued', { id });
         } else if (routingKey === ActionEvent.TRASHED) {
-          logger.info('[SIGNAL-3] job.trashed', { id });
+          logger.info('job.trashed', { id });
         } else if (routingKey === ActionEvent.PARSE_FAILED || routingKey === ActionEvent.ROUTE_FAILED) {
-          logger.info('[SIGNAL-4] job.failed', { id, routingKey });
+          logger.info('job.failed', { id, routingKey });
         }
       }
 
       if (this.queueMode) this.autoAdvance();
     } catch (err) {
-      logger.warn('[RMQReader:C3] Error', { error: String(err) });
+      logger.warn('C3 Error', { error: String(err) });
       this.s34channel!.nack(msg, false, true);
     }
   }
@@ -220,7 +220,7 @@ export class RabbitMqJobReader {
     const next = this.pendingJobs.shift()!;
     this.currentJobId = next.id;
     setCurrentJob(next.id, next.job as any, next.stage);
-    logger.info('[RMQReader] Auto-advanced to next job', { id: next.id, stage: next.stage });
+    logger.info('Auto-advanced to next job', { id: next.id, stage: next.stage });
   }
 
   private removeFromPending(id: string): void {
@@ -243,14 +243,14 @@ export class RabbitMqJobReader {
     } else {
       this.pendingJobs.push({ id, job: entry.payload, stage: 'FULL_PARSED' });
     }
-    logger.info('[RMQReader] Deferred S2 drained', { id });
+    logger.info('Deferred S2 drained', { id });
   }
 
   private evictStaleDeferred(): void {
     const now = Date.now();
     for (const [id, entry] of this.deferredS2Buffer) {
       if (now - entry.timestamp > DEFERRED_S2_TTL) {
-        logger.warn('[RMQReader] Evicting stale deferred S2', { id });
+        logger.warn('Evicting stale deferred S2', { id });
         this.s2channel?.nack({ fields: { deliveryTag: entry.deliveryTag } } as ConsumeMessage, false, false);
         this.deferredS2Buffer.delete(id);
       }

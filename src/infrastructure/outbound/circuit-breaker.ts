@@ -1,6 +1,6 @@
-import { getLogger } from './logging/logger.js';
+import { createLogger } from './logging/logger.js';
 
-const logger = getLogger();
+const logger = createLogger('CircuitBreaker');
 
 export class CircuitBreaker {
   private failureCount = 0;
@@ -16,14 +16,14 @@ export class CircuitBreaker {
 
   async execute<T>(fn: () => Promise<T>, operationName: string): Promise<T | null> {
     if (this.isOpen && Date.now() - this.lastFailureTime > this.resetTimeMs) {
-      logger.info(`Circuit breaker reset for ${operationName}`);
+      logger.debug('Circuit breaker reset', { operationName });
       this.isOpen = false;
       this.failureCount = 0;
       this.successCount = 0;
     }
 
     if (this.isOpen) {
-      logger.warn(`Circuit breaker open for ${operationName} — returning null`);
+      logger.warn('Circuit breaker open — returning null', { operationName });
       return null;
     }
 
@@ -40,7 +40,7 @@ export class CircuitBreaker {
       this.lastFailureTime = Date.now();
       if (this.failureCount >= this.failureThreshold) {
         this.isOpen = true;
-        logger.error(`Circuit breaker OPEN for ${operationName} — too many failures`);
+        logger.warn('Circuit breaker OPEN — too many failures', { operationName });
       }
       throw err;
     }

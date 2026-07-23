@@ -4,7 +4,7 @@ import { JobSource, JobStage } from '../../../src/domain/types/job-lifecycle.js'
 
 function createMockQueue() {
   return {
-    dequeue: vi.fn<any[], Promise<{ _id: string; joblifecycleId: string; createdAt: Date } | null>>(),
+    dequeue: vi.fn<any[], Promise<{ _id: string; jobLifecycleId: string; createdAt: Date } | null>>(),
     enqueue: vi.fn(),
     size: vi.fn().mockResolvedValue(0),
     onEnqueue: vi.fn(),
@@ -64,7 +64,7 @@ describe('ExtractionScheduler', () => {
 
     it('dequeues a job, finds job lifecycle, extracts URL, and calls processIngest with FULL_PARSED', async () => {
       findJobLifecycle.mockResolvedValue({ url: 'https://example.com/job' });
-      const doc = { _id: 'job-1', joblifecycleId: 'job-1', createdAt: new Date() };
+      const doc = { _id: 'job-1', jobLifecycleId: 'job-1', createdAt: new Date() };
 
       queue.dequeue
         .mockResolvedValueOnce(doc)
@@ -88,7 +88,7 @@ describe('ExtractionScheduler', () => {
           source: JobSource.BROWSER_AUTO,
           stage: JobStage.FULL_PARSED,
           rawPayload: '<div>parsed content</div>',
-          joblifecycleId: 'job-1',
+          jobLifecycleId: 'job-1',
         });
       }, { interval: 50, timeout: 3000 });
     });
@@ -104,7 +104,7 @@ describe('ExtractionScheduler', () => {
     it('handles extraction failure by calling processIngest with PARTIAL_PARSED', async () => {
       findJobLifecycle.mockResolvedValue({ url: 'https://example.com/bad' });
       browser.extract.mockRejectedValue(new Error('Timeout'));
-      const doc = { _id: 'job-fail', joblifecycleId: 'job-fail', createdAt: new Date() };
+      const doc = { _id: 'job-fail', jobLifecycleId: 'job-fail', createdAt: new Date() };
 
       queue.dequeue
         .mockResolvedValueOnce(doc)
@@ -116,7 +116,7 @@ describe('ExtractionScheduler', () => {
           source: JobSource.BROWSER_AUTO,
           stage: JobStage.PARTIAL_PARSED,
           rawPayload: '',
-          joblifecycleId: 'job-fail',
+          jobLifecycleId: 'job-fail',
         });
       }, { interval: 50, timeout: 3000 });
     });
@@ -124,7 +124,7 @@ describe('ExtractionScheduler', () => {
     it('handles findJobLifecycle returning null by using empty URL', async () => {
       findJobLifecycle.mockResolvedValue(null);
       browser.extract.mockRejectedValue(new Error('empty-url'));
-      const doc = { _id: 'job-null', joblifecycleId: 'job-null', createdAt: new Date() };
+      const doc = { _id: 'job-null', jobLifecycleId: 'job-null', createdAt: new Date() };
 
       queue.dequeue
         .mockResolvedValueOnce(doc)
@@ -148,7 +148,7 @@ describe('ExtractionScheduler', () => {
     it('browser extraction success calls processIngest with BROWSER_AUTO FULL_PARSED', async () => {
       findJobLifecycle.mockResolvedValue({ url: 'https://example.com/job' });
       browser.extract.mockResolvedValue({ html: '<div>success</div>' });
-      const doc = { _id: 'job-success', joblifecycleId: 'job-success', createdAt: new Date() };
+      const doc = { _id: 'job-success', jobLifecycleId: 'job-success', createdAt: new Date() };
 
       queue.dequeue
         .mockResolvedValueOnce(doc)
@@ -160,7 +160,7 @@ describe('ExtractionScheduler', () => {
           source: JobSource.BROWSER_AUTO,
           stage: JobStage.FULL_PARSED,
           rawPayload: '<div>success</div>',
-          joblifecycleId: 'job-success',
+          jobLifecycleId: 'job-success',
         });
       }, { interval: 50, timeout: 3000 });
     });
@@ -168,7 +168,7 @@ describe('ExtractionScheduler', () => {
     it('browser extraction failure calls processIngest with BROWSER_AUTO PARTIAL_PARSED and empty payload', async () => {
       findJobLifecycle.mockResolvedValue({ url: 'https://example.com/bad' });
       browser.extract.mockRejectedValue(new Error('Navigation timeout'));
-      const doc = { _id: 'job-fail-2', joblifecycleId: 'job-fail-2', createdAt: new Date() };
+      const doc = { _id: 'job-fail-2', jobLifecycleId: 'job-fail-2', createdAt: new Date() };
 
       queue.dequeue
         .mockResolvedValueOnce(doc)
@@ -180,7 +180,7 @@ describe('ExtractionScheduler', () => {
           source: JobSource.BROWSER_AUTO,
           stage: JobStage.PARTIAL_PARSED,
           rawPayload: '',
-          joblifecycleId: 'job-fail-2',
+          jobLifecycleId: 'job-fail-2',
         });
       }, { interval: 50, timeout: 3000 });
     });
