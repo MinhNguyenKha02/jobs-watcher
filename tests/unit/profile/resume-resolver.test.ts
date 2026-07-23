@@ -14,16 +14,16 @@ import { RetrievalRanker } from '../../../src/domain/profile/retrieval/ranking/r
 import { EvidenceAttachmentValidator } from '../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js' ;
 import { SkillKeyNormalizer } from '../../../src/domain/profile/resume/normalization/skill-key-normalizer.js' ;
 
-vi.mock('../../../src/services/profile/retrieval/resolver/retrieval-acceptance.resolver.js');
-vi.mock('../../../src/services/profile/resume/compiler/ats-skill-group.compiler.js');
-vi.mock('../../../src/services/profile/retrieval/ranking/retrieval-ranker.js', () => ({
+vi.mock('../../../src/domain/profile/retrieval/resolver/retrieval-acceptance.resolver.js');
+vi.mock('../../../src/domain/profile/resume/compiler/ats-skill-group.compiler.js');
+vi.mock('../../../src/domain/profile/retrieval/ranking/retrieval-ranker.js', () => ({
   RetrievalRanker: vi.fn(),
   RankedSignal: {},
 }));
-vi.mock('../../../src/services/profile/retrieval/logging/retrieval-logger.js');
-vi.mock('../../../src/services/profile/retrieval/validation/evidence-attachment.validator.js');
-vi.mock('../../../src/services/profile/resume/normalization/skill-key-normalizer.js');
-vi.mock('../../../src/services/profile/retrieval/policies/retrieval.policy.js');
+vi.mock('../../../src/domain/profile/retrieval/logging/retrieval-logger.js');
+vi.mock('../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js');
+vi.mock('../../../src/domain/profile/resume/normalization/skill-key-normalizer.js');
+vi.mock('../../../src/domain/profile/retrieval/policies/retrieval.policy.js');
 
 describe('ResumeResolver', () => {
   let resolver: ResumeResolver;

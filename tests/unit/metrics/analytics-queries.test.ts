@@ -1,4 +1,4 @@
-import { AnalyticsQueries } from '../../../src/services/metrics/analytics-queries.js';
+import { AnalyticsQueries } from '../../../src/infrastructure/outbound/monitoring/analytics-queries.js';
 
 describe('AnalyticsQueries', () => {
   it('constructs with Mongo URI', () => {

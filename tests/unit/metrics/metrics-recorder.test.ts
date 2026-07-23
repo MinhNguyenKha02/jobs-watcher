@@ -1,4 +1,4 @@
-import { MetricsRecorder, ApplicationMetric } from '../../../src/services/metrics/metrics-recorder.js';
+import { MetricsRecorder, ApplicationMetric } from '../../../src/infrastructure/outbound/monitoring/metrics-recorder.js';
 
 describe('MetricsRecorder', () => {
   it('constructs with Mongo URI', () => {

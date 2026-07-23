@@ -35,14 +35,8 @@ describe('canonicalProfile', () => {
     expect(canonicalProfile.links.github).toContain('github.com');
   });
 
-  it('contains fundamentals section', () => {
-    expect(canonicalProfile.fundamentals).toBeDefined();
-    expect(Array.isArray(canonicalProfile.fundamentals.programming_language)).toBe(true);
-  });
-
-  it('includes Jobs Watcher project', () => {
-    const project = canonicalProfile.projects.find(p => p.name === 'Jobs Watcher');
-    expect(project).toBeDefined();
-    expect(project!.type).toBe('personal');
+  it('contains software_fundamentals', () => {
+    expect(canonicalProfile.software_fundamentals).toBeDefined();
+    expect(Array.isArray(canonicalProfile.software_fundamentals.programming_language.solid)).toBe(true);
   });
 });

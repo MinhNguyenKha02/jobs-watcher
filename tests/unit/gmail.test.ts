@@ -1,4 +1,4 @@
-import { GmailService } from '../../src/services/gmail.js';
+import { GmailService } from '../../src/infrastructure/outbound/gmail.js';
 
 describe('GmailService (unit)', () => {
   it('extracts headers by name (case-insensitive)', () => {
