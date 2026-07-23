@@ -38,6 +38,7 @@ describe('hybridJobFilter - strict junior/software logic', () => {
     });
     const res = hybridJobFilter(job);
     expect(res.passed).toBe(false);
+    expect(res.reasons.join(' ')).toMatch(/No matching language/i);
   });
 
   test('Entry-level or fresh graduate keyword passes', () => {

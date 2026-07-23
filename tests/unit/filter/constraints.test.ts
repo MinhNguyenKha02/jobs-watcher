@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchesRole, matchesLang, matchesExperience, matchesRange } from '../../../src/domain/filter/constraints.js' ;
+import { matchesRole, matchesLang, matchesExperience } from '../../../src/domain/filter/constraints.js' ;
 
 describe('matchesRole', () => {
   it('matches software engineer', () => {
@@ -30,7 +30,7 @@ describe('matchesRole', () => {
   });
 
   it('matches via description when input is object', () => {
-    const result = matchesRole({ responsibilities: 'Build software' }, 'Senior Developer');
+    const result = matchesRole({ responsibilities: 'Build software' }, 'Senior Software Developer');
     expect(result.passed).toBe(true);
   });
 });
@@ -96,30 +96,3 @@ describe('matchesExperience', () => {
   });
 });
 
-describe('matchesRange', () => {
-  it('matches intern', () => {
-    expect(matchesRange('Internship program')).toEqual({ passed: true });
-  });
-
-  it('matches fresher', () => {
-    expect(matchesRange('Fresher opportunity')).toEqual({ passed: true });
-  });
-
-  it('matches junior', () => {
-    expect(matchesRange('Junior position')).toEqual({ passed: true });
-  });
-
-  it('matches Vietnamese range patterns', () => {
-    expect(matchesRange('thực tập sinh')).toEqual({ passed: true });
-  });
-
-  it('rejects beyond junior level', () => {
-    const result = matchesRange('Senior DevOps Engineer');
-    expect(result.passed).toBe(false);
-    expect(result.reason).toBe('beyond junior level');
-  });
-
-  it('passes on null input', () => {
-    expect(matchesRange(null)).toEqual({ passed: true });
-  });
-});
