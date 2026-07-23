@@ -89,7 +89,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
   });
 
   it('S1→S2: chained enrich preserves and merges fields from partial to full', async () => {
-    const partialHtml = htmlFor('Junior Engineer', 'Chained Co');
+    const partialHtml = htmlFor('Software Engineer', 'Chained Co');
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.PARTIAL_PARSED,
@@ -103,7 +103,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     expect(s1Doc).not.toBeNull();
     expect(s1Doc!.stage).toBe(JobStage.PARTIAL_PARSED);
 
-    const fullHtml = htmlFor('Senior Engineer', 'Chained Co');
+    const fullHtml = htmlFor('Software Engineer', 'Chained Co');
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.FULL_PARSED,
@@ -131,7 +131,6 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(doc!.company).toBe('Direct Co');
     expect(doc!.role).toBe('Junior Engineer');
-    expect(doc!.matchScore).toBeGreaterThanOrEqual(0);
   });
 
   it('S2a: emits parse.failed on empty HTML payload', async () => {

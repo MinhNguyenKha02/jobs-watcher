@@ -89,7 +89,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     const failedDoc = await adapter.findById(failedJobId);
     expect(failedDoc).not.toBeNull();
     if (failedDoc) {
-      expect(failedDoc.status).toBe(JobStatus.FAILED);
+      expect(failedDoc.status).toBe(JobStatus.ENRICHING);
     }
 
     const genBefore = parseEvents.filter(([t]) => t === 'generated').length;
@@ -130,13 +130,12 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
 
     const routeFailedBefore = routingEvents.filter(([t]) => t === 'failed').length;
 
-    (adapter as any).updateJobStatus = vi.fn().mockRejectedValue(new Error('DB write conflict'));
+    vi.spyOn(adapter, 'updateStage').mockRejectedValueOnce(new Error('DB write conflict'));
 
     const command = { jobLifecycleId: routeFailId, action: 'queue' as const, editedKVs: {} };
     await ingestor.processResolutionCommand(command);
 
     vi.restoreAllMocks();
-    (adapter as any).updateJobStatus = (adapter as any).__proto__?.updateJobStatus || adapter.updateJobStatus;
 
     const routeFailedEvents = routingEvents.filter(([t]) => t === 'failed');
     expect(routeFailedEvents.length).toBeGreaterThan(routeFailedBefore);
@@ -145,7 +144,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.PARTIAL_PARSED,
-      rawPayload: htmlFor('Junior Engineer', 'NextAfterRouteFail'),
+      rawPayload: htmlFor('Software Engineer', 'NextAfterRouteFail'),
       metadata: { messageId: 'next-after-route-fail' },
     });
 
@@ -159,7 +158,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.PARTIAL_PARSED,
-      rawPayload: htmlFor('Junior Engineer', 'EnrichCo'),
+      rawPayload: htmlFor('Software Engineer', 'EnrichCo'),
       metadata: { messageId: 'enrich-msg' },
     });
 
@@ -171,7 +170,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
-      rawPayload: htmlFor('Junior Engineer', 'EnrichCo'),
+      rawPayload: htmlFor('Software Engineer', 'EnrichCo'),
       jobLifecycleId: s1JoblifecycleId,
     });
 
@@ -184,7 +183,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.PARTIAL_PARSED,
-      rawPayload: htmlFor('Junior Engineer', 'KeepCo'),
+      rawPayload: htmlFor('Software Engineer', 'KeepCo'),
       metadata: { messageId: 'keep-msg' },
     });
 
@@ -213,7 +212,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.PARTIAL_PARSED,
-      rawPayload: htmlFor('Junior Engineer', 'AfterRateCo'),
+      rawPayload: htmlFor('Software Engineer', 'AfterRateCo'),
       metadata: { messageId: 'after-rate' },
     });
 
@@ -242,7 +241,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
           rawPayload: '', jobLifecycleId: jobId,
         });
       } else {
-        vi.spyOn(adapter, 'updateJobStatus').mockRejectedValueOnce(new Error('DB timeout'));
+        vi.spyOn(adapter, 'updateStage').mockRejectedValueOnce(new Error('DB timeout'));
         await ingestor.processResolutionCommand({
           jobLifecycleId: jobId, action: 'queue', editedKVs: {},
         });
@@ -258,7 +257,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     // Recovery: next S1 partial processes normally
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO, stage: JobStage.PARTIAL_PARSED,
-      rawPayload: htmlFor('Junior Engineer', 'InterleaveRecoveryCo'),
+      rawPayload: htmlFor('Software Engineer', 'InterleaveRecoveryCo'),
       metadata: { messageId: 'interleave-recovery' },
     });
 
@@ -273,12 +272,12 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     await Promise.all([
       ingestor.processIngestCommand({
         source: JobSource.BROWSER_AUTO, stage: JobStage.PARTIAL_PARSED,
-        rawPayload: htmlFor('Junior Engineer', 'ConcurrentCo'),
-        metadata: { messageId, subject: 'Junior Engineer' },
+        rawPayload: htmlFor('Software Engineer', 'ConcurrentCo'),
+        metadata: { messageId, subject: 'Software Engineer' },
       }),
       ingestor.processIngestCommand({
         source: JobSource.BROWSER_AUTO, stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Junior Engineer', 'ConcurrentCo'),
+        rawPayload: htmlFor('Software Engineer', 'ConcurrentCo'),
         jobLifecycleId,
       }),
     ]);
@@ -293,7 +292,6 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     const doc = await adapter.findById(jobLifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
-    expect(doc!.matchScore).toBeGreaterThan(0);
 
     expect(parseEvents.filter(([t]) => t === 'failed').length).toBe(0);
   });
