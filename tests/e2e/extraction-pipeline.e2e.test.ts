@@ -98,10 +98,9 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
     const re: any[] = [];
     const ports = {
       parseEventPort: {
-        emitJobGenerated: vi.fn((...args: any[]) => { pe.push(['generated', ...args]); return Promise.resolve(); }),
-        emitJobGeneratedFailed: vi.fn((...args: any[]) => { pe.push(['generatedFailed', ...args]); return Promise.resolve(); }),
-        emitParseCompleted: vi.fn((...args: any[]) => { pe.push(['completed', ...args]); return Promise.resolve(); }),
-        emitParseFailed: vi.fn((...args: any[]) => { pe.push(['failed', ...args]); return Promise.resolve(); }),
+        emitGenerated: vi.fn((...args: any[]) => { pe.push(['generated', ...args]); return Promise.resolve(); }),
+        emitCompleted: vi.fn((...args: any[]) => { pe.push(['completed', ...args]); return Promise.resolve(); }),
+        emitFailed: vi.fn((...args: any[]) => { pe.push(['failed', ...args]); return Promise.resolve(); }),
       },
       routingPort: {
         emitJobQueued: vi.fn((...args: any[]) => { re.push(['queued', ...args]); return Promise.resolve(); }),
@@ -112,7 +111,7 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
     return { parseEvents: pe, routingEvents: re, ...ports };
   }
 
-  it('Signal 1 with Indeed URL defers to extraction queue (no emitJobGenerated)', async () => {
+  it('Signal 1 with Indeed URL defers to extraction queue (no emitGenerated)', async () => {
     await clearCollections();
     const { parseEvents, routingEvents, parseEventPort, routingPort } = freshPorts();
     (ingestor as any).parseEventPort = parseEventPort;

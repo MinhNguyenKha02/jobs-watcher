@@ -49,10 +49,9 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     await adapter.connect();
 
     parseEventPort = {
-      emitJobGenerated: vi.fn((...args: any[]) => Promise.resolve()),
-      emitJobGeneratedFailed: vi.fn((...args: any[]) => Promise.resolve()),
-      emitParseCompleted: vi.fn((...args: any[]) => Promise.resolve()),
-      emitParseFailed: vi.fn((...args: any[]) => Promise.resolve()),
+      emitGenerated: vi.fn((...args: any[]) => Promise.resolve()),
+      emitCompleted: vi.fn((...args: any[]) => Promise.resolve()),
+      emitFailed: vi.fn((...args: any[]) => Promise.resolve()),
     };
 
     routingPort = {
@@ -90,8 +89,8 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       metadata: { messageId: 'msg-cycle-1a', subject: role },
     });
 
-    expect(parseEventPort.emitJobGenerated).toHaveBeenCalledTimes(1);
-    const docId = parseEventPort.emitJobGenerated.mock.calls[0][0]._id;
+    expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
+    const docId = parseEventPort.emitGenerated.mock.calls[0][0]._id;
     expect(docId).toBeTruthy();
 
     await ingestor.processIngestCommand({
@@ -101,7 +100,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       joblifecycleId: docId,
     });
 
-    expect(parseEventPort.emitParseCompleted).toHaveBeenCalledTimes(1);
+    expect(parseEventPort.emitCompleted).toHaveBeenCalledTimes(1);
 
     const fullDoc = await adapter.findById(docId);
     expect(fullDoc).not.toBeNull();
@@ -152,8 +151,8 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     vi.clearAllMocks();
 
     // verify parseEventPort mocks are functional
-    await parseEventPort.emitJobGenerated({ _id: 'test-pre' }, { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO });
-    expect(parseEventPort.emitJobGenerated).toHaveBeenCalledTimes(1);
+    await parseEventPort.emitGenerated({ _id: 'test-pre' }, { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO });
+    expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
     vi.clearAllMocks();
 
     await ingestor.processIngestCommand({
@@ -163,7 +162,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       joblifecycleId: 'fail-s4-1',
     });
 
-    expect(parseEventPort.emitParseFailed).toHaveBeenCalledTimes(1);
+    expect(parseEventPort.emitFailed).toHaveBeenCalledTimes(1);
 
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
@@ -172,7 +171,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       metadata: { messageId: 'msg-s4-recover' },
     });
 
-    expect(parseEventPort.emitJobGenerated).toHaveBeenCalledTimes(1);
+    expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
   });
 
   it('S3 resolution failure→S4→next S1 succeeds (Case 3)', async () => {
@@ -207,7 +206,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       metadata: { messageId: 'msg-cycle-3c' },
     });
 
-    expect(parseEventPort.emitJobGenerated).toHaveBeenCalledTimes(1);
+    expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
   });
 
   it('S2 via BROWSER_AUTO FULL_PARSED emits both generated + completed (Case 2 arrival)', async () => {
@@ -223,8 +222,8 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       joblifecycleId: docId,
     });
 
-    expect(parseEventPort.emitJobGenerated).toHaveBeenCalledTimes(1);
-    expect(parseEventPort.emitParseCompleted).toHaveBeenCalledTimes(1);
+    expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
+    expect(parseEventPort.emitCompleted).toHaveBeenCalledTimes(1);
 
     const doc = await adapter.findById(docId);
     expect(doc).not.toBeNull();
@@ -242,8 +241,8 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       rawPayload: makeTopCvHtml('NoIdCo', 'Junior Engineer'),
     });
 
-    expect(parseEventPort.emitParseCompleted).toHaveBeenCalledTimes(1);
-    expect(parseEventPort.emitJobGenerated).toHaveBeenCalledTimes(1);
+    expect(parseEventPort.emitCompleted).toHaveBeenCalledTimes(1);
+    expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
   });
 
   it('[c] on already FULL_PARSED job still emits completed (B2 guard at UI level only)', async () => {
@@ -267,7 +266,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       joblifecycleId: docId,
     });
 
-    const completedEvents = parseEventPort.emitParseCompleted.mock.calls.filter(
+    const completedEvents = parseEventPort.emitCompleted.mock.calls.filter(
       (c: any) => c[0] === docId
     );
     expect(completedEvents.length).toBe(1);
@@ -292,7 +291,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       joblifecycleId: docId,
     });
 
-    expect(parseEventPort.emitParseFailed).toHaveBeenCalledTimes(1);
+    expect(parseEventPort.emitFailed).toHaveBeenCalledTimes(1);
 
     const doc = await adapter.findById(docId);
     expect(doc).not.toBeNull();
@@ -303,7 +302,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     await clearCollections();
     vi.clearAllMocks();
 
-    const parseFailedBefore = parseEventPort.emitParseFailed.mock.calls.length;
+    const parseFailedBefore = parseEventPort.emitFailed.mock.calls.length;
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
@@ -311,7 +310,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
       rawPayload: makeTopCvHtml('NoIdErrCo', 'Junior Engineer'),
     });
 
-    const parseFailedAfter = parseEventPort.emitParseFailed.mock.calls.length;
+    const parseFailedAfter = parseEventPort.emitFailed.mock.calls.length;
     expect(parseFailedAfter).toBe(parseFailedBefore);
   });
 });

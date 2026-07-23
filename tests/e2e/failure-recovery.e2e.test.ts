@@ -27,10 +27,9 @@ describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
     routingEvents = [];
 
     const parseEventPort = {
-      emitJobGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
-      emitJobGeneratedFailed: vi.fn((...args: any[]) => { parseEvents.push(['generatedFailed', ...args]); return Promise.resolve(); }),
-      emitParseCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
-      emitParseFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
+      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
+      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
+      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
     };
 
     const routingPort = {
@@ -71,7 +70,7 @@ describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
     });
   }
 
-  it('browser extraction failure triggers fallback: processIngest PARTIAL_PARSED + empty + emitJobGenerated', async () => {
+  it('browser extraction failure triggers fallback: processIngest PARTIAL_PARSED + empty + emitGenerated', async () => {
     const joblifecycleId = 'e2e-fail-1';
     await seedJob(joblifecycleId, 'https://example.com/fail');
 

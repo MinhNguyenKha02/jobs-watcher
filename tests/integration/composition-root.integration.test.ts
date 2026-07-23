@@ -62,10 +62,9 @@ describe('Composition root — bootstrap with real storage', () => {
 
     const ingestor = new JobIngestor(adapter, {
       parseEventPort: {
-        emitJobGenerated: vi.fn(),
-        emitParseCompleted: vi.fn(),
-        emitParseFailed: vi.fn(),
-        emitJobGeneratedFailed: vi.fn(),
+        emitGenerated: vi.fn(),
+        emitCompleted: vi.fn(),
+        emitFailed: vi.fn(),
       },
       routingPort,
     });
@@ -114,10 +113,9 @@ describe('Composition root — bootstrap with real storage', () => {
 
     const ingestor = new JobIngestor(adapter, {
       parseEventPort: {
-        emitJobGenerated: vi.fn(),
-        emitParseCompleted: vi.fn(),
-        emitParseFailed: vi.fn(),
-        emitJobGeneratedFailed: vi.fn(),
+        emitGenerated: vi.fn(),
+        emitCompleted: vi.fn(),
+        emitFailed: vi.fn(),
       },
       routingPort,
     });
@@ -165,10 +163,9 @@ describe('Composition root — bootstrap with real storage', () => {
 
     const ingestor = new JobIngestor(adapter, {
       parseEventPort: {
-        emitJobGenerated: vi.fn(),
-        emitParseCompleted: vi.fn(),
-        emitParseFailed: vi.fn(),
-        emitJobGeneratedFailed: vi.fn(),
+        emitGenerated: vi.fn(),
+        emitCompleted: vi.fn(),
+        emitFailed: vi.fn(),
       },
       routingPort,
     });

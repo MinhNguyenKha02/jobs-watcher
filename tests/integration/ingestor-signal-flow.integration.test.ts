@@ -28,10 +28,9 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
 
   function createParseEventPort() {
     return {
-      emitJobGenerated: vi.fn(),
-      emitParseCompleted: vi.fn(),
-      emitParseFailed: vi.fn(),
-      emitJobGeneratedFailed: vi.fn(),
+      emitGenerated: vi.fn(),
+      emitCompleted: vi.fn(),
+      emitFailed: vi.fn(),
     };
   }
 
@@ -79,8 +78,8 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
       stage: JobStage.FULL_PARSED,
       rawPayload: html,
     });
-    expect(parseEventPort.emitParseCompleted).toHaveBeenCalled();
-    const id = parseEventPort.emitParseCompleted.mock.calls[0][0];
+    expect(parseEventPort.emitCompleted).toHaveBeenCalled();
+    const id = parseEventPort.emitCompleted.mock.calls[0][0];
     expect(id).toMatch(/^clip-/);
     const doc = await adapter.findById(id);
     expect(doc).not.toBeNull();
@@ -97,8 +96,8 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
       rawPayload: partialHtml,
       metadata: { messageId: 'chain-msg' },
     });
-    expect(parseEventPort.emitJobGenerated).toHaveBeenCalled();
-    const s1Job = parseEventPort.emitJobGenerated.mock.calls[0][0];
+    expect(parseEventPort.emitGenerated).toHaveBeenCalled();
+    const s1Job = parseEventPort.emitGenerated.mock.calls[0][0];
     const joblifecycleId = s1Job._id;
     const s1Doc = await adapter.findById(joblifecycleId);
     expect(s1Doc).not.toBeNull();
@@ -111,7 +110,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
       rawPayload: fullHtml,
       joblifecycleId,
     });
-    expect(parseEventPort.emitParseCompleted).toHaveBeenCalled();
+    expect(parseEventPort.emitCompleted).toHaveBeenCalled();
     const s2Doc = await adapter.findById(joblifecycleId);
     expect(s2Doc).not.toBeNull();
     expect(s2Doc!.stage).toBe(JobStage.FULL_PARSED);
@@ -125,8 +124,8 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
       stage: JobStage.FULL_PARSED,
       rawPayload: html,
     });
-    expect(parseEventPort.emitParseCompleted).toHaveBeenCalled();
-    const id = parseEventPort.emitParseCompleted.mock.calls[0][0];
+    expect(parseEventPort.emitCompleted).toHaveBeenCalled();
+    const id = parseEventPort.emitCompleted.mock.calls[0][0];
     const doc = await adapter.findById(id);
     expect(doc!.source).toBe(JobSource.MANUAL);
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
@@ -142,7 +141,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
       rawPayload: '',
       joblifecycleId: 'test-empty-id',
     });
-    expect(parseEventPort.emitParseFailed).toHaveBeenCalledWith(
+    expect(parseEventPort.emitFailed).toHaveBeenCalledWith(
       'test-empty-id',
       expect.objectContaining({ error: 'Empty HTML payload' })
     );

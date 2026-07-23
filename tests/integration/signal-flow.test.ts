@@ -28,10 +28,9 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
 
   function createParseEventPort() {
     return {
-      emitJobGenerated: vi.fn(),
-      emitParseCompleted: vi.fn(),
-      emitParseFailed: vi.fn(),
-      emitJobGeneratedFailed: vi.fn(),
+      emitGenerated: vi.fn(),
+      emitCompleted: vi.fn(),
+      emitFailed: vi.fn(),
     };
   }
 
@@ -82,8 +81,8 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
       metadata: { messageId: 'int-s1' },
     });
 
-    expect(parseEventPort.emitJobGenerated).toHaveBeenCalled();
-    const canonicalJob = parseEventPort.emitJobGenerated.mock.calls[0][0];
+    expect(parseEventPort.emitGenerated).toHaveBeenCalled();
+    const canonicalJob = parseEventPort.emitGenerated.mock.calls[0][0];
     const id = canonicalJob._id;
     expect(id).toBeTruthy();
 
@@ -103,8 +102,8 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
       metadata: { messageId: 'int-s1s2' },
     });
 
-    expect(parseEventPort.emitJobGenerated).toHaveBeenCalled();
-    const canonicalJob = parseEventPort.emitJobGenerated.mock.calls[0][0];
+    expect(parseEventPort.emitGenerated).toHaveBeenCalled();
+    const canonicalJob = parseEventPort.emitGenerated.mock.calls[0][0];
     const id = canonicalJob._id;
 
     await ingestor.processIngestCommand({
@@ -114,8 +113,8 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
       joblifecycleId: id,
     });
 
-    expect(parseEventPort.emitParseCompleted).toHaveBeenCalledTimes(1);
-    const emitArgs = parseEventPort.emitParseCompleted.mock.calls[0];
+    expect(parseEventPort.emitCompleted).toHaveBeenCalledTimes(1);
+    const emitArgs = parseEventPort.emitCompleted.mock.calls[0];
     expect(emitArgs[0]).toBe(id);
     expect(emitArgs[1]).toBeTruthy();
     expect(emitArgs[2]).toEqual(expect.objectContaining({ stage: JobStage.FULL_PARSED }));
@@ -133,8 +132,8 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
       rawPayload: html,
     });
 
-    expect(parseEventPort.emitParseCompleted).toHaveBeenCalled();
-    const joblifecycleId = parseEventPort.emitParseCompleted.mock.calls[0][0];
+    expect(parseEventPort.emitCompleted).toHaveBeenCalled();
+    const joblifecycleId = parseEventPort.emitCompleted.mock.calls[0][0];
 
     await ingestor.processResolutionCommand({ joblifecycleId, action: 'queue' });
 
@@ -152,8 +151,8 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
       rawPayload: html,
     });
 
-    expect(parseEventPort.emitParseCompleted).toHaveBeenCalled();
-    const joblifecycleId = parseEventPort.emitParseCompleted.mock.calls[0][0];
+    expect(parseEventPort.emitCompleted).toHaveBeenCalled();
+    const joblifecycleId = parseEventPort.emitCompleted.mock.calls[0][0];
 
     await ingestor.processResolutionCommand({ joblifecycleId, action: 'trash' });
 
@@ -171,8 +170,8 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
       rawPayload: html,
     });
 
-    expect(parseEventPort.emitParseCompleted).toHaveBeenCalled();
-    const joblifecycleId = parseEventPort.emitParseCompleted.mock.calls[0][0];
+    expect(parseEventPort.emitCompleted).toHaveBeenCalled();
+    const joblifecycleId = parseEventPort.emitCompleted.mock.calls[0][0];
 
     await expect(
       ingestor.processResolutionCommand({ joblifecycleId, action: 'invalid' as any })

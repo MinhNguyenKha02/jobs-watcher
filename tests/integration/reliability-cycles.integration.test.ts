@@ -32,10 +32,9 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
     routingEvents = [];
 
     const parseEventPort = {
-      emitJobGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); }),
-      emitJobGeneratedFailed: vi.fn((...args: any[]) => { parseEvents.push(['generatedFailed', ...args]); }),
-      emitParseCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); }),
-      emitParseFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); }),
+      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); }),
+      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); }),
+      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); }),
     };
 
     const routingPort = {
