@@ -2,31 +2,22 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { renderPdf } from '../../../src/infrastructure/outbound/asset-builder/pdf-renderer.js' ;
-import type { ApplicationAsset } from '../../../src/domain/types/profile-normalized.js' ;
+import { renderPdf } from '../../../src/infrastructure/outbound/asset-builder/renderer/pdf-renderer.js' ;
+import type { PdfAsset } from '../../../src/domain/types/asset.js' ;
 
-function makeAsset(overrides?: Partial<ApplicationAsset>): ApplicationAsset {
+function makeAsset(overrides?: Partial<PdfAsset>): PdfAsset {
   return {
-    jobId: 'test-001',
-    jobTitle: 'Backend Developer',
-    company: 'Acme Corp',
-    sections: [],
-    matchedSkills: ['Node.js', 'PostgreSQL'],
+    name: 'John Doe',
+    contact: {
+      email: 'john@example.com',
+      phone: '+1 234 567 890',
+      location: 'New York, USA',
+    },
     skillGroups: [
       { label: 'Frameworks', skills: ['Node.js', 'Express.js'] },
       { label: 'Languages', skills: ['TypeScript'] },
     ],
-    skillGaps: [],
-    relevanceScore: 0,
-    evidenceMappings: [],
-    draftedAt: '2025-01-01T00:00:00.000Z',
-    profileHash: '',
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john@example.com',
-    phone: '+1 234 567 890',
-    location: 'New York, USA',
-    experience: [],
+    experiences: [],
     education: [],
     projects: [],
     ...overrides,
