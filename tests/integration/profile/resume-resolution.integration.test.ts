@@ -66,9 +66,9 @@ describe('Resume Resolution Integration', () => {
       const resolver = new ResumeResolver();
       const result = resolver.resolve(retrieval, bundle, 'test-job');
 
-      if (result.experience.length > 1) {
-        for (let i = 0; i < result.experience.length - 1; i++) {
-          expect(result.experience[i].score).toBeGreaterThanOrEqual(result.experience[i + 1].score);
+      if (result.experiences.length > 1) {
+        for (let i = 0; i < result.experiences.length - 1; i++) {
+          expect(result.experiences[i].score).toBeGreaterThanOrEqual(result.experiences[i + 1].score);
         }
       }
     });
@@ -111,7 +111,7 @@ describe('Resume Resolution Integration', () => {
       const resolver = new ResumeResolver();
       const result = resolver.resolve(retrieval, bundle, 'test-job');
 
-      expect(result.experience.length).toBeLessThanOrEqual(maxExp);
+      expect(result.experiences.length).toBeLessThanOrEqual(maxExp);
     });
   });
 

@@ -45,7 +45,7 @@ describe('EvidenceProducer', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
-      experience: [makeExperience({ company: 'Company A' }), makeExperience({ company: 'Company B' })],
+      experiences: [makeExperience({ company: 'Company A' }), makeExperience({ company: 'Company B' })],
     };
 
     const evidences = producer.produce(profile);
@@ -59,7 +59,7 @@ describe('EvidenceProducer', () => {
       name: 'Test',
       email: 'test@test.com',
       projects: [makeProject()],
-      experience: [makeExperience()],
+      experiences: [makeExperience()],
     };
 
     const evidences = producer.produce(profile);
@@ -109,7 +109,7 @@ describe('EvidenceProducer', () => {
     expect(node.bullets[1].weight).toBe(1);
   });
 
-  it('extracts tech stack from anchors', () => {
+  it('extracts anchor ids from anchors', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -120,7 +120,8 @@ describe('EvidenceProducer', () => {
 
     const evidences = producer.produce(profile);
     const node = evidences.get('ev.project.0')!;
-    expect(node.techStack).toEqual({ language: ['TypeScript'], framework: ['React'] });
+    expect(node.anchorIds).toContain('tech.language.TypeScript');
+    expect(node.anchorIds).toContain('tech.framework.React');
   });
 
   it('handles empty profile gracefully', () => {
@@ -143,7 +144,6 @@ describe('EvidenceProducer', () => {
     const evidences = producer.produce(profile);
     const node = evidences.get('ev.project.0')!;
     expect(node.anchorIds).toEqual([]);
-    expect(node.techStack).toEqual({});
   });
 
   it('sets endDate to Present when not provided', () => {
@@ -151,7 +151,7 @@ describe('EvidenceProducer', () => {
       name: 'Test',
       email: 'test@test.com',
       projects: [makeProject({ endDate: undefined })],
-      experience: [makeExperience({ endDate: undefined })],
+      experiences: [makeExperience({ endDate: undefined })],
     };
 
     const evidences = producer.produce(profile);

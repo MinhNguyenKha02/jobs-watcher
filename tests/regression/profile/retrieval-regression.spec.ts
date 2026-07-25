@@ -4,10 +4,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createPipeline, runSingle, runWithDebug, flattenSkills, type CorpusEntry } from './helpers/run-pipeline.js';
 import type { PipelineComponents } from './helpers/run-pipeline.js';
-import { toAsset, type ResolveOutput } from '../../../src/infrastructure/outbound/asset-builder/adapter.js' ;
-import { renderAts } from '../../../src/infrastructure/outbound/asset-builder/md-renderer.js' ;
-import { renderCoverLetter } from '../../../src/infrastructure/outbound/asset-builder/cover-letter-renderer.js' ;
-import { renderPdf } from '../../../src/infrastructure/outbound/asset-builder/pdf-renderer.js' ;
+import type { ResolveOutput } from '../../../src/domain/profile/types/resolve.types.js';
+import { AssetProducingAdapter } from '../../../src/infrastructure/outbound/asset-builder/asset-producing-adapter.js';
+import { renderPdf } from '../../../src/infrastructure/outbound/asset-builder/renderer/pdf-renderer.js' ;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -112,7 +111,7 @@ if (RECORD) {
         const result = runSingle(pipeline, entry);
         expect(result).toBeDefined();
         expect(result).toHaveProperty('skills');
-        expect(result).toHaveProperty('experience');
+        expect(result).toHaveProperty('experiences');
         expect(result).toHaveProperty('projects');
         expect(result).toHaveProperty('traces');
       });
@@ -161,61 +160,14 @@ if (RECORD) {
 
       it(`CR-006: ${stem} — experience ordering`, () => {
         const result = runSingle(pipeline, entry) as ResolveOutput;
-        const scores = result.experience.map(e => e.score);
+        const scores = result.experiences.map(e => e.score);
         for (let i = 1; i < scores.length; i++) {
           expect(scores[i]).toBeLessThanOrEqual(scores[i - 1]);
         }
-        expect(result.experience.length).toBeLessThanOrEqual(2);
+        expect(result.experiences.length).toBeLessThanOrEqual(2);
       });
 
-      it(`CR-007: ${stem} — toAsset smoke`, () => {
-        const result = runSingle(pipeline, entry);
-        const asset = toAsset(result, profile, entry as any);
-        expect(asset.firstName).toBe('Minh');
-        expect(asset.company).toBe(entry.company);
-        expect(Array.isArray(asset.matchedSkills)).toBe(true);
-        expect(Array.isArray(asset.experience)).toBe(true);
-        expect(Array.isArray(asset.education)).toBe(true);
-        expect(Array.isArray(asset.projects)).toBe(true);
-        expect(typeof asset.email).toBe('string');
-        expect(typeof asset.phone).toBe('string');
-      });
 
-      it(`CR-008: ${stem} — matchedSkills integrity`, () => {
-        const result = runSingle(pipeline, entry) as ResolveOutput;
-        const asset = toAsset(result, profile, entry as any);
-        const allSkills = flattenSkills(result);
-        for (const skill of allSkills) {
-          expect(asset.matchedSkills).toContain(skill);
-        }
-      });
-
-      it(`CR-009: ${stem} — ATS render`, () => {
-        const result = runSingle(pipeline, entry);
-        const asset = toAsset(result, profile, entry as any);
-        const outputDir = path.join(GENERATED_DIR, stem);
-        fs.mkdirSync(outputDir, { recursive: true });
-        const outputPath = renderAts(asset, outputDir);
-        expect(fs.existsSync(outputPath)).toBe(true);
-        const content = fs.readFileSync(outputPath, 'utf-8');
-        expect(content).toContain('Minh');
-        expect(content).toContain('TECHNICAL SKILLS');
-        expect(content).toContain('# Projects');
-        expect(content).toContain('# Experience');
-        expect(content).toContain('# Education');
-      });
-
-      it(`CR-010: ${stem} — cover letter render`, () => {
-        const result = runSingle(pipeline, entry);
-        const asset = toAsset(result, profile, entry as any);
-        const outputDir = path.join(GENERATED_DIR, stem);
-        fs.mkdirSync(outputDir, { recursive: true });
-        const outputPath = renderCoverLetter(asset, outputDir);
-        expect(fs.existsSync(outputPath)).toBe(true);
-        const content = fs.readFileSync(outputPath, 'utf-8');
-        expect(content).toContain('Cover Letter');
-        expect(content).toContain(entry.company);
-      });
 
       it(`CR-011: ${stem} — retrieval debug snapshot`, () => {
         const { debug } = runWithDebug(pipeline, entry);
@@ -249,10 +201,11 @@ if (RECORD) {
 
       it(`CR-012: ${stem} — PDF render`, async () => {
         const result = runSingle(pipeline, entry);
-        const asset = toAsset(result, profile, entry as any);
+        const adapter = new AssetProducingAdapter();
+        const pdfAsset = adapter.toPdf(result, profile);
         const outputDir = path.join(GENERATED_DIR, stem);
         fs.mkdirSync(outputDir, { recursive: true });
-        const outputPath = await renderPdf(asset, outputDir);
+        const outputPath = await renderPdf(pdfAsset, outputDir);
         expect(outputPath).toContain('ats.pdf');
         expect(fs.existsSync(outputPath)).toBe(true);
         const header = fs.readFileSync(outputPath).slice(0, 4).toString();

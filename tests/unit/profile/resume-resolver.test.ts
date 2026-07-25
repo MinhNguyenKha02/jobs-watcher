@@ -114,7 +114,7 @@ describe('ResumeResolver', () => {
       const result = resolver.resolve(retrieval, artifacts, 'test-job');
 
       expect(result.skills).toEqual({ name: 'test', skills: [] });
-      expect(result.experience).toEqual([]);
+      expect(result.experiences).toEqual([]);
       expect(result.projects).toEqual([]);
       expect(result.traces.length).toBe(1);
       expect(result.traces[0].anchorId).toBe('cap.test');
@@ -223,9 +223,9 @@ describe('ResumeResolver', () => {
 
       const result = resolver.resolve(retrieval, artifacts, 'test-job');
 
-      expect(result.experience.length).toBe(2);
-      expect(result.experience[0].evidence.id).toBe('exp2');
-      expect(result.experience[1].evidence.id).toBe('exp1');
+      expect(result.experiences.length).toBe(2);
+      expect(result.experiences[0].evidence.id).toBe('exp2');
+      expect(result.experiences[1].evidence.id).toBe('exp1');
     });
   });
 
@@ -256,9 +256,9 @@ describe('ResumeResolver', () => {
 
       const result = resolver.resolve(retrieval, artifacts, 'test-job');
 
-      expect(result.experience.length).toBe(2);
-      expect(result.experience[0].evidence.id).toBe('exp2');
-      expect(result.experience[1].evidence.id).toBe('exp4');
+      expect(result.experiences.length).toBe(2);
+      expect(result.experiences[0].evidence.id).toBe('exp2');
+      expect(result.experiences[1].evidence.id).toBe('exp4');
     });
   });
 

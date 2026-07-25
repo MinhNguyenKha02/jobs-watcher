@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { flattenJob } from '../../../../src/infrastructure/outbound/flatten-job.js' ;
+import { flattenJob } from '../../../../src/domain/services/flatten-job.js' ;
 import { bootstrapRetrieval } from '../../../../src/domain/profile/retrieval/retrieval-engine.js' ;
 import { ResumeResolver } from '../../../../src/domain/profile/resume/resolve/resume-resolver.js' ;
 import { ArtifactRegistry } from '../../../../src/domain/profile/artifacts/loaders/artifact-cache.js' ;
@@ -9,6 +9,7 @@ import type { ProfileRetrievalEngine } from '../../../../src/domain/profile/retr
 import type { HydratedArtifactBundle } from '../../../../src/domain/profile/artifacts/types/artifact.types.js' ;
 import type { RetrievalOutput } from '../../../../src/domain/profile/retrieval/contracts/retrieval.types.js' ;
 import { captureDebug, type DebugSnapshot } from '../../../../src/domain/profile/retrieval/retrieval-debugger.js' ;
+import type { ResolveOutput } from '../../../../src/domain/profile/types/resolve.types.js';
 
 export interface CorpusEntry {
   _id: string;
@@ -42,7 +43,7 @@ export async function createPipeline(): Promise<PipelineComponents> {
 export function runSingle(
   { engine, artifacts, resolver }: PipelineComponents,
   entry: CorpusEntry,
-) {
+): ResolveOutput {
   const jobText = flattenJob(entry);
   const retrieval = engine.retrieve(jobText);
   const result = resolver.resolve(retrieval, artifacts, entry._id);
@@ -52,7 +53,7 @@ export function runSingle(
 export function runWithDebug(
   { engine, artifacts, resolver }: PipelineComponents,
   entry: CorpusEntry,
-): { result: ReturnType<typeof runSingle>; retrieval: RetrievalOutput; debug: DebugSnapshot } {
+): { result: ResolveOutput; retrieval: RetrievalOutput; debug: DebugSnapshot } {
   const jobText = flattenJob(entry);
   const retrieval = engine.retrieve(jobText);
   const result = resolver.resolve(retrieval, artifacts, entry._id);
