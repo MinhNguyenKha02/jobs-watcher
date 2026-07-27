@@ -1,19 +1,25 @@
-import { Collection } from 'mongodb';
+import { Collection, type Db } from 'mongodb';
 import { Counter } from 'prom-client';
-import { ExtractionQueueDocument } from '../../../domain/types/extraction-queue.js';
+import { ExtractionQueueDocument, COLLECTIONS } from '../../../infrastructure/outbound/persistence/schemas.js';
 import type { ExtractionQueuePort } from '../../../application/ports/extraction-queue.port.js';
 import type { TraceContext } from '../monitoring/trace-context.js';
 import type { MetricsRegistry } from '../monitoring/metrics-registry.js';
+import { createLogger } from '../logging/logger.js';
+
+const logger = createLogger('MongoExtractionQueueAdapter');
 
 export class MongoExtractionQueueAdapter implements ExtractionQueuePort {
   private _onEnqueue: (() => void) | null = null;
   private enqueueCounter: Counter<string>;
   private dequeueCounter: Counter<string>;
 
+  private collection: Collection<ExtractionQueueDocument>
+
   constructor(
-    private collection: Collection<ExtractionQueueDocument>,
     metricsRegistry: MetricsRegistry,
+    db: Db
   ) {
+    this.collection = db.collection<ExtractionQueueDocument>(COLLECTIONS.EXTRACTION_QUEUE);
     const register = metricsRegistry.register;
     const ensureCounter = (name: string, help: string): Counter<string> => {
       const existing = register.getSingleMetric(name);
@@ -22,6 +28,7 @@ export class MongoExtractionQueueAdapter implements ExtractionQueuePort {
     };
     this.enqueueCounter = ensureCounter('extraction_queue_enqueue_total', 'Number of jobs enqueued to extraction queue');
     this.dequeueCounter = ensureCounter('extraction_queue_dequeue_total', 'Number of jobs dequeued from extraction queue');
+    logger.info('MongoExtractionQueueAdapter initialized', { collection: COLLECTIONS.EXTRACTION_QUEUE });
   }
 
   onEnqueue(cb: () => void): void {

@@ -65,21 +65,10 @@ const ConfigSchema = z.object({
     dbName: z.string().min(1).default('jobs_watcher'),
   }),
 
-  // Feature flags
-  features: z.object({
-    notifications: z.boolean().default(true),
-    tui: z.boolean().default(true),
-    logging: z.boolean().default(true),
-  }),
-
-  // Operational mode
-  mode: z.enum(['data-testing', 'data-listening']).default('data-listening'),
-  
-  // Input source (for data-testing mode)
-  dataSource: z.object({
-    type: z.enum(['db', 'webhook']).default('webhook'),
-    dbPath: z.string().optional(),
-    batchSize: z.number().int().min(1).default(10),
+  // RabbitMQ connection (for event-driven architecture)
+  rabbitmq: z.object({
+    url: z.string().min(1, 'RABBITMQ_URL required'),
+    exchange: z.string().min(1, 'RABBITMQ_EXCHANGE required'),
   }),
 });
 
@@ -100,10 +89,10 @@ export function loadConfig(): Config {
     isProd: nodeEnv === 'production',
 
     projectRoot,
-    resourcesPath: path.join(projectRoot, process.env.RESOURCES_PATH || 'resources'),
-    templatesPath: path.join(projectRoot, process.env.TEMPLATES_PATH || 'templates'),
-    generatedPath: path.join(projectRoot, process.env.GENERATED_PATH || 'generated'),
-    logsPath: path.join(projectRoot, process.env.LOGS_PATH || 'logs'),
+    resourcesPath: path.join(projectRoot, 'resources'),
+    templatesPath: path.join(projectRoot, 'templates'),
+    generatedPath: path.join(projectRoot, 'generated'),
+    logsPath: path.join(projectRoot, 'logs'),
 
     gmail: {
       clientId: process.env.GMAIL_CLIENT_ID || '',
@@ -123,19 +112,11 @@ export function loadConfig(): Config {
       dbName: process.env.MONGODB_DB_NAME || 'jobs_watcher',
     },
 
-    features: {
-      notifications: process.env.FEATURE_NOTIFICATIONS !== 'false',
-      tui: process.env.FEATURE_TUI !== 'false',
-      logging: process.env.FEATURE_LOGGING !== 'false',
+    rabbitmq: {
+      url: process.env.RABBITMQ_URL || 'amqp://localhost',
+      exchange: process.env.RABBITMQ_EXCHANGE || 'jobs.events',
     },
 
-    mode: (process.env.OPERATIONAL_MODE as 'data-testing' | 'data-listening') || 'data-listening',
-    
-    dataSource: {
-      type: (process.env.DATA_SOURCE_TYPE as 'db' | 'webhook') || 'webhook',
-      dbPath: process.env.DATA_SOURCE_DB_PATH || path.join(projectRoot, 'data', 'emails'),
-      batchSize: parseInt(process.env.DATA_SOURCE_BATCH_SIZE || '10', 10),
-    },
   };
 
   try {

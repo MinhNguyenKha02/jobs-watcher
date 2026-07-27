@@ -1,5 +1,9 @@
-import type { JobLifecycleDocument } from '../../domain/types/job-lifecycle.js';
+import { ResolveOutput } from '../../domain/profile/types/resolve.types.js';
+
+export interface BuildResult {
+  pdfPath?: string;
+}
 
 export interface AssetProducingPort {
-  toAsset(job: Partial<JobLifecycleDocument>): Promise<string>;
+  toAsset(resolved: ResolveOutput, outputDir?: string): Promise<BuildResult>;
 }

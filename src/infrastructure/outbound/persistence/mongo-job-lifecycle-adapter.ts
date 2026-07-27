@@ -1,31 +1,15 @@
-import { MongoClient, type Collection } from 'mongodb';
+import { Db, type Collection } from 'mongodb';
 import { createLogger } from '../logging/logger.js';
 import type { JobLifecyclePort } from '../../../application/ports/job-lifecycle.port.js';
-import { COLLECTIONS, INDEXES, type JobLifecycleDocument } from './schemas.js';
+import { COLLECTIONS, type JobLifecycleDocument } from './schemas.js';
 
-const logger = createLogger('MongoJobLifecycle');
-
+const logger = createLogger('MongoJobLifecycleAdapter');
 export class MongoJobLifecycleAdapter implements JobLifecyclePort {
   private collection: Collection<JobLifecycleDocument> | null = null;
-  private client: MongoClient;
 
-  constructor(private mongoUri: string, private dbName: string) {
-    this.client = new MongoClient(mongoUri);
-  }
-
-  async connect(): Promise<void> {
-    const db = this.client.db(this.dbName);
-    this.collection = db.collection<JobLifecycleDocument>(COLLECTIONS.JOB_LIFECYCLE);
-    for (const index of INDEXES.JOB_LIFECYCLE) {
-      const opts: Record<string, unknown> = { name: index.name };
-      if (index.unique) opts.unique = true;
-      await this.collection.createIndex(index.key as unknown as Record<string, number>, opts);
-    }
-    logger.info('Connected and indexes ensured');
-  }
-
-  async disconnect(): Promise<void> {
-    await this.client.close();
+  constructor(private db: Db) {
+    this.collection = this.db.collection<JobLifecycleDocument>(COLLECTIONS.JOB_LIFECYCLE);
+    logger.info('MongoJobLifecycleAdapter initialized', { collection: COLLECTIONS.JOB_LIFECYCLE }); 
   }
 
   async upsert(doc: Partial<JobLifecycleDocument>): Promise<void> {

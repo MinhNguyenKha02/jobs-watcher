@@ -1,6 +1,4 @@
-import {
-  AnchorKind,
-} from '../types/retrieval.types.js';
+import { AnchorKind } from '../types/retrieval.types.js';
 
 export type RecruiterSurfaces = {
   en: string[];
@@ -13,18 +11,11 @@ export interface RelationNode {
   retrieval_associations: string[];
 }
 
-export type RelationCategory =
-  Record<string, RelationNode>;
+export type RelationCategory = Record<string, RelationNode>;
 
-export type RelationsSource =
-  Partial<
-    Record<
-      AnchorKind,
-      Record<string, RelationCategory>
-    >
-  >;
+export type RelationsSource = Partial<Record<AnchorKind, Record<string, RelationCategory>>>;
 
-export enum ProfileRole{
+export enum ProfileRole {
   SoftwareEngineer = 'Software Engineer',
   BackendEngineer = 'Backend Engineer',
   FullStackEngineer = 'Full-Stack Engineer',
@@ -36,7 +27,7 @@ export enum ProfileRole{
 export interface ProjectSource {
   name: string;
 
-  position:string;
+  position: string;
 
   startDate: string;
 
@@ -52,7 +43,7 @@ export interface ProjectSource {
     beh?: ProfileAnchorSection;
 
     tech?: ProfileAnchorSection;
-  }
+  };
 
   summary?: string;
 
@@ -64,7 +55,6 @@ export interface ProjectSource {
 
   evidences?: Record<string, string[]>;
 }
-
 
 export interface ExperienceSource {
   company: string;
@@ -78,20 +68,19 @@ export interface ExperienceSource {
   endDate?: string;
 
   anchors: {
-      cap?: ProfileAnchorSection;
+    cap?: ProfileAnchorSection;
 
-  comp?: ProfileAnchorSection;
+    comp?: ProfileAnchorSection;
 
-  beh?: ProfileAnchorSection;
+    beh?: ProfileAnchorSection;
 
-  tech?: ProfileAnchorSection;
-  }
+    tech?: ProfileAnchorSection;
+  };
 
   responsibilities: string[];
 
   outcomes: string[];
 }
-
 
 export interface EducationSource {
   institution: string;
@@ -130,7 +119,7 @@ export interface ProfileSource {
 
   projects?: ProjectSource[];
 
-  experience?: ExperienceSource[];
+  experiences?: ExperienceSource[];
 
   education?: EducationSource[];
 

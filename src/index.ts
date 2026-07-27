@@ -1,14 +1,21 @@
 import { config } from './config.js';
 import { initLogger, createLogger } from './infrastructure/outbound/logging/logger.js';
 import { MongoJobLifecycleAdapter } from './infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
-import { RabbitMqConnection } from './infrastructure/outbound/rabbitmq/rabbitmq-connection-adapter.js';
+import { MongoExtractionQueueAdapter } from './infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
+import { MongoInitializer } from './infrastructure/outbound/persistence/mongo-init.js';import { MongoConnector } from './infrastructure/outbound/persistence/mongo-connection.js';
+
+import { RabbitMqConnection } from './infrastructure/outbound/rabbitmq/rabbitmq-connection.js';
 import { RabbitMqParseAdapter } from './infrastructure/outbound/rabbitmq/rabbitmq-parse-adapter.js';
-import { RabbitMqRoutingAdapter } from './infrastructure/outbound/rabbitmq/rabbitmq-routing-adapter.js';
+import { RabbitMqRoutingAdapter } from './infrastructure/outbound/rabbitmq/rabbitmq-route-adapter.js';
 import { JobIngestor } from './application/ingestor.js';
 import { UdsAdapter } from './infrastructure/inbound/uds/uds-adapter.js';
 import { startHealthServer } from './infrastructure/inbound/health/health-adapter.js';
 import { MetricsRegistry } from './infrastructure/outbound/monitoring/metrics-registry.js';
 import { SystemMonitor } from './infrastructure/outbound/monitoring/system-monitor.js';
+import { PlaywrightBrowserAdapter } from './infrastructure/outbound/browser/browser-adapter.js';
+import { AssetProducingAdapter } from './infrastructure/outbound/asset-builder/asset-producing-adapter.js'
+import {ExtractionScheduler} from './application/extraction-scheduler.js'
+
 
 initLogger();
 const logger = createLogger('Boot');
@@ -16,9 +23,16 @@ const logger = createLogger('Boot');
 async function main(): Promise<void> {
   logger.info('Starting jobs-watcher', { env: config.nodeEnv });
 
-  const mongoAdapter = new MongoJobLifecycleAdapter(config.mongodb.uri, config.mongodb.dbName);
-  await mongoAdapter.connect();
-
+  const mongoConnector = new MongoConnector(config.mongodb.uri);
+  await mongoConnector.connect();
+  const mongoDbInitializer = new MongoInitializer(mongoConnector.clientInstance, config.mongodb.dbName);
+  await mongoDbInitializer.init();
+  const mongoJobLifecycleAdapter = new MongoJobLifecycleAdapter(mongoDbInitializer.dbInstance);
+  const mongoExtractionQueueAdapter = new MongoExtractionQueueAdapter(
+    new MetricsRegistry(),
+    mongoDbInitializer.dbInstance,
+  );
+  
   const metricsRegistry = new MetricsRegistry();
   const systemMonitor = new SystemMonitor();
 
@@ -29,14 +43,26 @@ async function main(): Promise<void> {
   await rmq.connect();
 
   const parseAdapter = new RabbitMqParseAdapter(rmq);
-  const routingAdapter = new RabbitMqRoutingAdapter(rmq);
+  const routeAdapter = new RabbitMqRoutingAdapter(rmq);
 
+  const assetProducerAdapter = new AssetProducingAdapter();
+  
   const ingestor = new JobIngestor(
-    mongoAdapter,
+    mongoJobLifecycleAdapter,
     parseAdapter,
-    routingAdapter,
-    undefined,
-    undefined,
+    routeAdapter,
+    mongoExtractionQueueAdapter,
+    assetProducerAdapter,
+    metricsRegistry,
+  );
+  
+  const browserAdapter = new PlaywrightBrowserAdapter();
+  
+  const extractionScheduler = new ExtractionScheduler(
+    mongoExtractionQueueAdapter,
+    browserAdapter,
+    mongoJobLifecycleAdapter,
+    ingestor,
     metricsRegistry,
   );
 
