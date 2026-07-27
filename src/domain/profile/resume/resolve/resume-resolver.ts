@@ -5,17 +5,11 @@ import {
   ResolutionStrength,
 } from '../../types/retrieval.types.js';
 
-import {
-  RetrievalAcceptanceResolver,
-} from '../../retrieval/resolver/retrieval-acceptance.resolver.js';
+import { RetrievalAcceptanceResolver } from '../../retrieval/resolver/retrieval-acceptance.resolver.js';
 
-import {
-  retrievalPolicy,
-} from '../../retrieval/policies/retrieval.policy.js';
+import { retrievalPolicy } from '../../retrieval/policies/retrieval.policy.js';
 
-import {
-  RetrievalOutput,
-} from '../../retrieval/contracts/retrieval.types.js';
+import { RetrievalOutput } from '../../retrieval/contracts/retrieval.types.js';
 
 import {
   RetrievalEvidenceScore,
@@ -24,36 +18,30 @@ import {
 
 import { SkillKeyNormalizer } from '../normalization/skill-key-normalizer.js';
 import { RetrievalLogger } from '../../retrieval/logging/retrieval-logger.js';
-import { classifyResolutionStrength, ResolutionStrength as ResStrength } from '../../retrieval/resolution/resolution-strength.js';
+import { classifyResolutionStrength } from '../../retrieval/resolution/resolution-strength.js';
 import { RetrievalRanker, RankedSignal } from '../../retrieval/ranking/retrieval-ranker.js';
 import { EvidenceRanker } from '../../retrieval/evidence/evidence-ranker.js';
 import { AtsSkillGroupCompiler } from '../compiler/ats-skill-group.compiler.js';
 import type { AtsSkillSection } from '../compiler/ats-skill-group.compiler.js';
 import { EvidenceAttachmentValidator } from '../../retrieval/validation/evidence-attachment.validator.js';
+import { ResolveOutput } from '../../types/resolve.types.js';
 
 export class ResumeResolver {
-   private readonly acceptance =
-     new RetrievalAcceptanceResolver(
-       retrievalPolicy,
-     );
+  private readonly acceptance = new RetrievalAcceptanceResolver(retrievalPolicy);
 
-   private readonly skillCompiler =
-     new AtsSkillGroupCompiler();
+  private readonly skillCompiler = new AtsSkillGroupCompiler();
 
-   private readonly attachmentValidator =
-     new EvidenceAttachmentValidator();
+  private readonly attachmentValidator = new EvidenceAttachmentValidator();
 
-   private readonly logger =
-     RetrievalLogger.getInstance();
+  private readonly logger = RetrievalLogger.getInstance();
 
-   private readonly ranker =
-     new RetrievalRanker();
+  private readonly ranker = new RetrievalRanker();
 
   resolve(
     retrieval: RetrievalOutput,
     artifacts: HydratedArtifactBundle,
     jobId: string = 'unknown'
-  ) {
+  ): ResolveOutput {
     const { direct, expanded, evidences } = retrieval;
 
     // Rank each signal in the expanded map.
@@ -63,19 +51,23 @@ export class ResumeResolver {
       rankedSignals.push(rankedSignal);
     }
 
-     // Filter the ranked signals by acceptance (using the final score) and validate evidence attachment.
-     const acceptedRankedSignals = rankedSignals.filter(rankedSignal => {
-       // Validate evidence attachment for skills that require evidence
-       const validationResult = this.attachmentValidator.validate(rankedSignal.signal, artifacts, jobId);
-       if (!validationResult.valid) {
-         // Log the evidence attachment missing event
-         this.logger.logEvidenceAttachmentMissing(jobId, rankedSignal.signal.anchorId);
-         return false; // Reject the signal
-       }
-       
-       const acceptance = this.acceptance.accept(rankedSignal.signal, rankedSignal.finalScore);
-       return acceptance.accepted;
-     });
+    // Filter the ranked signals by acceptance (using the final score) and validate evidence attachment.
+    const acceptedRankedSignals = rankedSignals.filter((rankedSignal) => {
+      // Validate evidence attachment for skills that require evidence
+      const validationResult = this.attachmentValidator.validate(
+        rankedSignal.signal,
+        artifacts,
+        jobId
+      );
+      if (!validationResult.valid) {
+        // Log the evidence attachment missing event
+        this.logger.logEvidenceAttachmentMissing(jobId, rankedSignal.signal.anchorId);
+        return false; // Reject the signal
+      }
+
+      const acceptance = this.acceptance.accept(rankedSignal.signal, rankedSignal.finalScore);
+      return acceptance.accepted;
+    });
 
     // Sort the accepted ranked signals by final score (descending).
     acceptedRankedSignals.sort((a, b) => b.finalScore - a.finalScore);
@@ -91,15 +83,16 @@ export class ResumeResolver {
         rankedSignal.signal.confidence
       );
     }
-    
+
     // Log ATS exposure decisions
     for (const rankedSignal of acceptedRankedSignals) {
       const anchorNode = artifacts.anchors.get(rankedSignal.signal.anchorId);
       if (anchorNode) {
         const skillName = SkillKeyNormalizer.normalizeSkillName(anchorNode.key);
-        const visibility = retrievalPolicy.visibility[anchorNode.kind as keyof typeof retrievalPolicy.visibility];
+        const visibility =
+          retrievalPolicy.visibility[anchorNode.kind as keyof typeof retrievalPolicy.visibility];
         const shown = visibility !== 'hidden';
-        
+
         this.logger.logAtsExposure(
           jobId,
           rankedSignal.signal.anchorId,
@@ -164,98 +157,50 @@ export class ResumeResolver {
     unmatchedRankedSignals.sort((a, b) => b.finalScore - a.finalScore);
 
     return {
-      skills:
-        this.skills(
-          acceptedRankedSignals,
-          unmatchedRankedSignals,
-          artifacts.anchors,
-        ),
+      skills: this.skills(acceptedRankedSignals, unmatchedRankedSignals, artifacts.anchors),
 
-      experience:
-        this.experience(
-          evidences,
-        ),
+      experiences: this.experiences(evidences),
 
-      projects:
-        this.projects(
-          evidences,
-        ),
+      projects: this.projects(evidences),
 
-      traces:
-        acceptedRankedSignals.map(
-          (
-            rankedSignal,
-          ) => {
-            // Update the trace of the original signal to have the resolutionStrength set to the ranked signal's resolutionStrength.
-            const originalTrace = rankedSignal.signal.trace;
-            const updatedTrace = originalTrace.map(t => ({
-              ...t,
-              resolutionStrength: rankedSignal.resolutionStrength
-            }));
+      traces: acceptedRankedSignals.map((rankedSignal) => {
+        // Update the trace of the original signal to have the resolutionStrength set to the ranked signal's resolutionStrength.
+        const originalTrace = rankedSignal.signal.trace;
+        const updatedTrace = originalTrace.map((t) => ({
+          ...t,
+          resolutionStrength: rankedSignal.resolutionStrength,
+        }));
 
-            return {
-              anchorId: rankedSignal.signal.anchorId,
-              score: rankedSignal.finalScore,
-              trace: updatedTrace
-            };
-          }
-        ),
+        return {
+          anchorId: rankedSignal.signal.anchorId,
+          score: rankedSignal.finalScore,
+          trace: updatedTrace,
+        };
+      }),
     };
   }
 
   private skills(
-    acceptedRankedSignals:
-      RankedSignal[],
-    unmatchedRankedSignals:
-      RankedSignal[],
+    acceptedRankedSignals: RankedSignal[],
+    unmatchedRankedSignals: RankedSignal[],
     anchorMap: Map<string, AnchorNode>
   ): AtsSkillSection {
-    const matchedSignals = acceptedRankedSignals.map(rs => rs.signal);
-    const unmatchedSignals = unmatchedRankedSignals.map(rs => rs.signal);
+    const matchedSignals = acceptedRankedSignals.map((rs) => rs.signal);
+    const unmatchedSignals = unmatchedRankedSignals.map((rs) => rs.signal);
     return this.skillCompiler.compile(matchedSignals, unmatchedSignals, anchorMap);
   }
 
-   private experience(
-     evidences:
-       RetrievalEvidenceScore[],
-   ) {
-     return evidences
-       .filter(
-         (
-           item,
-         ) =>
-           item.evidence?.type ===
-             'experience' &&
-           item.score > 0,
-       )
-       .sort((a, b) => b.score - a.score)
-       .slice(
-         0,
-         retrievalPolicy
-           .resolver
-           .maxExperience,
-       );
-   }
+  private experiences(evidences: RetrievalEvidenceScore[]) {
+    return evidences
+      .filter((item) => item.evidence?.type === 'experience' && item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, retrievalPolicy.resolver.maxExperience);
+  }
 
-   private projects(
-     evidences:
-       RetrievalEvidenceScore[],
-   ) {
-     return evidences
-       .filter(
-         (
-           item,
-         ) =>
-           item.evidence?.type ===
-             'project' &&
-           item.score > 0,
-       )
-       .sort((a, b) => b.score - a.score)
-       .slice(
-         0,
-         retrievalPolicy
-           .resolver
-           .maxProjects,
-       );
-   }
+  private projects(evidences: RetrievalEvidenceScore[]) {
+    return evidences
+      .filter((item) => item.evidence?.type === 'project' && item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, retrievalPolicy.resolver.maxProjects);
+  }
 }

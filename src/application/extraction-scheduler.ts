@@ -2,18 +2,13 @@ import { createLogger } from '../infrastructure/outbound/logging/logger.js';
 import { JobSource, JobStage } from '../domain/types/job-lifecycle.js';
 import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
 import type { BrowserPort } from './ports/browser.port.js';
+import type { JobIngestor } from './ingestor.js';
+import type { JobLifecyclePort } from './ports/job-lifecycle.port.js';
 import type { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
+
 
 const logger = createLogger('ExtractionScheduler');
 const WORKER_COUNT = 3;
-
-type ProcessIngestCommand = (command: {
-  source: JobSource;
-  stage: JobStage;
-  rawPayload: string;
-  jobLifecycleId?: string;
-}) => Promise<void>;
-type FindJobLifecycle = (jobLifecycleId: string) => Promise<{ url?: string } | null>;
 
 export class ExtractionScheduler {
   private workers: Promise<void>[] = [];
@@ -24,8 +19,8 @@ export class ExtractionScheduler {
   constructor(
     private queue: ExtractionQueuePort,
     private browser: BrowserPort,
-    private processIngest: ProcessIngestCommand,
-    private findJobLifecycle: FindJobLifecycle,
+    private jobLifecycleColPort: JobLifecyclePort,
+    private jobIngestor: JobIngestor,
     private metricsRegistry?: MetricsRegistry,
   ) {}
 
@@ -81,7 +76,7 @@ export class ExtractionScheduler {
         logger.info('Worker dequeued job', { workerId, jobLifecycleId });
         this.metricsRegistry?.jobsInFlight.inc({ stage: 's1' });
 
-        const jobDoc = await this.findJobLifecycle(jobLifecycleId);
+        const jobDoc = await this.jobLifecycleColPort.findById(jobLifecycleId);
         if (!jobDoc) {
           logger.error('findJobLifecycle returned null after dequeue — job lifecycle doc missing', {
             jobLifecycleId,
@@ -91,7 +86,7 @@ export class ExtractionScheduler {
         const url = jobDoc?.url || '';
         const extractResult = await this.browser.extract(url);
         const rawPayload = extractResult.html;
-        await this.processIngest({
+        await this.jobIngestor.processIngestCommand({
           source: JobSource.BROWSER_AUTO,
           stage: JobStage.FULL_PARSED,
           rawPayload,
@@ -107,7 +102,7 @@ export class ExtractionScheduler {
         logger.warn('Extraction failed', { workerId, jobLifecycleId, error: errMsg });
         this.metricsRegistry?.jobsInFlight.dec({ stage: 's1' });
         this.metricsRegistry?.jobErrors.inc({ stage: 'extraction', error_type: 'browser' });
-        await this.processIngest({
+        await this.jobIngestor.processIngestCommand({
           source: JobSource.BROWSER_AUTO,
           stage: JobStage.PARTIAL_PARSED,
           rawPayload: '',

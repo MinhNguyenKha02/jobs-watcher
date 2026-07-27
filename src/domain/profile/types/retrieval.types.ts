@@ -4,6 +4,11 @@ export type AnchorKind =
   | 'beh'
   | 'tech';
 
+/**
+ * Enum representing the resolution strength of a signal.
+ * Used for gap analysis, recruiter fit scoring, and automatic refinement.
+*/
+
 export type ResolutionStrength =
   | 'strong'
   | 'partial'
@@ -46,23 +51,19 @@ export interface EvidenceNode {
     | 'project'
     | 'experience';
 
-  title: string;
+  title?: string;
 
-  position?: string;
+  position: string;
 
-  organization?: string;
+  company?: string;
 
-  startDate?: string;
+  startDate: string;
 
-  endDate?: string;
-
-  period?: string;
+  endDate: string;
 
   summary?: string;
 
   bullets: EvidenceBullet[];
-
-  techStack?: Record<string, string[]>;
 
   links?: Record<string, string[]>;
 }

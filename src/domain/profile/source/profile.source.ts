@@ -145,10 +145,11 @@ export const profileSource: ProfileSource = {
       protocolTech.graphql,
       protocolTech.pubsub,
       protocolTech.webhooks,
-      protocolTech.unix_domain_sockets,
+      protocolTech.unix_domain_socket,
       protocolTech.grpc,
       protocolTech.rpc,
       protocolTech.abi_interface,
+      protocolTech.rabbitmq,
     ],
     security: [securityTech.oauth, securityTech.jwt],
     language: [
@@ -297,8 +298,8 @@ export const profileSource: ProfileSource = {
           protocol:[
             protocolTech.pubsub,
             protocolTech.webhooks,
-            protocolTech.unix_domain_sockets,
-            protocolTech.sse,
+            protocolTech.unix_domain_socket,
+            protocolTech.rabbitmq,
             protocolTech.restful_api,
           ],
           language: [languageTech.typescript, languageTech.bash],
@@ -561,7 +562,7 @@ export const profileSource: ProfileSource = {
       },
     },
   ],
-  experience: [
+  experiences: [
     {
       company: 'Golive Dev JSC',
       position: ProfileRole.FullStackDeveloper,

@@ -1,3 +1,4 @@
+import { AnchorId, ResolutionStrength } from '../types/retrieval.types.js';
 import type { RetrievalOutput } from './contracts/retrieval.types.js';
 
 export interface DebugTraceEntry {
@@ -6,7 +7,20 @@ export interface DebugTraceEntry {
   reason: string;
   from?: string;
   to?: string;
-  resolutionStrength?: string;
+  resolutionStrength?: ResolutionStrength;
+}
+  
+export interface Trace {
+  anchorId: AnchorId;
+  score: number;
+  trace: {
+    resolutionStrength: ResolutionStrength;
+    type: "lexical-hit" | "propagation" | "resolver-accepted" | "resolver-rejected";
+    from?: AnchorId;
+    to?: AnchorId;
+    scoreDelta: number;
+    reason: string;
+  }[]
 }
 
 export interface DebugSnapshot {
@@ -31,7 +45,7 @@ export interface DebugSnapshot {
     evidence: {
       type: string;
       title: string;
-      organization?: string;
+      company?: string;
       summary?: string;
     } | null;
   }[];
@@ -43,7 +57,7 @@ export interface DebugSnapshot {
   }[];
 }
 
-function mapTrace(signal: { trace: { type: string; scoreDelta: number; reason: string; from?: string; to?: string; resolutionStrength?: string }[] }): DebugTraceEntry[] {
+function mapTrace(signal: { trace: { type: string; scoreDelta: number; reason: string; from?: string; to?: string; resolutionStrength?: ResolutionStrength }[] }): DebugTraceEntry[] {
   return signal.trace.map(t => ({
     type: t.type,
     scoreDelta: t.scoreDelta,
@@ -56,7 +70,7 @@ function mapTrace(signal: { trace: { type: string; scoreDelta: number; reason: s
 
 export function captureDebug(
   retrieval: RetrievalOutput,
-  result?: { traces: { anchorId: string; score: number; trace: { type: string; scoreDelta: number; reason: string; from?: string; to?: string; resolutionStrength?: string }[] }[] },
+  result?: { traces: { anchorId: string; score: number; trace: { type: string; scoreDelta: number; reason: string; from?: string; to?: string; resolutionStrength?: ResolutionStrength }[] }[] },
 ): DebugSnapshot {
   const matchedAnchors: DebugSnapshot['matchedAnchors'] = [];
   for (const [anchorId, signal] of retrieval.direct) {
@@ -92,7 +106,7 @@ export function captureDebug(
       ? {
           type: es.evidence.type,
           title: es.evidence.title || '',
-          organization: es.evidence.organization,
+          company: es.evidence.company,
           summary: es.evidence.summary,
         }
       : null,
@@ -101,7 +115,7 @@ export function captureDebug(
   const resolvedTraces: DebugSnapshot['resolvedTraces'] = (result?.traces ?? []).map(t => ({
     anchorId: t.anchorId,
     score: t.score,
-    resolutionStrength: t.trace.find(tt => tt.resolutionStrength)?.resolutionStrength || '',
+    resolutionStrength: t.trace.find(tt => tt.resolutionStrength)?.resolutionStrength || 'none',
     trace: t.trace.map(tt => ({
       type: tt.type,
       scoreDelta: tt.scoreDelta,

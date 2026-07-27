@@ -121,7 +121,7 @@ interface EvidenceNode {
   anchorIds: AnchorId[]
   type: 'project' | 'experience'
   title: string
-  organization?: string
+  company?: string
   period?: string
   summary?: string
   bullets: EvidenceBullet[]
@@ -919,8 +919,8 @@ JSON array of `[EvidenceId, EvidenceNode]` tuples:
     "id": "ev.exp.1",
     "anchorIds": ["cap.backend.api-development"],
     "type": "experience",
-    "organization": "Tech Corp",
-    "title": "Senior Backend Engineer",
+    "company": "Tech Corp",
+    "position": "Senior Backend Engineer",
     "period": "2022-01 - Present",
     "bullets": [...],
     "technologies": ["TypeScript", "AWS"]

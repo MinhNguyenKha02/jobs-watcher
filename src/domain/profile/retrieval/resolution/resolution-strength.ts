@@ -7,17 +7,7 @@
  */
 
 import { RetrievalPolicy } from '../policies/retrieval.policy.js';
-import { MatchSignal } from '../../types/retrieval.types.js';
-
-/**
- * Enum representing the resolution strength of a signal.
- * Used for gap analysis, recruiter fit scoring, and automatic refinement.
- */
-export type ResolutionStrength =
-  | 'strong'
-  | 'partial'
-  | 'weak'
-  | 'missing';
+import { MatchSignal, ResolutionStrength } from '../../types/retrieval.types.js';
 
 /**
  * Classifies a match signal into a resolution strength category based on the final score and signal characteristics.

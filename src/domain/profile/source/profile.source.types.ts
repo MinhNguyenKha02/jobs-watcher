@@ -117,11 +117,10 @@ export enum protocolTech {
   graphql='graphql',
   pubsub='pubsub',
   webhooks='webhooks',
-  unix_domain_sockets = 'unix-domain-sockets',
+  unix_domain_socket = 'unix-domain-socket',
   grpc = 'grpc',
   rpc='rpc',
   abi_interface='abi interface',
-  sse = 'server-sent-events',
   rabbitmq = 'rabbitmq',
 }
 

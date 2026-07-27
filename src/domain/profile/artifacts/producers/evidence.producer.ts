@@ -37,17 +37,6 @@ private extractAnchorIds(anchor?: {
   return result;
 }
 
-private extractTechStack(tech?: ProfileAnchorSection): Record<string, string[]> {
-  if (!tech) return {};
-  const result: Record<string, string[]> = {};
-  for (const [category, values] of Object.entries(tech)) {
-    if (values.length > 0) {
-      result[category] = [...values];
-    }
-  }
-  return result;
-}
-
   produce(
     profile: ProfileSource,
   ) {
@@ -79,7 +68,7 @@ private extractTechStack(tech?: ProfileAnchorSection): Record<string, string[]> 
 
     for (
       const experience
-      of profile.experience ?? []
+      of profile.experiences ?? []
     ) {
 
       const id =
@@ -135,9 +124,6 @@ private extractTechStack(tech?: ProfileAnchorSection): Record<string, string[]> 
             project.outcomes,
         }),
 
-      techStack:
-        this.extractTechStack(project.anchors?.tech),
-
       links:
         project.evidences,
     };
@@ -157,10 +143,10 @@ private extractTechStack(tech?: ProfileAnchorSection): Record<string, string[]> 
       type:
         'experience',
 
-      organization:
+      company:
         experience.company,
 
-      title:
+      position:
         experience.position,
 
       startDate:
@@ -177,9 +163,6 @@ private extractTechStack(tech?: ProfileAnchorSection): Record<string, string[]> 
           outcomes:
             experience.outcomes,
         }),
-
-      techStack:
-        this.extractTechStack(experience.anchors?.tech),
     };
   }
 
