@@ -1,5 +1,4 @@
 import type { RoutePort } from '../../../application/ports/route.port.js';
-import type { JobLifecycleDocument } from '../persistence/schemas.js';
 import type { RabbitMqConnection } from './rabbitmq-connection.js';
 import { ActionEvent } from '../../../domain/types/action-event.js';
 import { traceContextToHeaders, type TraceContext } from '../monitoring/trace-context.js';
