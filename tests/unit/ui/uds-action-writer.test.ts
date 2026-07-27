@@ -3,12 +3,12 @@ import { mkdtempSync, writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-vi.mock('../../../src/cli/clipboard-getter.js', () => ({
+vi.mock('../../../src/presentation/tui/services/clipboard-getter.js', () => ({
   clipboardGetter: vi.fn().mockResolvedValue(['<div>test clipboard</div>']),
 }));
 
 const mockPostJsonOverUds = vi.fn();
-vi.mock('../../../src/utils/uds-http.js', () => ({
+vi.mock('../../../src/infrastructure/utils/uds-http.js', () => ({
   postJsonOverUds: mockPostJsonOverUds,
 }));
 
@@ -96,24 +96,20 @@ describe('UdsActionWriter reliability', () => {
     });
 
     it('sends queue action with correct payload', async () => {
-      await writer.queue('job-q', { company: 'Updated' });
+      await writer.queue('job-q');
       const callArg = mockPostJsonOverUds.mock.calls[0][1];
       expect(callArg).toMatchObject({
         jobLifecycleId: 'job-q',
         action: 'queue',
-        source: 'ops-tui',
-        editedKVs: { company: 'Updated' },
       });
     });
 
     it('sends trash action with correct payload', async () => {
-      await writer.trash('job-t', { reason: 'not interested' });
+      await writer.trash('job-t');
       const callArg = mockPostJsonOverUds.mock.calls[0][1];
       expect(callArg).toMatchObject({
         jobLifecycleId: 'job-t',
         action: 'trash',
-        source: 'ops-tui',
-        editedKVs: { reason: 'not interested' },
       });
     });
   });

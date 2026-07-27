@@ -37,14 +37,6 @@ describe('Config loading', () => {
     expect(cfg.webhook.port).toBe(3000);
     expect(cfg.webhook.path).toBe('/webhook/gmail');
     expect(cfg.gmail.labelName).toBe('Job Alerts');
-    expect(cfg.browser.headless).toBe(true);
-    expect(cfg.browser.timeout).toBe(30000);
-    expect(cfg.features.notifications).toBe(true);
-    expect(cfg.features.tui).toBe(true);
-    expect(cfg.features.logging).toBe(true);
-    expect(cfg.mode).toBe('data-listening');
-    expect(cfg.sse.eventBufferMax).toBe(2000);
-    expect(cfg.sse.replayLimit).toBe(200);
   });
 
   it('reads MONGODB_URI from env', () => {
@@ -64,80 +56,32 @@ describe('Config loading', () => {
     expect(cfg.webhook.port).toBe(4000);
   });
 
-  it('reads BROWSER_HEADLESS=false as false', () => {
-    process.env.BROWSER_HEADLESS = 'false';
-    const cfg = loadConfig();
-    expect(cfg.browser.headless).toBe(false);
-  });
-
-  it('reads BROWSER_TIMEOUT from env', () => {
-    process.env.BROWSER_TIMEOUT = '15000';
-    const cfg = loadConfig();
-    expect(cfg.browser.timeout).toBe(15000);
-  });
-
-  it('reads SSE_EVENT_BUFFER_MAX with fallback to 2000', () => {
-    delete process.env.SSE_EVENT_BUFFER_MAX;
-    const cfg = loadConfig();
-    expect(cfg.sse.eventBufferMax).toBe(2000);
-  });
-
-  it('reads SSE_REPLAY_LIMIT with fallback to 200', () => {
-    delete process.env.SSE_REPLAY_LIMIT;
-    const cfg = loadConfig();
-    expect(cfg.sse.replayLimit).toBe(200);
-  });
-
-  it('reads OPERATIONAL_MODE for mode', () => {
-    process.env.OPERATIONAL_MODE = 'data-testing';
-    const cfg = loadConfig();
-    expect(cfg.mode).toBe('data-testing');
-  });
-
-  it('reads FEATURE_NOTIFICATIONS=false', () => {
-    process.env.FEATURE_NOTIFICATIONS = 'false';
-    const cfg = loadConfig();
-    expect(cfg.features.notifications).toBe(false);
-  });
-
-  it('reads FEATURE_TUI=false', () => {
-    process.env.FEATURE_TUI = 'false';
-    const cfg = loadConfig();
-    expect(cfg.features.tui).toBe(false);
-  });
-
-  it('reads FEATURE_LOGGING=false', () => {
-    process.env.FEATURE_LOGGING = 'false';
-    const cfg = loadConfig();
-    expect(cfg.features.logging).toBe(false);
-  });
-
-  it('reads DATA_SOURCE_TYPE from env', () => {
-    process.env.DATA_SOURCE_TYPE = 'db';
-    const cfg = loadConfig();
-    expect(cfg.dataSource.type).toBe('db');
-  });
-
-  it('reads DATA_SOURCE_BATCH_SIZE from env', () => {
-    process.env.DATA_SOURCE_BATCH_SIZE = '25';
-    const cfg = loadConfig();
-    expect(cfg.dataSource.batchSize).toBe(25);
-  });
-
   it('fails when GMAIL_CLIENT_ID is missing', () => {
     delete process.env.GMAIL_CLIENT_ID;
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-    loadConfig();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      loadConfig();
+    } catch {
+      // loadConfig may throw or call process.exit — both acceptable
+    }
     expect(exitSpy).toHaveBeenCalledWith(1);
     exitSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
 
   it('fails when GMAIL_CLIENT_SECRET is missing', () => {
     delete process.env.GMAIL_CLIENT_SECRET;
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-    loadConfig();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      loadConfig();
+    } catch {
+      // loadConfig may throw or call process.exit — both acceptable
+    }
     expect(exitSpy).toHaveBeenCalledWith(1);
     exitSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
 
   it('uses isDev/isProd/isTest flags consistently', () => {

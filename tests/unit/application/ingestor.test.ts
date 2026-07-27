@@ -44,11 +44,11 @@ function makeTopCvHtml(): string {
 
 /** Indeed notification HTML — parseIndeed path, has applystart url → enqueue */
 function makeIndeedHtmlWithUrl(): string {
-  return '<html><body>indeed.com'
-    + '<a href="https://vn.indeed.com/applystart?jk=abc123">Apply</a>'
-    + '<div data-testid="JobInfoHeader-title"><span>Senior Backend Engineer</span></div>'
-    + '<div data-testid="inlineHeader-companyName">Senior Co</div>'
-    + '<div id="jobDescriptionText"><p>Golang and TypeScript skills required</p></div>'
+  return '<html><body>Indeed Job Alert'
+    + '<table><tr><td class="pb-24">'
+    + '<h2 class="strong-text-link"><a href="https://vn.indeed.com/applystart?jk=abc123">Senior Backend Engineer</a></h2>'
+    + '<div style="color:#2d2d2d">Senior Co</div>'
+    + '</td></tr></table>'
     + '</body></html>';
 }
 

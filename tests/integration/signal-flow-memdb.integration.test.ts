@@ -35,11 +35,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoJobLifecycleAdapter(
-      storage.uri,
-      storage.dbName,
-    );
-    await adapter.connect();
+    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
 
     parseEvents = [];
     routingEvents = [];
@@ -60,12 +56,11 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
   }, 120000);
 
   afterAll(async () => {
-    await adapter.disconnect();
     await storage.stop();
   });
 
   it('processResolutionCommand queue updates status and emits queued event', async () => {
-    const doc = makeDoc({ _id: 'it-queue-1', company: 'QueueCorp', role: 'Dev' });
+    const doc = makeDoc({ _id: 'it-queue-1', company: 'QueueCorp', role: 'Dev', status: JobStatus.ENRICHED, stage: JobStage.FULL_PARSED });
     await adapter.upsert(doc);
 
     await ingestor.processResolutionCommand({
@@ -114,7 +109,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
   });
 
   it('allows multiple queue/trash actions on same job', async () => {
-    const doc = makeDoc({ _id: 'it-multi-1', company: 'MultiCorp', role: 'Dev' });
+    const doc = makeDoc({ _id: 'it-multi-1', company: 'MultiCorp', role: 'Dev', status: JobStatus.ENRICHED, stage: JobStage.FULL_PARSED });
     await adapter.upsert(doc);
 
     await ingestor.processResolutionCommand({ jobLifecycleId: 'it-multi-1', action: 'queue', editedKVs: {} });

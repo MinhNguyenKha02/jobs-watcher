@@ -10,23 +10,40 @@ const { JobIngestor } = await import('../../src/application/ingestor.js');
 function htmlFor(role: string, company: string): string {
   return '<div class="job-detail__info--title"><h1>' + role + '</h1></div>'
     + '<div class="company-name-label"><a class="name">' + company + '</a></div>'
-    + '<div>topcv</div>';
+    + '<div>topcv</div>'
+    + '<p>TypeScript</p>'
+    + '<div class="job-description__item"><h3>Mô tả công việc</h3>'
+    + '<div class="job-description__item--content">We need a TypeScript developer with JavaScript skills</div>'
+    + '</div>';
+}
+
+function emailHtmlFor(role: string, company: string): string {
+  const encodedUrl = `/viec-lam/${role.toLowerCase().replace(/\s+/g, '-')}`;
+  return '<html><body>'
+    + '<a class="job-item-link" href="' + encodedUrl + '">'
+    + '<div class="topcv-job-item">'
+    + '<div class="title"><span>' + role + '</span></div>'
+    + '<div class="company"><span>' + company + '</span></div>'
+    + '<div>Hà Nội</div>'
+    + '</div>'
+    + '</a>'
+    + '<p>topcv job-item</p>'
+    + '<p>TypeScript</p>'
+    + '</body></html>';
 }
 
 describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
+  let colection: any;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoJobLifecycleAdapter(
-      storage.uri,
-      storage.dbName,
-    );
-    await adapter.connect();
+    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
+    colection = storage.client.db(storage.dbName).collection('job_lifecycle');
 
     parseEvents = [];
     routingEvents = [];
@@ -47,7 +64,6 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
   }, 120000);
 
   afterAll(async () => {
-    await adapter.disconnect();
     await storage.stop();
   });
 
@@ -104,7 +120,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBeGreaterThanOrEqual(1);
 
-    const col = (adapter as any).jobLifecycleCollection;
+    const col = colection;
     const nextDocs = await col.find({ _id: { $regex: /^clip-/ } }).toArray();
     expect(nextDocs.length).toBeGreaterThanOrEqual(1);
     expect(nextDocs[0].company).toBe('NextCorp');
@@ -177,7 +193,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     const lastCompleted = completedEvents[completedEvents.length - 1];
     expect(lastCompleted).toBeDefined();
-    expect(lastCompleted[1]).toBe(s1JoblifecycleId);
+    expect(lastCompleted[1]._id).toBe(s1JoblifecycleId);
 
     const nextGenBefore = parseEvents.filter(([t]) => t === 'generated').length;
     await ingestor.processIngestCommand({
@@ -212,7 +228,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.PARTIAL_PARSED,
-      rawPayload: htmlFor('Software Engineer', 'AfterRateCo'),
+      rawPayload: emailHtmlFor('Software Engineer', 'AfterRateCo'),
       metadata: { messageId: 'after-rate' },
     });
 
@@ -257,7 +273,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     // Recovery: next S1 partial processes normally
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO, stage: JobStage.PARTIAL_PARSED,
-      rawPayload: htmlFor('Software Engineer', 'InterleaveRecoveryCo'),
+      rawPayload: emailHtmlFor('Software Engineer', 'InterleaveRecoveryCo'),
       metadata: { messageId: 'interleave-recovery' },
     });
 
@@ -318,7 +334,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
-      rawPayload: htmlFor('Junior Engineer', 'B9IntegCo'),
+      rawPayload: htmlFor('Software Engineer', 'B9IntegCo'),
       jobLifecycleId: docId,
     });
 

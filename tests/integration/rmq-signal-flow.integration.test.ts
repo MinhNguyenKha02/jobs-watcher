@@ -1,13 +1,11 @@
 import 'dotenv/config';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import amqplib, { type Channel, type Connection } from 'amqplib';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import amqplib, { type Channel, type Connection, type ConsumeMessage } from 'amqplib';
 import { ActionEvent } from '../../src/domain/types/action-event.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 const EXCHANGE = process.env.RABBITMQ_EXCHANGE || 'jobs.events';
 const TEST_PREFIX = `rmq-int-${Date.now()}`;
-const runReal = process.env.RMQ_INTEGRATION === 'true';
-const describeIf = runReal ? describe : describe.skip;
 
 const S1_QUEUE = `${TEST_PREFIX}.tui.s1`;
 const S2_QUEUE = `${TEST_PREFIX}.tui.s2`;
@@ -28,13 +26,13 @@ async function setupTopology(ch: Channel): Promise<void> {
 
 async function purgeQueues(ch: Channel): Promise<void> {
   try {
-    await ch.deleteQueue(S1_QUEUE);
-    await ch.deleteQueue(S2_QUEUE);
-    await ch.deleteQueue(S3S4_QUEUE);
+    await ch.purgeQueue(S1_QUEUE);
+    await ch.purgeQueue(S2_QUEUE);
+    await ch.purgeQueue(S3S4_QUEUE);
   } catch { /* ignore */ }
 }
 
-describeIf('RMQ Signal Flow Integration', { timeout: 30000 }, () => {
+describe('RMQ Signal Flow Integration', { timeout: 30000 }, () => {
   let conn: Connection;
   let pubChannel: Channel;
   let conChannel: Channel;
@@ -44,6 +42,12 @@ describeIf('RMQ Signal Flow Integration', { timeout: 30000 }, () => {
     pubChannel = await conn.createChannel();
     conChannel = await conn.createChannel();
     await setupTopology(pubChannel);
+  });
+
+  afterEach(async () => {
+    await conChannel.close();
+    conChannel = await conn.createChannel();
+    await purgeQueues(pubChannel);
   });
 
   afterAll(async () => {

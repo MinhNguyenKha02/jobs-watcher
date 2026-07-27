@@ -48,7 +48,13 @@ async function getFixtureClipboard(): Promise<any[]> {
   } = await loadClipboardFixtures();
 
   if ((global as any).__clipboardJob) {
-    return [(global as any).__clipboardJob];
+    const text = (global as any).__clipboardJob;
+    const currentHash = toHash(text);
+    if (currentHash === lastClipboardHash) {
+      return [];
+    }
+    lastClipboardHash = currentHash;
+    return [text];
   }
   return [
     indeedPlatformPageHtml1,

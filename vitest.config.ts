@@ -13,6 +13,7 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.d.ts', 'src/infrastructure/inbound/cli/**/*.ts', 'src/domain/profile/source/**/*.ts'],
     },
+    exclude: ['node_modules', 'tests.bak', '.opencode'],
     setupFiles: ['./tests/setup.ts'],
   },
 })

@@ -19,19 +19,34 @@ function createMockBrowser() {
   };
 }
 
+function createMockJobLifecyclePort() {
+  return {
+    findById: vi.fn(),
+    upsert: vi.fn(),
+    updateStage: vi.fn(),
+  };
+}
+
+function createMockJobIngestor() {
+  return {
+    processIngestCommand: vi.fn(),
+    processResolutionCommand: vi.fn(),
+  };
+}
+
 describe('ExtractionScheduler', () => {
   let queue: ReturnType<typeof createMockQueue>;
   let browser: ReturnType<typeof createMockBrowser>;
-  let processIngest: ReturnType<typeof vi.fn>;
-  let findJobLifecycle: ReturnType<typeof vi.fn>;
+  let jobLifecyclePort: ReturnType<typeof createMockJobLifecyclePort>;
+  let jobIngestor: ReturnType<typeof createMockJobIngestor>;
   let scheduler: ExtractionScheduler;
 
   beforeEach(() => {
     queue = createMockQueue();
     browser = createMockBrowser();
-    processIngest = vi.fn();
-    findJobLifecycle = vi.fn();
-    scheduler = new ExtractionScheduler(queue as any, browser as any, processIngest as any, findJobLifecycle as any);
+    jobLifecyclePort = createMockJobLifecyclePort();
+    jobIngestor = createMockJobIngestor();
+    scheduler = new ExtractionScheduler(queue as any, browser as any, jobLifecyclePort as any, jobIngestor as any);
   });
 
   afterEach(async () => {
@@ -62,8 +77,8 @@ describe('ExtractionScheduler', () => {
       browser.extract.mockResolvedValue({ html: '<div>parsed content</div>' });
     });
 
-    it('dequeues a job, finds job lifecycle, extracts URL, and calls processIngest with FULL_PARSED', async () => {
-      findJobLifecycle.mockResolvedValue({ url: 'https://example.com/job' });
+    it('dequeues a job, finds job lifecycle, extracts URL, and calls processIngestCommand with FULL_PARSED', async () => {
+      jobLifecyclePort.findById.mockResolvedValue({ url: 'https://example.com/job' });
       const doc = { _id: 'job-1', jobLifecycleId: 'job-1', createdAt: new Date() };
 
       queue.dequeue
@@ -76,7 +91,7 @@ describe('ExtractionScheduler', () => {
       }, { interval: 50, timeout: 3000 });
 
       await vi.waitFor(() => {
-        expect(findJobLifecycle).toHaveBeenCalledWith('job-1');
+        expect(jobLifecyclePort.findById).toHaveBeenCalledWith('job-1');
       }, { interval: 50, timeout: 3000 });
 
       await vi.waitFor(() => {
@@ -84,7 +99,7 @@ describe('ExtractionScheduler', () => {
       }, { interval: 50, timeout: 3000 });
 
       await vi.waitFor(() => {
-        expect(processIngest).toHaveBeenCalledWith({
+        expect(jobIngestor.processIngestCommand).toHaveBeenCalledWith({
           source: JobSource.BROWSER_AUTO,
           stage: JobStage.FULL_PARSED,
           rawPayload: '<div>parsed content</div>',
@@ -101,8 +116,8 @@ describe('ExtractionScheduler', () => {
       }, { interval: 50, timeout: 3000 });
     });
 
-    it('handles extraction failure by calling processIngest with PARTIAL_PARSED', async () => {
-      findJobLifecycle.mockResolvedValue({ url: 'https://example.com/bad' });
+    it('handles extraction failure by calling processIngestCommand with PARTIAL_PARSED', async () => {
+      jobLifecyclePort.findById.mockResolvedValue({ url: 'https://example.com/bad' });
       browser.extract.mockRejectedValue(new Error('Timeout'));
       const doc = { _id: 'job-fail', jobLifecycleId: 'job-fail', createdAt: new Date() };
 
@@ -112,7 +127,7 @@ describe('ExtractionScheduler', () => {
 
       await scheduler.start();
       await vi.waitFor(() => {
-        expect(processIngest).toHaveBeenCalledWith({
+        expect(jobIngestor.processIngestCommand).toHaveBeenCalledWith({
           source: JobSource.BROWSER_AUTO,
           stage: JobStage.PARTIAL_PARSED,
           rawPayload: '',
@@ -121,8 +136,8 @@ describe('ExtractionScheduler', () => {
       }, { interval: 50, timeout: 3000 });
     });
 
-    it('handles findJobLifecycle returning null by using empty URL', async () => {
-      findJobLifecycle.mockResolvedValue(null);
+    it('handles findById returning null by using empty URL', async () => {
+      jobLifecyclePort.findById.mockResolvedValue(null);
       browser.extract.mockRejectedValue(new Error('empty-url'));
       const doc = { _id: 'job-null', jobLifecycleId: 'job-null', createdAt: new Date() };
 
@@ -145,8 +160,8 @@ describe('ExtractionScheduler', () => {
       }, { interval: 50, timeout: 3000 });
     });
 
-    it('browser extraction success calls processIngest with BROWSER_AUTO FULL_PARSED', async () => {
-      findJobLifecycle.mockResolvedValue({ url: 'https://example.com/job' });
+    it('browser extraction success calls processIngestCommand with BROWSER_AUTO FULL_PARSED', async () => {
+      jobLifecyclePort.findById.mockResolvedValue({ url: 'https://example.com/job' });
       browser.extract.mockResolvedValue({ html: '<div>success</div>' });
       const doc = { _id: 'job-success', jobLifecycleId: 'job-success', createdAt: new Date() };
 
@@ -156,7 +171,7 @@ describe('ExtractionScheduler', () => {
 
       await scheduler.start();
       await vi.waitFor(() => {
-        expect(processIngest).toHaveBeenCalledWith({
+        expect(jobIngestor.processIngestCommand).toHaveBeenCalledWith({
           source: JobSource.BROWSER_AUTO,
           stage: JobStage.FULL_PARSED,
           rawPayload: '<div>success</div>',
@@ -165,8 +180,8 @@ describe('ExtractionScheduler', () => {
       }, { interval: 50, timeout: 3000 });
     });
 
-    it('browser extraction failure calls processIngest with BROWSER_AUTO PARTIAL_PARSED and empty payload', async () => {
-      findJobLifecycle.mockResolvedValue({ url: 'https://example.com/bad' });
+    it('browser extraction failure calls processIngestCommand with BROWSER_AUTO PARTIAL_PARSED and empty payload', async () => {
+      jobLifecyclePort.findById.mockResolvedValue({ url: 'https://example.com/bad' });
       browser.extract.mockRejectedValue(new Error('Navigation timeout'));
       const doc = { _id: 'job-fail-2', jobLifecycleId: 'job-fail-2', createdAt: new Date() };
 
@@ -176,7 +191,7 @@ describe('ExtractionScheduler', () => {
 
       await scheduler.start();
       await vi.waitFor(() => {
-        expect(processIngest).toHaveBeenCalledWith({
+        expect(jobIngestor.processIngestCommand).toHaveBeenCalledWith({
           source: JobSource.BROWSER_AUTO,
           stage: JobStage.PARTIAL_PARSED,
           rawPayload: '',

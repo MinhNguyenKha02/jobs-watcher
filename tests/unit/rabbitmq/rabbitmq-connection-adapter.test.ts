@@ -16,7 +16,7 @@ vi.mock('amqplib', () => ({
   },
 }));
 
-import { RabbitMqConnection } from '../../../src/infrastructure/outbound/rabbitmq/rabbitmq-connection-adapter.js';
+import { RabbitMqConnection } from '../../../src/infrastructure/outbound/rabbitmq/rabbitmq-connection.js';
 
 describe('RabbitMqConnection', () => {
   let conn: RabbitMqConnection;

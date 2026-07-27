@@ -8,7 +8,7 @@ const mockGmailService = {
 
 let questionCallback: ((answer: string) => void) | null = null;
 
-vi.mock('../../../src/services/gmail.js', () => ({
+vi.mock('../../../src/infrastructure/outbound/gmail.js', () => ({
   GmailService: vi.fn(() => mockGmailService),
 }));
 

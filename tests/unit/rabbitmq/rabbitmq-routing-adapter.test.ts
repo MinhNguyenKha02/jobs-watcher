@@ -10,11 +10,11 @@ const mockRmq = vi.hoisted(() => ({
   getExchange: vi.fn().mockReturnValue('jobs.events'),
 }));
 
-vi.mock('../../../src/infrastructure/outbound/rabbitmq/rabbitmq-connection-adapter.js', () => ({
+vi.mock('../../../src/infrastructure/outbound/rabbitmq/rabbitmq-connection.js', () => ({
   RabbitMqConnection: vi.fn().mockImplementation(() => mockRmq),
 }));
 
-import { RabbitMqRoutingAdapter } from '../../../src/infrastructure/outbound/rabbitmq/rabbitmq-routing-adapter.js';
+import { RabbitMqRoutingAdapter } from '../../../src/infrastructure/outbound/rabbitmq/rabbitmq-route-adapter.js';
 
 describe('RabbitMqRoutingAdapter', () => {
   let adapter: RabbitMqRoutingAdapter;
@@ -25,8 +25,7 @@ describe('RabbitMqRoutingAdapter', () => {
   });
 
   it('emitJobQueued publishes to QUEUED routing key', async () => {
-    const job = { _id: 'job-1', company: 'TestCo' };
-    await adapter.emitJobQueued(job);
+    await adapter.emitJobQueued('job-1');
     expect(mockChannel.publish).toHaveBeenCalledWith(
       'jobs.events',
       ActionEvent.QUEUED,
@@ -34,7 +33,7 @@ describe('RabbitMqRoutingAdapter', () => {
       expect.objectContaining({ persistent: true }),
     );
     const buffer = mockChannel.publish.mock.calls[0][2] as Buffer;
-    expect(JSON.parse(buffer.toString())).toEqual({ job, context: undefined });
+    expect(JSON.parse(buffer.toString())).toEqual({ jobLifecycleId: 'job-1', context: undefined });
   });
 
   it('emitJobTrashed publishes to TRASHED routing key', async () => {
@@ -65,7 +64,7 @@ describe('RabbitMqRoutingAdapter', () => {
 
   it('includes trace context headers when provided', async () => {
     const adapterWithTrace = new RabbitMqRoutingAdapter(mockRmq as any, { traceId: 'trace-abc' });
-    await adapterWithTrace.emitJobQueued({ _id: 'job-1' });
+    await adapterWithTrace.emitJobQueued('job-1');
     expect(mockChannel.publish).toHaveBeenCalledWith(
       'jobs.events',
       ActionEvent.QUEUED,

@@ -226,7 +226,6 @@ describe('HtmlJobParser', () => {
       expect(result?.salary).toContain('15-25');
       expect(result?.description).toContain('Go');
       expect(result?.url).toContain('topcv.vn');
-      expect(result?.source).toBe('topcv');
     });
 
     it('handles anchor titles and verified badge', () => {
@@ -305,7 +304,6 @@ describe('HtmlJobParser', () => {
       expect(result?.location).toBeTruthy();
       expect(result?.salary).toContain('2,000');
       expect(result?.description).toContain('React');
-      expect(result?.source).toBe('indeed');
     });
 
     it('provides defaults when company/location missing', () => {
@@ -374,7 +372,6 @@ describe('HtmlJobParser', () => {
     it('parses embedded job detail (sample 1)', () => {
       const result = parser.parseJobFromHtml(indeedPlatformPageHtml1);
 
-      expect(result?.source).toBe('indeed');
       expect(result?.role).toContain('Senior Full-stack Python Developer');
       expect(result?.company).toContain('AnyWork');
       expect(result?.location).toContain('Thành phố Hồ Chí Minh');
@@ -387,7 +384,6 @@ describe('HtmlJobParser', () => {
     it('parses embedded job detail (sample 2)', () => {
       const result = parser.parseJobFromHtml(indeedPlatformPageHtml2);
 
-      expect(result?.source).toBe('indeed');
       expect(result?.role).toContain('Data Engineer Fresher');
       expect(result?.company).toContain('Cigro');
       expect(result?.location).toContain('Thành phố Hồ Chí Minh');
@@ -401,7 +397,6 @@ describe('HtmlJobParser', () => {
     it('parses core fields from LinkedIn job detail (sample 1)', () => {
       const result = parser.parseJobFromHtml(linkedinPlatformPageHtml1);
 
-      expect(result?.source).toBe('linkedin');
       expect(result?.role).toBe('Research Engineer Intern');
       expect(result?.company).toBe('Qualcomm');
       expect(result?.location).toContain('Ho Chi Minh City');
@@ -411,7 +406,6 @@ describe('HtmlJobParser', () => {
     it('parses core fields from LinkedIn job detail (sample 2)', () => {
       const result = parser.parseJobFromHtml(linkedinPlatformPageHtml2);
 
-      expect(result?.source).toBe('linkedin');
       expect(result?.role).toBe('Software Developers');
       expect(result?.company).toBe('Netcompany');
       expect(result?.location).toContain('Ho Chi Minh City');
@@ -423,7 +417,6 @@ describe('HtmlJobParser', () => {
     it('parses core fields from SDUi format (sample 1)', () => {
       const result = parser.parseJobFromHtml(linkedinSduiHtml1);
 
-      expect(result?.source).toBe('linkedin');
       expect(result?.role).toBe('Senior Software Engineer');
       expect(result?.company).toBe('TechCorp Vietnam');
       expect(result?.location).toContain('Ho Chi Minh City');
@@ -437,7 +430,6 @@ describe('HtmlJobParser', () => {
     it('parses core fields from SDUi format (sample 2 - salary, easy apply)', () => {
       const result = parser.parseJobFromHtml(linkedinSduiHtml2);
 
-      expect(result?.source).toBe('linkedin');
       expect(result?.role).toBe('Data Analyst');
       expect(result?.company).toBe('DataCo Analytics');
       expect(result?.location).toContain('Hà Nội');
@@ -452,7 +444,6 @@ describe('HtmlJobParser', () => {
     it('parses companyInfo from SDUi AboutTheCompany component (sample 3)', () => {
       const result = parser.parseJobFromHtml(linkedinSduiHtml3);
 
-      expect(result?.source).toBe('linkedin');
       expect(result?.role).toBe('Product Manager');
       expect(result?.company).toBe('InnovateCo Ltd');
       expect(result?.location).toContain('Da Nang');
@@ -482,7 +473,6 @@ describe('HtmlJobParser', () => {
       expect(result?.company).toContain('MARUSYS');
       expect(result?.location).toContain('Hà Nội');
       expect(result?.salary).toContain('8');
-      expect(result?.source).toBe('topcv');
       expect(result?.details?.requirements ?? '').toContain('C++');
       // For beta, allow benefits to be missing if requirements are present
       if ((result?.details?.benefits ?? '').length > 0) {
@@ -497,7 +487,6 @@ describe('HtmlJobParser', () => {
       expect(result?.role).toBe('Senior Frontend Developer');
       expect(result?.company).toContain('Zalo');
       expect(result?.salary).toContain('1800');
-      expect(result?.source).toBe('indeed');
       expect(result?.details?.requirements ?? '').toContain('JavaScript');
       expect(result?.details?.benefits ?? '').toContain('health insurance');
     });

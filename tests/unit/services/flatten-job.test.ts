@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { flattenJob, flattenJobDetails } from '../../../src/infrastructure/outbound/flatten-job.js' ;
+import { flattenJob, flattenJobDetails } from '../../../src/domain/services/flatten-job.js' ;
 
 describe('flattenJob', () => {
   it('returns formatted string with all fields', () => {

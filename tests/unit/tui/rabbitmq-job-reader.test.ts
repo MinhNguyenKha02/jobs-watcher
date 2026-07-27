@@ -55,9 +55,9 @@ function makeS2Msg(id: string, overrides: Record<string, unknown> = {}) {
     fields: { deliveryTag: 2, routingKey: 'job.parse.completed' },
   };
 }
-function makeS34Msg(id: string, routingKey: string, overrides: Record<string, unknown> = {}) {
+function makeS34Msg(id: string, routingKey: string) {
   return {
-    content: Buffer.from(JSON.stringify({ _id: id, jobLifecycleId: id, ...overrides })),
+    content: Buffer.from(JSON.stringify(id)),
     fields: { deliveryTag: 3, routingKey },
   };
 }
@@ -131,14 +131,14 @@ describe('RabbitMqJobReader', () => {
     });
 
     it('F5: direct mode sets immediately', () => {
-      reader.setQueueMode(false);
+      queueMode = false;
       (reader as any).onMessageS2(makeS2Msg('job-d'));
       expect(currentJob.jobLifecycleId).toBe('job-d');
       expect(currentJob.stage).toBe(JobStage.FULL_PARSED);
     });
 
     it('F5: rapid [i]x2 in direct mode replaces first', () => {
-      reader.setQueueMode(false);
+      queueMode = false;
       (reader as any).onMessageS2(makeS2Msg('job-1'));
       expect(currentJob.jobLifecycleId).toBe('job-1');
       (reader as any).onMessageS2(makeS2Msg('job-2'));
@@ -156,7 +156,7 @@ describe('RabbitMqJobReader', () => {
     });
 
     it('F6: S4 in direct mode clears without advance', () => {
-      reader.setQueueMode(false);
+      queueMode = false;
       (reader as any).onMessageS2(makeS2Msg('job-x'));
       (reader as any).onMessageS3S4(makeS34Msg('job-x', 'job.trash'));
       expect(currentJob.jobLifecycleId).toBeNull();

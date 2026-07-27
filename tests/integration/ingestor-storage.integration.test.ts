@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
 import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
+import { MongoInitializer } from '../../src/infrastructure/outbound/persistence/mongo-init.js' ;
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import type { JobLifecycleDocument } from '../../src/domain/types/job-lifecycle.js' ;
@@ -28,18 +29,17 @@ function makeDoc(overrides: Partial<JobLifecycleDocument> & { _id: string }): Jo
 describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
   let storage: { mongod: any; client: any; uri: string; dbName: string; stop: () => Promise<void> } | null = null;
   let adapter: MongoJobLifecycleAdapter | null = null;
+  let colection: any;
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoJobLifecycleAdapter(
-      storage.uri,
-      storage.dbName,
-    );
-    await adapter.connect();
+    const initializer = new MongoInitializer(storage.client, storage.dbName);
+    await initializer.init();
+    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
+    colection = storage.client.db(storage.dbName).collection('job_lifecycle');
   }, 120000);
 
   afterAll(async () => {
-    if (adapter) await adapter.disconnect();
     if (storage) await storage.stop();
   });
 
@@ -60,7 +60,7 @@ describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
     const doc2 = makeDoc({ _id: 'it-upsert-1', company: 'UpsertCorp', role: 'Engineer', source: JobSource.MANUAL, stage: JobStage.FULL_PARSED, rawPayload: 'v2' });
     await adapter!.upsert(doc2);
 
-    const all = await (adapter! as any).jobLifecycleCollection.find({ _id: 'it-upsert-1' }).toArray();
+    const all = await colection.find({ _id: 'it-upsert-1' }).toArray();
     expect(all).toHaveLength(1);
     expect(all[0].rawPayload).toBe('v2');
     expect(all[0].stage).toBe(JobStage.FULL_PARSED);
@@ -70,16 +70,15 @@ describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
     const doc = makeDoc({ _id: 'it-status-1', company: 'StatusCorp', role: 'Dev', stage: JobStage.FULL_PARSED, status: JobStatus.ENRICHING });
     await adapter!.upsert(doc);
 
-    await adapter!.updateJobStatus('it-status-1', JobStatus.QUEUED);
+    await adapter!.updateStage('it-status-1', JobStage.FULL_PARSED, JobStatus.QUEUED);
 
     const updated = await adapter!.findById('it-status-1');
     expect(updated).not.toBeNull();
     expect(updated!.status).toBe(JobStatus.QUEUED);
   });
 
-  it('creates required indexes on connect', async () => {
-    const col = (adapter! as any).jobLifecycleCollection;
-    const indexes = await col.indexes();
+  it('creates required indexes on init', async () => {
+    const indexes = await colection.indexes();
     const idIndex = indexes.find((i: any) => i.key?._id === 1);
     expect(idIndex).toBeDefined();
     const uniqueIndex = indexes.find((i: any) => i.name && i.name.startsWith('idx_role_company'));

@@ -10,7 +10,7 @@ describe('Composition root — bootstrap with real storage', () => {
     vi.mock('../../src/infrastructure/outbound/gmail.js', () => ({
       GmailService: vi.fn(() => ({ authenticate: vi.fn().mockResolvedValue(undefined) })),
     }));
-    vi.mock('../../src/infrastructure/outbound/browser/browser-extractor.js', () => ({
+    vi.mock('../../src/infrastructure/outbound/browser/browser-adapter.js', () => ({
       PlaywrightBrowserAdapter: vi.fn(() => ({ start: vi.fn(), stop: vi.fn() })),
     }));
     vi.mock('../../src/infrastructure/inbound/web/webhook-adapter.js', () => ({
@@ -32,11 +32,7 @@ describe('Composition root — bootstrap with real storage', () => {
     const { MongoJobLifecycleAdapter } = await import('../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' );
     const { JobStatus, JobStage, JobSource } = await import('../../src/domain/types/job-lifecycle.js' );
 
-    const adapter = new MongoJobLifecycleAdapter(
-      storage.uri,
-      storage.dbName,
-    );
-    await adapter.connect();
+    const adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
 
     const parseEventPort = {
       emitGenerated: vi.fn(),
@@ -72,8 +68,6 @@ describe('Composition root — bootstrap with real storage', () => {
     expect(updated!._id).toBe(jobId);
     expect(updated!.status).toBe(JobStatus.QUEUED);
     expect(routingPort.emitJobQueued).toHaveBeenCalledOnce();
-
-    await adapter.disconnect();
   }, 30000);
 
   it('JobIngestor processes trash resolution against real MongoDB', async () => {
@@ -81,11 +75,7 @@ describe('Composition root — bootstrap with real storage', () => {
     const { MongoJobLifecycleAdapter } = await import('../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' );
     const { JobStatus, JobStage, JobSource } = await import('../../src/domain/types/job-lifecycle.js' );
 
-    const adapter = new MongoJobLifecycleAdapter(
-      storage.uri,
-      storage.dbName,
-    );
-    await adapter.connect();
+    const adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
 
     const parseEventPort = {
       emitGenerated: vi.fn(),
@@ -118,10 +108,9 @@ describe('Composition root — bootstrap with real storage', () => {
 
     const updated = await adapter.findById(jobId);
     expect(updated).toBeDefined();
+    expect(updated!._id).toBe(jobId);
     expect(updated!.status).toBe(JobStatus.TRASHED);
     expect(routingPort.emitJobTrashed).toHaveBeenCalledOnce();
-
-    await adapter.disconnect();
   }, 30000);
 
   it('JobIngestor processes resolution with editedKVs against real MongoDB', async () => {
@@ -129,11 +118,7 @@ describe('Composition root — bootstrap with real storage', () => {
     const { MongoJobLifecycleAdapter } = await import('../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' );
     const { JobStatus, JobStage, JobSource } = await import('../../src/domain/types/job-lifecycle.js' );
 
-    const adapter = new MongoJobLifecycleAdapter(
-      storage.uri,
-      storage.dbName,
-    );
-    await adapter.connect();
+    const adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
 
     const parseEventPort = {
       emitGenerated: vi.fn(),
@@ -169,14 +154,8 @@ describe('Composition root — bootstrap with real storage', () => {
     });
 
     expect(routingPort.emitJobQueued).toHaveBeenCalledWith(
-      expect.objectContaining({
-        jobLifecycleId: jobId,
-        role: 'Senior Developer',
-        salary: '$5000',
-      }),
-      expect.anything()
+      jobId,
+      expect.objectContaining({ source: JobSource.MANUAL })
     );
-
-    await adapter.disconnect();
   }, 30000);
 });

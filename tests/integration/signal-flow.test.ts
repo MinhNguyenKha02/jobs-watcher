@@ -13,10 +13,29 @@ const describeIf = runReal ? describe : describe.skip;
 const logger = getLogger();
 const DB_NAME = 'signal-flow-integration-test';
 
-function htmlFor(role: string, company: string): string {
+function emailHtmlFor(role: string, company: string): string {
+  const encodedUrl = `/viec-lam/${role.toLowerCase().replace(/\s+/g, '-')}`;
+  return `<html><body>
+    <a class="job-item-link" href="${encodedUrl}">
+      <div class="topcv-job-item">
+        <div class="title"><span>${role}</span></div>
+        <div class="company"><span>${company}</span></div>
+        <div>Hà Nội</div>
+      </div>
+    </a>
+    <p>topcv job-item</p>
+    <p>TypeScript</p>
+  </body></html>`;
+}
+
+function detailHtmlFor(role: string, company: string): string {
   return `<div class="job-detail__info--title"><h1>${role}</h1></div>`
     + `<div class="company-name-label"><a class="name">${company}</a></div>`
-    + '<div>topcv</div>';
+    + '<div>topcv</div>'
+    + '<p>TypeScript</p>'
+    + '<div class="job-description__item"><h3>Mô tả công việc</h3>'
+    + '<div class="job-description__item--content">We need a TypeScript developer with JavaScript skills</div>'
+    + '</div>';
 }
 
 describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
@@ -54,12 +73,10 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     client = new MongoClient(MONGODB_URI);
     await client.connect();
     await client.db(DB_NAME).dropDatabase();
-    adapter = new MongoJobLifecycleAdapter(MONGODB_URI, DB_NAME);
-    await adapter.connect();
+    adapter = new MongoJobLifecycleAdapter(client.db(DB_NAME));
   });
 
   afterAll(async () => {
-    await adapter.disconnect();
     await client.db(DB_NAME).dropDatabase();
     await client.close();
   });
@@ -72,7 +89,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
   });
 
   it('S1: job.generated for BROWSER_AUTO PARTIAL_PARSED', async () => {
-    const html = htmlFor('Junior Engineer A', 'TestCo A');
+    const html = emailHtmlFor('Software Engineer', 'TestCo A');
 
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
@@ -93,7 +110,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
   });
 
   it('S1→S2: job.generated then job.parse.completed', async () => {
-    const html = htmlFor('Junior Engineer B', 'TestCo B');
+    const html = emailHtmlFor('Software Engineer', 'TestCo B');
 
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
@@ -109,22 +126,21 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     await ingestor.processIngestCommand({
       source: JobSource.BROWSER_AUTO,
       stage: JobStage.FULL_PARSED,
-      rawPayload: html,
+      rawPayload: detailHtmlFor('Software Engineer', 'TestCo B'),
       jobLifecycleId: id,
     });
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalledTimes(1);
     const emitArgs = parseEventPort.emitCompleted.mock.calls[0];
-    expect(emitArgs[0]).toBe(id);
-    expect(emitArgs[1]).toBeTruthy();
-    expect(emitArgs[2]).toEqual(expect.objectContaining({ stage: JobStage.FULL_PARSED }));
+    expect(emitArgs[0]._id).toBe(id);
+    expect(emitArgs[1]).toEqual(expect.objectContaining({ stage: JobStage.FULL_PARSED }));
 
     const doc = await adapter.findById(id);
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
   });
 
   it('S1→S3: job.generated then operator queues', async () => {
-    const html = htmlFor('Junior Engineer C', 'TestCo C');
+    const html = detailHtmlFor('Junior Engineer C', 'TestCo C');
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
@@ -133,7 +149,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     });
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
-    const jobLifecycleId = parseEventPort.emitCompleted.mock.calls[0][0];
+    const jobLifecycleId = parseEventPort.emitCompleted.mock.calls[0][0]._id;
 
     await ingestor.processResolutionCommand({ jobLifecycleId, action: 'queue' });
 
@@ -143,7 +159,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
   });
 
   it('S1→S3: job.generated then operator trashes', async () => {
-    const html = htmlFor('Junior Engineer D', 'TestCo D');
+    const html = detailHtmlFor('Junior Engineer D', 'TestCo D');
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
@@ -152,7 +168,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     });
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
-    const jobLifecycleId = parseEventPort.emitCompleted.mock.calls[0][0];
+    const jobLifecycleId = parseEventPort.emitCompleted.mock.calls[0][0]._id;
 
     await ingestor.processResolutionCommand({ jobLifecycleId, action: 'trash' });
 
@@ -162,7 +178,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
   });
 
   it('S4: invalid action silently handled (no routing event emitted)', async () => {
-    const html = htmlFor('Junior Engineer E', 'TestCo E');
+    const html = detailHtmlFor('Junior Engineer E', 'TestCo E');
 
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
@@ -171,13 +187,13 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
     });
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
-    const jobLifecycleId = parseEventPort.emitCompleted.mock.calls[0][0];
+    const jobLifecycleId = parseEventPort.emitCompleted.mock.calls[0][0]._id;
 
     await expect(
       ingestor.processResolutionCommand({ jobLifecycleId, action: 'invalid' as any })
     ).resolves.toBeUndefined();
 
-    // Should not emit any routing event for unknown action
+    // Invalid action is silently handled (no routing event)
     expect(routingPort.emitJobQueued).not.toHaveBeenCalled();
     expect(routingPort.emitJobTrashed).not.toHaveBeenCalled();
     expect(routingPort.emitRouteFailed).not.toHaveBeenCalled();

@@ -31,8 +31,8 @@ vi.mock('puppeteer-extra-plugin-stealth', () => ({
   default: vi.fn(() => ({})),
 }));
 
-vi.mock('../../../src/services/logger.js', () => ({
-  getLogger: vi.fn(() => ({
+vi.mock('../../../src/infrastructure/outbound/logging/logger.js', () => ({
+  createLogger: vi.fn(() => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
@@ -45,7 +45,7 @@ describe('PlaywrightBrowserAdapter', () => {
   });
 
   it('launches browser with headless option on start', async () => {
-    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-extractor.js' );
+    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-adapter.js' );
     const adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 10000 });
 
     await adapter.start();
@@ -57,7 +57,7 @@ describe('PlaywrightBrowserAdapter', () => {
   });
 
   it('creates browser context after launch', async () => {
-    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-extractor.js' );
+    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-adapter.js' );
     const adapter = new PlaywrightBrowserAdapter();
 
     await adapter.start();
@@ -66,7 +66,7 @@ describe('PlaywrightBrowserAdapter', () => {
   });
 
   it('is idempotent on repeated start calls', async () => {
-    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-extractor.js' );
+    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-adapter.js' );
     const adapter = new PlaywrightBrowserAdapter();
 
     await adapter.start();
@@ -76,7 +76,7 @@ describe('PlaywrightBrowserAdapter', () => {
   });
 
   it('extracts HTML from a URL', async () => {
-    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-extractor.js' );
+    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-adapter.js' );
     const adapter = new PlaywrightBrowserAdapter();
     mockPage.evaluate.mockResolvedValue('<html><body>Test content</body></html>');
 
@@ -95,14 +95,14 @@ describe('PlaywrightBrowserAdapter', () => {
   });
 
   it('throws if extract is called before start', async () => {
-    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-extractor.js' );
+    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-adapter.js' );
     const adapter = new PlaywrightBrowserAdapter();
 
     await expect(adapter.extract('https://example.com')).rejects.toThrow('Browser not started');
   });
 
   it('stops the browser and cleans up', async () => {
-    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-extractor.js' );
+    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-adapter.js' );
     const adapter = new PlaywrightBrowserAdapter();
 
     await adapter.start();
@@ -113,7 +113,7 @@ describe('PlaywrightBrowserAdapter', () => {
   });
 
   it('recreates context when page.close fails during extract', async () => {
-    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-extractor.js' );
+    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-adapter.js' );
     const adapter = new PlaywrightBrowserAdapter();
     mockPage.evaluate.mockResolvedValue('<html>ok</html>');
     mockPage.close.mockRejectedValue(new Error('Browser closed'));
@@ -126,7 +126,7 @@ describe('PlaywrightBrowserAdapter', () => {
   });
 
   it('handles goto timeout gracefully', async () => {
-    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-extractor.js' );
+    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-adapter.js' );
     const adapter = new PlaywrightBrowserAdapter({ timeout: 1000 });
     mockPage.goto.mockRejectedValue(new Error('Timeout 30000ms exceeded'));
 
@@ -135,7 +135,7 @@ describe('PlaywrightBrowserAdapter', () => {
   });
 
   it('accepts custom timeout option', async () => {
-    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-extractor.js' );
+    const { PlaywrightBrowserAdapter } = await import('../../../../src/infrastructure/outbound/browser/browser-adapter.js' );
     const adapter = new PlaywrightBrowserAdapter({ headless: false, timeout: 5000 });
 
     await adapter.start();

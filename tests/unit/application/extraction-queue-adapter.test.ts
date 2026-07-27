@@ -1,26 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MongoExtractionQueueAdapter } from '../../../src/infrastructure/outbound/persistence/extraction-queue-adapter.js';
+import { MongoExtractionQueueAdapter } from '../../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
 import { MetricsRegistry } from '../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
 
-function createMockCollection() {
-  return {
+function createMockDb() {
+  const collection = {
     updateOne: vi.fn(),
     findOneAndDelete: vi.fn(),
     countDocuments: vi.fn(),
   };
+  return {
+    collection: vi.fn(() => collection),
+  };
 }
 
 describe('MongoExtractionQueueAdapter', () => {
-  let collection: ReturnType<typeof createMockCollection>;
+  let db: ReturnType<typeof createMockDb>;
   let adapter: MongoExtractionQueueAdapter;
 
   beforeEach(() => {
-    collection = createMockCollection();
-    adapter = new MongoExtractionQueueAdapter(collection as any, new MetricsRegistry());
+    db = createMockDb();
+    adapter = new MongoExtractionQueueAdapter(new MetricsRegistry(), db as any);
   });
 
   describe('enqueue', () => {
     it('upserts with $setOnInsert for a jobLifecycleId', async () => {
+      const collection = db.collection();
       collection.updateOne.mockResolvedValue({ acknowledged: true } as any);
 
       await adapter.enqueue('job-1');
@@ -33,6 +37,7 @@ describe('MongoExtractionQueueAdapter', () => {
     });
 
     it('does not throw on duplicate _id (upsert is no-op)', async () => {
+      const collection = db.collection();
       collection.updateOne.mockResolvedValue({ acknowledged: true } as any);
 
       await adapter.enqueue('job-1');
@@ -44,6 +49,7 @@ describe('MongoExtractionQueueAdapter', () => {
 
   describe('dequeue', () => {
     it('returns the oldest job and removes it (FIFO)', async () => {
+      const collection = db.collection();
       const doc = { _id: 'job-1', jobLifecycleId: 'job-1', createdAt: new Date('2024-01-01') };
       collection.findOneAndDelete.mockResolvedValue(doc);
 
@@ -57,6 +63,7 @@ describe('MongoExtractionQueueAdapter', () => {
     });
 
     it('returns null when queue is empty', async () => {
+      const collection = db.collection();
       collection.findOneAndDelete.mockResolvedValue(null);
 
       const result = await adapter.dequeue();
@@ -67,6 +74,7 @@ describe('MongoExtractionQueueAdapter', () => {
 
   describe('size', () => {
     it('returns document count', async () => {
+      const collection = db.collection();
       collection.countDocuments.mockResolvedValue(5);
 
       const size = await adapter.size();
@@ -76,6 +84,7 @@ describe('MongoExtractionQueueAdapter', () => {
     });
 
     it('returns 0 when collection is empty', async () => {
+      const collection = db.collection();
       collection.countDocuments.mockResolvedValue(0);
 
       const size = await adapter.size();

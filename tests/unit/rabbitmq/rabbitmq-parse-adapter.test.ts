@@ -41,7 +41,7 @@ describe('RabbitMqParseAdapter', () => {
 
   it('emitCompleted publishes to PARSE_COMPLETED routing key', async () => {
     const job = { company: 'TestCo' };
-    await adapter.emitCompleted('job-1', job, { stage: JobStage.FULL_PARSED, source: JobSource.MANUAL });
+    await adapter.emitCompleted(job, { stage: JobStage.FULL_PARSED, source: JobSource.MANUAL });
     expect(mockChannel.publish).toHaveBeenCalledWith(
       'jobs.events',
       ActionEvent.PARSE_COMPLETED,
@@ -49,7 +49,7 @@ describe('RabbitMqParseAdapter', () => {
       expect.objectContaining({ persistent: true }),
     );
     const buffer = mockChannel.publish.mock.calls[0][2] as Buffer;
-    expect(JSON.parse(buffer.toString())).toEqual({ jobLifecycleId: 'job-1', job });
+    expect(JSON.parse(buffer.toString())).toEqual({ job });
   });
 
   it('emitFailed publishes to PARSE_FAILED routing key', async () => {

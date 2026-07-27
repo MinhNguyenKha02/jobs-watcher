@@ -3,11 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockLoader = { load: vi.fn() };
 const mockHydrator = { hydrate: vi.fn() };
 
-vi.mock('../../../../src/services/profile/artifacts/loaders/artifact.loader.js', () => ({
+vi.mock('../../../../src/domain/profile/artifacts/loaders/artifact.loader.js', () => ({
   ArtifactLoader: vi.fn(() => mockLoader),
 }));
 
-vi.mock('../../../../src/services/profile/artifacts/loaders/artifact-hydrator.js', () => ({
+vi.mock('../../../../src/domain/profile/artifacts/loaders/artifact-hydrator.js', () => ({
   ArtifactHydrator: vi.fn(() => mockHydrator),
 }));
 

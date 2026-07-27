@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
 import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
+import { MongoInitializer } from '../../src/infrastructure/outbound/persistence/mongo-init.js';
 import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
 
@@ -50,11 +51,9 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoJobLifecycleAdapter(
-      storage.uri,
-      storage.dbName,
-    );
-    await adapter.connect();
+    const initializer = new MongoInitializer(storage.client, storage.dbName);
+    await initializer.init();
+    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
     dbCollection = storage.client.db(storage.dbName).collection('job_lifecycle');
 
     parseEvents = [];
@@ -76,7 +75,6 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
   }, 120000);
 
   afterAll(async () => {
-    await adapter.disconnect();
     await storage.stop();
   });
 

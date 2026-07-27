@@ -8,9 +8,13 @@ const logger = getLogger();
 const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 function makeTopCvHtml(company = 'TestCo'): string {
-  return '<div class="job-detail__info--title"><h1>Junior Engineer</h1></div>'
+  return '<div class="job-detail__info--title"><h1>Software Engineer</h1></div>'
     + '<div class="company-name-label"><a class="name">' + company + '</a></div>'
-    + '<div>topcv</div>';
+    + '<div>topcv</div>'
+    + '<p>TypeScript</p>'
+    + '<div class="job-description__item"><h3>Mô tả công việc</h3>'
+    + '<div class="job-description__item--content">We need a TypeScript developer with JavaScript skills</div>'
+    + '</div>';
 }
 
 describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
@@ -22,11 +26,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
 
   beforeAll(async () => {
     storage = await createTestStorage();
-    adapter = new MongoJobLifecycleAdapter(
-      storage.uri,
-      storage.dbName,
-    );
-    await adapter.connect();
+    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
 
     parseEvents = [];
     routingEvents = [];
@@ -47,7 +47,6 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
   }, 120000);
 
   afterAll(async () => {
-    await adapter.disconnect();
     await storage.stop();
   });
 
@@ -95,7 +94,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
       stageTimestamp: new Date(),
     };
     await adapter.upsert(doc);
-    vi.spyOn(adapter, 'updateJobStatus').mockRejectedValueOnce(new Error('DB write timeout'));
+    vi.spyOn(adapter, 'updateStage').mockRejectedValueOnce(new Error('DB write timeout'));
 
     await ingestor.processResolutionCommand({
       jobLifecycleId: 'job-fail-s4b',

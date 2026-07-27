@@ -51,12 +51,12 @@ export class JobExtractionService {
       const role = item.find('h2.strong-text-link a').text().trim();
       const url = item.find('h2.strong-text-link a').attr('href') || '';
       if (!role || !url) return;
-      const company = item.find('td[style*="color:#2d2d2d"]').first().text().trim();
-      const locTds = item.find('td[style*="color:#2d2d2d"]');
-      const location = locTds.length > 1 ? $(locTds[1]).text().trim() : '';
+      const company = item.find('[style*="color:#2d2d2d"]').first().text().trim();
+      const locEls = item.find('[style*="color:#2d2d2d"]');
+      const location = locEls.length > 1 ? $(locEls[1]).text().trim() : '';
       const salary = item.find('strong').first().text().trim();
-      const description = item.find('td[style*="color:#767676"]').text().trim();
-      const deadline = item.find('td[style*="font-size:12px"]').text().trim();
+      const description = item.find('[style*="color:#767676"]').text().trim();
+      const deadline = item.find('[style*="font-size:12px"]').text().trim();
       const easyApply = item.text().includes('Easily apply');
       jobs.push({
         role,

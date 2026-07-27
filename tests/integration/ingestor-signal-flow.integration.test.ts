@@ -16,7 +16,11 @@ const DB_NAME = 'ingestor-signal-flow-integration-test';
 function htmlFor(role: string, company: string): string {
   return `<div class="job-detail__info--title"><h1>${role}</h1></div>`
     + `<div class="company-name-label"><a class="name">${company}</a></div>`
-    + '<div>topcv</div>';
+    + '<div>topcv</div>'
+    + '<p>TypeScript</p>'
+    + '<div class="job-description__item"><h3>Mô tả công việc</h3>'
+    + '<div class="job-description__item--content">We need a TypeScript developer with JavaScript skills</div>'
+    + '</div>';
 }
 
 describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
@@ -54,12 +58,10 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     client = new MongoClient(MONGODB_URI);
     await client.connect();
     await client.db(DB_NAME).dropDatabase();
-    adapter = new MongoJobLifecycleAdapter(MONGODB_URI, DB_NAME);
-    await adapter.connect();
+    adapter = new MongoJobLifecycleAdapter(client.db(DB_NAME));
   });
 
   afterAll(async () => {
-    await adapter.disconnect();
     await client.db(DB_NAME).dropDatabase();
     await client.close();
   });
@@ -72,14 +74,14 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
   });
 
   it('S2b: signal2bManual creates job with clip-* ID and FULL_PARSED status', async () => {
-    const html = htmlFor('Junior Engineer', 'Clipboard Co');
+    const html = htmlFor('Software Engineer', 'Clipboard Co');
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: html,
     });
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
-    const id = parseEventPort.emitCompleted.mock.calls[0][0];
+    const id = parseEventPort.emitCompleted.mock.calls[0][0]._id;
     expect(id).toMatch(/^clip-/);
     const doc = await adapter.findById(id);
     expect(doc).not.toBeNull();
@@ -118,19 +120,19 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
   });
 
   it('S2b: signal2bManual stores correct source and stage in MongoDB', async () => {
-    const html = htmlFor('Junior Engineer', 'Direct Co');
+    const html = htmlFor('Software Engineer', 'Direct Co');
     await ingestor.processIngestCommand({
       source: JobSource.MANUAL,
       stage: JobStage.FULL_PARSED,
       rawPayload: html,
     });
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
-    const id = parseEventPort.emitCompleted.mock.calls[0][0];
+    const id = parseEventPort.emitCompleted.mock.calls[0][0]._id;
     const doc = await adapter.findById(id);
     expect(doc!.source).toBe(JobSource.MANUAL);
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(doc!.company).toBe('Direct Co');
-    expect(doc!.role).toBe('Junior Engineer');
+    expect(doc!.role).toBe('Software Engineer');
   });
 
   it('S2a: emits parse.failed on empty HTML payload', async () => {
@@ -147,8 +149,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
   });
 
   it('propagates non-11000 upsert error', async () => {
-    const badDb = new MongoJobLifecycleAdapter(MONGODB_URI, DB_NAME);
-    await badDb.connect();
+    const badDb = new MongoJobLifecycleAdapter(client.db(DB_NAME));
     vi.spyOn(badDb, 'upsert').mockRejectedValueOnce(
       Object.assign(new Error('Disk full'), { code: 9000 })
     );
@@ -158,9 +159,8 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
       standalone.processIngestCommand({
         source: JobSource.MANUAL,
         stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Junior Engineer', 'FailCo'),
+        rawPayload: htmlFor('Software Engineer', 'FailCo'),
       })
     ).rejects.toThrow('Disk full');
-    await badDb.disconnect();
   });
 });
