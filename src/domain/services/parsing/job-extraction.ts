@@ -26,7 +26,7 @@ export class JobExtractionService {
       const url = item.attr('href') || '';
       let location = '';
       let deadline = '';
-      item.find('div.topcv-job-item > div:not([class])').each((_, d) => {
+      item.find('.meta-job .item').each((_, d) => {
         const text = $(d).text().trim();
         if (/ngày để ứng tuyển/i.test(text)) deadline = text;
         else if (/Hà Nội|Hồ Chí Minh|Đà Nẵng|TP\.HCM/i.test(text)) location = text;
@@ -48,12 +48,12 @@ export class JobExtractionService {
     const jobs: Partial<Job>[] = [];
     $('td.pb-24').each((_, el) => {
       const item = $(el);
-      const role = item.find('h2.strong-text-link a').text().trim();
-      const url = item.find('h2.strong-text-link a').attr('href') || '';
+      const role = item.find('h2 a').text().trim();
+      const url = item.find('h2 a').attr('href') || '';
       if (!role || !url) return;
-      const company = item.find('[style*="color:#2d2d2d"]').first().text().trim();
-      const locEls = item.find('[style*="color:#2d2d2d"]');
-      const location = locEls.length > 1 ? $(locEls[1]).text().trim() : '';
+      const infoEls = item.find('div[style*="color:#2d2d2d"]');
+      const company = infoEls.first().text().trim();
+      const location = infoEls.length > 1 ? $(infoEls[1]).text().trim() : '';
       const salary = item.find('strong').first().text().trim();
       const description = item.find('[style*="color:#767676"]').text().trim();
       const deadline = item.find('[style*="font-size:12px"]').text().trim();

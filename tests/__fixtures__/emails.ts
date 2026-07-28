@@ -25,117 +25,91 @@ export const mockParsedJob = {
 
 // *EmailAlert source
 // *EmailAlert source (from db/emails/2026-01/28/)
-export const topCVEmailAlert = {
-  id: 'msg-topcv-001',
-  messageId: 'msg-topcv-001',
-  threadId: 'thread-topcv-001',
-  labelIds: ['INBOX'],
-  snippet: 'full stack developer: 10 việc làm mới nhất phù hợp với bạn',
-  payload: {
-    headers: [
-      { name: 'From', value: 'TopCV <toppyai@topcv.vn>' },
-      { name: 'Subject', value: '"full stack developer": 10 việc làm mới nhất phù hợp với bạn' },
-    ],
-    body: {
-      data: Buffer.from(`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN">
-<html><head><meta charset="UTF-8"/></head><body>
+export const topCVEmailAlert = `<html><head><meta charset="UTF-8"/></head><body>
 <h1>TopCV Job Alert</h1>
 <p>Xin chào <b>Minh Nguyen</b>, chúng tôi đã tìm thấy 10 việc làm mới nhất phù hợp với bạn:</p>
 <div class="job-list">
-  <div class="job-item">
-    <span class="title">Software Developer For Broadband Devices</span>
-    <span class="company">MARUSYS VINA CO.,LTD</span>
-    <div class="meta-job">
-      <div><b>Từ 8 triệu</b></div>
-      <div>Hà Nội</div>
-      <div>Còn 30 ngày để ứng tuyển</div>
+  <a class="job-item-link" href="https://www.topcv.vn/viec-lam/software-developer-broadband-devices/1.html">
+    <div class="job-item">
+      <div class="avatar"><span class="company-logo"><img src="https://via.placeholder.com/67" alt="MARUSYS VINA"/></span></div>
+      <div class="body">
+        <div class="title"><span>Software Developer For Broadband Devices</span></div>
+        <div class="company"><span>MARUSYS VINA CO.,LTD</span></div>
+        <div class="meta-job">
+          <div class="text-primary item"><b>Từ 8 triệu</b></div>
+          <div class="item">Hà Nội</div>
+          <div class="item">Còn <strong>30</strong> ngày để ứng tuyển</div>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="job-item">
-    <span class="title">Front-End Developer</span>
-    <span class="company">TEQNOLOGICAL ASIA Co., Ltd</span>
-    <div class="meta-job">
-      <div><b>Thỏa thuận</b></div>
-      <div>Hồ Chí Minh (mới)</div>
-      <div>Còn 30 ngày để ứng tuyển</div>
+  </a>
+  <a class="job-item-link" href="https://www.topcv.vn/viec-lam/frontend-developer/2.html">
+    <div class="job-item">
+      <div class="avatar"><span class="company-logo"><img src="https://via.placeholder.com/67" alt="TEQNOLOGICAL ASIA"/></span></div>
+      <div class="body">
+        <div class="title"><span>Front-End Developer</span></div>
+        <div class="company"><span>TEQNOLOGICAL ASIA Co., Ltd</span></div>
+        <div class="meta-job">
+          <div class="text-primary item"><b>Thỏa thuận</b></div>
+          <div class="item">Hồ Chí Minh (mới)</div>
+          <div class="item">Còn <strong>30</strong> ngày để ứng tuyển</div>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="job-item">
-    <span class="title">(Senior) Software Engineer, ReactJS</span>
-    <span class="company">Zalo</span>
-    <div class="meta-job">
-      <div><b>Thỏa thuận</b></div>
-      <div>Hồ Chí Minh</div>
-      <div>Vừa đăng</div>
+  </a>
+  <a class="job-item-link" href="https://www.topcv.vn/viec-lam/senior-software-engineer-reactjs/3.html">
+    <div class="job-item">
+      <div class="avatar"><span class="company-logo"><img src="https://via.placeholder.com/67" alt="Zalo"/></span></div>
+      <div class="body">
+        <div class="title"><span>(Senior) Software Engineer, ReactJS</span></div>
+        <div class="company"><span>Zalo</span></div>
+        <div class="meta-job">
+          <div class="text-primary item"><b>Thỏa thuận</b></div>
+          <div class="item">Hồ Chí Minh</div>
+          <div class="item">Vừa đăng</div>
+        </div>
+      </div>
     </div>
-  </div>
+  </a>
 </div>
-<a href="https://www.topcv.vn/tim-viec-lam-full-stack-developer">Xem tất cả việc làm</a>
-</body></html>`).toString('base64'),
-    },
-  },
-};
+</body></html>`;
 
 // *EmailAlert source
-export const indeedEmailAlert = {
-  id: 'msg-indeed-001',
-  messageId: 'msg-indeed-001',
-  threadId: 'thread-indeed-001',
-  labelIds: ['INBOX'],
-  snippet: 'Indeed Job Alert 20 new front end developer jobs',
-  payload: {
-    headers: [
-      { name: 'From', value: 'noreply@indeed.com' },
-      { name: 'Subject', value: 'Indeed Job Alert - 20 new front end developer jobs' },
-    ],
-    body: {
-            data: Buffer.from(`<!DOCTYPE html>
-<html>
-    <head><meta charset="UTF-8" /><title>Indeed Job Alert</title></head>
-    <body>
-        <h1>Indeed Job Alert - 20 new front end developer jobs</h1>
-        <p>Jobs 1-20 of 20 new jobs</p>
-        <p>See matching results on Indeed: <a href="https://vn.indeed.com/jobs?q=front+end+developer">https://vn.indeed.com/jobs?q=front+end+developer</a></p>
-
-        <div class="job-item">
-            <h2>Senior Frontend Developer</h2>
-            <p>Zalo - Thành phố Hồ Chí Minh</p>
-            <p>Zalo VAS delivers new revenue-driving experiences to 75 million+ users. Just posted</p>
-            <a href="https://vn.indeed.com/rc/clk/dl?jk=79f46e3a4498804f">Apply</a>
-        </div>
-
-        <div class="job-item">
-            <h2>Senior Front-End Developer</h2>
-            <p>AdStart Media Pte. Ltd - Thành phố Hồ Chí Minh</p>
-            <p>We are seeking an experienced Senior Front-End Developer for UI/UX design. 2 days ago</p>
-            <a href="https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c">Apply</a>
-        </div>
-
-        <div class="job-item">
-            <h2>Mid/Senior Frontend Developer (Angular JS)</h2>
-            <p>Hitachi Digital Services - Thành phố Hồ Chí Minh</p>
-            <p>Design and build responsive web applications using modern frameworks. 6 days ago</p>
-            <a href="https://vn.indeed.com/rc/clk/dl?jk=4c4942dcbef96d14">Apply</a>
-        </div>
-
-        <div class="job-item">
-            <h2>React Developer</h2>
-            <p>TransPerfect - Hà Nội</p>
-            <p>The role consists of writing React code and implementing UX/UI designs. 5 days ago</p>
-            <a href="https://vn.indeed.com/rc/clk/dl?jk=72281de2c2521892">Apply</a>
-        </div>
-
-        <div class="job-item">
-            <h2>Backend Developer - Ngân hàng số</h2>
-            <p>SHB - Hà Nội</p>
-            <p>Responsible for design and programming of backend services. 3 days ago</p>
-            <a href="https://vn.indeed.com/rc/clk/dl?jk=cdeb23be56926118">Apply</a>
-        </div>
-    </body>
-</html>`).toString('base64'),
-    },
-  },
-};
+export const indeedEmailAlert = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/><title>Indeed Job Alerts Email</title></head>
+<body>
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr><td align="left" valign="top" class="pb-24" style="padding:0 0 32px">
+  <a href="https://vn.indeed.com/viewjob?jk=79f46e3a4498804f" style="display:block;text-decoration:none">
+    <table cellPadding="0" cellSpacing="0" border="0" align="left" width="100%" role="presentation">
+      <tr><td align="left" valign="top">
+        <h2 style="color:#2d2d2d;font-family:'Indeed Sans','Noto Sans',Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;line-height:24px;Margin:0;padding:0"><a href="https://vn.indeed.com/viewjob?jk=79f46e3a4498804f" style="text-decoration:none">Senior Frontend Developer</a></h2>
+        <div style="color:#2d2d2d">Zalo</div>
+        <div style="color:#2d2d2d">Thành phố Hồ Chí Minh</div>
+        <strong>15,000,000 VNĐ - 25,000,000 VNĐ a month</strong>
+        <div style="color:#767676">Zalo VAS delivers new revenue-driving experiences to 75 million+ users.</div>
+        <div style="font-size:12px">Just posted</div>
+      </td></tr>
+    </table>
+  </a>
+</td></tr>
+<tr><td align="left" valign="top" class="pb-24" style="padding:0 0 32px">
+  <a href="https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c" style="display:block;text-decoration:none">
+    <table cellPadding="0" cellSpacing="0" border="0" align="left" width="100%" role="presentation">
+      <tr><td align="left" valign="top">
+        <h2 style="color:#2d2d2d;font-family:'Indeed Sans','Noto Sans',Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;line-height:24px;Margin:0;padding:0"><a href="https://vn.indeed.com/rc/clk/dl?jk=3bf80e682b4ae00c" style="text-decoration:none">Senior Front-End Developer</a></h2>
+        <div style="color:#2d2d2d">AdStart Media Pte. Ltd</div>
+        <div style="color:#2d2d2d">Thành phố Hồ Chí Minh</div>
+        <strong>Thỏa thuận</strong>
+        <div style="color:#767676">We are seeking an experienced Senior Front-End Developer for UI/UX design.</div>
+        <div style="font-size:12px">2 days ago</div>
+      </td></tr>
+    </table>
+  </a>
+</td></tr>
+</table>
+</body>
+</html>`;
 
 // *DetailPageHTML source (TopCV, simulating pasted HTML) - FULLY DETAILED
 export const topCVDetailPageHTML = `<html>
