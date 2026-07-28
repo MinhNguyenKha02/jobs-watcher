@@ -115,13 +115,7 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
 
     const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML,
-      jobLifecycleId,
-      receivedAt: new Date(),
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML, jobLifecycleId, undefined, new Date());
 
     const fullDoc = await adapter.findById(jobLifecycleId);
     expect(fullDoc).not.toBeNull();
@@ -155,13 +149,7 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
 
     const failedBefore = parseEvents.filter(([t]) => t === 'failed').length;
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: EMPTY_HTML,
-      jobLifecycleId,
-      receivedAt: new Date(),
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, EMPTY_HTML, jobLifecycleId, undefined, new Date());
 
     const failedEvents = parseEvents.filter(([t]) => t === 'failed');
     expect(failedEvents.length).toBe(failedBefore + 1);
@@ -175,12 +163,7 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
     const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
     const docsBefore = await (adapter as any).jobLifecycleCollection.countDocuments({});
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML_2B,
-      receivedAt: new Date(),
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML_2B, undefined, undefined, new Date());
 
     const docsAfter = await (adapter as any).jobLifecycleCollection.countDocuments({});
     expect(docsAfter).toBe(docsBefore + 1);
@@ -200,22 +183,12 @@ describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
   });
 
   it('Signal 2b duplicate role+company silently skips', async () => {
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML_2B,
-      receivedAt: new Date(),
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML_2B, undefined, undefined, new Date());
 
     const docsBefore = await (adapter as any).jobLifecycleCollection.countDocuments({});
     const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML_2B,
-      receivedAt: new Date(),
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML_2B, undefined, undefined, new Date());
 
     const docsAfter = await (adapter as any).jobLifecycleCollection.countDocuments({});
     expect(docsAfter).toBe(docsBefore);

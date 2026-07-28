@@ -87,14 +87,15 @@ describe('JobIngestor', () => {
     ingestor = new JobIngestor(storage, parsePort, routingPort, queue);
   });
 
-  describe('processIngestCommand — BROWSER_AUTO PARTIAL_PARSED', () => {
+  describe('processIngest — BROWSER_AUTO PARTIAL_PARSED', () => {
     it('calls emitGenerated when rawPayload is provided (no url)', async () => {
-      await ingestor.processIngestCommand({
-        source: JobSource.BROWSER_AUTO,
-        stage: JobStage.PARTIAL_PARSED,
-        rawPayload: makeTopCvHtml(),
-        metadata: { messageId: 'msg-001' },
-      });
+      await ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.PARTIAL_PARSED,
+        makeTopCvHtml(),
+        undefined,
+        { messageId: 'msg-001' },
+      );
       expect(storage.upsert).toHaveBeenCalled();
       expect(parsePort.emitGenerated).toHaveBeenCalled();
       expect(queue.enqueue).not.toHaveBeenCalled();
@@ -102,11 +103,12 @@ describe('JobIngestor', () => {
 
     it('falls back to signal1BrowserAutoFallback when only jobLifecycleId', async () => {
       storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'existing-id' }));
-      await ingestor.processIngestCommand({
-        source: JobSource.BROWSER_AUTO,
-        stage: JobStage.PARTIAL_PARSED,
-        jobLifecycleId: 'existing-id',
-      });
+      await ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.PARTIAL_PARSED,
+        undefined,
+        'existing-id',
+      );
       expect(storage.findById).toHaveBeenCalledWith('existing-id');
       expect(parsePort.emitGenerated).toHaveBeenCalled();
     });
@@ -114,12 +116,13 @@ describe('JobIngestor', () => {
 
   describe('Case A: job has url → enqueue to extraction queue', () => {
     it('enqueues when extracted job has a url', async () => {
-      await ingestor.processIngestCommand({
-        source: JobSource.BROWSER_AUTO,
-        stage: JobStage.PARTIAL_PARSED,
-        rawPayload: makeIndeedHtmlWithUrl(),
-        metadata: { messageId: 'url-msg' },
-      });
+      await ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.PARTIAL_PARSED,
+        makeIndeedHtmlWithUrl(),
+        undefined,
+        { messageId: 'url-msg' },
+      );
       expect(storage.upsert).toHaveBeenCalled();
       expect(queue.enqueue).toHaveBeenCalled();
       expect(parsePort.emitGenerated).not.toHaveBeenCalled();
@@ -128,12 +131,13 @@ describe('JobIngestor', () => {
 
   describe('Case B: job has no url → emitGenerated only', () => {
     it('emits generated when no url', async () => {
-      await ingestor.processIngestCommand({
-        source: JobSource.BROWSER_AUTO,
-        stage: JobStage.PARTIAL_PARSED,
-        rawPayload: makeTopCvHtml(),
-        metadata: { messageId: 'nourl-msg' },
-      });
+      await ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.PARTIAL_PARSED,
+        makeTopCvHtml(),
+        undefined,
+        { messageId: 'nourl-msg' },
+      );
       expect(storage.upsert).toHaveBeenCalled();
       expect(parsePort.emitGenerated).toHaveBeenCalled();
       expect(queue.enqueue).not.toHaveBeenCalled();
@@ -143,87 +147,85 @@ describe('JobIngestor', () => {
   describe('Filter rejection', () => {
     it('trashes job when filter rejects', async () => {
       const nonJobHtml = '<html><body><div>Totally not a job posting</div></body></html>';
-      await ingestor.processIngestCommand({
-        source: JobSource.BROWSER_AUTO,
-        stage: JobStage.PARTIAL_PARSED,
-        rawPayload: nonJobHtml,
-        metadata: { messageId: 'nonjob-msg' },
-      });
+      await ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.PARTIAL_PARSED,
+        nonJobHtml,
+        undefined,
+        { messageId: 'nonjob-msg' },
+      );
       expect(routingPort.emitJobTrashed).toHaveBeenCalled();
       expect(storage.upsert).not.toHaveBeenCalled();
     });
   });
 
-  describe('processIngestCommand — BROWSER_AUTO FULL_PARSED (signal2c)', () => {
+  describe('processIngest — BROWSER_AUTO FULL_PARSED (signal2c)', () => {
     it('parses HTML and emits completed', async () => {
       storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'browser-job', raw: makeTopCvHtml() }));
-      await ingestor.processIngestCommand({
-        source: JobSource.BROWSER_AUTO,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: makeTopCvHtml(),
-        jobLifecycleId: 'browser-job',
-      });
+      await ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.FULL_PARSED,
+        makeTopCvHtml(),
+        'browser-job',
+      );
       expect(storage.findById).toHaveBeenCalledWith('browser-job');
       expect(storage.upsert).toHaveBeenCalled();
       expect(parsePort.emitCompleted).toHaveBeenCalled();
     });
   });
 
-  describe('processIngestCommand — MANUAL FULL_PARSED', () => {
+  describe('processIngest — MANUAL FULL_PARSED', () => {
     it('signal2aManual with jobLifecycleId processes successfully', async () => {
       storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'manual-job' }));
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: makeTopCvHtml(),
-        jobLifecycleId: 'manual-job',
-      });
+      await ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        makeTopCvHtml(),
+        'manual-job',
+      );
       expect(storage.findById).toHaveBeenCalledWith('manual-job');
       expect(storage.upsert).toHaveBeenCalled();
       expect(parsePort.emitCompleted).toHaveBeenCalled();
     });
 
     it('signal2bManual without jobLifecycleId treats as clipboard ingest', async () => {
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: makeTopCvHtml(),
-      });
+      await ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        makeTopCvHtml(),
+      );
       expect(storage.upsert).toHaveBeenCalled();
       expect(parsePort.emitCompleted).toHaveBeenCalled();
     });
   });
 
-  describe('processResolutionCommand — [j] guard', () => {
+  describe('processResolution — [j] guard', () => {
     it('rejects queue when status !== ENRICHED', async () => {
       storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'guard-job', status: JobStatus.ENRICHING }));
-      await ingestor.processResolutionCommand({
-        jobLifecycleId: 'guard-job',
-        action: 'queue',
-        editedKVs: {},
-      });
+      await ingestor.processResolution(
+        'guard-job',
+        'queue',
+      );
       expect(storage.updateStage).not.toHaveBeenCalled();
       expect(routingPort.emitJobQueued).not.toHaveBeenCalled();
     });
 
     it('accepts queue when status === ENRICHED', async () => {
       storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'enriched-job', status: JobStatus.ENRICHED }));
-      await ingestor.processResolutionCommand({
-        jobLifecycleId: 'enriched-job',
-        action: 'queue',
-        editedKVs: {},
-      });
+      await ingestor.processResolution(
+        'enriched-job',
+        'queue',
+      );
       expect(storage.updateStage).toHaveBeenCalled();
       expect(routingPort.emitJobQueued).toHaveBeenCalled();
     });
 
     it('trash passes through regardless of status', async () => {
       storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'trash-job', status: JobStatus.ENRICHING }));
-      await ingestor.processResolutionCommand({
-        jobLifecycleId: 'trash-job',
-        action: 'trash',
-        editedKVs: { reason: 'not interested' },
-      });
+      await ingestor.processResolution(
+        'trash-job',
+        'trash',
+      );
       expect(storage.updateStage).toHaveBeenCalled();
       expect(routingPort.emitJobTrashed).toHaveBeenCalled();
     });
@@ -232,12 +234,13 @@ describe('JobIngestor', () => {
   describe('dedup (E11000)', () => {
     it('trashes duplicates and does not emit generated', async () => {
       storage.upsert.mockRejectedValue({ code: 11000 });
-      await ingestor.processIngestCommand({
-        source: JobSource.BROWSER_AUTO,
-        stage: JobStage.PARTIAL_PARSED,
-        rawPayload: makeTopCvHtml(),
-        metadata: { messageId: 'dedup-msg' },
-      });
+      await ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.PARTIAL_PARSED,
+        makeTopCvHtml(),
+        undefined,
+        { messageId: 'dedup-msg' },
+      );
       expect(routingPort.emitJobTrashed).toHaveBeenCalled();
     });
   });

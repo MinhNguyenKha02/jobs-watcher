@@ -75,11 +75,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
 
   it('S2b: signal2bManual creates job with clip-* ID and FULL_PARSED status', async () => {
     const html = htmlFor('Software Engineer', 'Clipboard Co');
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: html,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
     const id = parseEventPort.emitCompleted.mock.calls[0][0]._id;
     expect(id).toMatch(/^clip-/);
@@ -92,12 +88,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
 
   it('S1→S2: chained enrich preserves and merges fields from partial to full', async () => {
     const partialHtml = htmlFor('Software Engineer', 'Chained Co');
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: partialHtml,
-      metadata: { messageId: 'chain-msg' },
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, partialHtml, undefined, { messageId: 'chain-msg' });
     expect(parseEventPort.emitGenerated).toHaveBeenCalled();
     const s1Job = parseEventPort.emitGenerated.mock.calls[0][0];
     const jobLifecycleId = s1Job._id;
@@ -106,12 +97,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     expect(s1Doc!.stage).toBe(JobStage.PARTIAL_PARSED);
 
     const fullHtml = htmlFor('Software Engineer', 'Chained Co');
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: fullHtml,
-      jobLifecycleId,
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, fullHtml, jobLifecycleId);
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
     const s2Doc = await adapter.findById(jobLifecycleId);
     expect(s2Doc).not.toBeNull();
@@ -121,11 +107,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
 
   it('S2b: signal2bManual stores correct source and stage in MongoDB', async () => {
     const html = htmlFor('Software Engineer', 'Direct Co');
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: html,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
     const id = parseEventPort.emitCompleted.mock.calls[0][0]._id;
     const doc = await adapter.findById(id);
@@ -136,12 +118,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
   });
 
   it('S2a: emits parse.failed on empty HTML payload', async () => {
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: '',
-      jobLifecycleId: 'test-empty-id',
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'test-empty-id');
     expect(parseEventPort.emitFailed).toHaveBeenCalledWith(
       'test-empty-id',
       expect.objectContaining({ error: 'Empty HTML payload' })
@@ -156,11 +133,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     const standalone = new JobIngestor(badDb, parseEventPort, routingPort);
 
     await expect(
-      standalone.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Software Engineer', 'FailCo'),
-      })
+      standalone.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'FailCo'))
     ).rejects.toThrow('Disk full');
   });
 });

@@ -86,12 +86,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       const role = 'Software Engineer';
       const company = `RateCo${i}`;
 
-      await ingestor.processIngestCommand({
-        source: JobSource.BROWSER_AUTO,
-        stage: JobStage.PARTIAL_PARSED,
-        rawPayload: htmlFor(role, company),
-        metadata: { messageId, subject: role },
-      });
+      await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, htmlFor(role, company), undefined, { messageId, subject: role });
 
       const genEvents = parseEvents.filter(([t]) => t === 'generated');
       expect(genEvents.length).toBe(i + 1);
@@ -103,12 +98,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       expect(partialDoc!.stage).toBe(JobStage.PARTIAL_PARSED);
       expect(partialDoc!.status).toBe(JobStatus.ENRICHING);
 
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor(role, company),
-        jobLifecycleId,
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor(role, company), jobLifecycleId);
 
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
       expect(completedEvents.length).toBe(i + 1);
@@ -119,10 +109,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       expect(enrichedDoc!.stage).toBe(JobStage.FULL_PARSED);
       expect(enrichedDoc!.status).toBe(JobStatus.ENRICHED);
 
-      await ingestor.processResolutionCommand({
-        jobLifecycleId,
-        action: 'queue',
-      });
+      await ingestor.processResolution(jobLifecycleId, 'queue');
 
       const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
       expect(queuedEvents.length).toBe(i + 1);
@@ -145,12 +132,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       role: 'Junior Dev',
     }));
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: htmlFor('Junior Dev', 'DoubleCo'),
-      jobLifecycleId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Junior Dev', 'DoubleCo'), jobLifecycleId);
 
     const completedAfterFirst = parseEvents.filter(([t]) => t === 'completed').length;
     expect(completedAfterFirst).toBe(1);
@@ -158,12 +140,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
     const firstDoc = await adapter.findById(jobLifecycleId);
     expect(firstDoc!.stage).toBe(JobStage.FULL_PARSED);
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: htmlFor('Junior Dev', 'DoubleCo'),
-      jobLifecycleId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Junior Dev', 'DoubleCo'), jobLifecycleId);
 
     const completedAfterSecond = parseEvents.filter(([t]) => t === 'completed');
     expect(completedAfterSecond.length).toBe(1);
@@ -185,10 +162,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       status: JobStatus.ENRICHED,
     }));
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId,
-      action: 'queue',
-    });
+    await ingestor.processResolution(jobLifecycleId, 'queue');
 
     const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
     expect(queuedEvents.length).toBe(1);
@@ -196,12 +170,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
     const queuedDoc = await adapter.findById(jobLifecycleId);
     expect(queuedDoc!.status).toBe(JobStatus.QUEUED);
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: htmlFor('Junior Dev', 'RaceCo'),
-      jobLifecycleId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Junior Dev', 'RaceCo'), jobLifecycleId);
 
     // B2 guard: already FULL_PARSED, so no completed event
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
@@ -219,12 +188,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
   it('H4: S2 enrichment with missing stage1Partial — fallback to HTML-only parsed job', async () => {
     const jobLifecycleId = 'h4-no-partial';
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: htmlFor('Fallback Role', 'FallbackCo'),
-      jobLifecycleId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Fallback Role', 'FallbackCo'), jobLifecycleId);
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
@@ -253,11 +217,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
 
     vi.spyOn(adapter, 'updateStage').mockRejectedValueOnce(new Error('DB write timeout'));
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId: docId,
-      action: 'queue',
-      editedKVs: {},
-    });
+    await ingestor.processResolution(docId, 'queue');
 
     const routeFailedEvents = routingEvents.filter(([t]) => t === 'failed');
     expect(routeFailedEvents.length).toBe(1);
@@ -265,12 +225,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
 
     vi.restoreAllMocks();
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: htmlFor('Software Engineer', 'NextCo'),
-      metadata: { messageId: 'h5-next' },
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, htmlFor('Software Engineer', 'NextCo'), undefined, { messageId: 'h5-next' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);

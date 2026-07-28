@@ -82,11 +82,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
     const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
     const docsBefore = await dbCollection.countDocuments({});
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML);
 
     const docsAfter = await dbCollection.countDocuments({});
     expect(docsAfter).toBe(docsBefore + 1);
@@ -106,11 +102,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
   it('signal2bManual → queue resolution: full clipboard-to-queued flow', async () => {
     const docsBefore = await dbCollection.countDocuments({});
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'ClipQueueCorp'),
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'ClipQueueCorp'));
 
     const docs = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
     const clipDoc = docs[0];
@@ -118,11 +110,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
 
     routingEvents.length = 0;
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId: clipDoc._id,
-      action: 'queue',
-      editedKVs: {},
-    });
+    await ingestor.processResolution(clipDoc._id, 'queue');
 
     const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
     expect(queuedEvents.length).toBe(1);
@@ -136,22 +124,14 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
   });
 
   it('signal2bManual → trash resolution: full clipboard-to-trashed flow', async () => {
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'ClipTrashCorp'),
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'ClipTrashCorp'));
 
     const docs = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
     const clipDoc = docs[0];
 
     routingEvents.length = 0;
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId: clipDoc._id,
-      action: 'trash',
-      editedKVs: { reason: 'not matching' },
-    });
+    await ingestor.processResolution(clipDoc._id, 'trash');
 
     const trashedEvents = routingEvents.filter(([t]) => t === 'trashed');
     expect(trashedEvents.length).toBe(1);
@@ -161,20 +141,12 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
   });
 
   it('signal2bManual duplicate role+company silently skips (no duplicate doc)', async () => {
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'DedupCorp'),
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'DedupCorp'));
 
     const docsBefore = await dbCollection.countDocuments({});
     const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'DedupCorp'),
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'DedupCorp'));
 
     const docsAfter = await dbCollection.countDocuments({});
     expect(docsAfter).toBe(docsBefore);
@@ -184,11 +156,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
   });
 
   it('signal2bManual latest-wins in direct mode (B17 fix — overwrites on second call)', async () => {
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'FirstCo'),
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'FirstCo'));
 
     const docs1 = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
     const firstDoc = docs1[0];
@@ -197,11 +165,7 @@ describe('T2: Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
     parseEvents.length = 0;
     routingEvents.length = 0;
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'SecondCo'),
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML.replace(/ClipDirectCorp/g, 'SecondCo'));
 
     const docs2 = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
     const secondDoc = docs2[0];

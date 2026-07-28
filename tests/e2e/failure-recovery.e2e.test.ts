@@ -85,24 +85,22 @@ describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
       return doc ? { url: doc.url } : null;
     };
 
-    const processIngestSpy = vi.fn(async (cmd: any) => {
-      await ingestor.processIngestCommand(cmd);
-    });
+    const processIngestSpy = vi.spyOn(ingestor, 'processIngest');
 
     const genBefore = parseEvents.filter(([t]) => t === 'generated').length;
 
     const scheduler = new ExtractionScheduler(
       (adapter as any).extractionQueue,
       mockBrowser as any,
-      processIngestSpy as any,
-      findJobLifecycle,
+      adapter as any,
+      ingestor,
     );
 
     await scheduler.start();
 
     await vi.waitFor(() => {
       const fallbackCalls = processIngestSpy.mock.calls.filter(
-        ([cmd]: any) => cmd.stage === JobStage.PARTIAL_PARSED && cmd.rawPayload === '',
+        ([source, stage, rawPayload]: any) => stage === JobStage.PARTIAL_PARSED && rawPayload === '',
       );
       expect(fallbackCalls.length).toBeGreaterThanOrEqual(1);
     }, { interval: 100, timeout: 10000 });
@@ -146,10 +144,8 @@ describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
     const scheduler = new ExtractionScheduler(
       (adapter as any).extractionQueue,
       mockBrowser as any,
-      processIngestSpy as any,
-      async (id: string) => {
-        return null;
-      },
+      adapter as any,
+      { processIngest: processIngestSpy } as any,
     );
 
     await scheduler.start();

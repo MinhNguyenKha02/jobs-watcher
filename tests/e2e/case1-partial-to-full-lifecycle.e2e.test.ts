@@ -84,12 +84,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   it('T1a: S1 partial→S2 enrichment→[j] queue (canonical Case 1)', async () => {
     const messageId = 'e2e-case1-msg-1';
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: TOPCV_HTML,
-      metadata: { messageId, subject: 'Junior Engineer' },
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_HTML, undefined, { messageId, subject: 'Junior Engineer' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);
@@ -101,12 +96,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
     expect(partialDoc!.stage).toBe(JobStage.PARTIAL_PARSED);
     expect(partialDoc!.status).toBe(JobStatus.ENRICHING);
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML,
-      jobLifecycleId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML, jobLifecycleId);
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
@@ -118,10 +108,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
     expect(enrichedDoc!.status).toBe(JobStatus.ENRICHED);
     expect(enrichedDoc!.matchScore).toBeGreaterThan(0);
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId,
-      action: 'queue',
-    });
+    await ingestor.processResolution(jobLifecycleId, 'queue');
 
     const routedDoc = await adapter.findById(jobLifecycleId);
     expect(routedDoc).not.toBeNull();
@@ -135,21 +122,13 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   it('T1b: S1 partial→[j] queue before S2 arrives (deferred enrichment guard)', async () => {
     const messageId = 'e2e-case1-msg-defer';
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: TOPCV_HTML,
-      metadata: { messageId, subject: 'Junior Engineer' },
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_HTML, undefined, { messageId, subject: 'Junior Engineer' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);
     const jobLifecycleId = genEvents[0][1]._id;
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId,
-      action: 'queue',
-    });
+    await ingestor.processResolution(jobLifecycleId, 'queue');
 
     const routedDoc = await adapter.findById(jobLifecycleId);
     expect(routedDoc).not.toBeNull();
@@ -158,12 +137,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
     const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
     expect(queuedEvents.length).toBe(1);
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML,
-      jobLifecycleId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML, jobLifecycleId);
 
     const enrichedDoc = await adapter.findById(jobLifecycleId);
     expect(enrichedDoc).not.toBeNull();
@@ -174,31 +148,18 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   it('T1c: S1→S2→[d] trash (Case 1 trash path)', async () => {
     const messageId = 'e2e-case1-trash';
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: TOPCV_HTML,
-      metadata: { messageId, subject: 'Junior Engineer' },
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_HTML, undefined, { messageId, subject: 'Junior Engineer' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);
     const jobLifecycleId = genEvents[0][1]._id;
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML,
-      jobLifecycleId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML, jobLifecycleId);
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId,
-      action: 'trash',
-    });
+    await ingestor.processResolution(jobLifecycleId, 'trash');
 
     const trashedDoc = await adapter.findById(jobLifecycleId);
     expect(trashedDoc).not.toBeNull();
@@ -213,22 +174,12 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
     const partialDoc = makeStage1Partial({ _id: jobLifecycleId, company: 'AlreadyCo', role: 'Junior Dev' });
     await adapter.upsert(partialDoc);
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML,
-      jobLifecycleId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML, jobLifecycleId);
 
     const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
     expect(completedBefore).toBe(1);
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: CLIPBOARD_HTML,
-      jobLifecycleId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML, jobLifecycleId);
 
     const completedAfter = parseEvents.filter(([t]) => t === 'completed').length;
     expect(completedAfter).toBe(completedBefore + 1);
@@ -242,12 +193,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
     const partialDoc = makeStage1Partial({ _id: jobLifecycleId, company: 'EmptyCo', role: 'Junior Dev' });
     await adapter.upsert(partialDoc);
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: '',
-      jobLifecycleId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', jobLifecycleId);
 
     const failedEvents = parseEvents.filter(([t]) => t === 'failed');
     expect(failedEvents.length).toBe(1);

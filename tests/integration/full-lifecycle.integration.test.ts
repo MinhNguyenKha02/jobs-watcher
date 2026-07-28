@@ -96,23 +96,13 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     const role = 'Software Engineer';
     const company = 'CycleCo1a';
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: makeTopCvHtml(company, role),
-      metadata: { messageId: 'msg-cycle-1a', subject: role },
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, makeTopCvHtml(company, role), undefined, { messageId: 'msg-cycle-1a', subject: role });
 
     expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
     const docId = parseEventPort.emitGenerated.mock.calls[0][0]._id;
     expect(docId).toBeTruthy();
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: makeTopCvHtml(company, role),
-      jobLifecycleId: docId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, makeTopCvHtml(company, role), docId);
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalledTimes(1);
 
@@ -121,11 +111,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     expect(fullDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(fullDoc!.status).toBe(JobStatus.ENRICHED);
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId: docId,
-      action: 'queue',
-      editedKVs: {},
-    });
+    await ingestor.processResolution(docId, 'queue');
 
     expect(routingPort.emitJobQueued).toHaveBeenCalledTimes(1);
 
@@ -147,11 +133,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     });
     await adapter.upsert(partialDoc);
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId: docId,
-      action: 'queue',
-      editedKVs: {},
-    });
+    await ingestor.processResolution(docId, 'queue');
 
     expect(routingPort.emitJobQueued).toHaveBeenCalledTimes(1);
 
@@ -168,21 +150,11 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
     vi.clearAllMocks();
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: '',
-      jobLifecycleId: 'fail-s4-1',
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'fail-s4-1');
 
     expect(parseEventPort.emitFailed).toHaveBeenCalledTimes(1);
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: makeTopCvHtml('RecoveryCo', 'Software Engineer'),
-      metadata: { messageId: 'msg-s4-recover' },
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, makeTopCvHtml('RecoveryCo', 'Software Engineer'), undefined, { messageId: 'msg-s4-recover' });
 
     expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
   });
@@ -202,22 +174,13 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
 
     vi.spyOn(adapter, 'updateStage').mockRejectedValueOnce(new Error('DB write timeout'));
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId: docId,
-      action: 'queue',
-      editedKVs: {},
-    });
+    await ingestor.processResolution(docId, 'queue');
 
     expect(routingPort.emitRouteFailed).toHaveBeenCalledTimes(1);
 
     vi.restoreAllMocks();
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: makeTopCvHtml('RecoveryCo2', 'Software Engineer'),
-      metadata: { messageId: 'msg-cycle-3c' },
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, makeTopCvHtml('RecoveryCo2', 'Software Engineer'), undefined, { messageId: 'msg-cycle-3c' });
 
     expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
   });
@@ -228,12 +191,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
 
     const docId = 'int-full-parsed-arrival';
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: makeTopCvHtml('ArrivalCo', 'Software Engineer'),
-      jobLifecycleId: docId,
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, makeTopCvHtml('ArrivalCo', 'Software Engineer'), docId);
 
     expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
     expect(parseEventPort.emitCompleted).toHaveBeenCalledTimes(1);
@@ -247,11 +205,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     await clearCollections();
     vi.clearAllMocks();
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: makeTopCvHtml('NoIdCo', 'Software Engineer'),
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, makeTopCvHtml('NoIdCo', 'Software Engineer'));
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalledTimes(1);
     expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
@@ -271,12 +225,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     });
     await adapter.upsert(partialDoc);
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: makeTopCvHtml('DoubleCo', 'Software Engineer'),
-      jobLifecycleId: docId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, makeTopCvHtml('DoubleCo', 'Software Engineer'), docId);
 
     const completedEvents = parseEventPort.emitCompleted.mock.calls.filter(
       (c: any) => c[0] === docId
@@ -296,12 +245,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     });
     await adapter.upsert(partialDoc);
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: '',
-      jobLifecycleId: docId,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', docId);
 
     expect(parseEventPort.emitFailed).toHaveBeenCalledTimes(1);
   });
@@ -312,11 +256,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
 
     const parseFailedBefore = parseEventPort.emitFailed.mock.calls.length;
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: makeTopCvHtml('NoIdErrCo', 'Software Engineer'),
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, makeTopCvHtml('NoIdErrCo', 'Software Engineer'));
 
     const parseFailedAfter = parseEventPort.emitFailed.mock.calls.length;
     expect(parseFailedAfter).toBe(parseFailedBefore);

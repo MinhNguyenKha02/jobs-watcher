@@ -10,7 +10,7 @@ describe('UDS Server Integration', () => {
   let storage: Awaited<ReturnType<typeof createTestStorage>>;
   let socketPath: string;
   let server: Server;
-  let ingestorMock: { processIngestCommand: ReturnType<typeof vi.fn>; processResolutionCommand: ReturnType<typeof vi.fn> };
+  let ingestorMock: { processIngest: ReturnType<typeof vi.fn>; processResolution: ReturnType<typeof vi.fn> };
 
   function createHandler(req: http.IncomingMessage, res: http.ServerResponse) {
     const INTERNAL_TOKEN = process.env.INTERNAL_AUTH_TOKEN || '';
@@ -35,19 +35,18 @@ describe('UDS Server Integration', () => {
             throw new Error('Webhook stage 2 ingest requires html');
           }
           const { JobSource, JobStage } = await import('../../src/domain/types/job-lifecycle.js' );
-          const ingestCommand = {
-            source: JobSource.MANUAL,
-            stage: JobStage.FULL_PARSED,
-            rawPayload: htmlPayload,
-            jobLifecycleId: job.jobLifecycleId || undefined,
-            metadata: {
+          await ingestorMock.processIngest(
+            JobSource.MANUAL,
+            JobStage.FULL_PARSED,
+            htmlPayload,
+            job.jobLifecycleId || undefined,
+            {
               subject: (job.subject as string) || '',
               from: (job.from as string) || '',
               to: (job.to as string) || '',
               threadId: (job.threadId as string) || '',
             },
-          };
-          await ingestorMock.processIngestCommand(ingestCommand);
+          );
           res.writeHead(202, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ accepted: true }));
         } catch (err: any) {
@@ -66,8 +65,7 @@ describe('UDS Server Integration', () => {
           const parsed = JSON.parse(body || '{}');
           const jobLifecycleId = String(parsed?.jobLifecycleId ?? '');
           const action = (parsed?.action || 'queue') as 'queue' | 'trash';
-          const resolutionCommand = { jobLifecycleId, action, editedKVs: parsed?.editedKVs ?? undefined };
-          await ingestorMock.processResolutionCommand(resolutionCommand);
+          await ingestorMock.processResolution(jobLifecycleId, action);
           res.writeHead(202, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ accepted: true }));
         } catch {
@@ -117,8 +115,8 @@ describe('UDS Server Integration', () => {
     socketPath = path.join(os.tmpdir(), `uds-test-${Date.now()}.sock`);
 
     ingestorMock = {
-      processIngestCommand: vi.fn().mockResolvedValue(undefined),
-      processResolutionCommand: vi.fn().mockResolvedValue(undefined),
+      processIngest: vi.fn().mockResolvedValue(undefined),
+      processResolution: vi.fn().mockResolvedValue(undefined),
     };
 
     if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath);
@@ -144,7 +142,7 @@ describe('UDS Server Integration', () => {
       expect(res.statusCode).toBe(202);
       const body = JSON.parse(await collectBody(res));
       expect(body.accepted).toBe(true);
-      expect(ingestorMock.processIngestCommand).toHaveBeenCalledOnce();
+      expect(ingestorMock.processIngest).toHaveBeenCalledOnce();
     });
 
     it('accepts webhook ingest with html', async () => {
@@ -171,9 +169,7 @@ describe('UDS Server Integration', () => {
       expect(res.statusCode).toBe(202);
       const body = JSON.parse(await collectBody(res));
       expect(body.accepted).toBe(true);
-      expect(ingestorMock.processResolutionCommand).toHaveBeenCalledWith(
-        expect.objectContaining({ jobLifecycleId: 'job-1', action: 'queue' })
-      );
+      expect(ingestorMock.processResolution).toHaveBeenCalledWith('job-1', 'queue');
     });
 
     it('accepts trash action', async () => {
@@ -188,20 +184,13 @@ describe('UDS Server Integration', () => {
         editedKVs: { role: 'Updated Role', salary: '$2000' },
       });
       expect(res.statusCode).toBe(202);
-      expect(ingestorMock.processResolutionCommand).toHaveBeenCalledWith(
-        expect.objectContaining({
-          jobLifecycleId: 'job-3',
-          editedKVs: { role: 'Updated Role', salary: '$2000' },
-        })
-      );
+      expect(ingestorMock.processResolution).toHaveBeenCalledWith('job-3', 'queue');
     });
 
     it('handles missing jobLifecycleId', async () => {
       const res = await postJson('/internal/action', { action: 'queue' });
       expect(res.statusCode).toBe(202);
-      expect(ingestorMock.processResolutionCommand).toHaveBeenCalledWith(
-        expect.objectContaining({ jobLifecycleId: '' })
-      );
+      expect(ingestorMock.processResolution).toHaveBeenCalledWith('', 'queue');
     });
   });
 

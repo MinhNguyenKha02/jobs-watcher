@@ -1,8 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import { createLogger } from '../../outbound/logging/logger.js';
-import type { JobIngestor } from '../../../application/ingestor.js';
+import type { IngestorPort } from '../../../application/ports/inbound/ingestor.port.js';
 import { JobStage, JobSource } from '../../../domain/types/job-lifecycle.js';
-import type { ProcessIngestCommand } from '../../../application/commands.js';
 
 const logger = createLogger('Webhook');
 
@@ -34,11 +33,11 @@ export interface GmailClient {
 }
 
 export class WebhookAdapter {
-  private ingestor: JobIngestor;
+  private ingestor: IngestorPort;
   private gmail: GmailClient;
   private server: Server | null = null;
 
-  constructor(ingestor: JobIngestor, gmail: GmailClient) {
+  constructor(ingestor: IngestorPort, gmail: GmailClient) {
     this.ingestor = ingestor;
     this.gmail = gmail;
   }
@@ -92,21 +91,19 @@ export class WebhookAdapter {
           return;
         }
 
-        const command: ProcessIngestCommand = {
-          source: JobSource.BROWSER_AUTO,
-          stage: JobStage.PARTIAL_PARSED,
+        await this.ingestor.processIngest(
+          JobSource.BROWSER_AUTO,
+          JobStage.PARTIAL_PARSED,
           rawPayload,
-          jobLifecycleId: undefined,
-          metadata: {
+          undefined,
+          {
             messageId: gmailMessageId,
             threadId: this.gmail.extractHeader(gmailMsg, 'Message-ID') || '',
             from,
             to,
             subject,
           },
-        };
-
-        await this.ingestor.processIngestCommand(command);
+        );
         res.status(202).json({ status: 'accepted', messageId: gmailMessageId });
       } catch (err) {
         logger.error('Processing failed', { error: err instanceof Error ? err.message : String(err) });

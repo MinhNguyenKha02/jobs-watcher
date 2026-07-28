@@ -9,7 +9,7 @@ import type { RoutePort } from './ports/route.port.js';
 import type { JobLifecyclePort } from './ports/job-lifecycle.port.js';
 import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
 import type { AssetProducingPort } from './ports/asset-producing.port.js';
-import type { ProcessIngestCommand, ProcessResolutionCommand } from './commands.js';
+import type { IngestorPort, IngestMetadata } from './ports/inbound/ingestor.port.js';
 import { JobStage, JobStatus, JobSource, type JobLifecycleDocument } from '../domain/types/job-lifecycle.js';
 import type { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
 
@@ -19,7 +19,7 @@ function generateFallbackId(prefix = 'unk'): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-export class JobIngestor {
+export class JobIngestor implements IngestorPort {
   private htmlParser = new HtmlJobParser();
 
   constructor(
@@ -31,9 +31,14 @@ export class JobIngestor {
     private metricsRegistry: MetricsRegistry,
   ) {}
 
-  async processIngestCommand(command: ProcessIngestCommand): Promise<void> {
-    const { source, stage, rawPayload, jobLifecycleId, metadata } = command;
-
+  async processIngest(
+    source: JobSource,
+    stage: JobStage,
+    rawPayload: string,
+    jobLifecycleId?: string,
+    metadata?: IngestMetadata,
+    _receivedAt?: Date,
+  ): Promise<void> {
     if (stage === JobStage.PARTIAL_PARSED) {
       if (rawPayload && rawPayload.trim().length > 0) {
         await this.signal1BrowserAutoXorManual(rawPayload, metadata);
@@ -51,8 +56,7 @@ export class JobIngestor {
     }
   }
 
-  async processResolutionCommand(command: ProcessResolutionCommand): Promise<void> {
-    const { jobLifecycleId, action } = command;
+  async processResolution(jobLifecycleId: string, action: 'queue' | 'trash'): Promise<void> {
     if (!jobLifecycleId || !action) return;
 
     try {
@@ -103,7 +107,7 @@ export class JobIngestor {
 
   private async signal1BrowserAutoXorManual(
     rawPayload: string,
-    metadata?: ProcessIngestCommand['metadata']
+    metadata?: IngestMetadata
   ): Promise<void> {
     const jobExtractor = new JobExtractionService();
     let extractedJobs: any[] = [];

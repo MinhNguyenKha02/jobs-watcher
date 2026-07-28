@@ -63,11 +63,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
     const doc = makeDoc({ _id: 'it-queue-1', company: 'QueueCorp', role: 'Dev', status: JobStatus.ENRICHED, stage: JobStage.FULL_PARSED });
     await adapter.upsert(doc);
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId: 'it-queue-1',
-      action: 'queue',
-      editedKVs: {},
-    });
+    await ingestor.processResolution('it-queue-1', 'queue');
 
     const updated = await adapter.findById('it-queue-1');
     expect(updated).not.toBeNull();
@@ -78,14 +74,11 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
   });
 
   it('processResolutionCommand trash updates status and emits trashed event', async () => {
+
     const doc = makeDoc({ _id: 'it-trash-1', company: 'TrashCorp', role: 'Dev' });
     await adapter.upsert(doc);
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId: 'it-trash-1',
-      action: 'trash',
-      editedKVs: { reason: 'not interested' },
-    });
+    await ingestor.processResolution('it-trash-1', 'trash');
 
     const updated = await adapter.findById('it-trash-1');
     expect(updated).not.toBeNull();
@@ -99,11 +92,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
     const parseBefore = parseEvents.length;
     const routeBefore = routingEvents.length;
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId: 'it-nonexistent',
-      action: 'queue',
-      editedKVs: {},
-    });
+    await ingestor.processResolution('it-nonexistent', 'queue');
 
     expect(routingEvents.length).toBeGreaterThan(routeBefore);
   });
@@ -112,7 +101,7 @@ describe('Signal flow (ingestor → ports) with mongodb-memory-server', () => {
     const doc = makeDoc({ _id: 'it-multi-1', company: 'MultiCorp', role: 'Dev', status: JobStatus.ENRICHED, stage: JobStage.FULL_PARSED });
     await adapter.upsert(doc);
 
-    await ingestor.processResolutionCommand({ jobLifecycleId: 'it-multi-1', action: 'queue', editedKVs: {} });
+    await ingestor.processResolution('it-multi-1', 'queue');
     expect(routingEvents.filter(([t]) => t === 'queued').length).toBeGreaterThanOrEqual(1);
 
     const stored = await adapter.findById('it-multi-1');

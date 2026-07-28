@@ -56,22 +56,12 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
   });
 
   it('S2 parse.failed → S1 next job: emits s4a then s1 for new job', async () => {
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: '',
-      jobLifecycleId: 'job-fail-s4a',
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'job-fail-s4a');
 
     const failedEvents = parseEvents.filter(([t]) => t === 'failed');
     expect(failedEvents.length).toBe(1);
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: makeTopCvHtml('AlphaCo'),
-      metadata: { messageId: 'job-after-s4a' },
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, makeTopCvHtml('AlphaCo'), undefined, { messageId: 'job-after-s4a' });
 
     const generatedEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(generatedEvents.length).toBe(1);
@@ -96,35 +86,21 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
     await adapter.upsert(doc);
     vi.spyOn(adapter, 'updateStage').mockRejectedValueOnce(new Error('DB write timeout'));
 
-    await ingestor.processResolutionCommand({
-      jobLifecycleId: 'job-fail-s4b',
-      action: 'queue',
-      editedKVs: {},
-    });
+    await ingestor.processResolution('job-fail-s4b', 'queue');
 
     const failedRoutingEvents = routingEvents.filter(([t]) => t === 'failed');
     expect(failedRoutingEvents.length).toBe(1);
 
     vi.restoreAllMocks();
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: makeTopCvHtml('BetaCo'),
-      metadata: { messageId: 'job-after-s4b' },
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, makeTopCvHtml('BetaCo'), undefined, { messageId: 'job-after-s4b' });
 
     const generatedEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(generatedEvents.length).toBe(1);
   });
 
   it('S2 parse.failed (empty html) then S2a manual succeeds for different job', async () => {
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: '',
-      jobLifecycleId: 'job-s4-empty',
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'job-s4-empty');
 
     const failBefore = parseEvents.filter(([t]) => t === 'failed').length;
     expect(failBefore).toBe(1);
@@ -144,12 +120,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
     };
     await adapter.upsert(partialDoc);
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: makeTopCvHtml('RecoveryCo'),
-      jobLifecycleId: 'job-s4-recover',
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, makeTopCvHtml('RecoveryCo'), 'job-s4-recover');
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);

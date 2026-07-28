@@ -91,12 +91,7 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
   it('S1: job.generated for BROWSER_AUTO PARTIAL_PARSED', async () => {
     const html = emailHtmlFor('Software Engineer', 'TestCo A');
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: html,
-      metadata: { messageId: 'int-s1' },
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, html, undefined, { messageId: 'int-s1' });
 
     expect(parseEventPort.emitGenerated).toHaveBeenCalled();
     const canonicalJob = parseEventPort.emitGenerated.mock.calls[0][0];
@@ -112,23 +107,13 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
   it('S1→S2: job.generated then job.parse.completed', async () => {
     const html = emailHtmlFor('Software Engineer', 'TestCo B');
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: html,
-      metadata: { messageId: 'int-s1s2' },
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, html, undefined, { messageId: 'int-s1s2' });
 
     expect(parseEventPort.emitGenerated).toHaveBeenCalled();
     const canonicalJob = parseEventPort.emitGenerated.mock.calls[0][0];
     const id = canonicalJob._id;
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: detailHtmlFor('Software Engineer', 'TestCo B'),
-      jobLifecycleId: id,
-    });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, detailHtmlFor('Software Engineer', 'TestCo B'), id);
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalledTimes(1);
     const emitArgs = parseEventPort.emitCompleted.mock.calls[0];
@@ -142,16 +127,12 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
   it('S1→S3: job.generated then operator queues', async () => {
     const html = detailHtmlFor('Junior Engineer C', 'TestCo C');
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: html,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
     const jobLifecycleId = parseEventPort.emitCompleted.mock.calls[0][0]._id;
 
-    await ingestor.processResolutionCommand({ jobLifecycleId, action: 'queue' });
+    await ingestor.processResolution(jobLifecycleId, 'queue');
 
     expect(routingPort.emitJobQueued).toHaveBeenCalled();
     const doc = await adapter.findById(jobLifecycleId);
@@ -161,16 +142,12 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
   it('S1→S3: job.generated then operator trashes', async () => {
     const html = detailHtmlFor('Junior Engineer D', 'TestCo D');
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: html,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
     const jobLifecycleId = parseEventPort.emitCompleted.mock.calls[0][0]._id;
 
-    await ingestor.processResolutionCommand({ jobLifecycleId, action: 'trash' });
+    await ingestor.processResolution(jobLifecycleId, 'trash');
 
     expect(routingPort.emitJobTrashed).toHaveBeenCalled();
     const doc = await adapter.findById(jobLifecycleId);
@@ -180,17 +157,13 @@ describeIf('Signal Flow Integration', { timeout: 30000 }, () => {
   it('S4: invalid action silently handled (no routing event emitted)', async () => {
     const html = detailHtmlFor('Junior Engineer E', 'TestCo E');
 
-    await ingestor.processIngestCommand({
-      source: JobSource.MANUAL,
-      stage: JobStage.FULL_PARSED,
-      rawPayload: html,
-    });
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
 
     expect(parseEventPort.emitCompleted).toHaveBeenCalled();
     const jobLifecycleId = parseEventPort.emitCompleted.mock.calls[0][0]._id;
 
     await expect(
-      ingestor.processResolutionCommand({ jobLifecycleId, action: 'invalid' as any })
+      ingestor.processResolution(jobLifecycleId, 'invalid' as any)
     ).resolves.toBeUndefined();
 
     // Invalid action is silently handled (no routing event)

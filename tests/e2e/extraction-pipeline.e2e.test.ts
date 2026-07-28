@@ -119,19 +119,13 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
 
     const eventsBefore = parseEvents.length;
 
-    await ingestor.processIngestCommand({
-      source: JobSource.BROWSER_AUTO,
-      stage: JobStage.PARTIAL_PARSED,
-      rawPayload: INDEED_EMAIL_HTML,
-      metadata: {
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, INDEED_EMAIL_HTML, undefined, {
         subject: 'Indeed Job Alert - Junior Backend Developer',
         from: 'noreply@indeed.com',
         to: 'me@test.com',
         threadId: 'thread-e2e-1',
         messageId: 'msg-e2e-1',
-      },
-      receivedAt: new Date(),
-    });
+      }, new Date());
 
     const generatedEvents = parseEvents.filter(([type]) => type === 'generated');
     expect(generatedEvents.length).toBe(eventsBefore);
@@ -194,15 +188,13 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
       return doc ? { url: doc.url } : null;
     };
 
-    const processIngestSpy = vi.fn(async (cmd: any) => {
-      await ingestor.processIngestCommand(cmd);
-    });
+    const processIngestSpy = vi.spyOn(ingestor, 'processIngest');
 
     const scheduler = new ExtractionScheduler(
       (adapter as any).extractionQueue,
       mockBrowser as any,
-      processIngestSpy as any,
-      findJobLifecycle,
+      adapter as any,
+      ingestor,
     );
 
     await scheduler.start();
@@ -216,11 +208,11 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
     }, { interval: 100, timeout: 10000 });
 
     const ingestCall = processIngestSpy.mock.calls.find(
-      ([cmd]: any) => cmd.stage === JobStage.FULL_PARSED,
+      ([source, stage]: any) => stage === JobStage.FULL_PARSED,
     );
     expect(ingestCall).toBeDefined();
-    expect(ingestCall[0].source).toBe(JobSource.BROWSER_AUTO);
-    expect(ingestCall[0].rawPayload).toBe(INDEED_DETAIL_HTML);
+    expect(ingestCall[0]).toBe(JobSource.BROWSER_AUTO);
+    expect(ingestCall[2]).toBe(INDEED_DETAIL_HTML);
 
     await vi.waitFor(() => {
       const completedEvents = parseEvents.filter(([type]) => type === 'completed');
@@ -246,13 +238,11 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
       extract: vi.fn().mockResolvedValue({ html: '' }),
     };
 
-    const findJobLifecycle = async () => null;
-
     const scheduler = new ExtractionScheduler(
       (adapter as any).extractionQueue,
       mockBrowser as any,
-      vi.fn() as any,
-      findJobLifecycle,
+      adapter as any,
+      { processIngest: vi.fn() } as any,
     );
 
     await scheduler.start();

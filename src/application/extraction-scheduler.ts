@@ -86,12 +86,7 @@ export class ExtractionScheduler {
         const url = jobDoc?.url || '';
         const extractResult = await this.browser.extract(url);
         const rawPayload = extractResult.html;
-        await this.jobIngestor.processIngestCommand({
-          source: JobSource.BROWSER_AUTO,
-          stage: JobStage.FULL_PARSED,
-          rawPayload,
-          jobLifecycleId: jobLifecycleId,
-        });
+        await this.jobIngestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, rawPayload, jobLifecycleId);
         this.metricsRegistry?.jobsInFlight.dec({ stage: 's1' });
         if (startMs > 0) {
           const durationSec = (Date.now() - startMs) / 1000;
@@ -102,12 +97,7 @@ export class ExtractionScheduler {
         logger.warn('Extraction failed', { workerId, jobLifecycleId, error: errMsg });
         this.metricsRegistry?.jobsInFlight.dec({ stage: 's1' });
         this.metricsRegistry?.jobErrors.inc({ stage: 'extraction', error_type: 'browser' });
-        await this.jobIngestor.processIngestCommand({
-          source: JobSource.BROWSER_AUTO,
-          stage: JobStage.PARTIAL_PARSED,
-          rawPayload: '',
-          jobLifecycleId: jobLifecycleId,
-        });
+        await this.jobIngestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, '', jobLifecycleId);
       }
     }
     logger.info('Worker stopped', { workerId });

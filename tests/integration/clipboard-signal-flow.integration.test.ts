@@ -96,12 +96,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const partialDoc = makeStage1Partial({ _id: jobLifecycleId, company: 'OldCo', role: 'Software Engineer' });
       await adapter.upsert(partialDoc);
 
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Software Engineer', 'NewCo'),
-        jobLifecycleId,
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'NewCo'), jobLifecycleId);
 
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
       expect(completedEvents.length).toBe(1);
@@ -119,12 +114,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const partialDoc = makeStage1Partial({ _id: jobLifecycleId });
       await adapter.upsert(partialDoc);
 
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: '   ',
-        jobLifecycleId,
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '   ', jobLifecycleId);
 
       const failedEvents = parseEvents.filter(([t]) => t === 'failed');
       expect(failedEvents.length).toBe(1);
@@ -136,12 +126,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const partialDoc = makeStage1Partial({ _id: jobLifecycleId });
       await adapter.upsert(partialDoc);
 
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: makeNonJobHtml(),
-        jobLifecycleId,
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, makeNonJobHtml(), jobLifecycleId);
 
       const failedEvents = parseEvents.filter(([t]) => t === 'failed');
       expect(failedEvents.length).toBe(1);
@@ -149,12 +134,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
     });
 
     it('recovers from missing stage1Partial (builds stage2 from parsed HTML alone)', async () => {
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Software Engineer', 'NoPartialCo'),
-        jobLifecycleId: 'missing-partial',
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'NoPartialCo'), 'missing-partial');
 
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
       expect(completedEvents.length).toBe(1);
@@ -179,11 +159,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
     it('creates new clip-* doc with FULL_PARSED from clipboard HTML', async () => {
       const docsBefore = await colection.countDocuments({});
 
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Software Engineer', 'ClipCo'),
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'ClipCo'));
 
       const docsAfter = await colection.countDocuments({});
       expect(docsAfter).toBe(docsBefore + 1);
@@ -204,11 +180,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
     it('emits parse.failed on unparsable clipboard HTML', async () => {
       const docsBefore = await colection.countDocuments({});
 
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: makeNonJobHtml(),
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, makeNonJobHtml());
 
       const docsAfter = await colection.countDocuments({});
       expect(docsAfter).toBe(docsBefore);
@@ -219,20 +191,12 @@ describe('Clipboard ingest signal flow with real storage', () => {
     });
 
     it('silently skips duplicate role+company (MongoDB 11000)', async () => {
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Unique Role', 'DedupCorp'),
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Unique Role', 'DedupCorp'));
 
       const docsBefore = await colection.countDocuments({});
       const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
 
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Unique Role', 'DedupCorp'),
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Unique Role', 'DedupCorp'));
 
       const docsAfter = await colection.countDocuments({});
       expect(docsAfter).toBe(docsBefore);
@@ -242,11 +206,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
     });
 
     it('passed through filter and creates clip-* doc', async () => {
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Software Engineer', 'FilterPassCo'),
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'FilterPassCo'));
 
       const col = colection;
       const doc = await col.findOne({ company: 'FilterPassCo' });
@@ -266,21 +226,12 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const jobLifecycleId = 'int-2a-queue';
       await adapter.upsert(makeStage1Partial({ _id: jobLifecycleId }));
 
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Software Engineer', 'QueueTestCo'),
-        jobLifecycleId,
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'QueueTestCo'), jobLifecycleId);
 
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
       expect(completedEvents.length).toBe(1);
 
-      await ingestor.processResolutionCommand({
-        jobLifecycleId,
-        action: 'queue',
-        editedKVs: {},
-      });
+      await ingestor.processResolution(jobLifecycleId, 'queue');
 
       const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
       expect(queuedEvents.length).toBe(1);
@@ -294,21 +245,12 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const jobLifecycleId = 'int-2a-trash';
       await adapter.upsert(makeStage1Partial({ _id: jobLifecycleId }));
 
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Software Engineer', 'TrashTestCo'),
-        jobLifecycleId,
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'TrashTestCo'), jobLifecycleId);
 
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
       expect(completedEvents.length).toBe(1);
 
-      await ingestor.processResolutionCommand({
-        jobLifecycleId,
-        action: 'trash',
-        editedKVs: { reason: 'not matching' },
-      });
+      await ingestor.processResolution(jobLifecycleId, 'trash');
 
       const trashedEvents = routingEvents.filter(([t]) => t === 'trashed');
       expect(trashedEvents.length).toBe(1);
@@ -322,21 +264,12 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const failedId = 'int-s4-fail';
       await adapter.upsert(makeStage1Partial({ _id: failedId }));
 
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: '   ',
-        jobLifecycleId: failedId,
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '   ', failedId);
 
       const failedEvents = parseEvents.filter(([t]) => t === 'failed');
       expect(failedEvents.length).toBe(1);
 
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Software Engineer', 'RecoveryCo'),
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'RecoveryCo'));
 
       const completedAfter = parseEvents.filter(([t]) => t === 'completed');
       expect(completedAfter.length).toBeGreaterThanOrEqual(1);
@@ -356,22 +289,14 @@ describe('Clipboard ingest signal flow with real storage', () => {
     });
 
     it('[i] then [j]: signal2bManual creates clip-*, then queue resolution succeeds', async () => {
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Software Engineer', 'ClipQueueCo'),
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'ClipQueueCo'));
 
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
       expect(completedEvents.length).toBe(1);
       const clipId = completedEvents[0][1]._id;
       expect(clipId).toMatch(/^clip-/);
 
-      await ingestor.processResolutionCommand({
-        jobLifecycleId: clipId,
-        action: 'queue',
-        editedKVs: {},
-      });
+      await ingestor.processResolution(clipId, 'queue');
 
       const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
       expect(queuedEvents.length).toBe(1);
@@ -382,11 +307,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
     });
 
     it('[i] then [d]: signal2bManual creates clip-*, then trash resolution succeeds', async () => {
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Software Engineer', 'ClipTrashCo'),
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'ClipTrashCo'));
 
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
       expect(completedEvents.length).toBe(1);
@@ -395,11 +316,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const docs = await col.find({}).sort({ createdAt: -1 }).limit(1).toArray();
       const lastClipId = docs[0]._id;
 
-      await ingestor.processResolutionCommand({
-        jobLifecycleId: lastClipId,
-        action: 'trash',
-        editedKVs: {},
-      });
+      await ingestor.processResolution(lastClipId, 'trash');
 
       const trashedEvents = routingEvents.filter(([t]) => t === 'trashed');
       expect(trashedEvents.length).toBe(1);
@@ -410,11 +327,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
     });
 
     it('resolution failure on clip-* doc emits route.failed', async () => {
-      await ingestor.processIngestCommand({
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: htmlFor('Software Engineer', 'FailResolutionCo'),
-      });
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'FailResolutionCo'));
 
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
       expect(completedEvents.length).toBe(1);
@@ -425,11 +338,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
 
       vi.spyOn(adapter, 'updateStage').mockRejectedValueOnce(new Error('DB timeout'));
 
-      await ingestor.processResolutionCommand({
-        jobLifecycleId: clipId,
-        action: 'queue',
-        editedKVs: {},
-      });
+      await ingestor.processResolution(clipId, 'queue');
 
       const routeFailedEvents = routingEvents.filter(([t]) => t === 'failed');
       expect(routeFailedEvents.length).toBe(1);

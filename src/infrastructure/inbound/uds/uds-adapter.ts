@@ -2,9 +2,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createLogger } from '../../outbound/logging/logger.js';
-import type { JobIngestor } from '../../../application/ingestor.js';
+import type { IngestorPort } from '../../../application/ports/inbound/ingestor.port.js';
 import { JobStage, JobSource } from '../../../domain/types/job-lifecycle.js';
-import type { ProcessIngestCommand, ProcessResolutionCommand } from '../../../application/commands.js';
 
 const logger = createLogger('UDS');
 
@@ -17,7 +16,7 @@ export class UdsAdapter {
   private server: http.Server | null = null;
 
   constructor(
-    private ingestor: JobIngestor,
+    private ingestor: IngestorPort,
     private config: UdsAdapterConfig,
   ) {}
 
@@ -74,16 +73,14 @@ export class UdsAdapter {
   private async handleAction(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     try {
       const body = JSON.parse(await this.readBody(req));
-      const command: ProcessResolutionCommand = {
-        jobLifecycleId: body.jobLifecycleId,
-        action: body.action,
-      };
-      if (!command.jobLifecycleId || !command.action) {
+      const jobLifecycleId = body.jobLifecycleId;
+      const action = body.action as 'queue' | 'trash';
+      if (!jobLifecycleId || !action) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Missing jobLifecycleId or action' }));
         return;
       }
-      await this.ingestor.processResolutionCommand(command);
+      await this.ingestor.processResolution(jobLifecycleId, action);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));
     } catch (err) {
@@ -103,14 +100,12 @@ export class UdsAdapter {
         return;
       }
 
-      const command: ProcessIngestCommand = {
-        source: JobSource.MANUAL,
-        stage: JobStage.FULL_PARSED,
-        rawPayload: html,
-        jobLifecycleId: isWebhook ? body.jobLifecycleId : undefined,
-      };
-
-      await this.ingestor.processIngestCommand(command);
+      await this.ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        html,
+        isWebhook ? body.jobLifecycleId : undefined,
+      );
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));
     } catch (err) {
