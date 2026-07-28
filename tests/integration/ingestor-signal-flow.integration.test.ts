@@ -23,6 +23,21 @@ function htmlFor(role: string, company: string): string {
     + '</div>';
 }
 
+function emailHtmlFor(role: string, company: string): string {
+  const encodedUrl = `/viec-lam/${role.toLowerCase().replace(/\s+/g, '-')}`;
+  return '<html><body>'
+    + '<a class="job-item-link" href="' + encodedUrl + '">'
+    + '<div class="topcv-job-item">'
+    + '<div class="title"><span>' + role + '</span></div>'
+    + '<div class="company"><span>' + company + '</span></div>'
+    + '<div>Hà Nội</div>'
+    + '</div>'
+    + '</a>'
+    + '<p>topcv job-item</p>'
+    + '<p>TypeScript</p>'
+    + '</body></html>';
+}
+
 describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
   let client: MongoClient;
   let adapter: MongoJobLifecycleAdapter;
@@ -87,7 +102,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
   });
 
   it('S1→S2: chained enrich preserves and merges fields from partial to full', async () => {
-    const partialHtml = htmlFor('Software Engineer', 'Chained Co');
+    const partialHtml = emailHtmlFor('Software Engineer', 'Chained Co');
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, partialHtml, undefined, { messageId: 'chain-msg' });
     expect(parseEventPort.emitGenerated).toHaveBeenCalled();
     const s1Job = parseEventPort.emitGenerated.mock.calls[0][0];

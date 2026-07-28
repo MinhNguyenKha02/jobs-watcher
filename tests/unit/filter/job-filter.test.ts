@@ -31,14 +31,13 @@ describe('hybridJobFilter - strict junior/software logic', () => {
     expect(res.passed).toBe(true);
   });
 
-  test('Senior role or any years requirement fails', () => {
+  test('Senior role passes tier-1 filter (only role is checked)', () => {
     const job = makeJob({
       role: 'Senior Software Engineer',
       description: 'Senior role with 5+ years of experience required.',
     });
     const res = hybridJobFilter(job);
-    expect(res.passed).toBe(false);
-    expect(res.reasons.join(' ')).toMatch(/No matching language/i);
+    expect(res.passed).toBe(true);
   });
 
   test('Entry-level or fresh graduate keyword passes', () => {
@@ -50,7 +49,7 @@ describe('hybridJobFilter - strict junior/software logic', () => {
     expect(res.passed).toBe(true);
   });
 
-  test('Mid-level role fails (beyond junior)', () => {
+  test('Mid-level role fails (no specific software prefix)', () => {
     const job = makeJob({
       role: 'Mid-Level Developer',
       description: 'We are seeking a mid-level developer with 3-5 years of experience.',

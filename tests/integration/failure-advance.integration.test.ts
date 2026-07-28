@@ -147,7 +147,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     expect(routeFailedEvents.length).toBeGreaterThan(routeFailedBefore);
 
     const genBefore = parseEvents.filter(([t]) => t === 'generated').length;
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, htmlFor('Software Engineer', 'NextAfterRouteFail'), undefined, { messageId: 'next-after-route-fail' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'NextAfterRouteFail'), undefined, { messageId: 'next-after-route-fail' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBeGreaterThan(genBefore);
@@ -156,7 +156,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
   it('s2 enrichment then s3 failure then next s1 dequeues', async () => {
     const enrichJobId = 'cycle-enrich-1';
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, htmlFor('Software Engineer', 'EnrichCo'), undefined, { messageId: 'enrich-msg' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'EnrichCo'), undefined, { messageId: 'enrich-msg' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     const s1Job = genEvents[genEvents.length - 1];
@@ -171,7 +171,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     expect(lastCompleted[1]._id).toBe(s1JoblifecycleId);
 
     const nextGenBefore = parseEvents.filter(([t]) => t === 'generated').length;
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, htmlFor('Software Engineer', 'KeepCo'), undefined, { messageId: 'keep-msg' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'KeepCo'), undefined, { messageId: 'keep-msg' });
 
     const nextGenEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(nextGenEvents.length).toBeGreaterThan(nextGenBefore);

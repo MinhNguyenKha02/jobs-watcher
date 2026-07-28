@@ -6,6 +6,11 @@
 
 import type { JobDetails } from '../types/job.js';
 
+export interface JobFilterResult {
+  passed: boolean;
+  reasons: string[];
+}
+
 function removeDiacritics(s: string): string {
   return s.normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -97,22 +102,25 @@ const ROLE_PATTERNS: RegExp[] = [
 export function matchesRole(
   input: string | DetailsObject | undefined | null,
   description?: string
-): { passed: boolean; reasons?: string[]; reason?: string } {
+): JobFilterResult {
+  if (!input) return { passed: false, reasons: ['No role information'] };
   const text = normalizeText(input, description)
-  if (!text) return { passed: true };
 
   for (const pattern of ROLE_PATTERNS) {
-    if (pattern.test(text)) return { passed: true };
+    if (pattern.test(text)) return { passed: true, reasons: [] };
   }
-  return { passed: false, reasons: ['non-software role'], reason: 'non-software role' };
+  return { passed: false, reasons: ['non-software role'] };
 }
 
-export function matchesLang(input: string|DetailsObject|undefined|null, description?: string): { passed: boolean; reasons?: string[]; reason?: string } {
+export function matchesLang(input: string | DetailsObject | undefined | null, description?: string): JobFilterResult {
+  
+  if (!input) return { passed: false, reasons: ['No language information'] };
   const text = normalizeText(input, description);
+  
   for (const pattern of LANG_PATTERNS) {
-    if (pattern.test(text)) return { passed: true };
+    if (pattern.test(text)) return { passed: true, reasons: [] };
   }
-  return { passed: false, reasons: ['No matching language'], reason: 'No matching language' };
+  return { passed: false, reasons: ['No matching language'] };
 }
 
 const EXPERIENCE_REJECT_PATTERNS = [
@@ -161,11 +169,11 @@ const EXPERIENCE_REJECT_PATTERNS = [
   /\btruong nhom\b/,
 ];
 
-export function matchesExperience(input: string | DetailsObject | undefined | null, description?: string): { passed: boolean; reasons?: string[]; reason?: string } {
+export function matchesExperience(input: string | DetailsObject | undefined | null, description?: string): JobFilterResult {
+  if (!input) return { passed: false, reasons: ['No experience information']};
   const text = normalizeText(input, description);
-  if (!text) return { passed: true };
   for (const rejectPattern of EXPERIENCE_REJECT_PATTERNS) {
-    if (rejectPattern.test(text)) return { passed: false, reasons: ['Not matching experience level'], reason: 'Not matching experience level' };
+    if (rejectPattern.test(text)) return { passed: false, reasons: ['Not matching experience level'] };
   }
-  return { passed: true };
+  return { passed: true, reasons: [] };
 }

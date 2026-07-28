@@ -35,21 +35,53 @@ function mockRoutingPort() {
   };
 }
 
-/** TopCV single-job HTML — parseTopCV path, no url extracted → emitGenerated */
-function makeTopCvHtml(): string {
-  return '<div class="job-detail__info--title"><h1>Junior Software Engineer</h1></div>'
-    + '<div class="company-name-label"><a class="name">Junior Co</a></div>'
-    + '<div class="job-detail__body"><p>Node.js and TypeScript skills required</p></div>';
+/**
+ * Email-alert HTML formats — consumed by JobExtractionService.extractAllJobs()
+ * for PARTIAL_PARSED (signal1) path.
+ */
+
+/** TopCV email-alert — no url → emitGenerated */
+function makeTopCvEmailHtml(): string {
+  return '<div class="topcv-job-list">'
+    + '<a class="job-item-link" href="">'
+    + '<div class="job-item"><div class="body">'
+    + '<div class="title"><span>Junior Software Engineer</span></div>'
+    + '<div class="company"><span>Junior Co</span></div>'
+    + '<div class="meta-job"><div class="item text-primary"><b>$100k</b></div></div>'
+    + '</div></div>'
+    + '</a></div>';
 }
 
-/** Indeed notification HTML — parseIndeed path, has applystart url → enqueue */
-function makeIndeedHtmlWithUrl(): string {
+/** Indeed email-alert — has applystart url → enqueue */
+function makeIndeedEmailHtml(): string {
   return '<html><body>Indeed Job Alert'
     + '<table><tr><td class="pb-24">'
-    + '<h2 class="strong-text-link"><a href="https://vn.indeed.com/applystart?jk=abc123">Senior Backend Engineer</a></h2>'
+    + '<h2><a href="https://vn.indeed.com/applystart?jk=abc123">Senior Backend Engineer</a></h2>'
     + '<div style="color:#2d2d2d">Senior Co</div>'
     + '</td></tr></table>'
     + '</body></html>';
+}
+
+/** TopCV email-alert — non-software role → filter rejects */
+function makeNonSoftwareEmailHtml(): string {
+  return '<div class="topcv-job-list">'
+    + '<a class="job-item-link" href="">'
+    + '<div class="job-item"><div class="body">'
+    + '<div class="title"><span>Marketing Manager</span></div>'
+    + '<div class="company"><span>ACME Corp</span></div>'
+    + '</div></div>'
+    + '</a></div>';
+}
+
+/**
+ * Detail-page HTML formats — consumed by HtmlJobParser.parseJobFromHtml()
+ * for FULL_PARSED (signal2) path.
+ */
+
+function makeTopCvDetailHtml(): string {
+  return '<div class="job-detail__info--title"><h1>Junior Software Engineer</h1></div>'
+    + '<div class="company-name-label"><a class="name">Junior Co</a></div>'
+    + '<div class="section-salary"><div class="job-detail__info--section-content-value">$100k</div></div>';
 }
 
 function makeStage1Partial(overrides = {}): any {
@@ -92,7 +124,7 @@ describe('JobIngestor', () => {
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
-        makeTopCvHtml(),
+        makeTopCvEmailHtml(),
         undefined,
         { messageId: 'msg-001' },
       );
@@ -119,7 +151,7 @@ describe('JobIngestor', () => {
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
-        makeIndeedHtmlWithUrl(),
+        makeIndeedEmailHtml(),
         undefined,
         { messageId: 'url-msg' },
       );
@@ -134,7 +166,7 @@ describe('JobIngestor', () => {
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
-        makeTopCvHtml(),
+        makeTopCvEmailHtml(),
         undefined,
         { messageId: 'nourl-msg' },
       );
@@ -146,11 +178,10 @@ describe('JobIngestor', () => {
 
   describe('Filter rejection', () => {
     it('trashes job when filter rejects', async () => {
-      const nonJobHtml = '<html><body><div>Totally not a job posting</div></body></html>';
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
-        nonJobHtml,
+        makeNonSoftwareEmailHtml(),
         undefined,
         { messageId: 'nonjob-msg' },
       );
@@ -161,11 +192,11 @@ describe('JobIngestor', () => {
 
   describe('processIngest — BROWSER_AUTO FULL_PARSED (signal2c)', () => {
     it('parses HTML and emits completed', async () => {
-      storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'browser-job', raw: makeTopCvHtml() }));
+      storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'browser-job' }));
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.FULL_PARSED,
-        makeTopCvHtml(),
+        makeTopCvDetailHtml(),
         'browser-job',
       );
       expect(storage.findById).toHaveBeenCalledWith('browser-job');
@@ -180,7 +211,7 @@ describe('JobIngestor', () => {
       await ingestor.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
-        makeTopCvHtml(),
+        makeTopCvDetailHtml(),
         'manual-job',
       );
       expect(storage.findById).toHaveBeenCalledWith('manual-job');
@@ -192,7 +223,7 @@ describe('JobIngestor', () => {
       await ingestor.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
-        makeTopCvHtml(),
+        makeTopCvDetailHtml(),
       );
       expect(storage.upsert).toHaveBeenCalled();
       expect(parsePort.emitCompleted).toHaveBeenCalled();
@@ -237,7 +268,7 @@ describe('JobIngestor', () => {
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
-        makeTopCvHtml(),
+        makeTopCvEmailHtml(),
         undefined,
         { messageId: 'dedup-msg' },
       );

@@ -96,7 +96,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
     const role = 'Software Engineer';
     const company = 'CycleCo1a';
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, makeTopCvHtml(company, role), undefined, { messageId: 'msg-cycle-1a', subject: role });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor(company, role), undefined, { messageId: 'msg-cycle-1a', subject: role });
 
     expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
     const docId = parseEventPort.emitGenerated.mock.calls[0][0]._id;
@@ -154,7 +154,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
 
     expect(parseEventPort.emitFailed).toHaveBeenCalledTimes(1);
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, makeTopCvHtml('RecoveryCo', 'Software Engineer'), undefined, { messageId: 'msg-s4-recover' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('RecoveryCo', 'Software Engineer'), undefined, { messageId: 'msg-s4-recover' });
 
     expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
   });
@@ -180,7 +180,7 @@ describe('T1: Full lifecycle S1→S2→S3→S4 coverage (Case 1, 2, 3)', () => {
 
     vi.restoreAllMocks();
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, makeTopCvHtml('RecoveryCo2', 'Software Engineer'), undefined, { messageId: 'msg-cycle-3c' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('RecoveryCo2', 'Software Engineer'), undefined, { messageId: 'msg-cycle-3c' });
 
     expect(parseEventPort.emitGenerated).toHaveBeenCalledTimes(1);
   });

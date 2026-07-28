@@ -6,30 +6,18 @@
  */
 
 import type { Job, JobDetails } from '../types/job.js';
-import { matchesRole, matchesLang, matchesExperience } from './constraints.js';
+import { matchesRole, matchesLang, matchesExperience, JobFilterResult } from './constraints.js';
 
 export interface FilterOptions {
   sinceTier?: 2;
-}
-
-export interface JobFilterResult {
-  passed: boolean;
-  reasons: string[];
 }
 
 export function hybridJobFilter(job: Partial<Job>, options?: FilterOptions): JobFilterResult {
   const sinceTier = options?.sinceTier ?? 1;
 
   if (sinceTier === 1) {
-    const role = job.role || '';
-
-    const t1 = matchesRole(role);
+    const t1 = matchesRole(job.role);
     if (!t1.passed) return { passed: false, reasons: t1.reasons || [] };
-
-    if (job.description) {
-      const t2 = matchesLang(job.description);
-      if (!t2.passed) return { passed: false, reasons: t2.reasons || [] };
-    }
 
     return { passed: true, reasons: [] };
   }

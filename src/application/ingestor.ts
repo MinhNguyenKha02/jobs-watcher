@@ -125,7 +125,9 @@ export class JobIngestor implements IngestorPort {
     }
 
     if (extractedJobs.length === 0) {
-      extractedJobs = [{ role: metadata?.subject, description: rawPayload, company: 'Unknown' }];
+      logger.warn('No jobs extracted from payload', { messageId: metadata?.messageId || 'unknown' });
+      this.metricsRegistry?.jobErrors.inc({ stage: 's1', error_type: 'no_jobs_extracted' });
+      return;
     }
 
     for (let idx = 0; idx < extractedJobs.length; idx++) {

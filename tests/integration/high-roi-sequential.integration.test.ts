@@ -17,6 +17,21 @@ function htmlFor(role: string, company: string): string {
     + '</div>';
 }
 
+function emailHtmlFor(role: string, company: string): string {
+  const encodedUrl = `/viec-lam/${role.toLowerCase().replace(/\s+/g, '-')}`;
+  return '<html><body>'
+    + '<a class="job-item-link" href="' + encodedUrl + '">'
+    + '<div class="topcv-job-item">'
+    + '<div class="title"><span>' + role + '</span></div>'
+    + '<div class="company"><span>' + company + '</span></div>'
+    + '<div>Hà Nội</div>'
+    + '</div>'
+    + '</a>'
+    + '<p>topcv job-item</p>'
+    + '<p>TypeScript</p>'
+    + '</body></html>';
+}
+
 function makeStage1Partial(overrides: any = {}): any {
   return {
     _id: overrides._id || 'test-id',
@@ -86,7 +101,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       const role = 'Software Engineer';
       const company = `RateCo${i}`;
 
-      await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, htmlFor(role, company), undefined, { messageId, subject: role });
+      await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor(role, company), undefined, { messageId, subject: role });
 
       const genEvents = parseEvents.filter(([t]) => t === 'generated');
       expect(genEvents.length).toBe(i + 1);
@@ -225,7 +240,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
 
     vi.restoreAllMocks();
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, htmlFor('Software Engineer', 'NextCo'), undefined, { messageId: 'h5-next' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'NextCo'), undefined, { messageId: 'h5-next' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);

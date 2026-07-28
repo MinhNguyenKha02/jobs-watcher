@@ -17,6 +17,21 @@ function makeTopCvHtml(company = 'TestCo'): string {
     + '</div>';
 }
 
+function emailHtmlFor(role: string, company: string): string {
+  const encodedUrl = `/viec-lam/${role.toLowerCase().replace(/\s+/g, '-')}`;
+  return '<html><body>'
+    + '<a class="job-item-link" href="' + encodedUrl + '">'
+    + '<div class="topcv-job-item">'
+    + '<div class="title"><span>' + role + '</span></div>'
+    + '<div class="company"><span>' + company + '</span></div>'
+    + '<div>Hà Nội</div>'
+    + '</div>'
+    + '</a>'
+    + '<p>topcv job-item</p>'
+    + '<p>TypeScript</p>'
+    + '</body></html>';
+}
+
 describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
@@ -61,7 +76,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
     const failedEvents = parseEvents.filter(([t]) => t === 'failed');
     expect(failedEvents.length).toBe(1);
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, makeTopCvHtml('AlphaCo'), undefined, { messageId: 'job-after-s4a' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'AlphaCo'), undefined, { messageId: 'job-after-s4a' });
 
     const generatedEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(generatedEvents.length).toBe(1);
@@ -93,7 +108,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
 
     vi.restoreAllMocks();
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, makeTopCvHtml('BetaCo'), undefined, { messageId: 'job-after-s4b' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'BetaCo'), undefined, { messageId: 'job-after-s4b' });
 
     const generatedEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(generatedEvents.length).toBe(1);
