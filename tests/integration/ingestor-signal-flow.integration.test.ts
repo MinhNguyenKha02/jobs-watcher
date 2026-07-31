@@ -1,17 +1,8 @@
-import 'dotenv/config';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
-import { MongoClient } from 'mongodb';
+import { createTestStorage } from '../helpers/create-test-storage.js';
 import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { JobIngestor } from '../../src/application/ingestor.js';
 import { JobStage, JobStatus, JobSource } from '../../src/domain/types/job-lifecycle.js' ;
-import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const runReal = process.env.SIGNAL_FLOW_INTEGRATION === 'true' || MONGODB_URI !== 'mongodb://localhost:27017';
-const describeIf = runReal ? describe : describe.skip;
-
-const logger = getLogger();
-const DB_NAME = 'ingestor-signal-flow-integration-test';
 
 function htmlFor(role: string, company: string): string {
   return `<div class="job-detail__info--title"><h1>${role}</h1></div>`
@@ -21,6 +12,13 @@ function htmlFor(role: string, company: string): string {
     + '<div class="job-description__item"><h3>Mô tả công việc</h3>'
     + '<div class="job-description__item--content">We need a TypeScript developer with JavaScript skills</div>'
     + '</div>';
+}
+
+function topcvHtml(role: string, company: string, langContent: string): string {
+  return '<div class="job-detail__info--title"><h1>' + role + '</h1></div>'
+    + '<div class="company-name-label"><a class="name">' + company + '</a></div>'
+    + '<h3>Mô tả công việc</h3>'
+    + '<div class="job-description__item--content">' + langContent + '</div>';
 }
 
 function emailHtmlFor(role: string, company: string): string {
@@ -38,8 +36,8 @@ function emailHtmlFor(role: string, company: string): string {
     + '</body></html>';
 }
 
-describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
-  let client: MongoClient;
+describe('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
+  let storage: Awaited<ReturnType<typeof createTestStorage>>;
   let adapter: MongoJobLifecycleAdapter;
   let parseEventPort: ReturnType<typeof createParseEventPort>;
   let routingPort: ReturnType<typeof createRoutingPort>;
@@ -61,28 +59,17 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     };
   }
 
-  async function cleanDb() {
-    const db = client.db(DB_NAME);
-    const collections = await db.listCollections().toArray();
-    for (const c of collections) {
-      await db.collection(c.name).deleteMany({});
-    }
-  }
-
   beforeAll(async () => {
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    await client.db(DB_NAME).dropDatabase();
-    adapter = new MongoJobLifecycleAdapter(client.db(DB_NAME));
+    storage = await createTestStorage();
+    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
   });
 
   afterAll(async () => {
-    await client.db(DB_NAME).dropDatabase();
-    await client.close();
+    await storage.stop();
   });
 
   beforeEach(async () => {
-    await cleanDb();
+    await storage.client.db(storage.dbName).dropDatabase();
     parseEventPort = createParseEventPort();
     routingPort = createRoutingPort();
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
@@ -141,7 +128,7 @@ describeIf('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
   });
 
   it('propagates non-11000 upsert error', async () => {
-    const badDb = new MongoJobLifecycleAdapter(client.db(DB_NAME));
+    const badDb = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
     vi.spyOn(badDb, 'upsert').mockRejectedValueOnce(
       Object.assign(new Error('Disk full'), { code: 9000 })
     );
