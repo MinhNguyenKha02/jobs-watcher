@@ -86,6 +86,7 @@ export class JobIngestor implements IngestorPort {
         if (this.assetProducingPort && existing) {
           const flattened = flattenJob(existing);
           const retriever = new ProfileInfoRetriever();
+          await retriever.init();
           const retrieval = retriever.retrieve(flattened);
           const resolved = retriever.resolve(retrieval);
           this.assetProducingPort.toAsset(resolved).catch((err: unknown) => {
