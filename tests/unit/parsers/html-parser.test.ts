@@ -1,8 +1,7 @@
-import fs from 'fs';
-import path from 'path';
+import fc from 'fast-check';
 
-import { HtmlJobParser } from '../../../src/domain/services/parsing/html-job-parser.js' ;
-import type { JobDetails } from '../../../src/domain/types/job.js' ;
+import { HtmlJobParser } from '../../../src/domain/services/parsing/html-job-parser.js';
+import type { JobDetails } from '../../../src/domain/types/job.js';
 import {
   topCVDetailPageHTML,
   indeedDetailPageHTML,
@@ -14,33 +13,6 @@ import {
   linkedinSduiHtml2,
   linkedinSduiHtml3,
 } from '../../__fixtures__/emails.js';
-
-function getFirstRawEmailBody(): string | null {
-  const baseDir = path.join(process.cwd(), 'src', 'db', 'emails');
-  if (!fs.existsSync(baseDir)) return null;
-
-  const monthDirs = fs
-    .readdirSync(baseDir)
-    .filter((d) => fs.statSync(path.join(baseDir, d)).isDirectory());
-  if (monthDirs.length === 0) return null;
-
-  const dayDir = monthDirs
-    .map((month) => ({
-      month,
-      days: fs
-        .readdirSync(path.join(baseDir, month))
-        .filter((d) => fs.statSync(path.join(baseDir, month, d)).isDirectory()),
-    }))
-    .flatMap((entry) => entry.days.map((day) => path.join(baseDir, entry.month, day)))
-    .find(Boolean);
-
-  if (!dayDir) return null;
-
-  const bodyFile = fs.readdirSync(dayDir).find((f) => f.endsWith('.body.txt'));
-  if (!bodyFile) return null;
-
-  return fs.readFileSync(path.join(dayDir, bodyFile), 'utf-8');
-}
 
 function getFirstEnrichedHtml(): string | null {
   const baseDir = path.join(process.cwd(), 'src', 'db', 'emails', 'enriched');
@@ -492,54 +464,6 @@ describe('HtmlJobParser', () => {
     });
   });
 
-  describe('Local stored HTML (optional)', () => {
-    it('parses first raw email body when available', () => {
-      const html = getFirstRawEmailBody();
-      if (!html) {
-        return;
-      }
-
-      const result = parser.parseJobFromHtml(html);
-      expect(result === null || result?.role).toBeTruthy();
-    });
-
-    it('parses first enriched pasted HTML when available', () => {
-      const html = getFirstEnrichedHtml();
-      if (!html) {
-        return;
-      }
-
-      const result = parser.parseJobFromHtml(html);
-      expect(result === null || result?.role).toBeTruthy();
-      if (result) assertDetailsFromHeadings(html, result);
-    });
-
-    it('parses all raw email bodies when available', () => {
-      const bodies = getAllRawEmailBodies();
-      if (bodies.length === 0) {
-        return;
-      }
-
-      for (const body of bodies) {
-        const result = parser.parseJobFromHtml(body);
-        expect(result === null || result?.role).toBeTruthy();
-      }
-    });
-
-    it('parses all enriched pasted HTML when available', () => {
-      const htmlFiles = getAllEnrichedHtml();
-      if (htmlFiles.length === 0) {
-        return;
-      }
-
-      for (const html of htmlFiles) {
-        const result = parser.parseJobFromHtml(html);
-        expect(result === null || result?.role).toBeTruthy();
-        if (result) assertDetailsFromHeadings(html, result);
-      }
-    });
-  });
-
   describe('Edge cases', () => {
     it('handles empty HTML', () => {
       const result = parser.parseJobFromHtml('');
@@ -553,6 +477,117 @@ describe('HtmlJobParser', () => {
       const result = parser.parseJobFromHtml(html);
 
       expect(result === null || result?.role).toBeTruthy();
+    });
+  });
+
+  describe('Equivalence partitioning', () => {
+    it('parses valid TopCV HTML with all fields', () => {
+      const html = `
+        <html>
+          <h1 class="job-detail__info--title">Senior Fullstack Developer</h1>
+          <div class="company-name-label"><a class="name">BigCorp Inc</a></div>
+          <div class="section-location"><div class="job-detail__info--section-content-value">Ho Chi Minh</div></div>
+          <div class="section-salary"><div class="job-detail__info--section-content-value">$3000-$4000</div></div>
+          <div class="job-description__item--content">React, Node.js, TypeScript</div>
+          <a href="https://topcv.vn/job-123">View</a>
+        </html>
+      `;
+      const result = parser.parseJobFromHtml(html);
+      expect(result).not.toBeNull();
+      expect(result?.role).toBe('Senior Fullstack Developer');
+      expect(result?.company).toBe('BigCorp Inc');
+      expect(result?.location).toContain('Ho Chi Minh');
+      expect(result?.salary).toContain('$3000');
+    });
+
+    it('returns null for empty string (null equivalence class)', () => {
+      expect(parser.parseJobFromHtml('')).toBeNull();
+    });
+
+    it('returns null for whitespace-only string', () => {
+      expect(parser.parseJobFromHtml('   \n  \t  ')).toBeNull();
+    });
+
+    it('parses HTML with only required fields (partial input)', () => {
+      const html = `
+        <html>
+          <h1 class="job-detail__info--title">Minimal Role</h1>
+          <div class="company-name-label"><a class="name">Minimal Co</a></div>
+        </html>
+      `;
+      const result = parser.parseJobFromHtml(html);
+      expect(result).not.toBeNull();
+      expect(result?.role).toBe('Minimal Role');
+      expect(result?.company).toBe('Minimal Co');
+    });
+
+    it('handles HTML with no recognizable job format', () => {
+      const html = '<div>Random non-job content</div>';
+      const result = parser.parseJobFromHtml(html);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('Property-based (fast-check)', () => {
+    const normalizeWs = (s: string) => s.trim().replace(/[\s\n]+/g, ' ');
+    const nonEmptyString = fc.string({ minLength: 1, maxLength: 100 }).map(normalizeWs).filter(s => s.length > 0 && !s.includes('<'));
+    const nonEmptyString80 = fc.string({ minLength: 1, maxLength: 80 }).map(normalizeWs).filter(s => s.length > 0 && !s.includes('<'));
+
+    it('extracts role from TopCV format for any non-empty title', () => {
+      fc.assert(
+        fc.property(nonEmptyString, (role) => {
+          const html = `
+            <html>
+              <h1 class="job-detail__info--title">${role}</h1>
+              <div class="company-name-label"><a class="name">TestCo</a></div>
+            </html>
+          `;
+          const result = parser.parseJobFromHtml(html);
+          expect(result).not.toBeNull();
+          expect(result?.role).toBe(role);
+        }),
+        { numRuns: 50 },
+      );
+    });
+
+    it('extracts company from TopCV format for any non-empty name', () => {
+      fc.assert(
+        fc.property(nonEmptyString80, (company) => {
+          const html = `
+            <html>
+              <h1 class="job-detail__info--title">Engineer</h1>
+              <div class="company-name-label"><a class="name">${company}</a></div>
+            </html>
+          `;
+          const result = parser.parseJobFromHtml(html);
+          expect(result).not.toBeNull();
+          expect(result?.company).toBe(company);
+        }),
+        { numRuns: 50 },
+      );
+    });
+
+    it('extracts salary from TopCV format when present', () => {
+      fc.assert(
+        fc.property(
+          nonEmptyString,
+          nonEmptyString80,
+          (role, salary) => {
+            const html = `
+              <html>
+                <h1 class="job-detail__info--title">${role}</h1>
+                <div class="company-name-label"><a class="name">Corp</a></div>
+                <div class="section-salary"><div class="job-detail__info--section-content-value">${salary}</div></div>
+              </html>
+            `;
+            const result = parser.parseJobFromHtml(html);
+            expect(result).not.toBeNull();
+            expect(result?.role).toBe(role);
+            expect(result?.salary).toBe(salary);
+          },
+        ),
+        { numRuns: 50 },
+      );
     });
   });
 });

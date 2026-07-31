@@ -2,8 +2,18 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { chromium } from 'playwright';
 import { renderPdf } from '../../../src/infrastructure/outbound/asset-builder/renderer/pdf-renderer.js' ;
 import type { PdfAsset } from '../../../src/domain/types/asset.js' ;
+
+const hasPlaywright = (() => {
+  try {
+    const execPath = process.env.CHROMIUM_EXECUTABLE_PATH || chromium.executablePath();
+    return fs.existsSync(execPath);
+  } catch {
+    return false;
+  }
+})();
 
 function makeAsset(overrides?: Partial<PdfAsset>): PdfAsset {
   return {
@@ -24,7 +34,9 @@ function makeAsset(overrides?: Partial<PdfAsset>): PdfAsset {
   };
 }
 
-describe('renderPdf', () => {
+const describePdf = hasPlaywright ? describe : describe.skip;
+
+describePdf('renderPdf', () => {
   it('generates a PDF file with proper header bytes', async () => {
     const asset = makeAsset();
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-test-'));
