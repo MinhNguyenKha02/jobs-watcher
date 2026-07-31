@@ -29,6 +29,19 @@ describe('matchesRole', () => {
     expect(matchesRole(null)).toEqual({ passed: false, reasons: ['No role information'] });
   });
 
+  it('rejects undefined input', () => {
+    expect(matchesRole(undefined)).toEqual({ passed: false, reasons: ['No role information'] });
+  });
+
+  it('rejects empty string (BVA boundary — treated as missing input)', () => {
+    expect(matchesRole('')).toEqual({ passed: false, reasons: ['No role information'] });
+  });
+
+  it('rejects single-char non-software role (BVA boundary)', () => {
+    expect(matchesRole('X')).toEqual({ passed: false, reasons: ['non-software role'] });
+  });
+
+
   it('matches via description when input is object', () => {
     const result = matchesRole({ responsibilities: 'Build software' }, 'Senior Software Developer');
     expect(result.passed).toBe(true);
@@ -56,6 +69,21 @@ describe('matchesLang', () => {
 
   it('rejects null input (no lang patterns in empty text)', () => {
     const result = matchesLang(null);
+    expect(result.passed).toBe(false);
+  });
+
+  it('rejects undefined input (BVA boundary)', () => {
+    const result = matchesLang(undefined);
+    expect(result.passed).toBe(false);
+  });
+
+  it('rejects empty string (BVA boundary)', () => {
+    const result = matchesLang('');
+    expect(result.passed).toBe(false);
+  });
+
+  it('rejects numeric string (BVA boundary)', () => {
+    const result = matchesLang('12345');
     expect(result.passed).toBe(false);
   });
 });
@@ -93,6 +121,38 @@ describe('matchesExperience', () => {
 
   it('rejects empty input', () => {
     expect(matchesExperience('')).toEqual({ passed: false, reasons: ['No experience information'] });
+  });
+
+  it('rejects null input (BVA boundary)', () => {
+    expect(matchesExperience(null)).toEqual({ passed: false, reasons: ['No experience information'] });
+  });
+
+  it('rejects undefined input (BVA boundary)', () => {
+    expect(matchesExperience(undefined)).toEqual({ passed: false, reasons: ['No experience information'] });
+  });
+
+  it('passes 0 years experience (BVA — only 3+ is rejected)', () => {
+    expect(matchesExperience('0 years experience')).toEqual({ passed: true, reasons: [] });
+  });
+
+  it('passes 1 year experience (BVA — only 3+ is rejected)', () => {
+    expect(matchesExperience('1+ year of experience')).toEqual({ passed: true, reasons: [] });
+  });
+
+  it('passes 2 years experience (BVA — only 3+ is rejected)', () => {
+    expect(matchesExperience('2 years experience required')).toEqual({ passed: true, reasons: [] });
+  });
+
+  it('rejects 3 years experience (BVA boundary at rejection threshold)', () => {
+    expect(matchesExperience('3+ years experience')).toEqual({ passed: false, reasons: ['Not matching experience level'] });
+  });
+
+  it('rejects 4 years experience (BVA boundary above threshold)', () => {
+    expect(matchesExperience('4 years of experience')).toEqual({ passed: false, reasons: ['Not matching experience level'] });
+  });
+
+  it('rejects senior software engineer pattern', () => {
+    expect(matchesExperience('Senior Software Engineer')).toEqual({ passed: false, reasons: ['Not matching experience level'] });
   });
 });
 
