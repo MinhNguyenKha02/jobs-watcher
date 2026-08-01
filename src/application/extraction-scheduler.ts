@@ -2,7 +2,7 @@ import { createLogger } from '../infrastructure/outbound/logging/logger.js';
 import { JobSource, JobStage } from '../domain/types/job-lifecycle.js';
 import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
 import type { BrowserPort } from './ports/browser.port.js';
-import type { JobIngestor } from './ingestor.js';
+import type { IngestorPort } from './ports/inbound/ingestor.port.js';
 import type { JobLifecyclePort } from './ports/job-lifecycle.port.js';
 import type { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
 
@@ -20,7 +20,7 @@ export class ExtractionScheduler {
     private queue: ExtractionQueuePort,
     private browser: BrowserPort,
     private jobLifecycleColPort: JobLifecyclePort,
-    private jobIngestor: JobIngestor,
+    private ingestor: IngestorPort,
     private metricsRegistry?: MetricsRegistry,
   ) {}
 
@@ -86,7 +86,7 @@ export class ExtractionScheduler {
         const url = jobDoc?.url || '';
         const extractResult = await this.browser.extract(url);
         const rawPayload = extractResult.html;
-        await this.jobIngestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, rawPayload, jobLifecycleId);
+        await this.ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, rawPayload, jobLifecycleId);
         this.metricsRegistry?.jobsInFlight.dec({ stage: 's1' });
         if (startMs > 0) {
           const durationSec = (Date.now() - startMs) / 1000;
@@ -97,7 +97,7 @@ export class ExtractionScheduler {
         logger.warn('Extraction failed', { workerId, jobLifecycleId, error: errMsg });
         this.metricsRegistry?.jobsInFlight.dec({ stage: 's1' });
         this.metricsRegistry?.jobErrors.inc({ stage: 'extraction', error_type: 'browser' });
-        await this.jobIngestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, '', jobLifecycleId);
+        await this.ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, '', jobLifecycleId);
       }
     }
     logger.info('Worker stopped', { workerId });
