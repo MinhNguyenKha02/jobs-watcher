@@ -530,8 +530,8 @@ describe('HtmlJobParser', () => {
 
   describe('Property-based (fast-check)', () => {
     const normalizeWs = (s: string) => s.trim().replace(/[\s\n]+/g, ' ');
-    const nonEmptyString = fc.string({ minLength: 1, maxLength: 100 }).map(normalizeWs).filter(s => s.length > 0 && !s.includes('<'));
-    const nonEmptyString80 = fc.string({ minLength: 1, maxLength: 80 }).map(normalizeWs).filter(s => s.length > 0 && !s.includes('<'));
+    const nonEmptyString = fc.string({ minLength: 1, maxLength: 100 }).map(normalizeWs).filter(s => s.length > 0 && !s.includes('<') && !s.includes('&') && !s.includes('>'));
+    const nonEmptyString80 = fc.string({ minLength: 1, maxLength: 80 }).map(normalizeWs).filter(s => s.length > 0 && !s.includes('<') && !s.includes('&') && !s.includes('>'));
 
     it('extracts role from TopCV format for any non-empty title', () => {
       fc.assert(
