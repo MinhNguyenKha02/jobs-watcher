@@ -94,6 +94,13 @@ export class JobIngestor implements IngestorPort {
           });
         }
       } else if (action === 'trash') {
+        if (existing && (existing.status === JobStatus.QUEUED || existing.status === JobStatus.TRASHED)) {
+          logger.warn('[d] guard: rejecting trash action — job already routed (terminal state)', {
+            jobLifecycleId: existing._id,
+            status: existing.status,
+          });
+          return;
+        }
         await this.jobLifecycleColPort.updateStage(existing._id, JobStage.FULL_PARSED, JobStatus.TRASHED);
         this.metricsRegistry?.jobStageTotal.inc({ stage: 's3', status: 'trashed' });
         await this.routePublishingPort.emitJobTrashed(existing._id, 'operator:trash');
