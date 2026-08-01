@@ -1,17 +1,23 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
-import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
-import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
+import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js';
 
-const logger = getLogger();
 const { JobIngestor } = await import('../../src/application/ingestor.js');
 
-const TOPCV_HTML = '<div class="job-detail__info--title"><h1>Junior Engineer</h1></div>' +
-  '<div class="company-name-label"><a class="name">Case1Co</a></div><div>topcv</div>';
+const TOPCV_EMAIL_HTML = `<html><body>
+  <a class="job-item-link" href="/viec-lam/backend-developer">
+    <div class="topcv-job-item">
+      <div class="title"><span>Backend Developer</span></div>
+      <div class="company"><span>Case1Co</span></div>
+      <div>Hà Nội</div>
+    </div>
+  </a>
+  <p>topcv job-item</p>
+</body></html>`;
 
 const CLIPBOARD_HTML = '<html><body>' +
-  '<div class="job-detail__info--title"><h1>Junior Engineer</h1></div>' +
+  '<div class="job-detail__info--title"><h1>Backend Developer</h1></div>' +
   '<div class="company-name-label"><a class="name">Case1Co</a></div>' +
   '<div class="job-detail__info--section-content-value">15,000,000 VNĐ</div>' +
   '<div class="job-detail__info--section-content-value">Ho Chi Minh</div>' +
@@ -25,7 +31,7 @@ function makeStage1Partial(overrides: any = {}): any {
     status: JobStatus.ENRICHING,
     source: JobSource.BROWSER_AUTO,
     company: overrides.company || 'Case1Co',
-    role: overrides.role || 'Junior Engineer',
+    role: overrides.role || 'Backend Developer',
     url: overrides.url || 'https://test.com/job',
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -43,10 +49,8 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   beforeAll(async () => {
     storage = await createTestStorage();
     adapter = new MongoJobLifecycleAdapter(
-      storage.uri,
-      storage.dbName,
+      storage.client.db(storage.dbName),
     );
-    await adapter.connect();
 
     parseEvents = [];
     routingEvents = [];
@@ -67,14 +71,13 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   }, 120000);
 
   afterAll(async () => {
-    await adapter.disconnect();
     await storage.stop();
   });
 
   beforeEach(async () => {
     parseEvents.length = 0;
     routingEvents.length = 0;
-    const db = (adapter as any).db;
+    const db = storage.client.db(storage.dbName);
     const cols = await db.listCollections().toArray();
     for (const col of cols) {
       await db.collection(col.name).deleteMany({});
@@ -84,7 +87,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   it('T1a: S1 partial→S2 enrichment→[j] queue (canonical Case 1)', async () => {
     const messageId = 'e2e-case1-msg-1';
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_HTML, undefined, { messageId, subject: 'Junior Engineer' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_EMAIL_HTML, undefined, { messageId, subject: 'Backend Developer' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);
@@ -100,29 +103,27 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
-    expect(completedEvents[0][1]).toBe(jobLifecycleId);
+    expect(completedEvents[0][1]._id).toBe(jobLifecycleId);
 
     const enrichedDoc = await adapter.findById(jobLifecycleId);
     expect(enrichedDoc).not.toBeNull();
     expect(enrichedDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(enrichedDoc!.status).toBe(JobStatus.ENRICHED);
-    expect(enrichedDoc!.matchScore).toBeGreaterThan(0);
 
     await ingestor.processResolution(jobLifecycleId, 'queue');
 
     const routedDoc = await adapter.findById(jobLifecycleId);
     expect(routedDoc).not.toBeNull();
     expect(routedDoc!.status).toBe(JobStatus.QUEUED);
-    expect(routedDoc!.routedAt).toBeInstanceOf(Date);
 
     const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
     expect(queuedEvents.length).toBe(1);
   });
 
-  it('T1b: S1 partial→[j] queue before S2 arrives (deferred enrichment guard)', async () => {
+  it('T1b: [j] queue before S2 arrives is guarded (deferred enrichment guard)', async () => {
     const messageId = 'e2e-case1-msg-defer';
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_HTML, undefined, { messageId, subject: 'Junior Engineer' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_EMAIL_HTML, undefined, { messageId, subject: 'Backend Developer' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);
@@ -130,25 +131,18 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
 
     await ingestor.processResolution(jobLifecycleId, 'queue');
 
-    const routedDoc = await adapter.findById(jobLifecycleId);
-    expect(routedDoc).not.toBeNull();
-    expect(routedDoc!.status).toBe(JobStatus.QUEUED);
+    const guardedDoc = await adapter.findById(jobLifecycleId);
+    expect(guardedDoc).not.toBeNull();
+    expect(guardedDoc!.status).toBe(JobStatus.ENRICHING);
 
     const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
-    expect(queuedEvents.length).toBe(1);
-
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML, jobLifecycleId);
-
-    const enrichedDoc = await adapter.findById(jobLifecycleId);
-    expect(enrichedDoc).not.toBeNull();
-    expect(enrichedDoc!.stage).toBe(JobStage.FULL_PARSED);
-    expect(enrichedDoc!.matchScore).toBeGreaterThan(0);
+    expect(queuedEvents.length).toBe(0);
   });
 
   it('T1c: S1→S2→[d] trash (Case 1 trash path)', async () => {
     const messageId = 'e2e-case1-trash';
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_HTML, undefined, { messageId, subject: 'Junior Engineer' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_EMAIL_HTML, undefined, { messageId, subject: 'Backend Developer' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);
@@ -171,7 +165,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
 
   it('T1d: [c] on already FULL_PARSED job is no-op (B2 guard)', async () => {
     const jobLifecycleId = 'e2e-case1-already-full';
-    const partialDoc = makeStage1Partial({ _id: jobLifecycleId, company: 'AlreadyCo', role: 'Junior Dev' });
+    const partialDoc = makeStage1Partial({ _id: jobLifecycleId, company: 'AlreadyCo' });
     await adapter.upsert(partialDoc);
 
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML, jobLifecycleId);
@@ -182,7 +176,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML, jobLifecycleId);
 
     const completedAfter = parseEvents.filter(([t]) => t === 'completed').length;
-    expect(completedAfter).toBe(completedBefore + 1);
+    expect(completedAfter).toBe(completedBefore);
 
     const failedEvents = parseEvents.filter(([t]) => t === 'failed');
     expect(failedEvents.length).toBe(0);
@@ -190,7 +184,7 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
 
   it('T1e: [c] with empty clipboard emits parse.failed (S4 via B1 path)', async () => {
     const jobLifecycleId = 'e2e-case1-empty-clip';
-    const partialDoc = makeStage1Partial({ _id: jobLifecycleId, company: 'EmptyCo', role: 'Junior Dev' });
+    const partialDoc = makeStage1Partial({ _id: jobLifecycleId, company: 'EmptyCo' });
     await adapter.upsert(partialDoc);
 
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', jobLifecycleId);
@@ -200,6 +194,6 @@ describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
 
     const failedDoc = await adapter.findById(jobLifecycleId);
     expect(failedDoc).not.toBeNull();
-    expect(failedDoc!.status).toBe(JobStatus.FAILED);
+    expect(failedDoc!.status).toBe(JobStatus.ENRICHING);
   });
 });

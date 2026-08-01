@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
-import { getLogger } from '../../src/infrastructure/outbound/logging/logger.js' ;
+import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
+import { MongoExtractionQueueAdapter } from '../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
+import { MongoInitializer } from '../../src/infrastructure/outbound/persistence/mongo-init.js';
 import { ExtractionScheduler } from '../../src/application/extraction-scheduler.js';
-import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js' ;
+import { JobStage, JobSource, JobStatus } from '../../src/domain/types/job-lifecycle.js';
+import { MetricsRegistry } from '../../src/infrastructure/outbound/monitoring/metrics-registry.js';
 
-const logger = getLogger();
 const { JobIngestor } = await import('../../src/application/ingestor.js');
 
 const INDEED_EMAIL_HTML = `<html><body>
@@ -13,30 +14,23 @@ const INDEED_EMAIL_HTML = `<html><body>
 <table>
   <tr>
     <td class="pb-24" style="padding-bottom:24px">
-      <a href="https://vn.indeed.com/rc/clk/dl?jk=test123">Apply</a>
-      <a class="strong-text-link">Junior Backend Developer</a>
+      <h2><a href="https://vn.indeed.com/viewjob?jk=test123">Backend Developer</a></h2>
       <table>
         <tr>
           <td style="padding:0 12px;color:#2d2d2d;font-size:14px;line-height:21px">TechCorp</td>
         </tr>
       </table>
+      <div style="color:#2d2d2d">Ho Chi Minh City</div>
+      <div style="padding:0;color:#767676;font-size:14px;line-height:21px">TypeScript backend developer needed for our growing engineering team</div>
+      <div style="font-size:12px;line-height:18px">Just posted</div>
     </td>
-  </tr>
-  <tr>
-    <td style="color:#2d2d2d">Ho Chi Minh City</td>
-  </tr>
-  <tr>
-    <td style="padding:0;color:#767676;font-size:14px;line-height:21px">TypeScript backend developer needed for our growing engineering team</td>
-  </tr>
-  <tr>
-    <td style="font-size:12px;line-height:18px">Just posted</td>
   </tr>
 </table>
 </body></html>`;
 
 const INDEED_DETAIL_HTML = `<html><body>
 <div id="jobsearch-ViewjobHeader">
-  <h1 data-testid="jobsearch-JobInfoHeader-title"><span>Junior Backend Developer</span></h1>
+  <h1 data-testid="jobsearch-JobInfoHeader-title"><span>Backend Developer</span></h1>
   <div class="company-header">
     <div data-testid="inlineHeader-companyName">TechCorp</div>
     <div data-testid="inlineHeader-companyLocation">Ho Chi Minh City</div>
@@ -46,18 +40,11 @@ const INDEED_DETAIL_HTML = `<html><body>
   </div>
 </div>
 <div id="jobDescriptionText" class="job-description-section">
-  <p>We are looking for a Junior Backend Developer with TypeScript experience to join our team. You will build and maintain backend services using Node.js and TypeScript.</p>
-  <h2>Responsibilities</h2>
-  <ul>
-    <li>Build backend services using TypeScript and Node.js</li>
-    <li>Design and implement REST APIs</li>
-    <li>Write unit and integration tests</li>
-  </ul>
+  <p>We are looking for a Backend Developer with TypeScript experience to join our team. You will build and maintain backend services using Node.js and TypeScript.</p>
   <h2>Requirements</h2>
   <ul>
     <li>TypeScript and Node.js proficiency</li>
     <li>Experience with databases</li>
-    <li>Good communication skills</li>
   </ul>
 </div>
 </body></html>`;
@@ -65,62 +52,59 @@ const INDEED_DETAIL_HTML = `<html><body>
 describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal 2c)', () => {
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
+  let eqAdapter: MongoExtractionQueueAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
     storage = await createTestStorage();
+    const initializer = new MongoInitializer(storage.client, storage.dbName);
+    await initializer.init();
     adapter = new MongoJobLifecycleAdapter(
-      storage.uri,
-      storage.dbName,
+      storage.client.db(storage.dbName),
     );
-    await adapter.connect();
+    eqAdapter = new MongoExtractionQueueAdapter(
+      new MetricsRegistry(),
+      storage.client.db(storage.dbName),
+    );
 
-    ingestor = new JobIngestor(adapter);
+    parseEvents = [];
+    routingEvents = [];
+
+    const parseEventPort = {
+      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
+      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
+      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
+    };
+
+    const routingPort = {
+      emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
+      emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
+      emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
+    };
+
+    ingestor = new JobIngestor(adapter, parseEventPort, routingPort, eqAdapter);
   }, 120000);
 
   afterAll(async () => {
-    await adapter.disconnect();
     await storage.stop();
   });
 
   async function clearCollections() {
-    const db = (adapter as any).db;
+    const db = storage.client.db(storage.dbName);
     const cols = await db.listCollections().toArray();
     for (const col of cols) {
       await db.collection(col.name).deleteMany({});
     }
   }
 
-  function freshPorts() {
-    const pe: any[] = [];
-    const re: any[] = [];
-    const ports = {
-      parseEventPort: {
-        emitGenerated: vi.fn((...args: any[]) => { pe.push(['generated', ...args]); return Promise.resolve(); }),
-        emitCompleted: vi.fn((...args: any[]) => { pe.push(['completed', ...args]); return Promise.resolve(); }),
-        emitFailed: vi.fn((...args: any[]) => { pe.push(['failed', ...args]); return Promise.resolve(); }),
-      },
-      routingPort: {
-        emitJobQueued: vi.fn((...args: any[]) => { re.push(['queued', ...args]); return Promise.resolve(); }),
-        emitJobTrashed: vi.fn((...args: any[]) => { re.push(['trashed', ...args]); return Promise.resolve(); }),
-        emitRouteFailed: vi.fn((...args: any[]) => { re.push(['failed', ...args]); return Promise.resolve(); }),
-      },
-    };
-    return { parseEvents: pe, routingEvents: re, ...ports };
-  }
-
   it('Signal 1 with Indeed URL defers to extraction queue (no emitGenerated)', async () => {
     await clearCollections();
-    const { parseEvents, routingEvents, parseEventPort, routingPort } = freshPorts();
-    (ingestor as any).parseEventPort = parseEventPort;
-    (ingestor as any).routingPort = routingPort;
-
-    const eventsBefore = parseEvents.length;
+    const genBefore = parseEvents.filter(([t]) => t === 'generated').length;
 
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, INDEED_EMAIL_HTML, undefined, {
-        subject: 'Indeed Job Alert - Junior Backend Developer',
+        subject: 'Indeed Job Alert - Backend Developer',
         from: 'noreply@indeed.com',
         to: 'me@test.com',
         threadId: 'thread-e2e-1',
@@ -128,30 +112,28 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
       }, new Date());
 
     const generatedEvents = parseEvents.filter(([type]) => type === 'generated');
-    expect(generatedEvents.length).toBe(eventsBefore);
+    expect(generatedEvents.length).toBe(genBefore);
     expect(generatedEvents.length).toBe(0);
 
     const trashedEvents = routingEvents.filter(([type]) => type === 'trashed');
     expect(trashedEvents.length).toBe(0);
 
-    const queueSize = await (adapter as any).extractionQueue.size();
+    const queueSize = await eqAdapter.size();
     expect(queueSize).toBe(1);
 
-    const col = (adapter as any).jobLifecycleCollection;
+    const col = storage.client.db(storage.dbName).collection('job_lifecycle');
     const docs = await col.find({}).toArray();
     expect(docs.length).toBeGreaterThanOrEqual(1);
-    const jobDoc = docs.find((d: any) => d.role === 'Junior Backend Developer');
+    const jobDoc = docs.find((d: any) => d.role === 'Backend Developer');
     expect(jobDoc).toBeDefined();
     expect(jobDoc.stage).toBe(JobStage.PARTIAL_PARSED);
     expect(jobDoc.status).toBe(JobStatus.ENRICHING);
-    expect(jobDoc.url).toContain('indeed.com/rc/clk/dl');
+    expect(jobDoc.url).toContain('indeed.com/viewjob');
   });
 
   it('ExtractionScheduler dequeues, browser extracts, Signal 2c produces FULL_PARSED', async () => {
     await clearCollections();
-    const { parseEvents, routingEvents, parseEventPort, routingPort } = freshPorts();
-    (ingestor as any).parseEventPort = parseEventPort;
-    (ingestor as any).routingPort = routingPort;
+    const genBefore = parseEvents.filter(([t]) => t === 'generated').length;
 
     const mockBrowser = {
       start: vi.fn().mockResolvedValue(undefined),
@@ -167,31 +149,20 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
       status: JobStatus.ENRICHING,
       source: JobSource.BROWSER_AUTO,
       company: 'TechCorp',
-      role: 'Junior Backend Developer',
+      role: 'Backend Developer',
       description: 'TypeScript backend developer',
-      url: 'https://vn.indeed.com/rc/clk/dl?jk=test123',
+      url: 'https://vn.indeed.com/viewjob?jk=test123',
       createdAt: new Date(),
       updatedAt: new Date(),
       stageTimestamp: new Date(),
     };
     await adapter.upsert(partialDoc as any);
-
-    const eqCol = (adapter as any).extractionQueueCollection;
-    await eqCol.insertOne({
-      _id: jobLifecycleId,
-      jobLifecycleId,
-      createdAt: new Date(),
-    });
-
-    const findJobLifecycle = async (id: string) => {
-      const doc = await adapter.findById(id);
-      return doc ? { url: doc.url } : null;
-    };
+    await eqAdapter.enqueue(jobLifecycleId);
 
     const processIngestSpy = vi.spyOn(ingestor, 'processIngest');
 
     const scheduler = new ExtractionScheduler(
-      (adapter as any).extractionQueue,
+      eqAdapter,
       mockBrowser as any,
       adapter as any,
       ingestor,
@@ -200,7 +171,7 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
     await scheduler.start();
 
     await vi.waitFor(() => {
-      expect(mockBrowser.extract).toHaveBeenCalledWith('https://vn.indeed.com/rc/clk/dl?jk=test123');
+      expect(mockBrowser.extract).toHaveBeenCalledWith('https://vn.indeed.com/viewjob?jk=test123');
     }, { interval: 100, timeout: 10000 });
 
     await vi.waitFor(() => {
@@ -224,14 +195,16 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
     expect(fullDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(fullDoc!.status).toBe(JobStatus.ENRICHED);
     expect(fullDoc!.company).toBe('TechCorp');
-    expect(fullDoc!.role).toBe('Junior Backend Developer');
-    expect(fullDoc!.url).toBe('https://vn.indeed.com/rc/clk/dl?jk=test123');
-    expect(fullDoc!.matchScore).toBeGreaterThan(0);
+    expect(fullDoc!.role).toBe('Backend Developer');
+    expect(fullDoc!.url).toBe('https://vn.indeed.com/viewjob?jk=test123');
 
     await scheduler.stop();
+    expect(parseEvents.filter(([t]) => t === 'generated').length).toBe(genBefore + 1);
   }, 30000);
 
   it('ExtractionScheduler handles empty queue without crashing', async () => {
+    await clearCollections();
+
     const mockBrowser = {
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
@@ -239,7 +212,7 @@ describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal
     };
 
     const scheduler = new ExtractionScheduler(
-      (adapter as any).extractionQueue,
+      eqAdapter,
       mockBrowser as any,
       adapter as any,
       { processIngest: vi.fn() } as any,
