@@ -181,4 +181,35 @@ describe('RabbitMqJobReader', () => {
       expect(reader.getQueueDepth()).toBe(1);
     });
   });
+
+  describe('budget contracts (PRC-008)', () => {
+    it('applies prefetch=5 on every channel', () => {
+      expect(mockS1.prefetch).toHaveBeenCalledWith(5);
+      expect(mockS2.prefetch).toHaveBeenCalledWith(5);
+      expect(mockS34.prefetch).toHaveBeenCalledWith(5);
+    });
+
+    it('DEFERRED_S2_MAX=10: nacks requeue=true when the deferred S2 buffer is full', () => {
+      vi.clearAllMocks();
+      for (let i = 0; i < 10; i++) {
+        (reader as any).onMessageS2(makeS2Msg(`early-${i}`));
+      }
+      expect(mockS2.nack).not.toHaveBeenCalled();
+      (reader as any).onMessageS2(makeS2Msg('early-11'));
+      expect(mockS2.nack).toHaveBeenCalledWith(expect.anything(), false, true);
+    });
+
+    it('DEFERRED_S2_TTL=30s: evicts stale deferred S2 with requeue=false', () => {
+      vi.clearAllMocks();
+      (reader as any).onMessageS2(makeS2Msg('early-stale'));
+      (reader as any).deferredS2Buffer.set('early-stale', {
+        payload: { _id: 'early-stale', role: 'Engineer', company: 'TestCo' },
+        deliveryTag: 2,
+        timestamp: Date.now() - 31_000,
+      });
+      (reader as any).evictStaleDeferred();
+      expect(mockS2.nack).toHaveBeenCalledWith(expect.anything(), false, false);
+      expect((reader as any).deferredS2Buffer.has('early-stale')).toBe(false);
+    });
+  });
 });
