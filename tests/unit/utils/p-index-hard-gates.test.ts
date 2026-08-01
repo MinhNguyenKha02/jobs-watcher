@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 
-import { validateP0HardGate, validateP1P2HardGate } from '../../src/infrastructure/utils/p-index-hard-gates.js';
+import { validateP0HardGate, validateP1P2HardGate } from '../../../src/infrastructure/utils/p-index-hard-gates.js';
 
 describe('verify-e2e-output hard gates', () => {
   it('passes P0 when runtime action evidence and route correlation are present', () => {

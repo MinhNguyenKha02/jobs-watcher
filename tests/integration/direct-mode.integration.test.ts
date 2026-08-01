@@ -41,7 +41,7 @@ const CLIPBOARD_HTML_2B = CLIPBOARD_HTML.replace(/ClipJuniorCorp/g, 'CopyJuniorC
 
 const EMPTY_HTML = '';
 
-describe('E2E2: Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
+describe('Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];

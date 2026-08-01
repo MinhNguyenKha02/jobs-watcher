@@ -8,7 +8,7 @@ import { MetricsRegistry } from '../../src/infrastructure/outbound/monitoring/me
 
 const { JobIngestor } = await import('../../src/application/ingestor.js');
 
-describe('E2E3: Failure Recovery (fallback on extraction failure)', () => {
+  describe('Failure Recovery (fallback on extraction failure)', () => {
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
   let eqAdapter: MongoExtractionQueueAdapter;

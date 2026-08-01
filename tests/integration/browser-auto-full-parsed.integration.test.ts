@@ -13,7 +13,7 @@ const FULL_PARSED_HTML = '<html><body>' +
   '<div class="job-description__item--content">TypeScript and Node.js required</div></div>' +
   '</div></body></html>';
 
-describe('E2E: Case 2 full-parsed direct arrival (browser-auto S2 path)', () => {
+  describe('Case 2 full-parsed direct arrival (browser-auto S2 path)', () => {
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];

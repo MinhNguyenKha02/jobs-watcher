@@ -49,7 +49,7 @@ const INDEED_DETAIL_HTML = `<html><body>
 </div>
 </body></html>`;
 
-describe('E2E1: Extraction Pipeline (Signal 1 → queue → scheduler → Signal 2c)', () => {
+  describe('Extraction Pipeline (Signal 1 → queue → scheduler → Signal 2c)', () => {
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
   let eqAdapter: MongoExtractionQueueAdapter;

@@ -39,7 +39,7 @@ function makeStage1Partial(overrides: any = {}): any {
   };
 }
 
-describe('E2E: Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
+  describe('Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { JobStage } from '../../../src/domain/types/job-lifecycle.js';
+import { JobStage } from '../../../../src/domain/types/job-lifecycle.js';
 
 function makeMockChannel() {
   return {
@@ -34,7 +34,7 @@ let currentJob: { jobLifecycleId: string | null; job: any; stage: string | null 
 };
 let queueMode = true;
 
-vi.mock('../../../src/presentation/tui/shared-tui-state.js', () => ({
+vi.mock('../../../../src/presentation/tui/shared-tui-state.js', () => ({
   setCurrentJob: vi.fn((id: string, job: any, stage: string) => {
     currentJob = { jobLifecycleId: id, job, stage };
   }),
@@ -63,13 +63,13 @@ function makeS34Msg(id: string, routingKey: string) {
 }
 
 describe('RabbitMqJobReader', () => {
-  let reader: import('../../../src/presentation/tui/components/RabbitMqJobReader.js').RabbitMqJobReader;
+  let reader: import('../../../../src/presentation/tui/components/RabbitMqJobReader.js').RabbitMqJobReader;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     currentJob = { jobLifecycleId: null, job: null, stage: null };
     queueMode = true;
-    const { RabbitMqJobReader } = await import('../../../src/presentation/tui/components/RabbitMqJobReader.js');
+    const { RabbitMqJobReader } = await import('../../../../src/presentation/tui/components/RabbitMqJobReader.js');
     reader = new RabbitMqJobReader('amqp://localhost');
     await reader.start();
   });

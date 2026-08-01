@@ -110,7 +110,7 @@ describe('RMQ Signal Flow Integration', { timeout: 30000 }, () => {
     expect(s3Result.job.jobLifecycleId).toBe('rmq-flow-1');
   });
 
-  it('F1: burst 12 generated messages — C1 prefetch drains all', async () => {
+  it('F1: burst 12 generated messages — s1 consumer prefetch=5 drains all', async () => {
     const received: string[] = [];
     const allReceived = new Promise<void>((resolve) => {
       conChannel.prefetch(5);

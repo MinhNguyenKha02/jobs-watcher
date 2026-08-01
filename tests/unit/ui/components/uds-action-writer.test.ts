@@ -3,16 +3,16 @@ import { mkdtempSync, writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-vi.mock('../../../src/presentation/tui/services/clipboard-getter.js', () => ({
+vi.mock('../../../../src/presentation/tui/services/clipboard-getter.js', () => ({
   clipboardGetter: vi.fn().mockResolvedValue(['<div>test clipboard</div>']),
 }));
 
 const mockPostJsonOverUds = vi.fn();
-vi.mock('../../../src/infrastructure/utils/uds-http.js', () => ({
+vi.mock('../../../../src/infrastructure/utils/uds-http.js', () => ({
   postJsonOverUds: mockPostJsonOverUds,
 }));
 
-const { UdsActionWriter } = await import('../../../src/presentation/tui/components/UdsActionWriter.js' );
+const { UdsActionWriter } = await import('../../../../src/presentation/tui/components/UdsActionWriter.js' );
 
 describe('UdsActionWriter reliability', () => {
   let tmpDir: string;
