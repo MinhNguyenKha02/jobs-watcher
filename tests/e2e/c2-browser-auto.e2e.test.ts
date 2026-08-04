@@ -21,7 +21,7 @@ import { ActionEvent } from '../../src/domain/types/action-event.js';
 import { createTestStorage } from '../helpers/create-test-storage.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
-const EXCHANGE = process.env.RABBITMQ_EXCHANGE || 'jobs.events';
+const EXCHANGE = process.env.RABBITMQ_EXCHANGE || 'jobs.events.e2e.c2';
 
 function detailHtmlFor(role: string, company: string): string {
   return `<html><body>

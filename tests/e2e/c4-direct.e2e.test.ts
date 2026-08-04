@@ -19,7 +19,7 @@ import {
 } from '../../src/presentation/tui/shared-tui-state.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
-const EXCHANGE = process.env.RABBITMQ_EXCHANGE || 'jobs.events';
+const EXCHANGE = process.env.RABBITMQ_EXCHANGE || 'jobs.events.e2e.c4';
 
 // Fresh exclusive queue bound to the desired routing keys at consume-time.
 async function setupConsumer(ch: Channel, routingKeys: string[]): Promise<{ consume: Promise<any> }> {
