@@ -45,8 +45,13 @@ export class UdsAdapter {
     return token === this.config.token;
   }
 
+  private async drain(req: http.IncomingMessage): Promise<void> {
+    for await (const _chunk of req) { /* discard */ }
+  }
+
   private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     if (!this.authenticate(req)) {
+      await this.drain(req);
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Unauthorized' }));
       return;
@@ -59,6 +64,7 @@ export class UdsAdapter {
       const isWebhook = url.includes('webhook=true');
       await this.handleIngest(req, res, isWebhook);
     } else {
+      await this.drain(req);
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Not found' }));
     }
