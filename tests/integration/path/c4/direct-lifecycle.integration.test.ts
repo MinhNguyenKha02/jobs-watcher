@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
+import { createRealDipBus, type RealDipBus } from '../../../helpers/real-dip-bus.js';
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { MongoInitializer } from '../../../../src/infrastructure/outbound/persistence/mongo-init.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
+import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
 
@@ -73,42 +75,46 @@ const DML_HTML = `<html><body>
 </div>
 </body></html>`;
 
+function mockPorts() {
+  const parseEvents: any[] = [];
+  const routingEvents: any[] = [];
+  const parseEventPort = {
+    emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
+    emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
+    emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
+  };
+  const routingPort = {
+    emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
+    emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
+    emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
+  };
+  return { parseEvents, routingEvents, parseEventPort, routingPort };
+}
+
 describe('Merged-DM — Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
-  let parseEvents: any[];
-  let routingEvents: any[];
-  let ingestor: JobIngestor;
+  let realBus: RealDipBus;
+
+  function realIngestor(): JobIngestor {
+    return new JobIngestor(adapter, realBus.parsePort, realBus.routePort);
+  }
 
   beforeAll(async () => {
     storage = await createTestStorage();
     const initializer = new MongoInitializer(storage.client, storage.dbName);
     await initializer.init();
     adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-
-    parseEvents = [];
-    routingEvents = [];
-
-    const parseEventPort = {
-      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
-      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
-      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
-
-    const routingPort = {
-      emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
-      emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
-      emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
-
-    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
+    realBus = await createRealDipBus('jobs.events.int.c4.direct-mode');
   }, 120000);
 
   afterAll(async () => {
+    await realBus.teardown();
     await storage.stop();
   });
 
-  it('Signal 2a upgrades PARTIAL_PARSED to FULL_PARSED with merged fields', async () => {
+  it('Signal 2a upgrades PARTIAL_PARSED to FULL_PARSED with merged fields — real-DIP', async () => {
+    const ingestor = realIngestor();
     const jobLifecycleId = 'e2e-2a-1';
     const partialDoc = {
       _id: jobLifecycleId,
@@ -125,9 +131,11 @@ describe('Merged-DM — Direct Mode (Signal 2a manual + Signal 2b clipboard)', (
     };
     await adapter.upsert(partialDoc as any);
 
-    const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
-
+    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DM_HTML, jobLifecycleId, undefined, new Date());
+    const compMsg = await comp.msg();
+    expect(compMsg.job).toBeDefined();
+    expect(compMsg.job._id).toBe(jobLifecycleId);
 
     const fullDoc = await adapter.findById(jobLifecycleId);
     expect(fullDoc).not.toBeNull();
@@ -137,12 +145,10 @@ describe('Merged-DM — Direct Mode (Signal 2a manual + Signal 2b clipboard)', (
     expect(fullDoc!.role).toBe('Backend Developer');
     expect(fullDoc!.salary).toBe('12,000,000 VNĐ');
     expect(fullDoc!.location).toBe('Ho Chi Minh City');
-
-    const completedEvents = parseEvents.filter(([t]) => t === 'completed');
-    expect(completedEvents.length).toBe(completedBefore + 1);
   });
 
-  it('Signal 2a with empty payload fails gracefully', async () => {
+  it('Signal 2a with empty payload fails gracefully — real-DIP', async () => {
+    const ingestor = realIngestor();
     const jobLifecycleId = 'e2e-2a-empty';
     const partialDoc = {
       _id: jobLifecycleId,
@@ -158,41 +164,42 @@ describe('Merged-DM — Direct Mode (Signal 2a manual + Signal 2b clipboard)', (
     };
     await adapter.upsert(partialDoc as any);
 
-    const failedBefore = parseEvents.filter(([t]) => t === 'failed').length;
-
+    const fail = await realBus.setup([ActionEvent.PARSE_FAILED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DM_EMPTY, jobLifecycleId, undefined, new Date());
-
-    const failedEvents = parseEvents.filter(([t]) => t === 'failed');
-    expect(failedEvents.length).toBe(failedBefore + 1);
+    const failMsg = await fail.msg();
+    expect(failMsg.jobLifecycleId).toBe(jobLifecycleId);
 
     const doc = await adapter.findById(jobLifecycleId);
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.PARTIAL_PARSED);
   });
 
-  it('Signal 2b creates new FULL_PARSED job with clip-* ID', async () => {
-    const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
+  it('Signal 2b creates new FULL_PARSED job with clip-* ID — real-DIP', async () => {
+    const ingestor = realIngestor();
     const col = storage.client.db(storage.dbName).collection('job_lifecycle');
     const docsBefore = await col.countDocuments({});
 
+    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DM_HTML_2B, undefined, undefined, new Date());
+    const compMsg = await comp.msg();
+    expect(compMsg.job).toBeDefined();
+    const clipId = compMsg.job._id;
+    expect(clipId).toMatch(/^clip-/);
 
     const docsAfter = await col.countDocuments({});
     expect(docsAfter).toBe(docsBefore + 1);
 
-    const docs = await col.find({}).sort({ createdAt: -1 }).limit(1).toArray();
-    const newDoc = docs[0];
-    expect(newDoc._id).toMatch(/^clip-/);
-    expect(newDoc.stage).toBe(JobStage.FULL_PARSED);
-    expect(newDoc.status).toBe(JobStatus.ENRICHED);
-    expect(newDoc.company).toBe('CopyJuniorCorp');
-    expect(newDoc.role).toBe('Backend Developer');
-
-    const completedEvents = parseEvents.filter(([t]) => t === 'completed');
-    expect(completedEvents.length).toBe(completedBefore + 1);
+    const newDoc = await adapter.findById(clipId);
+    expect(newDoc).not.toBeNull();
+    expect(newDoc!.stage).toBe(JobStage.FULL_PARSED);
+    expect(newDoc!.status).toBe(JobStatus.ENRICHED);
+    expect(newDoc!.company).toBe('CopyJuniorCorp');
+    expect(newDoc!.role).toBe('Backend Developer');
   });
 
   it('Signal 2b duplicate role+company silently skips', async () => {
+    const { parseEvents, parseEventPort } = mockPorts();
+    const ingestor = new JobIngestor(adapter, parseEventPort as any, { emitJobQueued: vi.fn(), emitJobTrashed: vi.fn(), emitRouteFailed: vi.fn() } as any);
     const col = storage.client.db(storage.dbName).collection('job_lifecycle');
     await col.deleteMany({});
 
@@ -215,9 +222,11 @@ describe('Merged direct-lifecycle — Direct mode [b]→[i]→S2→[j]/[d] lifec
   let storage: any;
   let dbCollection: any;
   let adapter: MongoJobLifecycleAdapter;
-  let parseEvents: any[];
-  let routingEvents: any[];
-  let ingestor: JobIngestor;
+  let realBus: RealDipBus;
+
+  function realIngestor(): JobIngestor {
+    return new JobIngestor(adapter, realBus.parsePort, realBus.routePort);
+  }
 
   beforeAll(async () => {
     storage = await createTestStorage();
@@ -225,67 +234,52 @@ describe('Merged direct-lifecycle — Direct mode [b]→[i]→S2→[j]/[d] lifec
     await initializer.init();
     adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
     dbCollection = storage.client.db(storage.dbName).collection('job_lifecycle');
-
-    parseEvents = [];
-    routingEvents = [];
-
-    const parseEventPort = {
-      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
-      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
-      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
-
-    const routingPort = {
-      emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
-      emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
-      emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
-
-    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
+    realBus = await createRealDipBus('jobs.events.int.c4.direct-lifecycle');
   }, 120000);
 
   afterAll(async () => {
+    await realBus.teardown();
     await storage.stop();
   });
 
-  it('signal2bManual creates clip-* doc and emits parse.completed (simulates [i] in direct mode)', async () => {
-    const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
+  it('signal2bManual creates clip-* doc and emits parse.completed (simulates [i] in direct mode) — real-DIP', async () => {
+    const ingestor = realIngestor();
     const docsBefore = await dbCollection.countDocuments({});
 
+    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DML_HTML);
+    const compMsg = await comp.msg();
+    expect(compMsg.job).toBeDefined();
+    const clipId = compMsg.job._id;
+    expect(clipId).toMatch(/^clip-/);
 
     const docsAfter = await dbCollection.countDocuments({});
     expect(docsAfter).toBe(docsBefore + 1);
 
-    const docs = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
-    const newDoc = docs[0];
-    expect(newDoc._id).toMatch(/^clip-/);
-    expect(newDoc.stage).toBe(JobStage.FULL_PARSED);
-    expect(newDoc.status).toBe(JobStatus.ENRICHED);
-    expect(newDoc.company).toBe('ClipDirectCorp');
-    expect(newDoc.role).toBe('Junior Backend Developer');
-
-    const completedEvents = parseEvents.filter(([t]) => t === 'completed');
-    expect(completedEvents.length).toBe(completedBefore + 1);
+    const newDoc = await adapter.findById(clipId);
+    expect(newDoc).not.toBeNull();
+    expect(newDoc!.stage).toBe(JobStage.FULL_PARSED);
+    expect(newDoc!.status).toBe(JobStatus.ENRICHED);
+    expect(newDoc!.company).toBe('ClipDirectCorp');
+    expect(newDoc!.role).toBe('Junior Backend Developer');
   });
 
-  it('signal2bManual → queue resolution: full clipboard-to-queued flow', async () => {
+  it('signal2bManual → queue resolution: full clipboard-to-queued flow — real-DIP', async () => {
+    const ingestor = realIngestor();
     const docsBefore = await dbCollection.countDocuments({});
 
+    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DML_HTML.replace(/ClipDirectCorp/g, 'ClipQueueCorp'));
+    const compMsg = await comp.msg();
+    const clipId = compMsg.job._id;
+    expect(clipId).toMatch(/^clip-/);
 
-    const docs = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
-    const clipDoc = docs[0];
-    expect(clipDoc._id).toMatch(/^clip-/);
+    const queue = await realBus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
+    await ingestor.processResolution(clipId, 'queue');
+    const queueMsg = await queue.msg();
+    expect(queueMsg.jobLifecycleId).toBe(clipId);
 
-    routingEvents.length = 0;
-
-    await ingestor.processResolution(clipDoc._id, 'queue');
-
-    const queuedEvents = routingEvents.filter(([t]) => t === 'queued');
-    expect(queuedEvents.length).toBe(1);
-
-    const routedDoc = await adapter.findById(clipDoc._id);
+    const routedDoc = await adapter.findById(clipId);
     expect(routedDoc).not.toBeNull();
     expect(routedDoc!.status).toBe(JobStatus.QUEUED);
 
@@ -293,24 +287,29 @@ describe('Merged direct-lifecycle — Direct mode [b]→[i]→S2→[j]/[d] lifec
     expect(docsAfter).toBe(docsBefore + 1);
   });
 
-  it('signal2bManual → trash resolution: full clipboard-to-trashed flow', async () => {
+  it('signal2bManual → trash resolution: full clipboard-to-trashed flow — real-DIP', async () => {
+    const ingestor = realIngestor();
+
+    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DML_HTML.replace(/ClipDirectCorp/g, 'ClipTrashCorp'));
+    const compMsg = await comp.msg();
+    const clipId = compMsg.job._id;
+    expect(clipId).toMatch(/^clip-/);
 
-    const docs = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
-    const clipDoc = docs[0];
+    const trash = await realBus.setup([ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED, ActionEvent.PARSE_FAILED]);
+    await ingestor.processResolution(clipId, 'trash');
+    const trashMsg = await trash.msg();
+    expect(trashMsg.jobLifecycleId).toBe(clipId);
+    expect(trashMsg.reason).toBe('operator:trash');
 
-    routingEvents.length = 0;
-
-    await ingestor.processResolution(clipDoc._id, 'trash');
-
-    const trashedEvents = routingEvents.filter(([t]) => t === 'trashed');
-    expect(trashedEvents.length).toBe(1);
-
-    const routedDoc = await adapter.findById(clipDoc._id);
+    const routedDoc = await adapter.findById(clipId);
     expect(routedDoc!.status).toBe(JobStatus.TRASHED);
   });
 
   it('signal2bManual duplicate role+company silently skips (no duplicate doc)', async () => {
+    const { parseEvents, parseEventPort } = mockPorts();
+    const ingestor = new JobIngestor(adapter, parseEventPort as any, { emitJobQueued: vi.fn(), emitJobTrashed: vi.fn(), emitRouteFailed: vi.fn() } as any);
+
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DML_HTML.replace(/ClipDirectCorp/g, 'DedupCorp'));
 
     const docsBefore = await dbCollection.countDocuments({});
@@ -325,24 +324,26 @@ describe('Merged direct-lifecycle — Direct mode [b]→[i]→S2→[j]/[d] lifec
     expect(completedEvents.length).toBe(completedBefore);
   });
 
-  it('signal2bManual latest-wins in direct mode (B17 fix — overwrites on second call)', async () => {
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DML_HTML.replace(/ClipDirectCorp/g, 'FirstCo'));
+  it('signal2bManual latest-wins in direct mode (B17 fix — overwrites on second call) — real-DIP', async () => {
+    const ingestor = realIngestor();
 
-    const docs1 = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
-    const firstDoc = docs1[0];
+    const comp1 = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DML_HTML.replace(/ClipDirectCorp/g, 'FirstCo'));
+    const comp1Msg = await comp1.msg();
+    const firstId = comp1Msg.job._id;
+    expect(firstId).toMatch(/^clip-/);
+
+    const firstDoc = await dbCollection.findOne({ _id: firstId });
     expect(firstDoc.company).toBe('FirstCo');
 
-    parseEvents.length = 0;
-    routingEvents.length = 0;
-
+    const comp2 = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DML_HTML.replace(/ClipDirectCorp/g, 'SecondCo'));
+    const comp2Msg = await comp2.msg();
+    const secondId = comp2Msg.job._id;
+    expect(secondId).toMatch(/^clip-/);
 
-    const docs2 = await dbCollection.find({}).sort({ createdAt: -1 }).limit(1).toArray();
-    const secondDoc = docs2[0];
+    const secondDoc = await dbCollection.findOne({ _id: secondId });
     expect(secondDoc.company).toBe('SecondCo');
-    expect(secondDoc._id).not.toBe(firstDoc._id);
-
-    const completedEvents = parseEvents.filter(([t]) => t === 'completed');
-    expect(completedEvents.length).toBe(1);
+    expect(secondId).not.toBe(firstId);
   });
 });

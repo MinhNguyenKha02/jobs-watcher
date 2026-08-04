@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import os from 'node:os';
+import path from 'node:path';
 import amqplib, { type Channel, type Connection } from 'amqplib';
 import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { MongoInitializer } from '../../src/infrastructure/outbound/persistence/mongo-init.js';
@@ -8,10 +10,12 @@ import { RabbitMqRoutingAdapter } from '../../src/infrastructure/outbound/rabbit
 import { MetricsRegistry } from '../../src/infrastructure/outbound/monitoring/metrics-registry.js';
 import { Registry } from 'prom-client';
 import { JobIngestor } from '../../src/application/ingestor.js';
-import { JobStage, JobStatus, JobSource } from '../../src/domain/types/job-lifecycle.js';
+import { JobStage, JobStatus } from '../../src/domain/types/job-lifecycle.js';
 import { ActionEvent } from '../../src/domain/types/action-event.js';
 import { createTestStorage } from '../helpers/create-test-storage.js';
 import { detailHtmlFor } from '../helpers/html-fixtures.js';
+import { UdsAdapter } from '../../src/infrastructure/inbound/uds/uds-adapter.js';
+import { postJsonOverUds } from '../../src/infrastructure/utils/uds-http.js';
 import {
   setQueueMode,
   getQueueMode,
@@ -20,6 +24,22 @@ import {
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 const EXCHANGE = process.env.RABBITMQ_EXCHANGE || 'jobs.events.e2e.c4';
+const INTERNAL_TOKEN = 'c4-e2e-token';
+
+function udsHelpers(socketPath: string) {
+  return {
+    ingest: (html: string) =>
+      postJsonOverUds(
+        { socketPath, path: '/internal/ingest', headers: { 'x-internal-token': INTERNAL_TOKEN } },
+        { html },
+      ),
+    action: (jobLifecycleId: string, action: string) =>
+      postJsonOverUds(
+        { socketPath, path: '/internal/action', headers: { 'x-internal-token': INTERNAL_TOKEN } },
+        { jobLifecycleId, action },
+      ),
+  };
+}
 
 // Fresh exclusive queue bound to the desired routing keys at consume-time.
 async function setupConsumer(ch: Channel, routingKeys: string[]): Promise<{ consume: Promise<any> }> {
@@ -48,6 +68,8 @@ describe('C4 direct e2e — [b] direct mode → [i] clipboard ingest → fully j
   let rmqConnection: RabbitMqConnection;
   let ingestor: JobIngestor;
   let adapter: MongoJobLifecycleAdapter;
+  let udsAdapter: UdsAdapter;
+  let uds: ReturnType<typeof udsHelpers>;
   let firstJobId: string;
 
   const extractionQueue = {
@@ -81,10 +103,16 @@ describe('C4 direct e2e — [b] direct mode → [i] clipboard ingest → fully j
       new MetricsRegistry(new Registry()),
     );
 
+    const socketPath = path.join(os.tmpdir(), 'c4-e2e-uds.sock');
+    uds = udsHelpers(socketPath);
+    udsAdapter = new UdsAdapter(ingestor, { socketPath, token: INTERNAL_TOKEN });
+    await udsAdapter.start();
+
     resetState();
   }, 120000);
 
   afterAll(async () => {
+    try { await udsAdapter?.stop(); } catch {}
     try { await rmqConnection.disconnect(); } catch {}
     try { await pubCh.close(); } catch {}
     try { await conCh.close(); } catch {}
@@ -104,9 +132,11 @@ describe('C4 direct e2e — [b] direct mode → [i] clipboard ingest → fully j
     setQueueMode(false);
     expect(getQueueMode()).toBe(false);
 
-    // [i]: direct clipboard ingest (signal2b) → fully-parsed ENRICHED job + PARSE_COMPLETED event.
+    // [i]: direct clipboard ingest (signal2b) → fully-parsed ENRICHED job + PARSE_COMPLETED event,
+    // injected through the real UdsAdapter (`POST /internal/ingest`).
     const comp = await setupConsumer(conCh, [ActionEvent.PARSE_COMPLETED]);
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Backend Engineer', 'C4DirectCo'));
+    const iRes = await uds.ingest(detailHtmlFor('Backend Engineer', 'C4DirectCo'));
+    expect(iRes.statusCode).toBe(200);
     const compMsg = await comp.consume;
 
     expect(compMsg.job).toBeDefined();
@@ -122,9 +152,11 @@ describe('C4 direct e2e — [b] direct mode → [i] clipboard ingest → fully j
     expect(stored!.status).toBe(JobStatus.ENRICHED);
     expect(stored!.source).toBe('manual');
 
-    // [d]: trash the fully-parsed job → TRASHED event + TRASHED doc.
+    // [d]: trash the fully-parsed job → TRASHED event + TRASHED doc,
+    // injected through the real UdsAdapter (`POST /internal/action`).
     const trash = await setupConsumer(conCh, [ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED, ActionEvent.PARSE_FAILED]);
-    await ingestor.processResolution(firstJobId, 'trash');
+    const dRes = await uds.action(firstJobId, 'trash');
+    expect(dRes.statusCode).toBe(200);
     const trashMsg = await trash.consume;
     expect(trashMsg.jobLifecycleId).toBe(firstJobId);
     expect(trashMsg.reason).toBe('operator:trash');
@@ -135,7 +167,8 @@ describe('C4 direct e2e — [b] direct mode → [i] clipboard ingest → fully j
 
     // Next cycle: a second direct ingest still works after the trash.
     const comp2 = await setupConsumer(conCh, [ActionEvent.PARSE_COMPLETED]);
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Data Engineer', 'C4DirectCo2'));
+    const i2Res = await uds.ingest(detailHtmlFor('Data Engineer', 'C4DirectCo2'));
+    expect(i2Res.statusCode).toBe(200);
     const comp2Msg = await comp2.consume;
     expect(comp2Msg.job._id).toMatch(/^clip-/);
     expect(comp2Msg.job._id).not.toBe(firstJobId);

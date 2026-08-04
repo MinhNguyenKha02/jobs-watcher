@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
+import { createRealDipBus, type RealDipBus } from '../../../helpers/real-dip-bus.js';
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { MongoExtractionQueueAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
 import { ExtractionScheduler } from '../../../../src/application/extraction-scheduler.js';
 import { MetricsRegistry } from '../../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
+import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
 
@@ -40,11 +42,17 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
+  let realBus: RealDipBus;
+
+  function realIngestor(): JobIngestor {
+    return new JobIngestor(adapter, realBus.parsePort, realBus.routePort);
+  }
 
   beforeAll(async () => {
     storage = await createTestStorage();
     adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
     colection = storage.client.db(storage.dbName).collection('job_lifecycle');
+    realBus = await createRealDipBus('jobs.events.int.c3');
 
     parseEvents = [];
     routingEvents = [];
@@ -65,6 +73,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
   }, 120000);
 
   afterAll(async () => {
+    await realBus.teardown();
     await storage.stop();
   });
 
@@ -73,9 +82,9 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     routingEvents.length = 0;
   });
 
-  it('s2 parse failure (s4a) then next s1 succeeds', async () => {
+  it('s2 parse failure (s4a) then next s1 succeeds — real-DIP', async () => {
     const failedJobId = 'cycle-fail-1';
-    const nextJobId = 'cycle-next-1';
+    const ingestor = realIngestor();
 
     const partialDoc = {
       _id: failedJobId,
@@ -91,12 +100,10 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     };
     await adapter.upsert(partialDoc as any);
 
-    const failedBefore = parseEvents.filter(([t]) => t === 'failed').length;
-
+    const fail = await realBus.setup([ActionEvent.PARSE_FAILED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', failedJobId);
-
-    const failedEvents = parseEvents.filter(([t]) => t === 'failed');
-    expect(failedEvents.length).toBe(failedBefore + 1);
+    const failMsg = await fail.msg();
+    expect(failMsg.jobLifecycleId).toBe(failedJobId);
 
     const failedDoc = await adapter.findById(failedJobId);
     expect(failedDoc).not.toBeNull();
@@ -104,23 +111,21 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
       expect(failedDoc.status).toBe(JobStatus.ENRICHING);
     }
 
-    const genBefore = parseEvents.filter(([t]) => t === 'generated').length;
+    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Junior Developer', 'NextCorp'));
+    const compMsg = await comp.msg();
+    expect(compMsg.job).toBeDefined();
+    expect(compMsg.job.company).toBe('NextCorp');
+    expect(compMsg.job._id).toMatch(/^clip-/);
 
-    const genEvents = parseEvents.filter(([t]) => t === 'generated');
-    expect(genEvents.length).toBe(genBefore);
-    const completedEvents = parseEvents.filter(([t]) => t === 'completed');
-    expect(completedEvents.length).toBeGreaterThanOrEqual(1);
-
-    const col = colection;
-    const nextDocs = await col.find({ _id: { $regex: /^clip-/ } }).toArray();
+    const nextDocs = await colection.find({ _id: { $regex: /^clip-/ } }).toArray();
     expect(nextDocs.length).toBeGreaterThanOrEqual(1);
     expect(nextDocs[0].company).toBe('NextCorp');
   });
 
-  it('route failure (s4b) then next s1 succeeds', async () => {
+  it('route failure (s4b) then next s1 succeeds — real-DIP', async () => {
     const routeFailId = 'cycle-route-fail-1';
-    const routeNextId = 'cycle-route-next-1';
+    const ingestor = realIngestor();
 
     const fullDoc = {
       _id: routeFailId,
@@ -136,46 +141,41 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     };
     await adapter.upsert(fullDoc as any);
 
-    const routeFailedBefore = routingEvents.filter(([t]) => t === 'failed').length;
-
     vi.spyOn(adapter, 'updateStage').mockRejectedValueOnce(new Error('DB write conflict'));
 
+    const fail = await realBus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
     await ingestor.processResolution(routeFailId, 'queue');
+    const failMsg = await fail.msg();
+    expect(failMsg.jobLifecycleId).toBe(routeFailId);
+    expect(failMsg.reason).toBe('DB write conflict');
 
     vi.restoreAllMocks();
 
-    const routeFailedEvents = routingEvents.filter(([t]) => t === 'failed');
-    expect(routeFailedEvents.length).toBeGreaterThan(routeFailedBefore);
-
-    const genBefore = parseEvents.filter(([t]) => t === 'generated').length;
+    const gen = await realBus.setup([ActionEvent.GENERATED]);
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'NextAfterRouteFail'), undefined, { messageId: 'next-after-route-fail' });
-
-    const genEvents = parseEvents.filter(([t]) => t === 'generated');
-    expect(genEvents.length).toBeGreaterThan(genBefore);
+    const genMsg = await gen.msg();
+    expect(genMsg.company).toBe('NextAfterRouteFail');
   });
 
-  it('s2 enrichment then s3 failure then next s1 dequeues', async () => {
-    const enrichJobId = 'cycle-enrich-1';
+  it('s2 enrichment then s3 failure then next s1 dequeues — real-DIP', async () => {
+    const ingestor = realIngestor();
 
+    const gen = await realBus.setup([ActionEvent.GENERATED]);
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'EnrichCo'), undefined, { messageId: 'enrich-msg' });
-
-    const genEvents = parseEvents.filter(([t]) => t === 'generated');
-    const s1Job = genEvents[genEvents.length - 1];
-    const s1JoblifecycleId = s1Job?.[1]?._id;
+    const genMsg = await gen.msg();
+    const s1JoblifecycleId = genMsg._id;
     expect(s1JoblifecycleId).toBeTruthy();
 
+    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'EnrichCo'), s1JoblifecycleId);
+    const compMsg = await comp.msg();
+    expect(compMsg.job).toBeDefined();
+    expect(compMsg.job._id).toBe(s1JoblifecycleId);
 
-    const completedEvents = parseEvents.filter(([t]) => t === 'completed');
-    const lastCompleted = completedEvents[completedEvents.length - 1];
-    expect(lastCompleted).toBeDefined();
-    expect(lastCompleted[1]._id).toBe(s1JoblifecycleId);
-
-    const nextGenBefore = parseEvents.filter(([t]) => t === 'generated').length;
+    const nextGen = await realBus.setup([ActionEvent.GENERATED]);
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'KeepCo'), undefined, { messageId: 'keep-msg' });
-
-    const nextGenEvents = parseEvents.filter(([t]) => t === 'generated');
-    expect(nextGenEvents.length).toBeGreaterThan(nextGenBefore);
+    const nextGenMsg = await nextGen.msg();
+    expect(nextGenMsg.company).toBe('KeepCo');
   });
 
   it('consecutive S2 failures: each emits parse.failed (rate test)', async () => {
@@ -257,7 +257,8 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
   });
 
 
-  it('signal2aManual with jobLifecycleId processes valid HTML successfully', async () => {
+  it('signal2aManual with jobLifecycleId processes valid HTML successfully — real-DIP', async () => {
+    const ingestor = realIngestor();
     const docId = 'b9-integration-job';
     const partialDoc = {
       _id: docId,
@@ -273,12 +274,12 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     };
     await adapter.upsert(partialDoc as any);
 
-    const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
-
+    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'B9IntegCo'), docId);
-
-    const completedAfter = parseEvents.filter(([t]) => t === 'completed').length;
-    expect(completedAfter).toBeGreaterThan(completedBefore);
+    const compMsg = await comp.msg();
+    expect(compMsg.job).toBeDefined();
+    expect(compMsg.job._id).toBe(docId);
+    expect(compMsg.job.company).toBe('B9IntegCo');
   });
 });
 
@@ -378,57 +379,43 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
 
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
-  let parseEvents: any[];
-  let routingEvents: any[];
-  let ingestor: any;
+  let realBus: RealDipBus;
+
+  function realIngestor(): JobIngestor {
+    return new JobIngestor(adapter, realBus.parsePort, realBus.routePort);
+  }
 
   beforeAll(async () => {
     storage = await createTestStorage();
     adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-
-    parseEvents = [];
-    routingEvents = [];
-
-    const parseEventPort = {
-      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); }),
-      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); }),
-      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); }),
-    };
-
-    const routingPort = {
-      emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
-      emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
-      emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
-
-    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
+    realBus = await createRealDipBus('jobs.events.int.c3.reliability');
   }, 120000);
 
   afterAll(async () => {
+    await realBus.teardown();
     await storage.stop();
   });
 
-  beforeEach(() => {
-    parseEvents.length = 0;
-    routingEvents.length = 0;
-  });
+  it('S2 parse.failed → S1 next job: emits s4a then s1 for new job — real-DIP', async () => {
+    const ingestor = realIngestor();
 
-  it('S2 parse.failed → S1 next job: emits s4a then s1 for new job', async () => {
+    const fail = await realBus.setup([ActionEvent.PARSE_FAILED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'job-fail-s4a');
+    const failMsg = await fail.msg();
+    expect(failMsg.jobLifecycleId).toBe('job-fail-s4a');
 
-    const failedEvents = parseEvents.filter(([t]) => t === 'failed');
-    expect(failedEvents.length).toBe(1);
-
+    const gen = await realBus.setup([ActionEvent.GENERATED]);
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'AlphaCo'), undefined, { messageId: 'job-after-s4a' });
+    const genMsg = await gen.msg();
+    expect(genMsg.company).toBe('AlphaCo');
 
-    const generatedEvents = parseEvents.filter(([t]) => t === 'generated');
-    expect(generatedEvents.length).toBe(1);
     const doc = await adapter.findById('job-after-s4a-job-0');
     expect(doc).not.toBeNull();
     expect(doc!.stage).toBe(JobStage.PARTIAL_PARSED);
   });
 
-  it('S3 route.failed → S1 next job: emits s4b then s1 for new job', async () => {
+  it('S3 route.failed → S1 next job: emits s4b then s1 for new job — real-DIP', async () => {
+    const ingestor = realIngestor();
     const doc = {
       _id: 'job-fail-s4b',
       raw: '<html>test</html>',
@@ -444,24 +431,27 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
     await adapter.upsert(doc);
     vi.spyOn(adapter, 'updateStage').mockRejectedValueOnce(new Error('DB write timeout'));
 
+    const fail = await realBus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
     await ingestor.processResolution('job-fail-s4b', 'queue');
-
-    const failedRoutingEvents = routingEvents.filter(([t]) => t === 'failed');
-    expect(failedRoutingEvents.length).toBe(1);
+    const failMsg = await fail.msg();
+    expect(failMsg.jobLifecycleId).toBe('job-fail-s4b');
+    expect(failMsg.reason).toBe('DB write timeout');
 
     vi.restoreAllMocks();
 
+    const gen = await realBus.setup([ActionEvent.GENERATED]);
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'BetaCo'), undefined, { messageId: 'job-after-s4b' });
-
-    const generatedEvents = parseEvents.filter(([t]) => t === 'generated');
-    expect(generatedEvents.length).toBe(1);
+    const genMsg = await gen.msg();
+    expect(genMsg.company).toBe('BetaCo');
   });
 
-  it('S2 parse.failed (empty html) then S2a manual succeeds for different job', async () => {
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'job-s4-empty');
+  it('S2 parse.failed (empty html) then S2a manual succeeds for different job — real-DIP', async () => {
+    const ingestor = realIngestor();
 
-    const failBefore = parseEvents.filter(([t]) => t === 'failed').length;
-    expect(failBefore).toBe(1);
+    const fail = await realBus.setup([ActionEvent.PARSE_FAILED]);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'job-s4-empty');
+    const failMsg = await fail.msg();
+    expect(failMsg.jobLifecycleId).toBe('job-s4-empty');
 
     const partialDoc = {
       _id: 'job-s4-recover',
@@ -478,10 +468,11 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
     };
     await adapter.upsert(partialDoc);
 
+    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, makeTopCvHtml('RecoveryCo'), 'job-s4-recover');
-
-    const completedEvents = parseEvents.filter(([t]) => t === 'completed');
-    expect(completedEvents.length).toBe(1);
+    const compMsg = await comp.msg();
+    expect(compMsg.job).toBeDefined();
+    expect(compMsg.job._id).toBe('job-s4-recover');
 
     const fullDoc = await adapter.findById('job-s4-recover');
     expect(fullDoc).not.toBeNull();

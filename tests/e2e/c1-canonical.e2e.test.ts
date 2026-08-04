@@ -14,13 +14,31 @@ import { AssetProducingAdapter } from '../../src/infrastructure/outbound/asset-b
 import { MetricsRegistry } from '../../src/infrastructure/outbound/monitoring/metrics-registry.js';
 import { Registry } from 'prom-client';
 import { JobIngestor } from '../../src/application/ingestor.js';
-import { JobStage, JobStatus, JobSource } from '../../src/domain/types/job-lifecycle.js';
+import { JobStage, JobStatus } from '../../src/domain/types/job-lifecycle.js';
 import { ActionEvent } from '../../src/domain/types/action-event.js';
 import { createTestStorage } from '../helpers/create-test-storage.js';
 import { emailHtmlFor, detailHtmlFor } from '../helpers/html-fixtures.js';
+import { UdsAdapter } from '../../src/infrastructure/inbound/uds/uds-adapter.js';
+import { postJsonOverUds } from '../../src/infrastructure/utils/uds-http.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 const EXCHANGE = process.env.RABBITMQ_EXCHANGE || 'jobs.events.e2e.c1';
+const INTERNAL_TOKEN = 'c1-e2e-token';
+
+function udsHelpers(socketPath: string) {
+  return {
+    ingest: (html: string, jobLifecycleId?: string) =>
+      postJsonOverUds(
+        { socketPath, path: `/internal/ingest${jobLifecycleId ? '?webhook=true' : ''}`, headers: { 'x-internal-token': INTERNAL_TOKEN } },
+        { html, jobLifecycleId },
+      ),
+    action: (jobLifecycleId: string, action: string) =>
+      postJsonOverUds(
+        { socketPath, path: '/internal/action', headers: { 'x-internal-token': INTERNAL_TOKEN } },
+        { jobLifecycleId, action },
+      ),
+  };
+}
 
 // Fresh exclusive queue bound to the desired routing keys at consume-time.
 async function setupConsumer(ch: Channel, routingKeys: string[]): Promise<{ consume: Promise<any> }> {
@@ -96,6 +114,8 @@ describe('C1 canonical e2e — webhook msg → s1 → [o]/[p]/[c] → fully job 
   let adapter: MongoJobLifecycleAdapter;
   let webhook: WebhookAdapter;
   let assetAdapter: TempDirAssetAdapter;
+  let udsAdapter: UdsAdapter;
+  let uds: ReturnType<typeof udsHelpers>;
   let tempDir: string;
 
   const gmail = {
@@ -139,9 +159,15 @@ describe('C1 canonical e2e — webhook msg → s1 → [o]/[p]/[c] → fully job 
       webhook.start(webhookPort, webhookPath);
       setTimeout(resolve, 250);
     });
+
+    const socketPath = path.join(os.tmpdir(), 'c1-e2e-uds.sock');
+    uds = udsHelpers(socketPath);
+    udsAdapter = new UdsAdapter(ingestor, { socketPath, token: INTERNAL_TOKEN });
+    await udsAdapter.start();
   }, 120000);
 
   afterAll(async () => {
+    try { if (udsAdapter) await udsAdapter.stop(); } catch {}
     try { if (webhook) await webhook.stop(); } catch {}
     try { await rmqConnection.disconnect(); } catch {}
     try { await conCh.close(); } catch {}
@@ -166,9 +192,11 @@ describe('C1 canonical e2e — webhook msg → s1 → [o]/[p]/[c] → fully job 
     expect(s1Doc).not.toBeNull();
     expect(s1Doc!.status).toBe(JobStatus.ENRICHING);
 
-    // [o]/[p]/[c]: stage-2 full parse of the job detail → PARSE_COMPLETED + ENRICHED.
+    // [o]/[p]/[c]: stage-2 full parse of the job detail → PARSE_COMPLETED + ENRICHED,
+    // injected through the real UdsAdapter (`POST /internal/ingest?webhook=true`).
     const comp = await setupConsumer(conCh, [ActionEvent.PARSE_COMPLETED]);
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Software Engineer', 'C1CanonicalCo'), jobLifecycleId);
+    const cRes = await uds.ingest(detailHtmlFor('Software Engineer', 'C1CanonicalCo'), jobLifecycleId);
+    expect(cRes.statusCode).toBe(200);
 
     const compMsg = await comp.consume;
     expect(compMsg.job).toBeDefined();
@@ -176,9 +204,11 @@ describe('C1 canonical e2e — webhook msg → s1 → [o]/[p]/[c] → fully job 
     expect(compMsg.job.stage).toBe(JobStage.FULL_PARSED);
     expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
 
-    // [j]: operator queues the fully-parsed job → QUEUED event + real asset pdf generated.
+    // [j]: operator queues the fully-parsed job → QUEUED event + real asset pdf,
+    // injected through the real UdsAdapter (`POST /internal/action`).
     const queue = await setupConsumer(conCh, [ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
-    await ingestor.processResolution(jobLifecycleId, 'queue');
+    const jRes = await uds.action(jobLifecycleId, 'queue');
+    expect(jRes.statusCode).toBe(200);
 
     const queueMsg = await queue.consume;
     expect(queueMsg.jobLifecycleId).toBe(jobLifecycleId);

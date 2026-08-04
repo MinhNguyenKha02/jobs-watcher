@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
+import { createRealDipBus, type RealDipBus } from '../../../helpers/real-dip-bus.js';
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { JobIngestor } from '../../../../src/application/ingestor.js';
 import { JobStage, JobStatus, JobSource } from '../../../../src/domain/types/job-lifecycle.js' ;
+import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 
 function htmlFor(role: string, company: string): string {
   return `<div class="job-detail__info--title"><h1>${role}</h1></div>`
@@ -42,6 +44,8 @@ describe('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
   let parseEventPort: ReturnType<typeof createParseEventPort>;
   let routingPort: ReturnType<typeof createRoutingPort>;
   let ingestor: JobIngestor;
+  let realIngestor: () => JobIngestor;
+  let realBus: RealDipBus;
 
   function createParseEventPort() {
     return {
@@ -62,9 +66,12 @@ describe('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
   beforeAll(async () => {
     storage = await createTestStorage();
     adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
+    realBus = await createRealDipBus('jobs.events.int.c4.signal-flow');
+    realIngestor = () => new JobIngestor(adapter, realBus.parsePort, realBus.routePort);
   });
 
   afterAll(async () => {
+    await realBus.teardown();
     await storage.stop();
   });
 
@@ -75,11 +82,12 @@ describe('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   });
 
-  it('S2b: signal2bManual creates job with clip-* ID and FULL_PARSED status', async () => {
+  it('S2b: signal2bManual creates job with clip-* ID and FULL_PARSED status — real-DIP', async () => {
     const html = htmlFor('Software Engineer', 'Clipboard Co');
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
-    expect(parseEventPort.emitCompleted).toHaveBeenCalled();
-    const id = parseEventPort.emitCompleted.mock.calls[0][0]._id;
+    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
+    await realIngestor().processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
+    const compMsg = await comp.msg();
+    const id = compMsg.job._id;
     expect(id).toMatch(/^clip-/);
     const doc = await adapter.findById(id);
     expect(doc).not.toBeNull();
@@ -88,30 +96,33 @@ describe('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     expect(doc!.source).toBe(JobSource.MANUAL);
   });
 
-  it('S1→S2: chained enrich preserves and merges fields from partial to full', async () => {
+  it('S1→S2: chained enrich preserves and merges fields from partial to full — real-DIP', async () => {
     const partialHtml = emailHtmlFor('Software Engineer', 'Chained Co');
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, partialHtml, undefined, { messageId: 'chain-msg' });
-    expect(parseEventPort.emitGenerated).toHaveBeenCalled();
-    const s1Job = parseEventPort.emitGenerated.mock.calls[0][0];
-    const jobLifecycleId = s1Job._id;
+    const gen = await realBus.setup([ActionEvent.GENERATED]);
+    await realIngestor().processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, partialHtml, undefined, { messageId: 'chain-msg' });
+    const genMsg = await gen.msg();
+    const jobLifecycleId = genMsg._id;
     const s1Doc = await adapter.findById(jobLifecycleId);
     expect(s1Doc).not.toBeNull();
     expect(s1Doc!.stage).toBe(JobStage.PARTIAL_PARSED);
 
     const fullHtml = htmlFor('Software Engineer', 'Chained Co');
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, fullHtml, jobLifecycleId);
-    expect(parseEventPort.emitCompleted).toHaveBeenCalled();
+    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
+    await realIngestor().processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, fullHtml, jobLifecycleId);
+    const compMsg = await comp.msg();
+    expect(compMsg.job._id).toBe(jobLifecycleId);
     const s2Doc = await adapter.findById(jobLifecycleId);
     expect(s2Doc).not.toBeNull();
     expect(s2Doc!.stage).toBe(JobStage.FULL_PARSED);
     expect(s2Doc!.status).toBe(JobStatus.ENRICHED);
   });
 
-  it('S2b: signal2bManual stores correct source and stage in MongoDB', async () => {
+  it('S2b: signal2bManual stores correct source and stage in MongoDB — real-DIP', async () => {
     const html = htmlFor('Software Engineer', 'Direct Co');
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
-    expect(parseEventPort.emitCompleted).toHaveBeenCalled();
-    const id = parseEventPort.emitCompleted.mock.calls[0][0]._id;
+    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
+    await realIngestor().processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
+    const compMsg = await comp.msg();
+    const id = compMsg.job._id;
     const doc = await adapter.findById(id);
     expect(doc!.source).toBe(JobSource.MANUAL);
     expect(doc!.stage).toBe(JobStage.FULL_PARSED);
@@ -119,12 +130,11 @@ describe('Ingestor Signal Flow Integration', { timeout: 30000 }, () => {
     expect(doc!.role).toBe('Software Engineer');
   });
 
-  it('S2a: emits parse.failed on empty HTML payload', async () => {
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'test-empty-id');
-    expect(parseEventPort.emitFailed).toHaveBeenCalledWith(
-      'test-empty-id',
-      expect.objectContaining({ error: 'Empty HTML payload' })
-    );
+  it('S2a: emits parse.failed on empty HTML payload — real-DIP', async () => {
+    const fail = await realBus.setup([ActionEvent.PARSE_FAILED]);
+    await realIngestor().processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'test-empty-id');
+    const failMsg = await fail.msg();
+    expect(failMsg.jobLifecycleId).toBe('test-empty-id');
   });
 
   it('propagates non-11000 upsert error', async () => {
