@@ -5702,7 +5702,7 @@ export const relationsSource: RelationsSource = {
         [
           protocolTech.pubsub,
           protocolTech.webhooks,
-          protocolTech.unix_domain_sockets,
+          protocolTech.unix_domain_socket,
         ],
         [
           "GraphQL API",
@@ -5780,7 +5780,7 @@ export const relationsSource: RelationsSource = {
       [protocolTech.pubsub]: r(
         [
           protocolTech.webhooks,
-          protocolTech.unix_domain_sockets,
+          protocolTech.unix_domain_socket,
           protocolTech.grpc,
         ],
         [
@@ -5858,7 +5858,7 @@ export const relationsSource: RelationsSource = {
       ),
       [protocolTech.webhooks]: r(
         [
-          protocolTech.unix_domain_sockets,
+          protocolTech.unix_domain_socket,
           protocolTech.grpc,
           protocolTech.rpc,
         ],
@@ -5935,7 +5935,7 @@ export const relationsSource: RelationsSource = {
           "real-time"
         ]
       ),
-      [protocolTech.unix_domain_sockets]: r(
+      [protocolTech.unix_domain_socket]: r(
         [
           protocolTech.grpc,
           protocolTech.rpc,
@@ -6018,7 +6018,6 @@ export const relationsSource: RelationsSource = {
         [
           protocolTech.rpc,
           protocolTech.abi_interface,
-          protocolTech.sse,
         ],
         [
           "gRPC",
@@ -6096,7 +6095,6 @@ export const relationsSource: RelationsSource = {
       [protocolTech.rpc]: r(
         [
           protocolTech.abi_interface,
-          protocolTech.sse,
           languageTech.go,
         ],
         [
@@ -6174,7 +6172,6 @@ export const relationsSource: RelationsSource = {
       ),
       [protocolTech.abi_interface]: r(
         [
-          protocolTech.sse,
           languageTech.go,
           languageTech.typescript,
         ],
@@ -6249,85 +6246,6 @@ export const relationsSource: RelationsSource = {
           "system interfaces",
           "backward compatibility",
           "boundaries"
-        ]
-      ),
-      [protocolTech.sse]: r(
-        [
-          languageTech.go,
-          languageTech.typescript,
-          languageTech.javascript,
-        ],
-        [
-          "server-sent events",
-          "real-time server-sent events",
-          "streaming server-sent events",
-          "HTTP server-sent events",
-          "push server-sent events",
-          "live server-sent events",
-          "notification server-sent events",
-          "event server-sent events",
-          "browser server-sent events",
-          "server server-sent events",
-          "one-way server-sent events",
-          "continuous server-sent events",
-          "update server-sent events",
-          "Server-Sent Events integration",
-          "SSE streaming",
-          "real-time event streaming",
-          "one-way push updates",
-          "live update delivery",
-          "server push channels",
-          "event stream delivery",
-          "browser event streams",
-          "continuous updates",
-          "notification streaming",
-          "HTTP streaming",
-          "real-time notifications"
-        ],
-        [
-          "server-sent events",
-          "real-time server-sent events",
-          "streaming server-sent events",
-          "HTTP server-sent events",
-          "push server-sent events",
-          "live server-sent events",
-          "notification server-sent events",
-          "event server-sent events",
-          "browser server-sent events",
-          "server server-sent events",
-          "one-way server-sent events",
-          "continuous server-sent events",
-          "update server-sent events",
-          "tích hợp Server-Sent Events",
-          "streaming SSE",
-          "stream event real-time",
-          "cập nhật push một chiều",
-          "delivery live update",
-          "kênh server push",
-          "delivery event stream",
-          "browser event streams",
-          "cập nhật liên tục",
-          "stream thông báo",
-          "HTTP streaming",
-          "thông báo real-time"
-        ],
-        [
-          "HTTP",
-          "streams",
-          "events",
-          "real-time",
-          "notifications",
-          "push",
-          "browser",
-          "connections",
-          "latency",
-          "updates",
-          "subscriptions",
-          "delivery",
-          "server push",
-          "streaming",
-          "clients",
-          "protocols"
         ]
       ),
     },

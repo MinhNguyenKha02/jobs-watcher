@@ -3,7 +3,8 @@
 import { MatchSignal, EvidenceNode } from '../../types/retrieval.types.js';
 import { RankingFeatures, RankingFeaturesExtractor } from './ranking-features.js';
 import { rankingPolicy } from './ranking-policy.js';
-import { ResolutionStrength, classifyResolutionStrength } from '../resolution/resolution-strength.js';
+import { classifyResolutionStrength } from '../resolution/resolution-strength.js';
+import { ResolutionStrength } from '../../types/retrieval.types.js';
 import { retrievalPolicy } from '../policies/retrieval.policy.js';
 
 /**

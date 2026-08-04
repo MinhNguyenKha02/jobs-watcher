@@ -27,7 +27,6 @@ export class EvidenceFeaturesExtractor {
     const textParts = [
       evidence.summary ?? '',
       bulletTexts.join(' ') ?? '',
-      Object.values(evidence.techStack ?? {}).flat().join(' ') ?? ''
     ];
     const text = textParts.join(' ').toLowerCase();
 

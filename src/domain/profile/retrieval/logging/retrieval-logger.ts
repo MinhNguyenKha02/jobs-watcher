@@ -5,7 +5,7 @@
  * Logs lexical hits, propagation traces, acceptance decisions, and ATS exposure.
  */
 
-import { ResolutionStrength } from '../resolution/resolution-strength.js';
+import { ResolutionStrength } from "../../types/retrieval.types.js";
 
 export interface RetrievalLogEntry {
    timestamp: string;
