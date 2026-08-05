@@ -1,17 +1,18 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
+import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
+import { indeedEmailHtmlMany, indeedDetailHtml } from '../../../helpers/html-fixtures.js';
+
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
 
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
 
-const FULL_PARSED_HTML = '<html><body>' +
-  '<div class="job-detail__info--title"><h1>Backend Developer</h1></div>' +
-  '<div class="company-name-label"><a class="name">FullParsedCo</a></div>' +
-  '<div class="job-detail__body">' +
-  '<div class="job-description__item"><h3>Requirements</h3>' +
-  '<div class="job-description__item--content">TypeScript and Node.js required</div></div>' +
-  '</div></body></html>';
+const FULL_PARSED_HTML = indeedDetailHtml(
+  'Backend Developer',
+  'FullParsedCo',
+  'https://vn.indeed.com/viewjob?jk=e2e-c2-full',
+);
 
   describe('Case 2 full-parsed direct arrival (browser-auto S2 path)', () => {
   let storage: any;
@@ -29,17 +30,9 @@ const FULL_PARSED_HTML = '<html><body>' +
     parseEvents = [];
     routingEvents = [];
 
-    const parseEventPort = {
-      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
-      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
-      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
+    const parseEventPort = createParseEventPort((tag, args) => parseEvents.push([tag, ...args]));
 
-    const routingPort = {
-      emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
-      emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
-      emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
+    const routingPort = createRoutingPort((tag, args) => routingEvents.push([tag, ...args]));
 
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
@@ -51,11 +44,7 @@ const FULL_PARSED_HTML = '<html><body>' +
   beforeEach(async () => {
     parseEvents.length = 0;
     routingEvents.length = 0;
-    const db = storage.client.db(storage.dbName);
-    const cols = await db.listCollections().toArray();
-    for (const col of cols) {
-      await db.collection(col.name).deleteMany({});
-    }
+    await storage.clearDb();
   });
 
   it('T2a: S2 via BROWSER_AUTO→[j] queue (no S1 needed, full already)', async () => {
@@ -119,7 +108,7 @@ const FULL_PARSED_HTML = '<html><body>' +
     const messageId = 'e2e-c2-merged';
     const jobLifecycleId = `${messageId}-job-0`;
 
-    const emailHtml = `<html><body><a class="job-item-link" href="/viec-lam/backend-developer"><div class="topcv-job-item"><div class="title"><span>Backend Developer</span></div><div class="company"><span>MergeCo</span></div></div></a><p>topcv job-item</p></body></html>`;
+    const emailHtml = indeedEmailHtmlMany([{ role: 'Backend Developer', company: 'MergeCo', url: 'https://vn.indeed.com/viewjob?jk=e2e-c2-merge' }]);
 
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtml, undefined, { messageId, subject: 'Backend Developer' });
 

@@ -1,50 +1,21 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
+import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
+
 import { createRealDipBus, type RealDipBus } from '../../../helpers/real-dip-bus.js';
+import { topcvDetailHtml, nonJobHtml } from '../../../helpers/html-fixtures.js';
+import { makeStage1Partial } from '../../../helpers/test-builders.js';
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { MongoInitializer } from '../../../../src/infrastructure/outbound/persistence/mongo-init.js';
-import { getLogger } from '../../../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js' ;
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 
-const logger = getLogger();
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
-
-function htmlFor(role: string, company: string): string {
-  return '<div class="job-detail__info--title"><h1>' + role + '</h1></div>'
-    + '<div class="company-name-label"><a class="name">' + company + '</a></div>'
-    + '<div>topcv</div>'
-    + '<p>TypeScript</p>'
-    + '<div class="job-description__item"><h3>Mô tả công việc</h3>'
-    + '<div class="job-description__item--content">We need a TypeScript developer with JavaScript skills</div>'
-    + '</div>';
-}
-
-function makeNonJobHtml(): string {
-  return '<html><body><div>no job data here at all</div></body></html>';
-}
-
-function makeStage1Partial(overrides: any = {}): any {
-  return {
-    _id: overrides._id || 'test-id',
-    raw: '<html><body>partial</body></html>',
-    stage: JobStage.PARTIAL_PARSED,
-    status: JobStatus.ENRICHING,
-    source: JobSource.BROWSER_AUTO,
-    company: overrides.company || 'TestCo',
-    role: overrides.role || 'Software Engineer',
-    url: overrides.url || 'https://test.com/job',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    stageTimestamp: new Date(),
-    ...overrides,
-  };
-}
 
 describe('Clipboard ingest signal flow with real storage', () => {
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
-  let colection: any;
+  let collection: any;
   let parseEvents: any[];
   let routingEvents: any[];
   let realBus: RealDipBus;
@@ -54,7 +25,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
     const initializer = new MongoInitializer(storage.client, storage.dbName);
     await initializer.init();
     adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-    colection = storage.client.db(storage.dbName).collection('job_lifecycle');
+    collection = storage.client.db(storage.dbName).collection('job_lifecycle');
     realBus = await createRealDipBus('jobs.events.int.c1.clipboard');
 
     parseEvents = [];
@@ -67,25 +38,13 @@ describe('Clipboard ingest signal flow with real storage', () => {
   });
 
   async function clearCollections() {
-    const db = storage.client.db(storage.dbName);
-    const cols = await db.listCollections().toArray();
-    for (const col of cols) {
-      await db.collection(col.name).deleteMany({});
-    }
+    await storage.clearDb();
   }
 
   // parts-integ: mock event ports for deterministic guard/no-emit/failure-injection assertions.
   function mockIngestor(): JobIngestor {
-    const parseEventPort = {
-      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
-      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
-      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
-    const routingPort = {
-      emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
-      emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
-      emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
+    const parseEventPort = createParseEventPort((tag, args) => parseEvents.push([tag, ...args]));
+    const routingPort = createRoutingPort((tag, args) => routingEvents.push([tag, ...args]));
     return new JobIngestor(adapter, parseEventPort, routingPort);
   }
 
@@ -108,7 +67,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       await adapter.upsert(partialDoc);
 
       const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'NewCo'), jobLifecycleId);
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'NewCo'), jobLifecycleId);
 
       const compMsg = await comp.msg();
       expect(compMsg.job).toBeDefined();
@@ -141,7 +100,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const partialDoc = makeStage1Partial({ _id: jobLifecycleId });
       await adapter.upsert(partialDoc);
 
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, makeNonJobHtml(), jobLifecycleId);
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, nonJobHtml(), jobLifecycleId);
 
       const failedEvents = parseEvents.filter(([t]) => t === 'failed');
       expect(failedEvents.length).toBe(1);
@@ -152,7 +111,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const ingestor = realIngestor();
 
       const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'NoPartialCo'), 'missing-partial');
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'NoPartialCo'), 'missing-partial');
 
       const compMsg = await comp.msg();
       expect(compMsg.job).toBeDefined();
@@ -175,17 +134,17 @@ describe('Clipboard ingest signal flow with real storage', () => {
 
     it('creates new clip-* doc with FULL_PARSED from clipboard HTML — real-DIP', async () => {
       const ingestor = realIngestor();
-      const docsBefore = await colection.countDocuments({});
+      const docsBefore = await collection.countDocuments({});
 
       const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'ClipCo'));
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'ClipCo'));
 
       const compMsg = await comp.msg();
       expect(compMsg.job).toBeDefined();
       const clipId = compMsg.job._id;
       expect(clipId).toMatch(/^clip-/);
 
-      const docsAfter = await colection.countDocuments({});
+      const docsAfter = await collection.countDocuments({});
       expect(docsAfter).toBe(docsBefore + 1);
 
       const doc = await adapter.findById(clipId);
@@ -198,11 +157,11 @@ describe('Clipboard ingest signal flow with real storage', () => {
 
     it('emits parse.failed on unparsable clipboard HTML', async () => {
       const ingestor = mockIngestor();
-      const docsBefore = await colection.countDocuments({});
+      const docsBefore = await collection.countDocuments({});
 
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, makeNonJobHtml());
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, nonJobHtml());
 
-      const docsAfter = await colection.countDocuments({});
+      const docsAfter = await collection.countDocuments({});
       expect(docsAfter).toBe(docsBefore);
 
       const failedEvents = parseEvents.filter(([t]) => t === 'failed');
@@ -212,14 +171,14 @@ describe('Clipboard ingest signal flow with real storage', () => {
 
     it('silently skips duplicate role+company (MongoDB 11000)', async () => {
       const ingestor = mockIngestor();
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Unique Role', 'DedupCorp'));
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Unique Role', 'DedupCorp'));
 
-      const docsBefore = await colection.countDocuments({});
+      const docsBefore = await collection.countDocuments({});
       const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
 
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Unique Role', 'DedupCorp'));
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Unique Role', 'DedupCorp'));
 
-      const docsAfter = await colection.countDocuments({});
+      const docsAfter = await collection.countDocuments({});
       expect(docsAfter).toBe(docsBefore);
 
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
@@ -230,13 +189,13 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const ingestor = realIngestor();
 
       const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'FilterPassCo'));
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'FilterPassCo'));
 
       const compMsg = await comp.msg();
       expect(compMsg.job).toBeDefined();
       expect(compMsg.job._id).toMatch(/^clip-/);
 
-      const doc = await colection.findOne({ company: 'FilterPassCo' });
+      const doc = await collection.findOne({ company: 'FilterPassCo' });
       expect(doc).not.toBeNull();
       expect(doc!._id).toMatch(/^clip-/);
     });
@@ -255,7 +214,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       await adapter.upsert(makeStage1Partial({ _id: jobLifecycleId }));
 
       const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'QueueTestCo'), jobLifecycleId);
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'QueueTestCo'), jobLifecycleId);
       await comp.msg();
 
       const queue = await realBus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
@@ -275,7 +234,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       await adapter.upsert(makeStage1Partial({ _id: jobLifecycleId }));
 
       const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'TrashTestCo'), jobLifecycleId);
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'TrashTestCo'), jobLifecycleId);
       await comp.msg();
 
       const trash = await realBus.setup([ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED, ActionEvent.PARSE_FAILED]);
@@ -301,13 +260,13 @@ describe('Clipboard ingest signal flow with real storage', () => {
       expect(failMsg.jobLifecycleId).toBe(failedId);
 
       const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'RecoveryCo'));
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'RecoveryCo'));
 
       const compMsg = await comp.msg();
       expect(compMsg.job).toBeDefined();
       expect(compMsg.job.company).toBe('RecoveryCo');
 
-      const recoveryDoc = await colection.findOne({ company: 'RecoveryCo' });
+      const recoveryDoc = await collection.findOne({ company: 'RecoveryCo' });
       expect(recoveryDoc).not.toBeNull();
       expect(recoveryDoc!.status).toBe(JobStatus.ENRICHED);
     });
@@ -324,7 +283,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const ingestor = realIngestor();
 
       const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'ClipQueueCo'));
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'ClipQueueCo'));
 
       const compMsg = await comp.msg();
       const clipId = compMsg.job._id;
@@ -345,7 +304,7 @@ describe('Clipboard ingest signal flow with real storage', () => {
       const ingestor = realIngestor();
 
       const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'ClipTrashCo'));
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'ClipTrashCo'));
 
       const compMsg = await comp.msg();
       const clipId = compMsg.job._id;
@@ -365,12 +324,12 @@ describe('Clipboard ingest signal flow with real storage', () => {
 
     it('resolution failure on clip-* doc emits route.failed', async () => {
       const ingestor = mockIngestor();
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'FailResolutionCo'));
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'FailResolutionCo'));
 
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
       expect(completedEvents.length).toBe(1);
 
-      const col = colection;
+      const col = collection;
       const docs = await col.find({}).sort({ createdAt: -1 }).limit(1).toArray();
       const clipId = docs[0]._id;
 

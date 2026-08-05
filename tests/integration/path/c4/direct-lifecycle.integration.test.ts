@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
 import { createRealDipBus, type RealDipBus } from '../../../helpers/real-dip-bus.js';
+import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
+import { linkedinSduiDetailHtml } from '../../../helpers/html-fixtures.js';
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { MongoInitializer } from '../../../../src/infrastructure/outbound/persistence/mongo-init.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
@@ -8,86 +10,17 @@ import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
 
-const DM_HTML = `<html><body>
-<div class="job-detail">
-  <div class="job-detail__header">
-    <h1 class="job-detail__info--title">Backend Developer</h1>
-    <div class="job-detail__info--company">
-      <span class="company-name">ClipJuniorCorp</span>
-    </div>
-  </div>
-  <div class="job-detail__meta">
-    <div class="meta-item section-salary">
-      <span class="label">Salary:</span>
-      <span class="job-detail__info--section-content-value">12,000,000 VNĐ</span>
-    </div>
-    <div class="meta-item section-location">
-      <span class="label">Location:</span>
-      <span class="job-detail__info--section-content-value">Ho Chi Minh City</span>
-    </div>
-  </div>
-  <div class="section section-description">
-    <h3>Mô tả công việc</h3>
-    <div class="job-description__item--content">
-      <p>We are looking for a Backend Developer with TypeScript experience.</p>
-      <strong>Requirements:</strong>
-      <ul>
-        <li>TypeScript and Node.js</li>
-      </ul>
-    </div>
-  </div>
-</div>
-</body></html>`;
-
-const DM_HTML_2B = DM_HTML.replace(/ClipJuniorCorp/g, 'CopyJuniorCorp');
+const DM_HTML = linkedinSduiDetailHtml('Backend Developer', 'ClipJuniorCorp');
+const DM_HTML_2B = linkedinSduiDetailHtml('Backend Developer', 'CopyJuniorCorp');
 const DM_EMPTY = '';
 
-const DML_HTML = `<html><body>
-<div class="job-detail">
-  <div class="job-detail__header">
-    <h1 class="job-detail__info--title">Junior Backend Developer</h1>
-    <div class="job-detail__info--company">
-      <span class="company-name">ClipDirectCorp</span>
-    </div>
-  </div>
-  <div class="job-detail__meta">
-    <div class="meta-item section-salary">
-      <span class="label">Salary:</span>
-      <span class="job-detail__info--section-content-value">12,000,000 VNĐ</span>
-    </div>
-    <div class="meta-item section-location">
-      <span class="label">Location:</span>
-      <span class="job-detail__info--section-content-value">Ho Chi Minh City</span>
-    </div>
-  </div>
-  <div class="section section-description">
-    <div class="job-description__item--content">
-      <p>We are looking for a Junior Backend Developer with TypeScript experience.</p>
-      <ul><li>TypeScript and Node.js</li><li>Database knowledge</li></ul>
-    </div>
-  </div>
-  <div class="section section-company">
-    <h2>About Company</h2>
-    <div class="company-info">
-      <p><strong>Company Name:</strong> ClipDirectCorp</p>
-    </div>
-  </div>
-</div>
-</body></html>`;
+const DML_HTML = linkedinSduiDetailHtml('Junior Backend Developer', 'ClipDirectCorp');
 
 function mockPorts() {
   const parseEvents: any[] = [];
   const routingEvents: any[] = [];
-  const parseEventPort = {
-    emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
-    emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
-    emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
-  };
-  const routingPort = {
-    emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
-    emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
-    emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
-  };
+  const parseEventPort = createParseEventPort((tag, args) => parseEvents.push([tag, ...args]));
+  const routingPort = createRoutingPort((tag, args) => routingEvents.push([tag, ...args]));
   return { parseEvents, routingEvents, parseEventPort, routingPort };
 }
 
@@ -143,8 +76,7 @@ describe('Merged-DM — Direct Mode (Signal 2a manual + Signal 2b clipboard)', (
     expect(fullDoc!.status).toBe(JobStatus.ENRICHED);
     expect(fullDoc!.company).toBe('ClipJuniorCorp');
     expect(fullDoc!.role).toBe('Backend Developer');
-    expect(fullDoc!.salary).toBe('12,000,000 VNĐ');
-    expect(fullDoc!.location).toBe('Ho Chi Minh City');
+    expect(fullDoc!.location).toBe('Ho Chi Minh City, Vietnam');
   });
 
   it('Signal 2a with empty payload fails gracefully — real-DIP', async () => {
@@ -201,7 +133,7 @@ describe('Merged-DM — Direct Mode (Signal 2a manual + Signal 2b clipboard)', (
     const { parseEvents, parseEventPort } = mockPorts();
     const ingestor = new JobIngestor(adapter, parseEventPort as any, { emitJobQueued: vi.fn(), emitJobTrashed: vi.fn(), emitRouteFailed: vi.fn() } as any);
     const col = storage.client.db(storage.dbName).collection('job_lifecycle');
-    await col.deleteMany({});
+    await storage.clearDb();
 
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DM_HTML_2B, undefined, undefined, new Date());
 

@@ -1,11 +1,12 @@
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import fc from 'fast-check';
 import { createTestStorage } from '../../helpers/create-test-storage.js';
+import { createParseEventPort, createRoutingPort } from '../../helpers/mock-ports.js';
 import { MongoJobLifecycleAdapter } from '../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { MongoInitializer } from '../../../src/infrastructure/outbound/persistence/mongo-init.js';
 import { JobIngestor } from '../../../src/application/ingestor.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
-import { emailHtmlFor, detailHtmlFor } from '../../helpers/html-fixtures.js';
+import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
 
 const ROLES = ['Software Engineer', 'Backend Developer', 'Full Stack Developer', 'Data Engineer'];
 
@@ -26,19 +27,11 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
   }, 120000);
 
   beforeEach(async () => {
-    await dbCollection.deleteMany({});
+    await storage.clearDb();
     parseEvents = [];
     routingEvents = [];
-    const parseEventPort = {
-      emitGenerated: vi.fn(() => { parseEvents.push('generated'); return Promise.resolve(); }),
-      emitCompleted: vi.fn(() => { parseEvents.push('completed'); return Promise.resolve(); }),
-      emitFailed: vi.fn(() => { parseEvents.push('failed'); return Promise.resolve(); }),
-    };
-    const routingPort = {
-      emitJobQueued: vi.fn(() => { routingEvents.push('queued'); return Promise.resolve(); }),
-      emitJobTrashed: vi.fn(() => { routingEvents.push('trashed'); return Promise.resolve(); }),
-      emitRouteFailed: vi.fn(() => { routingEvents.push('routed_failed'); return Promise.resolve(); }),
-    };
+    const parseEventPort = createParseEventPort((tag) => parseEvents.push(tag));
+    const routingPort = createRoutingPort((tag) => routingEvents.push(tag));
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   });
 
@@ -47,13 +40,13 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
   });
 
   it('s1 pre-req invariant: s1 creates partial_parsed/enriching doc, then s2 merges to full_parsed/enriched', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'SagaAlphaCo'), undefined, { messageId: 'msg-saga-alpha' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'SagaAlphaCo' }]), undefined, { messageId: 'msg-saga-alpha' });
     const s1Doc = await adapter.findById('msg-saga-alpha-job-0');
     expect(s1Doc).not.toBeNull();
     expect(s1Doc!.stage).toBe(JobStage.PARTIAL_PARSED);
     expect(s1Doc!.status).toBe(JobStatus.ENRICHING);
 
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Software Engineer', 'SagaAlphaCo'), 'msg-saga-alpha-job-0');
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'SagaAlphaCo'), 'msg-saga-alpha-job-0');
 
     const s2Doc = await adapter.findById('msg-saga-alpha-job-0');
     expect(s2Doc).not.toBeNull();
@@ -63,7 +56,7 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
 
   it('s2(b) standalone invariant: [i] direct mode FULL_PARSED needs no s1 and produces clip-* doc + completed event', async () => {
     const before = parseEvents.filter(e => e === 'completed').length;
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Backend Developer', 'SoloCo'));
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Backend Developer', 'SoloCo'));
     const completedAfter = parseEvents.filter(e => e === 'completed').length;
     expect(completedAfter).toBe(before + 1);
 
@@ -74,7 +67,7 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
   });
 
   it('[j] queue guard invariant: queue accepted only when status ENRICHED (s2 full_parsed)', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Data Engineer', 'GuardCo'), undefined, { messageId: 'msg-guard' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Data Engineer', company: 'GuardCo' }]), undefined, { messageId: 'msg-guard' });
     const s1Id = 'msg-guard-job-0';
     const s1Doc = await adapter.findById(s1Id);
     expect(s1Doc!.status).toBe(JobStatus.ENRICHING);
@@ -88,9 +81,9 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
   });
 
   it('[j] queue accepted after s2 enrichment (status ENRICHED → QUEUED)', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'QueueCo'), undefined, { messageId: 'msg-queue-guard' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'QueueCo' }]), undefined, { messageId: 'msg-queue-guard' });
     const id = 'msg-queue-guard-job-0';
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Software Engineer', 'QueueCo'), id);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'QueueCo'), id);
 
     routingEvents.length = 0;
     await ingestor.processResolution(id, 'queue');
@@ -101,7 +94,7 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
   });
 
   it('[d] trash accepted at s1 (partial_parsed) without s2', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Web Developer', 'TrashS1Co'), undefined, { messageId: 'msg-trash-s1' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Web Developer', company: 'TrashS1Co' }]), undefined, { messageId: 'msg-trash-s1' });
     const id = 'msg-trash-s1-job-0';
 
     routingEvents.length = 0;
@@ -113,9 +106,9 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
   });
 
   it('completion invariant: s3 is terminal — replaying queue after queue is a no-op', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Backend Developer', 'TerminalCo'), undefined, { messageId: 'msg-terminal' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Backend Developer', company: 'TerminalCo' }]), undefined, { messageId: 'msg-terminal' });
     const id = 'msg-terminal-job-0';
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Backend Developer', 'TerminalCo'), id);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Backend Developer', 'TerminalCo'), id);
     await ingestor.processResolution(id, 'queue');
 
     routingEvents.length = 0;
@@ -127,9 +120,9 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
   });
 
   it('s4 invariant: trash-after-queue must not overwrite terminal QUEUED state (completion is terminal)', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Full Stack Developer', 'TerminalCo2'), undefined, { messageId: 'msg-terminal2' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Full Stack Developer', company: 'TerminalCo2' }]), undefined, { messageId: 'msg-terminal2' });
     const id = 'msg-terminal2-job-0';
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Full Stack Developer', 'TerminalCo2'), id);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Full Stack Developer', 'TerminalCo2'), id);
     await ingestor.processResolution(id, 'queue');
 
     await ingestor.processResolution(id, 'trash');
@@ -145,11 +138,10 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
   });
 
   it('s1[] many invariant: one gmail body with multiple job records creates one doc per job', async () => {
-    const multiHtml = `<html><body>
-      <a class="job-item-link" href="/a"><div class="topcv-job-item"><div class="title"><span>Software Engineer</span></div><div class="company"><span>MultiCoOne</span></div></div></a>
-      <a class="job-item-link" href="/b"><div class="topcv-job-item"><div class="title"><span>Backend Developer</span></div><div class="company"><span>MultiCoTwo</span></div></div></a>
-      <p>topcv job-item</p>
-    </body></html>`;
+    const multiHtml = topcvEmailHtmlMany([
+      { role: 'Software Engineer', company: 'MultiCoOne' },
+      { role: 'Backend Developer', company: 'MultiCoTwo' },
+    ]);
 
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, multiHtml, undefined, { messageId: 'msg-multi' });
 
@@ -158,10 +150,10 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
   });
 
   it('s2 merge invariant: s2 payload merges over s1 without losing gmailMeta', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'MergeCo'), undefined, { messageId: 'msg-merge', subject: 'merge-subject' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'MergeCo' }]), undefined, { messageId: 'msg-merge', subject: 'merge-subject' });
     const id = 'msg-merge-job-0';
 
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Software Engineer', 'MergeCo'), id);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'MergeCo'), id);
 
     const doc = await adapter.findById(id);
     expect(doc!.gmailMeta).toBeDefined();
@@ -180,7 +172,7 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
           await ingestor.processIngest(
             JobSource.BROWSER_AUTO,
             JobStage.PARTIAL_PARSED,
-            emailHtmlFor(role, `${safeCompany}${workerIdx}`),
+            topcvEmailHtmlMany([{ role, company: `${safeCompany}${workerIdx}` }]),
             undefined,
             { messageId: `prop-${workerIdx}-${role.replace(/\s+/g, '')}` },
           );
@@ -201,8 +193,8 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
         fc.constantFrom(...ROLES),
         async (role) => {
           const company = `DedupePropCo-${Math.random().toString(36).slice(2, 8)}`;
-          await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor(role, company), undefined, { messageId: 'prop-dedupe' });
-          await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor(role, company), undefined, { messageId: 'prop-dedupe' });
+          await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role, company }]), undefined, { messageId: 'prop-dedupe' });
+          await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role, company }]), undefined, { messageId: 'prop-dedupe' });
           const docs = await dbCollection.find({ role, company }).toArray();
           expect(docs.length).toBeLessThanOrEqual(1);
           return true;
@@ -213,9 +205,9 @@ describe('PRC-001 — Saga state machine invariants (property-based)', () => {
   });
 
   it('s3 completion invariant: queued doc persists stage full_parsed + status queued for asset pipeline', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'AssetSagaCo'), undefined, { messageId: 'msg-asset-saga' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'AssetSagaCo' }]), undefined, { messageId: 'msg-asset-saga' });
     const id = 'msg-asset-saga-job-0';
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Software Engineer', 'AssetSagaCo'), id);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'AssetSagaCo'), id);
     await ingestor.processResolution(id, 'queue');
 
     const doc = await adapter.findById(id);

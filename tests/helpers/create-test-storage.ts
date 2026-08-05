@@ -7,6 +7,7 @@ export async function createTestStorage(): Promise<{
   client: MongoClient;
   uri: string;
   dbName: string;
+  clearDb: () => Promise<void>;
   stop: () => Promise<void>;
 }> {
   const mongod = await getSharedMongod();
@@ -15,10 +16,18 @@ export async function createTestStorage(): Promise<{
   const client = new MongoClient(uri);
   await client.connect();
 
+  async function clearDb() {
+    const db = client.db(dbName);
+    const cols = await db.listCollections().toArray();
+    for (const col of cols) {
+      await db.collection(col.name).deleteMany({});
+    }
+  }
+
   async function stop() {
     try { await client.close(); } catch (e) {}
     await releaseSharedMongod();
   }
 
-  return { mongod, client, uri, dbName, stop };
+  return { mongod, client, uri, dbName, clearDb, stop };
 }

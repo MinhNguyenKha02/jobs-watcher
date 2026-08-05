@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import http from 'http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -10,95 +9,19 @@ import { MongoInitializer } from '../../src/infrastructure/outbound/persistence/
 import { RabbitMqConnection } from '../../src/infrastructure/outbound/rabbitmq/rabbitmq-connection.js';
 import { RabbitMqParseAdapter } from '../../src/infrastructure/outbound/rabbitmq/rabbitmq-parse-adapter.js';
 import { RabbitMqRoutingAdapter } from '../../src/infrastructure/outbound/rabbitmq/rabbitmq-route-adapter.js';
-import { AssetProducingAdapter } from '../../src/infrastructure/outbound/asset-builder/asset-producing-adapter.js';
 import { MetricsRegistry } from '../../src/infrastructure/outbound/monitoring/metrics-registry.js';
 import { Registry } from 'prom-client';
 import { JobIngestor } from '../../src/application/ingestor.js';
 import { JobStage, JobStatus } from '../../src/domain/types/job-lifecycle.js';
 import { ActionEvent } from '../../src/domain/types/action-event.js';
 import { createTestStorage } from '../helpers/create-test-storage.js';
-import { emailHtmlFor, detailHtmlFor } from '../helpers/html-fixtures.js';
+import { topcvEmailHtmlMany, topcvDetailHtml } from '../helpers/html-fixtures.js';
 import { UdsAdapter } from '../../src/infrastructure/inbound/uds/uds-adapter.js';
-import { postJsonOverUds } from '../../src/infrastructure/utils/uds-http.js';
+import { setupConsumer, udsHelpers, postJson, TempDirAssetAdapter, waitForAsset } from '../helpers/e2e-harness.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 const EXCHANGE = process.env.RABBITMQ_EXCHANGE || 'jobs.events.e2e.c1';
 const INTERNAL_TOKEN = 'c1-e2e-token';
-
-function udsHelpers(socketPath: string) {
-  return {
-    ingest: (html: string, jobLifecycleId?: string) =>
-      postJsonOverUds(
-        { socketPath, path: `/internal/ingest${jobLifecycleId ? '?webhook=true' : ''}`, headers: { 'x-internal-token': INTERNAL_TOKEN } },
-        { html, jobLifecycleId },
-      ),
-    action: (jobLifecycleId: string, action: string) =>
-      postJsonOverUds(
-        { socketPath, path: '/internal/action', headers: { 'x-internal-token': INTERNAL_TOKEN } },
-        { jobLifecycleId, action },
-      ),
-  };
-}
-
-// Fresh exclusive queue bound to the desired routing keys at consume-time.
-async function setupConsumer(ch: Channel, routingKeys: string[]): Promise<{ consume: Promise<any> }> {
-  const { queue } = await ch.assertQueue('', { exclusive: true });
-  for (const key of routingKeys) {
-    await ch.bindQueue(queue, EXCHANGE, key);
-  }
-  const consume = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Timeout waiting for message on ${EXCHANGE}:${routingKeys.join('|')}`)), 10000);
-    ch.consume(queue, (msg) => {
-      if (msg) {
-        clearTimeout(timeout);
-        ch.ack(msg);
-        resolve(JSON.parse(msg.content.toString()));
-      }
-    }, { noAck: false });
-  });
-  return { consume };
-}
-
-function postJson(port: number, pathName: string, body: unknown): Promise<{ status: number }> {
-  return new Promise((resolve, reject) => {
-    const data = JSON.stringify(body);
-    const req = http.request(
-      { host: '127.0.0.1', port, path: pathName, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } },
-      (res) => {
-        res.resume();
-        res.on('end', () => resolve({ status: res.statusCode ?? 0 }));
-      },
-    );
-    req.on('error', reject);
-    req.write(data);
-    req.end();
-  });
-}
-
-// Real AssetProducingAdapter rendering into a temp dir so the repo's ./assets is untouched.
-class TempDirAssetAdapter {
-  private inner = new AssetProducingAdapter();
-  pdfPath: string | null = null;
-  constructor(private outputDir: string) {}
-
-  async toAsset(resolved: any, _outputDir?: string) {
-    const result = await this.inner.toAsset(resolved, this.outputDir);
-    this.pdfPath = result.pdfPath ?? null;
-    return result;
-  }
-}
-
-function waitForAsset(adapter: TempDirAssetAdapter, timeoutMs = 20000): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const start = Date.now();
-    const poll = () => {
-      if (adapter.pdfPath && fs.existsSync(adapter.pdfPath)) return resolve();
-      if (Date.now() - start > timeoutMs) return reject(new Error('Timeout waiting for asset pdf'));
-      setTimeout(poll, 250);
-    };
-    poll();
-  });
-}
 
 describe('C1 canonical e2e — webhook msg → s1 → [o]/[p]/[c] → fully job → [j] → asset pdf (full system, real deps)', () => {
   const webhookPort = 18240;
@@ -121,7 +44,7 @@ describe('C1 canonical e2e — webhook msg → s1 → [o]/[p]/[c] → fully job 
   const gmail = {
     getMessage: vi.fn(async () => ({})),
     extractHeader: vi.fn((_m: unknown, name: string) => ({ Subject: 'Job Alert', From: 'jobs@topcv.vn', To: 'me@dev.vn', 'Message-ID': `thr-${messageId}` })[name] || ''),
-    extractBody: vi.fn(() => emailHtmlFor('Software Engineer', 'C1CanonicalCo')),
+    extractBody: vi.fn(() => topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'C1CanonicalCo' }])),
     getMessagesSinceHistory: vi.fn(async () => [messageId]),
   };
 
@@ -161,7 +84,7 @@ describe('C1 canonical e2e — webhook msg → s1 → [o]/[p]/[c] → fully job 
     });
 
     const socketPath = path.join(os.tmpdir(), 'c1-e2e-uds.sock');
-    uds = udsHelpers(socketPath);
+    uds = udsHelpers(socketPath, INTERNAL_TOKEN);
     udsAdapter = new UdsAdapter(ingestor, { socketPath, token: INTERNAL_TOKEN });
     await udsAdapter.start();
   }, 120000);
@@ -178,7 +101,7 @@ describe('C1 canonical e2e — webhook msg → s1 → [o]/[p]/[c] → fully job 
 
   it('full canonical cycle: webhook s1 → s2 full parse → [j] queue → real asset pdf', async () => {
     // s1: real HTTP webhook push → ingestor → GENERATED event + stored doc.
-    const gen = await setupConsumer(conCh, [ActionEvent.GENERATED]);
+    const gen = await setupConsumer(conCh, EXCHANGE, [ActionEvent.GENERATED]);
     const res = await postJson(webhookPort, webhookPath, { messageId });
     expect(res.status).toBe(202);
 
@@ -194,8 +117,8 @@ describe('C1 canonical e2e — webhook msg → s1 → [o]/[p]/[c] → fully job 
 
     // [o]/[p]/[c]: stage-2 full parse of the job detail → PARSE_COMPLETED + ENRICHED,
     // injected through the real UdsAdapter (`POST /internal/ingest?webhook=true`).
-    const comp = await setupConsumer(conCh, [ActionEvent.PARSE_COMPLETED]);
-    const cRes = await uds.ingest(detailHtmlFor('Software Engineer', 'C1CanonicalCo'), jobLifecycleId);
+    const comp = await setupConsumer(conCh, EXCHANGE, [ActionEvent.PARSE_COMPLETED]);
+    const cRes = await uds.ingest(topcvDetailHtml('Software Engineer', 'C1CanonicalCo'), jobLifecycleId);
     expect(cRes.statusCode).toBe(200);
 
     const compMsg = await comp.consume;
@@ -206,7 +129,7 @@ describe('C1 canonical e2e — webhook msg → s1 → [o]/[p]/[c] → fully job 
 
     // [j]: operator queues the fully-parsed job → QUEUED event + real asset pdf,
     // injected through the real UdsAdapter (`POST /internal/action`).
-    const queue = await setupConsumer(conCh, [ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
+    const queue = await setupConsumer(conCh, EXCHANGE, [ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
     const jRes = await uds.action(jobLifecycleId, 'queue');
     expect(jRes.statusCode).toBe(200);
 

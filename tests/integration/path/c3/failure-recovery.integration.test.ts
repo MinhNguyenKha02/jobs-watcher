@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
 import { createRealDipBus, type RealDipBus } from '../../../helpers/real-dip-bus.js';
+import { topcvEmailHtmlMany, topcvDetailHtml, linkedinSduiDetailHtml, nonJobHtml } from '../../../helpers/html-fixtures.js';
+import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
+import { makeStage1Partial, makeFullParsedDoc } from '../../../helpers/test-builders.js';
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { MongoExtractionQueueAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
 import { ExtractionScheduler } from '../../../../src/application/extraction-scheduler.js';
@@ -11,34 +14,9 @@ import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
 
 describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
-  function htmlFor(role: string, company: string): string {
-    return '<div class="job-detail__info--title"><h1>' + role + '</h1></div>'
-      + '<div class="company-name-label"><a class="name">' + company + '</a></div>'
-      + '<div>topcv</div>'
-      + '<p>TypeScript</p>'
-      + '<div class="job-description__item"><h3>Mô tả công việc</h3>'
-      + '<div class="job-description__item--content">We need a TypeScript developer with JavaScript skills</div>'
-      + '</div>';
-  }
-
-  function emailHtmlFor(role: string, company: string): string {
-    const encodedUrl = `/viec-lam/${role.toLowerCase().replace(/\s+/g, '-')}`;
-    return '<html><body>'
-      + '<a class="job-item-link" href="' + encodedUrl + '">'
-      + '<div class="topcv-job-item">'
-      + '<div class="title"><span>' + role + '</span></div>'
-      + '<div class="company"><span>' + company + '</span></div>'
-      + '<div>Hà Nội</div>'
-      + '</div>'
-      + '</a>'
-      + '<p>topcv job-item</p>'
-      + '<p>TypeScript</p>'
-      + '</body></html>';
-  }
-
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
-  let colection: any;
+  let collection: any;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
@@ -51,23 +29,15 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
   beforeAll(async () => {
     storage = await createTestStorage();
     adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-    colection = storage.client.db(storage.dbName).collection('job_lifecycle');
+    collection = storage.client.db(storage.dbName).collection('job_lifecycle');
     realBus = await createRealDipBus('jobs.events.int.c3');
 
     parseEvents = [];
     routingEvents = [];
 
-    const parseEventPort = {
-      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
-      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
-      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
+    const parseEventPort = createParseEventPort((tag, args) => parseEvents.push([tag, ...args]));
 
-    const routingPort = {
-      emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
-      emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
-      emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
+    const routingPort = createRoutingPort((tag, args) => routingEvents.push([tag, ...args]));
 
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
@@ -112,13 +82,13 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     }
 
     const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Junior Developer', 'NextCorp'));
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, linkedinSduiDetailHtml('Junior Developer', 'NextCorp'));
     const compMsg = await comp.msg();
     expect(compMsg.job).toBeDefined();
     expect(compMsg.job.company).toBe('NextCorp');
     expect(compMsg.job._id).toMatch(/^clip-/);
 
-    const nextDocs = await colection.find({ _id: { $regex: /^clip-/ } }).toArray();
+    const nextDocs = await collection.find({ _id: { $regex: /^clip-/ } }).toArray();
     expect(nextDocs.length).toBeGreaterThanOrEqual(1);
     expect(nextDocs[0].company).toBe('NextCorp');
   });
@@ -129,7 +99,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
 
     const fullDoc = {
       _id: routeFailId,
-      raw: htmlFor('Engineer', 'RouteFailCo'),
+      raw: topcvDetailHtml('Engineer', 'RouteFailCo'),
       stage: JobStage.FULL_PARSED,
       status: JobStatus.ENRICHED,
       source: JobSource.MANUAL,
@@ -152,7 +122,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     vi.restoreAllMocks();
 
     const gen = await realBus.setup([ActionEvent.GENERATED]);
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'NextAfterRouteFail'), undefined, { messageId: 'next-after-route-fail' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'NextAfterRouteFail' }]), undefined, { messageId: 'next-after-route-fail' });
     const genMsg = await gen.msg();
     expect(genMsg.company).toBe('NextAfterRouteFail');
   });
@@ -161,19 +131,19 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     const ingestor = realIngestor();
 
     const gen = await realBus.setup([ActionEvent.GENERATED]);
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'EnrichCo'), undefined, { messageId: 'enrich-msg' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'EnrichCo' }]), undefined, { messageId: 'enrich-msg' });
     const genMsg = await gen.msg();
     const s1JoblifecycleId = genMsg._id;
     expect(s1JoblifecycleId).toBeTruthy();
 
     const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'EnrichCo'), s1JoblifecycleId);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'EnrichCo'), s1JoblifecycleId);
     const compMsg = await comp.msg();
     expect(compMsg.job).toBeDefined();
     expect(compMsg.job._id).toBe(s1JoblifecycleId);
 
     const nextGen = await realBus.setup([ActionEvent.GENERATED]);
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'KeepCo'), undefined, { messageId: 'keep-msg' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'KeepCo' }]), undefined, { messageId: 'keep-msg' });
     const nextGenMsg = await nextGen.msg();
     expect(nextGenMsg.company).toBe('KeepCo');
   });
@@ -191,7 +161,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     const routeFailedAfter = routingEvents.filter(([t]) => t === 'failed').length;
     expect(routeFailedAfter).toBe(routeFailedBefore);
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'AfterRateCo'), undefined, { messageId: 'after-rate' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'AfterRateCo' }]), undefined, { messageId: 'after-rate' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBeGreaterThan(0);
@@ -227,7 +197,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     expect(routeFailedAfter).toBeGreaterThanOrEqual(routeFailedBefore + 5);
 
     // Recovery: next S1 partial processes normally
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'InterleaveRecoveryCo'), undefined, { messageId: 'interleave-recovery' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'InterleaveRecoveryCo' }]), undefined, { messageId: 'interleave-recovery' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents[genEvents.length - 1][1].company).toBe('InterleaveRecoveryCo');
@@ -238,8 +208,8 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     const jobLifecycleId = `${messageId}-job-0`;
 
     await Promise.all([
-      ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, htmlFor('Software Engineer', 'ConcurrentCo'), undefined, { messageId, subject: 'Software Engineer' }),
-      ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'ConcurrentCo'), jobLifecycleId),
+      ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvDetailHtml('Software Engineer', 'ConcurrentCo'), undefined, { messageId, subject: 'Software Engineer' }),
+      ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'ConcurrentCo'), jobLifecycleId),
     ]);
 
     // S1 should have emitted job.generated and S2 should have emitted job.parse.completed
@@ -275,7 +245,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
     await adapter.upsert(partialDoc as any);
 
     const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Software Engineer', 'B9IntegCo'), docId);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, linkedinSduiDetailHtml('Software Engineer', 'B9IntegCo'), docId);
     const compMsg = await comp.msg();
     expect(compMsg.job).toBeDefined();
     expect(compMsg.job._id).toBe(docId);
@@ -296,16 +266,8 @@ describe('Failure injection — cause-effect graph', () => {
   }, 120000);
 
   beforeEach(() => {
-    parseEventPort = {
-      emitGenerated: vi.fn(() => Promise.resolve()),
-      emitCompleted: vi.fn(() => Promise.resolve()),
-      emitFailed: vi.fn(() => Promise.resolve()),
-    };
-    routingPort = {
-      emitJobQueued: vi.fn(() => Promise.resolve()),
-      emitJobTrashed: vi.fn(() => Promise.resolve()),
-      emitRouteFailed: vi.fn(() => Promise.resolve()),
-    };
+    parseEventPort = createParseEventPort();
+    routingPort = createRoutingPort();
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   });
 
@@ -314,7 +276,7 @@ describe('Failure injection — cause-effect graph', () => {
   });
 
   it('cause: parse failure -> effect: emitFailed called (saga enters S5)', async () => {
-    const html = '<span>unparseable content without any job format markers</span>';
+    const html = nonJobHtml();
 
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, html, 'fail-parse-id');
 
@@ -322,10 +284,7 @@ describe('Failure injection — cause-effect graph', () => {
   });
 
   it('cause: routing failure -> effect: route emitFailed or saga compensation', async () => {
-    const html = '<div class="job-detail__info--title"><h1>Backend Developer</h1></div>'
-      + '<div class="company-name-label"><a class="name">RouterCo</a></div>'
-      + '<h3>Mô tả công việc</h3>'
-      + '<div class="job-description__item--content">Golang developer</div>';
+    const html = linkedinSduiDetailHtml('Backend Developer', 'RouterCo');
 
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html, 'fail-route-id');
     routingPort.emitJobQueued.mockRejectedValue(new Error('Routing unavailable'));
@@ -342,8 +301,7 @@ describe('Failure injection — cause-effect graph', () => {
   });
 
   it('cause: invalid source -> effect: ingest still processes', async () => {
-    const html = '<div class="job-detail__info--title"><h1>Any Job</h1></div>'
-      + '<div class="company-name-label"><a class="name">AnyCo</a></div>';
+    const html = topcvDetailHtml('Any Job', 'AnyCo');
 
     await expect(
       ingestor.processIngest(JobSource.MANUAL, JobStage.PARTIAL_PARSED, html, 'any-source-id'),
@@ -352,31 +310,6 @@ describe('Failure injection — cause-effect graph', () => {
 });
 
 describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
-  function makeTopCvHtml(company = 'TestCo'): string {
-    return '<div class="job-detail__info--title"><h1>Software Engineer</h1></div>'
-      + '<div class="company-name-label"><a class="name">' + company + '</a></div>'
-      + '<div>topcv</div>'
-      + '<p>TypeScript</p>'
-      + '<div class="job-description__item"><h3>Mô tả công việc</h3>'
-      + '<div class="job-description__item--content">We need a TypeScript developer with JavaScript skills</div>'
-      + '</div>';
-  }
-
-  function emailHtmlFor(role: string, company: string): string {
-    const encodedUrl = `/viec-lam/${role.toLowerCase().replace(/\s+/g, '-')}`;
-    return '<html><body>'
-      + '<a class="job-item-link" href="' + encodedUrl + '">'
-      + '<div class="topcv-job-item">'
-      + '<div class="title"><span>' + role + '</span></div>'
-      + '<div class="company"><span>' + company + '</span></div>'
-      + '<div>Hà Nội</div>'
-      + '</div>'
-      + '</a>'
-      + '<p>topcv job-item</p>'
-      + '<p>TypeScript</p>'
-      + '</body></html>';
-  }
-
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
   let realBus: RealDipBus;
@@ -405,7 +338,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
     expect(failMsg.jobLifecycleId).toBe('job-fail-s4a');
 
     const gen = await realBus.setup([ActionEvent.GENERATED]);
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'AlphaCo'), undefined, { messageId: 'job-after-s4a' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'AlphaCo' }]), undefined, { messageId: 'job-after-s4a' });
     const genMsg = await gen.msg();
     expect(genMsg.company).toBe('AlphaCo');
 
@@ -440,7 +373,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
     vi.restoreAllMocks();
 
     const gen = await realBus.setup([ActionEvent.GENERATED]);
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'BetaCo'), undefined, { messageId: 'job-after-s4b' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'BetaCo' }]), undefined, { messageId: 'job-after-s4b' });
     const genMsg = await gen.msg();
     expect(genMsg.company).toBe('BetaCo');
   });
@@ -469,7 +402,7 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
     await adapter.upsert(partialDoc);
 
     const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, makeTopCvHtml('RecoveryCo'), 'job-s4-recover');
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, linkedinSduiDetailHtml('Software Engineer', 'RecoveryCo'), 'job-s4-recover');
     const compMsg = await comp.msg();
     expect(compMsg.job).toBeDefined();
     expect(compMsg.job._id).toBe('job-s4-recover');
@@ -482,48 +415,6 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
 });
 
 describe('High-ROI sequential tests (H1-H5)', () => {
-  function htmlFor(role: string, company: string): string {
-    return '<div class="job-detail__info--title"><h1>' + role + '</h1></div>'
-      + '<div class="company-name-label"><a class="name">' + company + '</a></div>'
-      + '<div>topcv</div>'
-      + '<p>TypeScript</p>'
-      + '<div class="job-description__item"><h3>Mô tả công việc</h3>'
-      + '<div class="job-description__item--content">We need a TypeScript developer with JavaScript skills</div>'
-      + '</div>';
-  }
-
-  function emailHtmlFor(role: string, company: string): string {
-    const encodedUrl = `/viec-lam/${role.toLowerCase().replace(/\s+/g, '-')}`;
-    return '<html><body>'
-      + '<a class="job-item-link" href="' + encodedUrl + '">'
-      + '<div class="topcv-job-item">'
-      + '<div class="title"><span>' + role + '</span></div>'
-      + '<div class="company"><span>' + company + '</span></div>'
-      + '<div>Hà Nội</div>'
-      + '</div>'
-      + '</a>'
-      + '<p>topcv job-item</p>'
-      + '<p>TypeScript</p>'
-      + '</body></html>';
-  }
-
-  function makeStage1Partial(overrides: any = {}): any {
-    return {
-      _id: overrides._id || 'test-id',
-      raw: '<html><body>partial</body></html>',
-      stage: JobStage.PARTIAL_PARSED,
-      status: JobStatus.ENRICHING,
-      source: JobSource.BROWSER_AUTO,
-      company: overrides.company || 'TestCo',
-      role: overrides.role || 'Software Engineer',
-      url: overrides.url || 'https://test.com/job',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      stageTimestamp: new Date(),
-      ...overrides,
-    };
-  }
-
   let storage: any;
   let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
@@ -537,17 +428,9 @@ describe('High-ROI sequential tests (H1-H5)', () => {
     parseEvents = [];
     routingEvents = [];
 
-    const parseEventPort = {
-      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
-      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
-      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
+    const parseEventPort = createParseEventPort((tag, args) => parseEvents.push([tag, ...args]));
 
-    const routingPort = {
-      emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
-      emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
-      emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
+    const routingPort = createRoutingPort((tag, args) => routingEvents.push([tag, ...args]));
 
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
@@ -559,11 +442,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
   beforeEach(async () => {
     parseEvents.length = 0;
     routingEvents.length = 0;
-    const db = storage.client.db(storage.dbName);
-    const cols = await db.listCollections().toArray();
-    for (const col of cols) {
-      await db.collection(col.name).deleteMany({});
-    }
+    await storage.clearDb();
   });
 
   // ── H1: Rate stress — 5 sequential S1→S2→S3→S1 cycles ──────────────
@@ -575,7 +454,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       const role = 'Software Engineer';
       const company = `RateCo${i}`;
 
-      await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor(role, company), undefined, { messageId, subject: role });
+      await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role, company }]), undefined, { messageId, subject: role });
 
       const genEvents = parseEvents.filter(([t]) => t === 'generated');
       expect(genEvents.length).toBe(i + 1);
@@ -587,7 +466,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       expect(partialDoc!.stage).toBe(JobStage.PARTIAL_PARSED);
       expect(partialDoc!.status).toBe(JobStatus.ENRICHING);
 
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor(role, company), jobLifecycleId);
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml(role, company), jobLifecycleId);
 
       const completedEvents = parseEvents.filter(([t]) => t === 'completed');
       expect(completedEvents.length).toBe(i + 1);
@@ -621,7 +500,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
       role: 'Junior Dev',
     }));
 
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Junior Dev', 'DoubleCo'), jobLifecycleId);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, linkedinSduiDetailHtml('Junior Dev', 'DoubleCo'), jobLifecycleId);
 
     const completedAfterFirst = parseEvents.filter(([t]) => t === 'completed').length;
     expect(completedAfterFirst).toBe(1);
@@ -629,7 +508,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
     const firstDoc = await adapter.findById(jobLifecycleId);
     expect(firstDoc!.stage).toBe(JobStage.FULL_PARSED);
 
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Junior Dev', 'DoubleCo'), jobLifecycleId);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, linkedinSduiDetailHtml('Junior Dev', 'DoubleCo'), jobLifecycleId);
 
     const completedAfterSecond = parseEvents.filter(([t]) => t === 'completed');
     expect(completedAfterSecond.length).toBe(1);
@@ -659,7 +538,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
     const queuedDoc = await adapter.findById(jobLifecycleId);
     expect(queuedDoc!.status).toBe(JobStatus.QUEUED);
 
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Junior Dev', 'RaceCo'), jobLifecycleId);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, linkedinSduiDetailHtml('Junior Dev', 'RaceCo'), jobLifecycleId);
 
     // B2 guard: already FULL_PARSED, so no completed event
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
@@ -677,7 +556,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
   it('H4: S2 enrichment with missing stage1Partial — fallback to HTML-only parsed job', async () => {
     const jobLifecycleId = 'h4-no-partial';
 
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, htmlFor('Fallback Role', 'FallbackCo'), jobLifecycleId);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, linkedinSduiDetailHtml('Fallback Role', 'FallbackCo'), jobLifecycleId);
 
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
@@ -714,7 +593,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
 
     vi.restoreAllMocks();
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'NextCo'), undefined, { messageId: 'h5-next' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'NextCo' }]), undefined, { messageId: 'h5-next' });
 
     const genEvents = parseEvents.filter(([t]) => t === 'generated');
     expect(genEvents.length).toBe(1);
@@ -749,17 +628,9 @@ describe('Failure Recovery (fallback on extraction failure)', () => {
     parseEvents = [];
     routingEvents = [];
 
-    const parseEventPort = {
-      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
-      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
-      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
+    const parseEventPort = createParseEventPort((tag, args) => parseEvents.push([tag, ...args]));
 
-    const routingPort = {
-      emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
-      emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
-      emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
+    const routingPort = createRoutingPort((tag, args) => routingEvents.push([tag, ...args]));
 
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort, eqAdapter);
   }, 120000);

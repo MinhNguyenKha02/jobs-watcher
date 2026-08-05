@@ -11,6 +11,7 @@ import { JobIngestor } from '../../../../src/application/ingestor.js';
 import { JobStage, JobStatus, JobSource } from '../../../../src/domain/types/job-lifecycle.js';
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
+import { topcvEmailHtmlMany, topcvDetailHtml } from '../../../helpers/html-fixtures.js';
 import type { ExtractionQueuePort } from '../../../../src/application/ports/extraction-queue.port.js';
 import type { AssetProducingPort } from '../../../../src/application/ports/asset-producing.port.js';
 
@@ -21,31 +22,6 @@ const TEST_PREFIX = `rmq-ingestor-${Date.now()}`;
 const S1_QUEUE = `${TEST_PREFIX}.s1`;
 const S2_QUEUE = `${TEST_PREFIX}.s2`;
 const S3S4_QUEUE = `${TEST_PREFIX}.s3s4`;
-
-function emailHtmlFor(role: string, company: string): string {
-  const encodedUrl = `/viec-lam/${role.toLowerCase().replace(/\s+/g, '-')}`;
-  return `<html><body>
-    <a class="job-item-link" href="${encodedUrl}">
-      <div class="topcv-job-item">
-        <div class="title"><span>${role}</span></div>
-        <div class="company"><span>${company}</span></div>
-        <div>Hà Nội</div>
-        <p>TypeScript developer</p>
-      </div>
-    </a>
-    <p>topcv job-item</p>
-  </body></html>`;
-}
-
-function detailHtmlFor(role: string, company: string): string {
-  return `<div class="job-detail__info--title"><h1>${role}</h1></div>`
-    + `<div class="company-name-label"><a class="name">${company}</a></div>`
-    + '<div>topcv</div>'
-    + '<p>TypeScript</p>'
-    + '<div class="job-description__item"><h3>Mô tả công việc</h3>'
-    + '<div class="job-description__item--content">We need TypeScript developer</div>'
-    + '</div>';
-}
 
 async function setupTopology(ch: Channel): Promise<void> {
   await ch.assertExchange(EXCHANGE, 'topic', { durable: true });
@@ -140,7 +116,7 @@ describe('RMQ + Ingestor wiring', { timeout: 30000 }, () => {
   });
 
   it('S1 signal: PARTIAL_PARSED publish emits GENERATED event on RMQ', async () => {
-    const html = emailHtmlFor('Software Engineer', 'S1 Co');
+    const html = topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'S1 Co' }]);
     const msgPromise = consumeOne(conCh, S1_QUEUE);
 
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, html, undefined, {
@@ -156,7 +132,7 @@ describe('RMQ + Ingestor wiring', { timeout: 30000 }, () => {
   });
 
   it('S2 signal: MANUAL FULL_PARSED with jobLifecycleId emits PARSE_COMPLETED', async () => {
-    const partialHtml = emailHtmlFor('Software Engineer', 'S2 Co');
+    const partialHtml = topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'S2 Co' }]);
     const genPromise = consumeOne(conCh, S1_QUEUE);
 
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, partialHtml, undefined, {
@@ -165,7 +141,7 @@ describe('RMQ + Ingestor wiring', { timeout: 30000 }, () => {
     const genMsg = await genPromise;
     const jobLifecycleId = genMsg._id;
 
-    const fullHtml = detailHtmlFor('Software Engineer', 'S2 Co');
+    const fullHtml = topcvDetailHtml('Software Engineer', 'S2 Co');
     const compPromise = consumeOne(conCh, S2_QUEUE);
 
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, fullHtml, jobLifecycleId);
@@ -179,7 +155,7 @@ describe('RMQ + Ingestor wiring', { timeout: 30000 }, () => {
   });
 
   it('Queue resolution emits QUEUED event on RMQ', async () => {
-    const partialHtml = emailHtmlFor('Software Engineer', 'Queue Co');
+    const partialHtml = topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'Queue Co' }]);
     const genPromise = consumeOne(conCh, S1_QUEUE);
 
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, partialHtml, undefined, {
@@ -188,7 +164,7 @@ describe('RMQ + Ingestor wiring', { timeout: 30000 }, () => {
     const genMsg = await genPromise;
     const jobLifecycleId = genMsg._id;
 
-    const fullHtml = detailHtmlFor('Software Engineer', 'Queue Co');
+    const fullHtml = topcvDetailHtml('Software Engineer', 'Queue Co');
     const compPromise = consumeOne(conCh, S2_QUEUE);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, fullHtml, jobLifecycleId);
     await compPromise;
@@ -202,7 +178,7 @@ describe('RMQ + Ingestor wiring', { timeout: 30000 }, () => {
   });
 
   it('Trash resolution emits TRASHED event on RMQ', async () => {
-    const partialHtml = emailHtmlFor('Software Engineer', 'Trash Co');
+    const partialHtml = topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'Trash Co' }]);
     const genPromise = consumeOne(conCh, S1_QUEUE);
 
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, partialHtml, undefined, {
@@ -211,7 +187,7 @@ describe('RMQ + Ingestor wiring', { timeout: 30000 }, () => {
     const genMsg = await genPromise;
     const jobLifecycleId = genMsg._id;
 
-    const fullHtml = detailHtmlFor('Software Engineer', 'Trash Co');
+    const fullHtml = topcvDetailHtml('Software Engineer', 'Trash Co');
     const compPromise = consumeOne(conCh, S2_QUEUE);
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, fullHtml, jobLifecycleId);
     await compPromise;

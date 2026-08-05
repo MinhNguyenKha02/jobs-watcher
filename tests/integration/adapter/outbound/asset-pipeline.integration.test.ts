@@ -6,7 +6,7 @@ import { JobIngestor } from '../../../../src/application/ingestor.js';
 import { flattenJob } from '../../../../src/domain/services/flatten-job.js';
 import { ProfileInfoRetriever } from '../../../../src/domain/profile/index.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
-import { emailHtmlFor, detailHtmlFor } from '../../../helpers/html-fixtures.js';
+import { topcvEmailHtmlMany, topcvDetailHtml } from '../../../helpers/html-fixtures.js';
 
 describe('PRC-010 — Asset pipeline: s3-queued → profile IR → asset via real adapters', () => {
   let storage: Awaited<ReturnType<typeof createTestStorage>>;
@@ -40,9 +40,9 @@ describe('PRC-010 — Asset pipeline: s3-queued → profile IR → asset via rea
       emitRouteFailed: () => Promise.resolve(),
     });
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'AssetPipeCo'), undefined, { messageId: 'asset-pipe-1' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'AssetPipeCo' }]), undefined, { messageId: 'asset-pipe-1' });
     const id = 'asset-pipe-1-job-0';
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Software Engineer', 'AssetPipeCo'), id);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'AssetPipeCo'), id);
     await ingestor.processResolution(id, 'queue');
 
     const doc = await adapter.findById(id);

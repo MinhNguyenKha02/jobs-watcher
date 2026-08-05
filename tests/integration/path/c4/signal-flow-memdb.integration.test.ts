@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
 import { createRealDipBus, type RealDipBus } from '../../../helpers/real-dip-bus.js';
+import { nonJobHtml } from '../../../helpers/html-fixtures.js';
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
-import { getLogger } from '../../../../src/infrastructure/outbound/logging/logger.js' ;
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js' ;
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
-
-const logger = getLogger();
 
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
 
@@ -15,7 +13,7 @@ const now = new Date();
 function makeDoc(overrides: any): any {
   return {
     _id: overrides._id || `test-${Date.now()}`,
-    raw: overrides.raw || '<html>test</html>',
+    raw: overrides.raw || nonJobHtml(),
     stage: overrides.stage || JobStage.PARTIAL_PARSED,
     status: overrides.status || JobStatus.ENRICHING,
     source: overrides.source || JobSource.BROWSER_AUTO,

@@ -4,13 +4,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import amqplib, { type Channel, type Connection } from 'amqplib';
+import { chromium } from 'playwright-extra';
 import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { MongoInitializer } from '../../src/infrastructure/outbound/persistence/mongo-init.js';
 import { MongoExtractionQueueAdapter } from '../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
 import { RabbitMqConnection } from '../../src/infrastructure/outbound/rabbitmq/rabbitmq-connection.js';
 import { RabbitMqParseAdapter } from '../../src/infrastructure/outbound/rabbitmq/rabbitmq-parse-adapter.js';
 import { RabbitMqRoutingAdapter } from '../../src/infrastructure/outbound/rabbitmq/rabbitmq-route-adapter.js';
-import { AssetProducingAdapter } from '../../src/infrastructure/outbound/asset-builder/asset-producing-adapter.js';
 import { ExtractionScheduler } from '../../src/application/extraction-scheduler.js';
 import { PlaywrightBrowserAdapter } from '../../src/infrastructure/outbound/browser/browser-adapter.js';
 import { MetricsRegistry } from '../../src/infrastructure/outbound/monitoring/metrics-registry.js';
@@ -19,11 +19,12 @@ import { JobIngestor } from '../../src/application/ingestor.js';
 import { JobStage, JobStatus, JobSource } from '../../src/domain/types/job-lifecycle.js';
 import { ActionEvent } from '../../src/domain/types/action-event.js';
 import { createTestStorage } from '../helpers/create-test-storage.js';
+import { setupConsumer, TempDirAssetAdapter, waitForAsset } from '../helpers/e2e-harness.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 const EXCHANGE = process.env.RABBITMQ_EXCHANGE || 'jobs.events.e2e.c2';
 
-function detailHtmlFor(role: string, company: string): string {
+function topcvDetailHtml(role: string, company: string): string {
   return `<html><body>
 <div id="jobsearch-ViewjobHeader">
   <h1 data-testid="jobsearch-JobInfoHeader-title"><span>${role}</span></h1>
@@ -48,56 +49,11 @@ function detailHtmlFor(role: string, company: string): string {
 
 const hasPlaywright = (() => {
   try {
-    const { chromium } = require('playwright-extra');
     return fs.existsSync(chromium.executablePath());
   } catch {
     return false;
   }
 })();
-
-// Fresh exclusive queue bound to the desired routing keys at consume-time.
-async function setupConsumer(ch: Channel, routingKeys: string[]): Promise<{ consume: Promise<any> }> {
-  const { queue } = await ch.assertQueue('', { exclusive: true });
-  for (const key of routingKeys) {
-    await ch.bindQueue(queue, EXCHANGE, key);
-  }
-  const consume = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Timeout waiting for message on ${EXCHANGE}:${routingKeys.join('|')}`)), 10000);
-    ch.consume(queue, (msg) => {
-      if (msg) {
-        clearTimeout(timeout);
-        ch.ack(msg);
-        resolve(JSON.parse(msg.content.toString()));
-      }
-    }, { noAck: false });
-  });
-  return { consume };
-}
-
-// Real AssetProducingAdapter rendering into a temp dir so the repo's ./assets is untouched.
-class TempDirAssetAdapter {
-  private inner = new AssetProducingAdapter();
-  pdfPath: string | null = null;
-  constructor(private outputDir: string) {}
-
-  async toAsset(resolved: any, _outputDir?: string) {
-    const result = await this.inner.toAsset(resolved, this.outputDir);
-    this.pdfPath = result.pdfPath ?? null;
-    return result;
-  }
-}
-
-function waitForAsset(adapter: TempDirAssetAdapter, timeoutMs = 20000): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const start = Date.now();
-    const poll = () => {
-      if (adapter.pdfPath && fs.existsSync(adapter.pdfPath)) return resolve();
-      if (Date.now() - start > timeoutMs) return reject(new Error('Timeout waiting for asset pdf'));
-      setTimeout(poll, 250);
-    };
-    poll();
-  });
-}
 
 function startDetailServer(): Promise<{ server: http.Server; urlFor: (role: string, company: string) => string; close: () => Promise<void> }> {
   return new Promise((resolve) => {
@@ -106,7 +62,7 @@ function startDetailServer(): Promise<{ server: http.Server; urlFor: (role: stri
       const role = parsed.searchParams.get('role') || 'Backend Developer';
       const company = parsed.searchParams.get('company') || 'C2AutoCo';
       res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(detailHtmlFor(role, company));
+      res.end(topcvDetailHtml(role, company));
     });
     server.listen(0, '127.0.0.1', () => {
       const addr = server.address() as any;
@@ -209,8 +165,8 @@ describe.skipIf(!hasPlaywright)('C2 browser-auto e2e — seed s1 → real schedu
     const jobId = 'c2-auto-job-0';
     await seedPartialJob(adapter, jobId, detailServer.urlFor('Backend Developer', 'C2AutoCo'), 'Backend Developer', 'C2AutoCo');
 
-    const gen = await setupConsumer(conCh, [ActionEvent.GENERATED]);
-    const comp = await setupConsumer(conCh, [ActionEvent.PARSE_COMPLETED]);
+    const gen = await setupConsumer(conCh, EXCHANGE, [ActionEvent.GENERATED]);
+    const comp = await setupConsumer(conCh, EXCHANGE, [ActionEvent.PARSE_COMPLETED]);
 
     await eqAdapter.enqueue(jobId);
 
@@ -233,7 +189,7 @@ describe.skipIf(!hasPlaywright)('C2 browser-auto e2e — seed s1 → real schedu
     expect(s2Doc!.status).toBe(JobStatus.ENRICHED);
 
     // [j]: operator queues the fully-parsed job → QUEUED event + real asset pdf.
-    const queue = await setupConsumer(conCh, [ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
+    const queue = await setupConsumer(conCh, EXCHANGE, [ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
     await ingestor.processResolution(jobId, 'queue');
 
     const queueMsg = await queue.consume;
@@ -251,7 +207,7 @@ describe.skipIf(!hasPlaywright)('C2 browser-auto e2e — seed s1 → real schedu
     // Next pick: a second seeded job still completes after the first was routed.
     const jobId2 = 'c2-auto-job-1';
     await seedPartialJob(adapter, jobId2, detailServer.urlFor('Data Engineer', 'C2DataCo'), 'Data Engineer', 'C2DataCo');
-    const comp2 = await setupConsumer(conCh, [ActionEvent.PARSE_COMPLETED]);
+    const comp2 = await setupConsumer(conCh, EXCHANGE, [ActionEvent.PARSE_COMPLETED]);
     await eqAdapter.enqueue(jobId2);
 
     const comp2Msg = await comp2.consume;
@@ -264,7 +220,7 @@ describe.skipIf(!hasPlaywright)('C2 browser-auto e2e — seed s1 → real schedu
     const jobId = 'c2-auto-trash-0';
     await seedPartialJob(adapter, jobId, detailServer.urlFor('Backend Developer', 'C2TrashCo'), 'Backend Developer', 'C2TrashCo');
 
-    const comp = await setupConsumer(conCh, [ActionEvent.PARSE_COMPLETED]);
+    const comp = await setupConsumer(conCh, EXCHANGE, [ActionEvent.PARSE_COMPLETED]);
     await eqAdapter.enqueue(jobId);
 
     const compMsg = await comp.consume;
@@ -273,7 +229,7 @@ describe.skipIf(!hasPlaywright)('C2 browser-auto e2e — seed s1 → real schedu
     expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
 
     // [d]: trash the fully-parsed job → TRASHED event + TRASHED doc.
-    const trash = await setupConsumer(conCh, [ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED, ActionEvent.PARSE_FAILED]);
+    const trash = await setupConsumer(conCh, EXCHANGE, [ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED, ActionEvent.PARSE_FAILED]);
     await ingestor.processResolution(jobId, 'trash');
 
     const trashMsg = await trash.consume;
@@ -287,7 +243,7 @@ describe.skipIf(!hasPlaywright)('C2 browser-auto e2e — seed s1 → real schedu
     // Next cycle: a second job still completes after the trash.
     const jobId2 = 'c2-auto-trash-1';
     await seedPartialJob(adapter, jobId2, detailServer.urlFor('Data Engineer', 'C2DataTrashCo'), 'Data Engineer', 'C2DataTrashCo');
-    const comp2 = await setupConsumer(conCh, [ActionEvent.PARSE_COMPLETED]);
+    const comp2 = await setupConsumer(conCh, EXCHANGE, [ActionEvent.PARSE_COMPLETED]);
     await eqAdapter.enqueue(jobId2);
 
     const comp2Msg = await comp2.consume;

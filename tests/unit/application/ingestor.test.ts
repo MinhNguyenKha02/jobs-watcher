@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { JobIngestor } from '../../../src/application/ingestor.js';
 import { JobStage, JobStatus, JobSource } from '../../../src/domain/types/job-lifecycle.js';
+import { makeStage1Partial } from '../../helpers/test-builders.js';
 
 function mockPort() {
   return {
@@ -82,26 +83,6 @@ function makeTopCvDetailHtml(): string {
   return '<div class="job-detail__info--title"><h1>Junior Software Engineer</h1></div>'
     + '<div class="company-name-label"><a class="name">Junior Co</a></div>'
     + '<div class="section-salary"><div class="job-detail__info--section-content-value">$100k</div></div>';
-}
-
-function makeStage1Partial(overrides = {}): any {
-  return {
-    _id: 'test-id',
-    company: 'Test Co',
-    role: 'Junior Engineer',
-    description: 'TypeScript developer role',
-    location: 'Test Location',
-    url: 'https://test.com/job',
-    salary: '$100k',
-    stage: JobStage.PARTIAL_PARSED,
-    status: JobStatus.ENRICHING,
-    source: JobSource.BROWSER_AUTO,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    stageTimestamp: new Date(),
-    raw: '',
-    ...overrides,
-  };
 }
 
 describe('JobIngestor', () => {

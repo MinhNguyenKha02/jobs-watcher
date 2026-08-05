@@ -1,31 +1,24 @@
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createTestStorage } from '../../helpers/create-test-storage.js';
+import { createParseEventPort, createRoutingPort } from '../../helpers/mock-ports.js';
 import { MongoJobLifecycleAdapter } from '../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { MongoInitializer } from '../../../src/infrastructure/outbound/persistence/mongo-init.js';
 import { JobIngestor } from '../../../src/application/ingestor.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
-import { emailHtmlFor, detailHtmlFor } from '../../helpers/html-fixtures.js';
+import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
 
 describe('Idempotency — command replay', () => {
   let storage: Awaited<ReturnType<typeof createTestStorage>>;
   let adapter: MongoJobLifecycleAdapter;
   let ingestor: JobIngestor;
-  let parseEventPort: Record<string, ReturnType<typeof vi.fn>>;
-  let routingPort: Record<string, ReturnType<typeof vi.fn>>;
+  let parseEventPort: ReturnType<typeof createParseEventPort>;
+  let routingPort: ReturnType<typeof createRoutingPort>;
 
   beforeAll(async () => {
     storage = await createTestStorage();
     adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-    parseEventPort = {
-      emitGenerated: vi.fn(() => Promise.resolve()),
-      emitCompleted: vi.fn(() => Promise.resolve()),
-      emitFailed: vi.fn(() => Promise.resolve()),
-    };
-    routingPort = {
-      emitJobQueued: vi.fn(() => Promise.resolve()),
-      emitJobTrashed: vi.fn(() => Promise.resolve()),
-      emitRouteFailed: vi.fn(() => Promise.resolve()),
-    };
+    parseEventPort = createParseEventPort();
+    routingPort = createRoutingPort();
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
@@ -34,10 +27,7 @@ describe('Idempotency — command replay', () => {
   });
 
   it('replaying same processIngest with same jobLifecycleId does not duplicate in DB', async () => {
-    const html = '<div class="job-detail__info--title"><h1>Software Engineer</h1></div>'
-      + '<div class="company-name-label"><a class="name">IdempotentCo</a></div>'
-      + '<h3>Mô tả công việc</h3>'
-      + '<div class="job-description__item--content">TypeScript developer</div>';
+    const html = topcvDetailHtml('Software Engineer', 'IdempotentCo');
 
     const id = 'idempotent-db-job-1';
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, html, id);
@@ -53,10 +43,7 @@ describe('Idempotency — command replay', () => {
   });
 
   it('replaying processResolution after processIngest does not regress status', async () => {
-    const html = '<div class="job-detail__info--title"><h1>Backend Developer</h1></div>'
-      + '<div class="company-name-label"><a class="name">StableCo</a></div>'
-      + '<h3>Mô tả công việc</h3>'
-      + '<div class="job-description__item--content">Golang developer for API</div>';
+    const html = topcvDetailHtml('Backend Developer', 'StableCo');
 
     const id = 'stable-db-job-1';
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html, id);
@@ -78,9 +65,7 @@ describe('Idempotency — command replay', () => {
   });
 
   it('multiple processResolution calls with different actions do not duplicate side effects', async () => {
-    const html = '<div class="job-detail__info--title"><h1>Multi Role</h1></div>'
-      + '<div class="company-name-label"><a class="name">MultiCo</a></div>'
-      + '<p>Go</p>';
+    const html = topcvDetailHtml('Multi Role', 'MultiCo');
 
     const id = 'multi-db-job-1';
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html, id);
@@ -114,19 +99,11 @@ describe('PRC-002 — Stage-replay idempotency ([c]/[i] replay, s3-after-s4 no r
   }, 120000);
 
   beforeEach(async () => {
-    await dbCollection.deleteMany({});
+    await storage.clearDb();
     parseEvents = [];
     routingEvents = [];
-    const parseEventPort = {
-      emitGenerated: vi.fn(() => { parseEvents.push('generated'); return Promise.resolve(); }),
-      emitCompleted: vi.fn(() => { parseEvents.push('completed'); return Promise.resolve(); }),
-      emitFailed: vi.fn(() => { parseEvents.push('failed'); return Promise.resolve(); }),
-    };
-    const routingPort = {
-      emitJobQueued: vi.fn(() => { routingEvents.push('queued'); return Promise.resolve(); }),
-      emitJobTrashed: vi.fn(() => { routingEvents.push('trashed'); return Promise.resolve(); }),
-      emitRouteFailed: vi.fn(() => { routingEvents.push('routed_failed'); return Promise.resolve(); }),
-    };
+    const parseEventPort = createParseEventPort((tag) => parseEvents.push(tag));
+    const routingPort = createRoutingPort((tag) => routingEvents.push(tag));
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   });
 
@@ -135,7 +112,7 @@ describe('PRC-002 — Stage-replay idempotency ([c]/[i] replay, s3-after-s4 no r
   });
 
   it('[i] direct mode replay: repeated identical FULL_PARSED ingest → single doc, single completed event', async () => {
-    const html = detailHtmlFor('Software Engineer', 'ReplayDirectCo');
+    const html = topcvDetailHtml('Software Engineer', 'ReplayDirectCo');
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
     parseEvents.length = 0;
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
@@ -146,15 +123,15 @@ describe('PRC-002 — Stage-replay idempotency ([c]/[i] replay, s3-after-s4 no r
   });
 
   it('[i] direct mode distinct payloads → distinct docs (latest-wins, no dedupe collision)', async () => {
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Software Engineer', 'FirstCo'));
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Backend Developer', 'SecondCo'));
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'FirstCo'));
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Backend Developer', 'SecondCo'));
 
     const clips = await dbCollection.find({ _id: { $regex: '^clip-' } }).toArray();
     expect(clips.length).toBe(2);
   });
 
   it('[c] queue-mode replay: repeated identical s1 ingest → dedupe, no duplicate docs, trash event emitted', async () => {
-    const html = emailHtmlFor('Software Engineer', 'ReplayQueueCo');
+    const html = topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'ReplayQueueCo' }]);
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, html, undefined, { messageId: 'replay-c-1' });
     routingEvents.length = 0;
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, html, undefined, { messageId: 'replay-c-2' });
@@ -165,12 +142,12 @@ describe('PRC-002 — Stage-replay idempotency ([c]/[i] replay, s3-after-s4 no r
   });
 
   it('[c] s1→s2 replay: replaying FULL_PARSED after already-enriched is a no-op (no extra completed event)', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Data Engineer', 'ReplayMergeCo'), undefined, { messageId: 'replay-merge-1' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Data Engineer', company: 'ReplayMergeCo' }]), undefined, { messageId: 'replay-merge-1' });
     const id = 'replay-merge-1-job-0';
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Data Engineer', 'ReplayMergeCo'), id);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Data Engineer', 'ReplayMergeCo'), id);
 
     parseEvents.length = 0;
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Data Engineer', 'ReplayMergeCo'), id);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Data Engineer', 'ReplayMergeCo'), id);
 
     expect(parseEvents.filter(e => e === 'completed').length).toBe(0);
     const doc = await adapter.findById(id);
@@ -178,9 +155,9 @@ describe('PRC-002 — Stage-replay idempotency ([c]/[i] replay, s3-after-s4 no r
   });
 
   it('s3-after-s4 replay: trash-after-queue does not overwrite terminal QUEUED state', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Full Stack Developer', 'ReplayTermCo'), undefined, { messageId: 'replay-term-1' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Full Stack Developer', company: 'ReplayTermCo' }]), undefined, { messageId: 'replay-term-1' });
     const id = 'replay-term-1-job-0';
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Full Stack Developer', 'ReplayTermCo'), id);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Full Stack Developer', 'ReplayTermCo'), id);
     await ingestor.processResolution(id, 'queue');
 
     await ingestor.processResolution(id, 'trash');
@@ -191,9 +168,9 @@ describe('PRC-002 — Stage-replay idempotency ([c]/[i] replay, s3-after-s4 no r
   });
 
   it('s3 replay: repeated queue resolution after QUEUED emits no additional queued events', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'ReplayQueueTwice'), undefined, { messageId: 'replay-q2-1' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'ReplayQueueTwice' }]), undefined, { messageId: 'replay-q2-1' });
     const id = 'replay-q2-1-job-0';
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, detailHtmlFor('Software Engineer', 'ReplayQueueTwice'), id);
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'ReplayQueueTwice'), id);
     await ingestor.processResolution(id, 'queue');
 
     routingEvents.length = 0;
@@ -205,7 +182,7 @@ describe('PRC-002 — Stage-replay idempotency ([c]/[i] replay, s3-after-s4 no r
   });
 
   it('s4 replay: repeated trash after TRASHED emits no additional trashed events', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Backend Developer', 'ReplayTrashTwice'), undefined, { messageId: 'replay-t2-1' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Backend Developer', company: 'ReplayTrashTwice' }]), undefined, { messageId: 'replay-t2-1' });
     const id = 'replay-t2-1-job-0';
     await ingestor.processResolution(id, 'trash');
 
@@ -218,8 +195,8 @@ describe('PRC-002 — Stage-replay idempotency ([c]/[i] replay, s3-after-s4 no r
   });
 
   it('s1 replay with same messageId but different job content → new doc id (messageId+index scoping)', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Software Engineer', 'ScopeCoA'), undefined, { messageId: 'replay-scope-1' });
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, emailHtmlFor('Backend Developer', 'ScopeCoB'), undefined, { messageId: 'replay-scope-2' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'ScopeCoA' }]), undefined, { messageId: 'replay-scope-1' });
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Backend Developer', company: 'ScopeCoB' }]), undefined, { messageId: 'replay-scope-2' });
 
     const docs = await dbCollection.find({ _id: { $regex: '^replay-scope-' } }).toArray();
     expect(docs.length).toBe(2);

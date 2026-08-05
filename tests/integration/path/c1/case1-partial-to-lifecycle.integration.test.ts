@@ -1,45 +1,22 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
+import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
+
 import { createRealDipBus, type RealDipBus } from '../../../helpers/real-dip-bus.js';
+import { topcvEmailHtmlMany, topcvDetailHtml } from '../../../helpers/html-fixtures.js';
+import { makeStage1Partial } from '../../../helpers/test-builders.js';
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
 
-const TOPCV_EMAIL_HTML = `<html><body>
-  <a class="job-item-link" href="/viec-lam/backend-developer">
-    <div class="topcv-job-item">
-      <div class="title"><span>Backend Developer</span></div>
-      <div class="company"><span>Case1Co</span></div>
-      <div>Hà Nội</div>
-    </div>
-  </a>
-  <p>topcv job-item</p>
-</body></html>`;
+const TOPCV_EMAIL_HTML = topcvEmailHtmlMany([{ role: 'Backend Developer', company: 'Case1Co' }]);
 
-const CLIPBOARD_HTML = '<html><body>' +
-  '<div class="job-detail__info--title"><h1>Backend Developer</h1></div>' +
-  '<div class="company-name-label"><a class="name">Case1Co</a></div>' +
-  '<div class="job-detail__info--section-content-value">15,000,000 VNĐ</div>' +
-  '<div class="job-detail__info--section-content-value">Ho Chi Minh</div>' +
-  '<p>TypeScript and Node.js developer</p></body></html>';
-
-function makeStage1Partial(overrides: any = {}): any {
-  return {
-    _id: overrides._id || 'e2e-case1-partial',
-    raw: '<html><body>partial</body></html>',
-    stage: JobStage.PARTIAL_PARSED,
-    status: JobStatus.ENRICHING,
-    source: JobSource.BROWSER_AUTO,
-    company: overrides.company || 'Case1Co',
-    role: overrides.role || 'Backend Developer',
-    url: overrides.url || 'https://test.com/job',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    stageTimestamp: new Date(),
-  };
-}
+const CLIPBOARD_HTML = topcvDetailHtml('Backend Developer', 'Case1Co', {
+  salary: '15,000,000 VNĐ',
+  location: 'Ho Chi Minh',
+});
 
 describe('Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   let storage: any;
@@ -64,25 +41,13 @@ describe('Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
   beforeEach(async () => {
     parseEvents.length = 0;
     routingEvents.length = 0;
-    const db = storage.client.db(storage.dbName);
-    const cols = await db.listCollections().toArray();
-    for (const col of cols) {
-      await db.collection(col.name).deleteMany({});
-    }
+    await storage.clearDb();
   });
 
   // parts-integ: mock event ports for deterministic guard/no-emit assertions.
   function mockIngestor(): JobIngestor {
-    const parseEventPort = {
-      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
-      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
-      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
-    const routingPort = {
-      emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
-      emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
-      emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
+    const parseEventPort = createParseEventPort((tag, args) => parseEvents.push([tag, ...args]));
+    const routingPort = createRoutingPort((tag, args) => routingEvents.push([tag, ...args]));
     return new JobIngestor(adapter, parseEventPort, routingPort);
   }
 
@@ -120,6 +85,8 @@ describe('Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
     expect(enrichedDoc).not.toBeNull();
     expect(enrichedDoc!.stage).toBe(JobStage.FULL_PARSED);
     expect(enrichedDoc!.status).toBe(JobStatus.ENRICHED);
+    expect(enrichedDoc!.salary).toBe('15,000,000 VNĐ');
+    expect(enrichedDoc!.location).toBe('Ho Chi Minh');
 
     const queue = await realBus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
     await ingestor.processResolution(jobLifecycleId, 'queue');

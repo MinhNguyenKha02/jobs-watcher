@@ -1,53 +1,24 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
+import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
+
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { MongoExtractionQueueAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
 import { MongoInitializer } from '../../../../src/infrastructure/outbound/persistence/mongo-init.js';
 import { ExtractionScheduler } from '../../../../src/application/extraction-scheduler.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
 import { MetricsRegistry } from '../../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
+import { indeedEmailHtmlMany, indeedDetailHtml } from '../../../helpers/html-fixtures.js';
 
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
 
-const INDEED_EMAIL_HTML = `<html><body>
-<span class="strong-text-link">Indeed Job Alert</span>
-<table>
-  <tr>
-    <td class="pb-24" style="padding-bottom:24px">
-      <h2><a href="https://vn.indeed.com/viewjob?jk=test123">Backend Developer</a></h2>
-      <table>
-        <tr>
-          <td style="padding:0 12px;color:#2d2d2d;font-size:14px;line-height:21px">TechCorp</td>
-        </tr>
-      </table>
-      <div style="color:#2d2d2d">Ho Chi Minh City</div>
-      <div style="padding:0;color:#767676;font-size:14px;line-height:21px">TypeScript backend developer needed for our growing engineering team</div>
-      <div style="font-size:12px;line-height:18px">Just posted</div>
-    </td>
-  </tr>
-</table>
-</body></html>`;
+const INDEED_EMAIL_HTML = indeedEmailHtmlMany([{ role: 'Backend Developer', company: 'TechCorp', url: 'https://vn.indeed.com/viewjob?jk=test123' }]);
 
-const INDEED_DETAIL_HTML = `<html><body>
-<div id="jobsearch-ViewjobHeader">
-  <h1 data-testid="jobsearch-JobInfoHeader-title"><span>Backend Developer</span></h1>
-  <div class="company-header">
-    <div data-testid="inlineHeader-companyName">TechCorp</div>
-    <div data-testid="inlineHeader-companyLocation">Ho Chi Minh City</div>
-  </div>
-  <div id="salaryInfoAndJobType">
-    <span>$1000 - $1500 a month</span>
-  </div>
-</div>
-<div id="jobDescriptionText" class="job-description-section">
-  <p>We are looking for a Backend Developer with TypeScript experience to join our team. You will build and maintain backend services using Node.js and TypeScript.</p>
-  <h2>Requirements</h2>
-  <ul>
-    <li>TypeScript and Node.js proficiency</li>
-    <li>Experience with databases</li>
-  </ul>
-</div>
-</body></html>`;
+const INDEED_DETAIL_HTML = indeedDetailHtml(
+  'Backend Developer',
+  'TechCorp',
+  'https://vn.indeed.com/viewjob?jk=test123',
+);
 
   describe('Extraction Pipeline (Signal 1 → queue → scheduler → Signal 2c)', () => {
   let storage: any;
@@ -72,17 +43,9 @@ const INDEED_DETAIL_HTML = `<html><body>
     parseEvents = [];
     routingEvents = [];
 
-    const parseEventPort = {
-      emitGenerated: vi.fn((...args: any[]) => { parseEvents.push(['generated', ...args]); return Promise.resolve(); }),
-      emitCompleted: vi.fn((...args: any[]) => { parseEvents.push(['completed', ...args]); return Promise.resolve(); }),
-      emitFailed: vi.fn((...args: any[]) => { parseEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
+    const parseEventPort = createParseEventPort((tag, args) => parseEvents.push([tag, ...args]));
 
-    const routingPort = {
-      emitJobQueued: vi.fn((...args: any[]) => { routingEvents.push(['queued', ...args]); return Promise.resolve(); }),
-      emitJobTrashed: vi.fn((...args: any[]) => { routingEvents.push(['trashed', ...args]); return Promise.resolve(); }),
-      emitRouteFailed: vi.fn((...args: any[]) => { routingEvents.push(['failed', ...args]); return Promise.resolve(); }),
-    };
+    const routingPort = createRoutingPort((tag, args) => routingEvents.push([tag, ...args]));
 
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort, eqAdapter);
   }, 120000);
@@ -92,11 +55,7 @@ const INDEED_DETAIL_HTML = `<html><body>
   });
 
   async function clearCollections() {
-    const db = storage.client.db(storage.dbName);
-    const cols = await db.listCollections().toArray();
-    for (const col of cols) {
-      await db.collection(col.name).deleteMany({});
-    }
+    await storage.clearDb();
   }
 
   it('Signal 1 with Indeed URL defers to extraction queue (no emitGenerated)', async () => {

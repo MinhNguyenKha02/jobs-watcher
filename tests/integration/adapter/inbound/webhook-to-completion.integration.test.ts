@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
+import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { JobIngestor } from '../../../../src/application/ingestor.js';
 import { JobStage, JobStatus, JobSource } from '../../../../src/domain/types/job-lifecycle.js';
@@ -15,22 +16,14 @@ describe('Webhook-to-completion saga (S1->S2->S3->S4)', () => {
   let storage: Awaited<ReturnType<typeof createTestStorage>>;
   let adapter: MongoJobLifecycleAdapter;
   let ingestor: JobIngestor;
-  let parseEventPort: Record<string, ReturnType<typeof vi.fn>>;
-  let routingPort: Record<string, ReturnType<typeof vi.fn>>;
+  let parseEventPort: ReturnType<typeof createParseEventPort>;
+  let routingPort: ReturnType<typeof createRoutingPort>;
 
   beforeAll(async () => {
     storage = await createTestStorage();
     adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-    parseEventPort = {
-      emitGenerated: vi.fn(() => Promise.resolve()),
-      emitCompleted: vi.fn(() => Promise.resolve()),
-      emitFailed: vi.fn(() => Promise.resolve()),
-    };
-    routingPort = {
-      emitJobQueued: vi.fn(() => Promise.resolve()),
-      emitJobTrashed: vi.fn(() => Promise.resolve()),
-      emitRouteFailed: vi.fn(() => Promise.resolve()),
-    };
+    parseEventPort = createParseEventPort();
+    routingPort = createRoutingPort();
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
