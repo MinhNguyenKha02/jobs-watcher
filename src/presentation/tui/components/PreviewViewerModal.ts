@@ -11,6 +11,12 @@ import { ANSI, MODAL_THEME } from './AnsiStyles.js';
 
 const MODAL_WIDTH = 70;
 
+const ANSI_STRIP = new RegExp(String.fromCharCode(27) + '\\[[0-9;]*m', 'g');
+
+function stripAnsi(input: string): string {
+  return input.replace(ANSI_STRIP, '');
+}
+
 /**
  * Render the preview viewer modal
  * Displays clipboard content with pagination controls
@@ -104,9 +110,9 @@ export function renderPreviewViewerModal(modal: PreviewViewerModal): string {
     ANSI.RESET +
     ' ' +
     paginationText +
-    ' '.repeat(Math.max(0, MODAL_WIDTH - 15 - paginationText.replace(/\x1b\[[0-9;]*m/g, '').length)) +
+    ' '.repeat(Math.max(0, MODAL_WIDTH - 15 - stripAnsi(paginationText).length)) +
     hintText +
-    ' '.repeat(Math.max(0, MODAL_WIDTH - 40 - hintText.replace(/\x1b\[[0-9;]*m/g, '').length)) +
+    ' '.repeat(Math.max(0, MODAL_WIDTH - 40 - stripAnsi(hintText).length)) +
     MODAL_THEME.preview.border +
     '│' +
     ANSI.RESET;

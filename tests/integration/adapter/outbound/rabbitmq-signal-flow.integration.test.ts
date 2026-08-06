@@ -149,7 +149,7 @@ describe('RMQ Signal Flow Integration', { timeout: 30000 }, () => {
 
     pubChannel.publish(EXCHANGE, ActionEvent.PARSE_COMPLETED,
       Buffer.from(JSON.stringify({ jobLifecycleId: 'rmq-defer-1', job: completedPayload })), { persistent: true });
-    await s2Delivered;
+    await expect(s2Delivered).resolves.toBeUndefined();
 
     const s1Delivered = new Promise<void>((resolve) => {
       conChannel.consume(S1_QUEUE, (m) => {
@@ -162,7 +162,7 @@ describe('RMQ Signal Flow Integration', { timeout: 30000 }, () => {
 
     pubChannel.publish(EXCHANGE, ActionEvent.GENERATED,
       Buffer.from(JSON.stringify(completedPayload)), { persistent: true });
-    await s1Delivered;
+    await expect(s1Delivered).resolves.toBeUndefined();
   });
 
   it('publishes trash event → consumed on s3s4 queue', async () => {

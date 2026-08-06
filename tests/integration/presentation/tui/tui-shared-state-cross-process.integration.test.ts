@@ -56,7 +56,7 @@ describe('PRC-005 — TUI shared state cross-process integrity', () => {
     ]);
 
     for (const r of results) {
-      expect(r.success, r.error).toBe(true);
+      expect(r.success).toBe(true);
     }
 
     const raw = fs.readFileSync(statePath, 'utf8');

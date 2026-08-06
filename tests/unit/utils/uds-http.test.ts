@@ -107,10 +107,10 @@ describe('uds-http', () => {
   it('rejects on request error', async () => {
     vi.restoreAllMocks();
     vi.useRealTimers();
-    let errorHandler: Function | undefined;
+    let errorHandler: ((...args: any[]) => void) | undefined;
     vi.spyOn(http, 'request').mockImplementation((_opts: any, _cb: any) => {
       process.nextTick(() => {
-        const calls = mockReq.on.mock.calls as Array<[string, Function]>;
+        const calls = mockReq.on.mock.calls as Array<[string, (...args: any[]) => void]>;
         const found = calls.find(([ev]) => ev === 'error');
         if (found) errorHandler = found[1];
         if (errorHandler) errorHandler(new Error('connection refused'));

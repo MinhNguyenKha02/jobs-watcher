@@ -101,6 +101,7 @@ if (RECORD) {
         };
 
         recordExpected(stem, expected);
+        expect(fs.existsSync(path.join(EXPECTED_DIR, `${stem}.json`))).toBe(true);
       });
     });
   });
@@ -122,7 +123,7 @@ if (RECORD) {
         const result = runSingle(pipeline, entry) as ResolveOutput;
         const anchorIds = result.traces.map(t => t.anchorId);
         for (const anchor of expected.expectedAnchors) {
-          expect(anchorIds, `Anchor "${anchor}" not found in traces`).toContain(anchor);
+          expect(anchorIds).toContain(anchor);
         }
       });
 
@@ -132,7 +133,7 @@ if (RECORD) {
         const result = runSingle(pipeline, entry) as ResolveOutput;
         const allSkills = flattenSkills(result);
         for (const skill of expected.expectedSkills) {
-          expect(allSkills, `Skill "${skill}" not found in output`).toContain(skill);
+          expect(allSkills).toContain(skill);
         }
       });
 
@@ -142,7 +143,7 @@ if (RECORD) {
         const result = runSingle(pipeline, entry) as ResolveOutput;
         const projectTitles = result.projects.map(p => p.evidence?.title).filter(Boolean);
         for (const project of expected.expectedProjects) {
-          expect(projectTitles, `Project "${project}" not in output`).toContain(project);
+          expect(projectTitles).toContain(project);
         }
       });
 
@@ -152,7 +153,7 @@ if (RECORD) {
         const result = runSingle(pipeline, entry) as ResolveOutput;
         for (const [anchorId, expectedStrength] of Object.entries(expected.expectedResolution)) {
           const trace = result.traces.find(t => t.anchorId === anchorId);
-          expect(trace, `No trace for anchor ${anchorId}`).toBeDefined();
+          expect(trace).toBeDefined();
           const lastTraceEntry = trace!.trace[trace!.trace.length - 1] as { resolutionStrength?: string } | undefined;
           expect(lastTraceEntry?.resolutionStrength).toBe(expectedStrength);
         }

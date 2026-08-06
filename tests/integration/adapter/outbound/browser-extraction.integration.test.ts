@@ -1,15 +1,14 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'node:fs';
 import http from 'node:http';
+import { chromium } from 'playwright-extra';
 import { PlaywrightBrowserAdapter } from '../../../../src/infrastructure/outbound/browser/browser-adapter.js';
 
 const FIXTURE_HTML = `<html><body><div class="test-fixture"><h1>Integration Test</h1><p>Hello from Playwright + stealth</p></div></body></html>`;
 
 const hasPlaywright = (() => {
   try {
-    const { chromium } = require('playwright-extra');
-    const execPath = chromium.executablePath();
-    return fs.existsSync(execPath);
+    return fs.existsSync(chromium.executablePath());
   } catch {
     return false;
   }

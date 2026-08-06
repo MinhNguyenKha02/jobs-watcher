@@ -2,7 +2,7 @@
   "env": {
     "node": true,
     "es2022": true,
-    "vitest": true
+    "vitest/env": true
   },
   "extends": [
     "eslint:recommended",
@@ -12,7 +12,7 @@
     "plugin:import/errors",
     "plugin:import/warnings",
     "plugin:import/typescript",
-    "plugin:vitest/recommended",
+    "plugin:vitest/legacy-recommended",
     "prettier"
   ],
   "parser": "@typescript-eslint/parser",
@@ -67,6 +67,21 @@
     "react/react-in-jsx-scope": "off",
     "react/prop-types": "off"
   },
+  "overrides": [
+    {
+      "files": ["src/**/*.{ts,tsx}"],
+      "rules": {
+        "no-empty": ["error", { "allowEmptyCatch": true }]
+      }
+    },
+    {
+      "files": ["tests/**/*.{ts,tsx}"],
+      "rules": {
+        "no-empty": ["error", { "allowEmptyCatch": true }],
+        "vitest/valid-describe-callback": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "coverage/",
     "generated/",

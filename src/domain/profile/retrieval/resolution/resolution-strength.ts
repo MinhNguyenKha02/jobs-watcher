@@ -6,7 +6,7 @@
  * for gap analysis, recruiter fit scoring, and learning loops.
  */
 
-import { RetrievalPolicy } from '../policies/retrieval.policy.js';
+import { RetrievalPolicy, retrievalPolicy } from '../policies/retrieval.policy.js';
 import { MatchSignal, ResolutionStrength } from '../../types/retrieval.types.js';
 
 /**
@@ -26,7 +26,7 @@ import { MatchSignal, ResolutionStrength } from '../../types/retrieval.types.js'
 export function classifyResolutionStrength(
    finalScore: number,
    signal: MatchSignal,
-   policy: RetrievalPolicy = require('../policies/retrieval.policy.js').retrievalPolicy
+   policy: RetrievalPolicy = retrievalPolicy
 ): ResolutionStrength {
    const { resolution } = policy;
    
@@ -56,7 +56,7 @@ export function classifyResolutionStrength(
  */
 export function isSignalViable(
   signal: MatchSignal,
-  policy: RetrievalPolicy = require('../policies/retrieval.policy.js').retrievalPolicy
+  policy: RetrievalPolicy = retrievalPolicy
 ): boolean {
   return signal.score >= policy.resolution.weakThreshold;
 }

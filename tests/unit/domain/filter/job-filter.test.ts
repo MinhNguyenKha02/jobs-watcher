@@ -92,7 +92,7 @@ describe('hybridJobFilter - decision table by filter logic analysis', () => {
   ];
 
   for (const row of table) {
-    test(row.label, () => {
+    test(`hybrid filter: ${row.label}`, () => {
       const job = makeJob({ role: row.role, description: row.desc, details: row.details });
       const res = hybridJobFilter(job, row.tier === 2 ? { sinceTier: 2 } : undefined);
       expect(res.passed).toBe(row.expectPass);
