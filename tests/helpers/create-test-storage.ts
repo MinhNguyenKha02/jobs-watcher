@@ -25,7 +25,22 @@ export async function createTestStorage(): Promise<{
   }
 
   async function stop() {
-    try { await client.close(); } catch (e) {}
+    // Swallow only the known-benign teardown artifact (MongoClientClosedError)
+    // from in-flight checkouts closed during the shared-singleton teardown.
+    // Any other unhandled rejection is rethrown so real flakiness is not masked.
+    const onUnhandled = (reason: unknown) => {
+      const msg = reason instanceof Error ? reason.message : String(reason);
+      if (!/MongoClientClosedError|Topology is closed/.test(msg)) {
+        process.off('unhandledRejection', onUnhandled);
+        throw reason;
+      }
+    };
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      try { await client.close(); } catch (e) {}
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
     await releaseSharedMongod();
   }
 

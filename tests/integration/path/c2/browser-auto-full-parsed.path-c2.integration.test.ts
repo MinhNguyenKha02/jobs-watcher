@@ -1,9 +1,10 @@
+/* Path cell (c2): S1→S2 browser full-parse → S3 via scheduler+rabbitmq (see plans/tests-path-matrix.md) */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { createTestStorage } from '../../../helpers/create-test-storage.js';
+import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
 import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
 import { indeedEmailHtmlMany, indeedDetailHtml } from '../../../helpers/html-fixtures.js';
 
-import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
+import type { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
 
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
@@ -15,17 +16,16 @@ const FULL_PARSED_HTML = indeedDetailHtml(
 );
 
   describe('Case 2 full-parsed direct arrival (browser-auto S2 path)', () => {
-  let storage: any;
+  let tc: TestContainer;
   let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    adapter = new MongoJobLifecycleAdapter(
-      storage.client.db(storage.dbName),
-    );
+    tc = await createTestContainer({ ns: 'c2-browser-auto-full' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
 
     parseEvents = [];
     routingEvents = [];
@@ -38,13 +38,13 @@ const FULL_PARSED_HTML = indeedDetailHtml(
   }, 120000);
 
   afterAll(async () => {
-    await storage.stop();
+    await tc.stop();
   });
 
   beforeEach(async () => {
     parseEvents.length = 0;
     routingEvents.length = 0;
-    await storage.clearDb();
+    await tc.storage.clearDb();
   });
 
   it('T2a: S2 via BROWSER_AUTO→[j] queue (no S1 needed, full already)', async () => {
@@ -95,7 +95,7 @@ const FULL_PARSED_HTML = indeedDetailHtml(
     const completedEvents = parseEvents.filter(([t]) => t === 'completed');
     expect(completedEvents.length).toBe(1);
 
-    const col = storage.client.db(storage.dbName).collection('job_lifecycle');
+    const col = tc.db.collection('job_lifecycle');
     const docs = await col.find({}).toArray();
     expect(docs.length).toBe(1);
     expect(docs[0]._id).toMatch(/^browser-auto-/);

@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
-import { createTestStorage } from '../../helpers/create-test-storage.js';
+import { createTestContainer, type TestContainer } from '../../helpers/test-container.js';
 import { createParseEventPort, createRoutingPort } from '../../helpers/mock-ports.js';
-import { MongoJobLifecycleAdapter } from '../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
-import { MongoInitializer } from '../../../src/infrastructure/outbound/persistence/mongo-init.js';
+import type { MongoJobLifecycleAdapter } from '../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { JobIngestor } from '../../../src/application/ingestor.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
 
 describe('PRC-007 — Failure recovery at every stage (crash at s1/s2/s3/s4)', () => {
-  let storage: Awaited<ReturnType<typeof createTestStorage>>;
+  let tc: TestContainer;
   let adapter: MongoJobLifecycleAdapter;
   let ingestor: JobIngestor;
   let parseEvents: string[];
@@ -16,15 +15,14 @@ describe('PRC-007 — Failure recovery at every stage (crash at s1/s2/s3/s4)', (
   let dbCollection: any;
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    const initializer = new MongoInitializer(storage.client, storage.dbName);
-    await initializer.init();
-    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-    dbCollection = storage.client.db(storage.dbName).collection('job_lifecycle');
+    tc = await createTestContainer({ ns: 'app-failure-recovery' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
+    dbCollection = tc.db.collection('job_lifecycle');
   }, 120000);
 
   beforeEach(async () => {
-    await storage.clearDb();
+    await tc.storage.clearDb();
     parseEvents = [];
     routingEvents = [];
     const parseEventPort = createParseEventPort((tag) => parseEvents.push(tag));
@@ -33,7 +31,7 @@ describe('PRC-007 — Failure recovery at every stage (crash at s1/s2/s3/s4)', (
   });
 
   afterAll(async () => {
-    await storage.stop();
+    await tc.stop();
   });
 
   it('s1 crash: extraction failure → PARTIAL_PARSED fallback keeps doc enriching and no crash', async () => {

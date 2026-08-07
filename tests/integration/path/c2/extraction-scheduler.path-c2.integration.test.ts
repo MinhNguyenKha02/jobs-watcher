@@ -1,3 +1,4 @@
+/* Path cell (c2): S3 extraction scheduler dispatch (see plans/tests-path-matrix.md) */
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import { ExtractionScheduler } from '../../../../src/application/extraction-scheduler.js';
 import { JobSource, JobStage } from '../../../../src/domain/types/job-lifecycle.js';

@@ -1,12 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestStorage } from '../../helpers/create-test-storage.js';
-import { MongoJobLifecycleAdapter } from '../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
-import { MongoInitializer } from '../../../src/infrastructure/outbound/persistence/mongo-init.js' ;
+import { createTestContainer, type TestContainer } from '../../helpers/test-container.js';
+import type { MongoJobLifecycleAdapter } from '../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js' ;
-import { getLogger } from '../../../src/infrastructure/outbound/logging/logger.js' ;
 import type { JobLifecycleDocument } from '../../../src/domain/types/job-lifecycle.js' ;
-
-const logger = getLogger();
 
 const now = new Date();
 
@@ -27,20 +23,19 @@ function makeDoc(overrides: Partial<JobLifecycleDocument> & { _id: string }): Jo
 }
 
 describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
-  let storage: { mongod: any; client: any; uri: string; dbName: string; stop: () => Promise<void> } | null = null;
-  let adapter: MongoJobLifecycleAdapter | null = null;
-  let colection: any;
+  let tc: TestContainer;
+  let adapter: MongoJobLifecycleAdapter;
+  let collection: any;
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    const initializer = new MongoInitializer(storage.client, storage.dbName);
-    await initializer.init();
-    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-    colection = storage.client.db(storage.dbName).collection('job_lifecycle');
+    tc = await createTestContainer({ ns: 'app-ingestor-storage' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
+    collection = tc.db.collection('job_lifecycle');
   }, 120000);
 
   afterAll(async () => {
-    if (storage) await storage.stop();
+    await tc.stop();
   });
 
   it('stores and retrieves a job lifecycle document', async () => {
@@ -60,7 +55,7 @@ describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
     const doc2 = makeDoc({ _id: 'it-upsert-1', company: 'UpsertCorp', role: 'Engineer', source: JobSource.MANUAL, stage: JobStage.FULL_PARSED, rawPayload: 'v2' });
     await adapter!.upsert(doc2);
 
-    const all = await colection.find({ _id: 'it-upsert-1' }).toArray();
+    const all = await collection.find({ _id: 'it-upsert-1' }).toArray();
     expect(all).toHaveLength(1);
     expect(all[0].rawPayload).toBe('v2');
     expect(all[0].stage).toBe(JobStage.FULL_PARSED);
@@ -78,7 +73,7 @@ describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
   });
 
   it('creates required indexes on init', async () => {
-    const indexes = await colection.indexes();
+    const indexes = await collection.indexes();
     const idIndex = indexes.find((i: any) => i.key?._id === 1);
     expect(idIndex).toBeDefined();
     const uniqueIndex = indexes.find((i: any) => i.name && i.name.startsWith('idx_role_company'));

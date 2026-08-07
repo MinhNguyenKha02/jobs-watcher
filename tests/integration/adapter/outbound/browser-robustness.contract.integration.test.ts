@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import http from 'http';
 import { PlaywrightBrowserAdapter } from '../../../../src/infrastructure/outbound/browser/browser-adapter.js';
 
@@ -32,12 +32,40 @@ describe.skipIf(!hasPlaywright)('PRC-004 — Browser adapter robustness + crash 
   let server: Awaited<ReturnType<typeof startHtmlServer>>;
   let adapter: PlaywrightBrowserAdapter;
 
+  const swallowBrowserRejection = (err: unknown): void => {
+    const msg = err instanceof Error ? err.message : String(err);
+    // playback-extra emits an async cdpSession rejection when navigations to
+    // unreachable hosts race browser/context teardown. It is expected and does
+    // not affect assertions; swallow only that, rethrow anything else.
+    if (/cdpSession|Target page, context or browser has been closed|Target closed/i.test(msg)) {
+      return;
+    }
+    process.removeListener('unhandledRejection', swallowBrowserRejection);
+    process.nextTick(() => process.emit('unhandledRejection', err));
+  };
+
   beforeAll(async () => {
+    process.on('unhandledRejection', swallowBrowserRejection);
     server = await startHtmlServer();
   }, 30000);
 
+  afterEach(async () => {
+    // close each browser cleanly so a pending cdpSession on an unreachable-host
+    // navigation rejects within this file (caught here) instead of leaking as an
+    // unhandled rejection after the test.
+    try {
+      await adapter?.stop();
+    } catch {
+      /* best-effort */
+    }
+  });
+
   afterAll(async () => {
     await server.close();
+    // let any in-flight playwright-extra cdpSession rejections surface while the
+    // guard is still attached, then detach it so it does not mask later files.
+    await new Promise((r) => setTimeout(r, 750));
+    process.removeListener('unhandledRejection', swallowBrowserRejection);
   });
 
   it('start→extract returns page HTML (real Playwright)', async () => {

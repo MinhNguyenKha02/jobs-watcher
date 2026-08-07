@@ -1,13 +1,12 @@
+/* Path cell (c2): S3 S4 extraction scheduler + extraction_queue (see plans/tests-path-matrix.md) */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { createTestStorage } from '../../../helpers/create-test-storage.js';
+import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
 import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
 
-import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
-import { MongoExtractionQueueAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
-import { MongoInitializer } from '../../../../src/infrastructure/outbound/persistence/mongo-init.js';
+import type { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
+import type { MongoExtractionQueueAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
 import { ExtractionScheduler } from '../../../../src/application/extraction-scheduler.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
-import { MetricsRegistry } from '../../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
 import { indeedEmailHtmlMany, indeedDetailHtml } from '../../../helpers/html-fixtures.js';
 
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
@@ -21,7 +20,7 @@ const INDEED_DETAIL_HTML = indeedDetailHtml(
 );
 
   describe('Extraction Pipeline (Signal 1 → queue → scheduler → Signal 2c)', () => {
-  let storage: any;
+  let tc: TestContainer;
   let adapter: MongoJobLifecycleAdapter;
   let eqAdapter: MongoExtractionQueueAdapter;
   let parseEvents: any[];
@@ -29,16 +28,10 @@ const INDEED_DETAIL_HTML = indeedDetailHtml(
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    const initializer = new MongoInitializer(storage.client, storage.dbName);
-    await initializer.init();
-    adapter = new MongoJobLifecycleAdapter(
-      storage.client.db(storage.dbName),
-    );
-    eqAdapter = new MongoExtractionQueueAdapter(
-      new MetricsRegistry(),
-      storage.client.db(storage.dbName),
-    );
+    tc = await createTestContainer({ ns: 'c2-extraction-pipeline' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
+    eqAdapter = tc.extractionQueueAdapter;
 
     parseEvents = [];
     routingEvents = [];
@@ -51,11 +44,11 @@ const INDEED_DETAIL_HTML = indeedDetailHtml(
   }, 120000);
 
   afterAll(async () => {
-    await storage.stop();
+    await tc.stop();
   });
 
   async function clearCollections() {
-    await storage.clearDb();
+    await tc.storage.clearDb();
   }
 
   it('Signal 1 with Indeed URL defers to extraction queue (no emitGenerated)', async () => {
@@ -80,7 +73,7 @@ const INDEED_DETAIL_HTML = indeedDetailHtml(
     const queueSize = await eqAdapter.size();
     expect(queueSize).toBe(1);
 
-    const col = storage.client.db(storage.dbName).collection('job_lifecycle');
+    const col = tc.db.collection('job_lifecycle');
     const docs = await col.find({}).toArray();
     expect(docs.length).toBeGreaterThanOrEqual(1);
     const jobDoc = docs.find((d: any) => d.role === 'Backend Developer');

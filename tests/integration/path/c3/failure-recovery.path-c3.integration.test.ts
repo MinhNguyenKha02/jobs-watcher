@@ -1,20 +1,20 @@
+/* Path cell (c3): S1→S3→S4 failure→ROUTE_FAILED recovery (see plans/tests-path-matrix.md) */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import { createTestStorage } from '../../../helpers/create-test-storage.js';
-import { createRealDipBus, type RealDipBus } from '../../../helpers/real-dip-bus.js';
+import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
+import type { RealDipBus } from '../../../helpers/real-dip-bus.js';
 import { topcvEmailHtmlMany, topcvDetailHtml, linkedinSduiDetailHtml, nonJobHtml } from '../../../helpers/html-fixtures.js';
 import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
 import { makeStage1Partial, makeFullParsedDoc } from '../../../helpers/test-builders.js';
-import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
-import { MongoExtractionQueueAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
+import type { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
+import type { MongoExtractionQueueAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
 import { ExtractionScheduler } from '../../../../src/application/extraction-scheduler.js';
-import { MetricsRegistry } from '../../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
 
 describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
-  let storage: any;
+  let tc: TestContainer;
   let adapter: MongoJobLifecycleAdapter;
   let collection: any;
   let parseEvents: any[];
@@ -23,14 +23,15 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
   let realBus: RealDipBus;
 
   function realIngestor(): JobIngestor {
-    return new JobIngestor(adapter, realBus.parsePort, realBus.routePort);
+    return tc.ingestor;
   }
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-    collection = storage.client.db(storage.dbName).collection('job_lifecycle');
-    realBus = await createRealDipBus('jobs.events.int.c3');
+    tc = await createTestContainer({ ns: 'c3-failure-recovery' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
+    collection = tc.db.collection('job_lifecycle');
+    realBus = tc.bus;
 
     parseEvents = [];
     routingEvents = [];
@@ -43,8 +44,7 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
   }, 120000);
 
   afterAll(async () => {
-    await realBus.teardown();
-    await storage.stop();
+    await tc.stop();
   });
 
   beforeEach(() => {
@@ -254,15 +254,16 @@ describe('Failure recovery: S2→S4→S1 auto-advance cycle', () => {
 });
 
 describe('Failure injection — cause-effect graph', () => {
-  let storage: Awaited<ReturnType<typeof createTestStorage>>;
+  let tc: TestContainer;
   let adapter: MongoJobLifecycleAdapter;
   let ingestor: JobIngestor;
   let parseEventPort: Record<string, ReturnType<typeof vi.fn>>;
   let routingPort: Record<string, ReturnType<typeof vi.fn>>;
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
+    tc = await createTestContainer({ ns: 'c3-failure-injection' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
   }, 120000);
 
   beforeEach(() => {
@@ -272,7 +273,7 @@ describe('Failure injection — cause-effect graph', () => {
   });
 
   afterAll(async () => {
-    await storage.stop();
+    await tc.stop();
   });
 
   it('cause: parse failure -> effect: emitFailed called (saga enters S5)', async () => {
@@ -310,23 +311,23 @@ describe('Failure injection — cause-effect graph', () => {
 });
 
 describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
-  let storage: any;
+  let tc: TestContainer;
   let adapter: MongoJobLifecycleAdapter;
   let realBus: RealDipBus;
 
   function realIngestor(): JobIngestor {
-    return new JobIngestor(adapter, realBus.parsePort, realBus.routePort);
+    return tc.ingestor;
   }
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-    realBus = await createRealDipBus('jobs.events.int.c3.reliability');
+    tc = await createTestContainer({ ns: 'c3-reliability-cycles' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
+    realBus = tc.bus;
   }, 120000);
 
   afterAll(async () => {
-    await realBus.teardown();
-    await storage.stop();
+    await tc.stop();
   });
 
   it('S2 parse.failed → S1 next job: emits s4a then s1 for new job — real-DIP', async () => {
@@ -415,15 +416,16 @@ describe('Reliability cycles (S2→S4→S1 failure auto-advance)', () => {
 });
 
 describe('High-ROI sequential tests (H1-H5)', () => {
-  let storage: any;
+  let tc: TestContainer;
   let adapter: MongoJobLifecycleAdapter;
   let parseEvents: any[];
   let routingEvents: any[];
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
+    tc = await createTestContainer({ ns: 'c3-high-roi' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
 
     parseEvents = [];
     routingEvents = [];
@@ -436,13 +438,13 @@ describe('High-ROI sequential tests (H1-H5)', () => {
   }, 120000);
 
   afterAll(async () => {
-    await storage.stop();
+    await tc.stop();
   });
 
   beforeEach(async () => {
     parseEvents.length = 0;
     routingEvents.length = 0;
-    await storage.clearDb();
+    await tc.storage.clearDb();
   });
 
   // ── H1: Rate stress — 5 sequential S1→S2→S3→S1 cycles ──────────────
@@ -608,7 +610,7 @@ describe('High-ROI sequential tests (H1-H5)', () => {
 });
 
 describe('Failure Recovery (fallback on extraction failure)', () => {
-  let storage: any;
+  let tc: TestContainer;
   let adapter: MongoJobLifecycleAdapter;
   let eqAdapter: MongoExtractionQueueAdapter;
   let parseEvents: any[];
@@ -616,14 +618,10 @@ describe('Failure Recovery (fallback on extraction failure)', () => {
   let ingestor: JobIngestor;
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    adapter = new MongoJobLifecycleAdapter(
-      storage.client.db(storage.dbName),
-    );
-    eqAdapter = new MongoExtractionQueueAdapter(
-      new MetricsRegistry(),
-      storage.client.db(storage.dbName),
-    );
+    tc = await createTestContainer({ ns: 'c3-fallback-recovery' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
+    eqAdapter = tc.extractionQueueAdapter;
 
     parseEvents = [];
     routingEvents = [];
@@ -636,7 +634,7 @@ describe('Failure Recovery (fallback on extraction failure)', () => {
   }, 120000);
 
   afterAll(async () => {
-    await storage.stop();
+    await tc.stop();
   });
 
   async function seedJob(jobLifecycleId: string, url: string) {

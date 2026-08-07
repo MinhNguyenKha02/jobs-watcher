@@ -1,94 +1,70 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import { MongoClient } from 'mongodb';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { buildSystemContainer, type AppContainer } from '../../../src/application/container.js';
+import { createTestStorage } from '../../helpers/create-test-storage.js';
 
-describe('Composition root — DI wiring verification', () => {
-  let client: MongoClient;
-  let dbName: string;
+/**
+ * Container-conformance: the production composition root (IoC) wires the full
+ * graph against REAL adapters (no stubs / `as any`). Every port the JobIngestor
+ * depends on is satisfied by a concrete runtime adapter, and start/stop roundtrip.
+ */
+describe('Container conformance — IoC composition root', () => {
+  let storage: Awaited<ReturnType<typeof createTestStorage>>;
+  let container: AppContainer;
 
   beforeAll(async () => {
-    const { createTestStorage } = await import('../../helpers/create-test-storage.js');
-    const storage = await createTestStorage();
-    client = storage.client;
-    dbName = storage.dbName;
+    storage = await createTestStorage();
+    const exchange = 'jobs.events.int.composition-root';
+    container = buildSystemContainer(
+      {
+        nodeEnv: 'test',
+        mongodb: { uri: storage.uri, dbName: storage.dbName },
+        rabbitmq: { url: process.env.RABBITMQ_URL || 'amqp://localhost', exchange },
+        uds: { socketPath: `/tmp/jobs-watcher-composition-root.sock`, token: 'test-token' },
+        health: { port: 0 },
+      },
+      {},
+    );
   }, 120000);
 
   afterAll(async () => {
-    await client.close();
+    await storage.stop();
   });
 
-  it('MongoJobLifecycleAdapter wires with Mongo Db and provides correct port methods', async () => {
-    const { MongoJobLifecycleAdapter } = await import('../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js');
-    const adapter = new MongoJobLifecycleAdapter(client.db(dbName));
+  it('JobIngestor is wired with the 6 real port adapters (no stubs, no divergent 3-arg wiring)', async () => {
+    expect(container.ingestor).toBeDefined();
+    expect(typeof container.ingestor.processIngest).toBe('function');
+    expect(typeof container.ingestor.processResolution).toBe('function');
 
-    expect(typeof adapter.upsert).toBe('function');
-    expect(typeof adapter.updateStage).toBe('function');
-    expect(typeof adapter.findById).toBe('function');
+    expect(container.mongoJobLifecycleAdapter).toBeDefined();
+    expect(container.parseAdapter).toBeDefined();
+    expect(container.routeAdapter).toBeDefined();
+    expect(container.extractionQueueAdapter).toBeDefined();
+    expect(container.assetProducingAdapter).toBeDefined();
+    expect(container.metricsRegistry).toBeDefined();
   });
 
-  it('JobIngestor wires with all 6 port adapters without throwing', async () => {
-    const { MongoJobLifecycleAdapter } = await import('../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js');
-    const { MetricsRegistry } = await import('../../../src/infrastructure/outbound/monitoring/metrics-registry.js');
-    const { Registry } = await import('prom-client');
-    const { JobIngestor } = await import('../../../src/application/ingestor.js');
-
-    const adapter = new MongoJobLifecycleAdapter(client.db(dbName));
-    const metrics = new MetricsRegistry(new Registry());
-    const ingestor = new JobIngestor(
-      adapter,
-      { emitGenerated: vi.fn(), emitCompleted: vi.fn(), emitFailed: vi.fn() },
-      { emitJobQueued: vi.fn(), emitJobTrashed: vi.fn(), emitRouteFailed: vi.fn() },
-      { enqueue: vi.fn(), dequeue: vi.fn(), size: vi.fn(), onEnqueue: vi.fn() },
-      { toAsset: vi.fn() },
-      metrics,
-    );
-
-    expect(ingestor).toBeDefined();
-    expect(typeof ingestor.processIngest).toBe('function');
-    expect(typeof ingestor.processResolution).toBe('function');
+  it('each JobIngestor dependency is a concrete runtime adapter exposing its port', async () => {
+    expect(typeof container.mongoJobLifecycleAdapter.upsert).toBe('function');
+    expect(typeof container.parseAdapter.emitGenerated).toBe('function');
+    expect(typeof container.routeAdapter.emitJobQueued).toBe('function');
+    expect(typeof container.extractionQueueAdapter.enqueue).toBe('function');
+    expect(typeof container.assetProducingAdapter.toAsset).toBe('function');
+    expect(typeof container.metricsRegistry.metrics).toBe('function');
   });
 
-  it('AssetProducingAdapter wires without constructor dependencies', async () => {
-    const { AssetProducingAdapter } = await import('../../../src/infrastructure/outbound/asset-builder/asset-producing-adapter.js');
-    const adapter = new AssetProducingAdapter();
-
-    expect(adapter).toBeDefined();
-    expect(typeof adapter.toAsset).toBe('function');
-    expect(typeof (adapter as any).toPdf).toBe('function');
+  it('the orchestration scheduler + inbound adapters are composed without throwing', async () => {
+    expect(typeof container.extractionScheduler.start).toBe('function');
+    expect(typeof container.extractionScheduler.stop).toBe('function');
+    expect(typeof container.udsAdapter.start).toBe('function');
+    expect(typeof container.browserAdapter.extract).toBe('function');
   });
 
-  it('ExtractionScheduler wires with all port adapters without throwing', async () => {
-    const { ExtractionScheduler } = await import('../../../src/application/extraction-scheduler.js');
+  it('start()/stop() roundtrips without throwing', async () => {
+    await container.start();
+    await container.stop();
 
-    const scheduler = new ExtractionScheduler(
-      { enqueue: vi.fn(), dequeue: vi.fn(), size: vi.fn(), onEnqueue: vi.fn() },
-      { start: vi.fn(), extract: vi.fn(), stop: vi.fn() },
-      { upsert: vi.fn(), updateStage: vi.fn(), findById: vi.fn() },
-      { processIngest: vi.fn(), processResolution: vi.fn() },
-    );
-
-    expect(scheduler).toBeDefined();
-    expect(typeof scheduler.start).toBe('function');
-    expect(typeof scheduler.stop).toBe('function');
-  });
-
-  it('UdsAdapter wires with IngestorPort and config without throwing', async () => {
-    const { UdsAdapter } = await import('../../../src/infrastructure/inbound/uds/uds-adapter.js');
-
-    const ingestorMock = { processIngest: vi.fn(), processResolution: vi.fn() };
-    const adapter = new UdsAdapter(ingestorMock, { port: '/tmp/test-uds.sock' });
-
-    expect(adapter).toBeDefined();
-    expect(typeof (adapter as any).start).toBe('function');
-  });
-
-  it('WebhookAdapter wires with IngestorPort and required dependencies', async () => {
-    const { WebhookAdapter } = await import('../../../src/infrastructure/inbound/web/webhook-adapter.js');
-
-    const ingestorMock = { processIngest: vi.fn(), processResolution: vi.fn() };
-    const gmailMock = { authenticate: vi.fn() };
-    const adapter = new WebhookAdapter(ingestorMock, gmailMock as any);
-
-    expect(adapter).toBeDefined();
-    expect(typeof (adapter as any).start).toBe('function');
+    // the wired metrics registry is functional after the roundtrip
+    const text = await container.metricsRegistry.metrics();
+    expect(text).toContain('job_stage_total');
   });
 });

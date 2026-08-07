@@ -1,10 +1,10 @@
+/* Path cell (c4): S1→S2→S3→S4 direct lifecycle, asset-builder (see plans/tests-path-matrix.md) */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { createTestStorage } from '../../../helpers/create-test-storage.js';
-import { createRealDipBus, type RealDipBus } from '../../../helpers/real-dip-bus.js';
+import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
+import type { RealDipBus } from '../../../helpers/real-dip-bus.js';
 import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
 import { linkedinSduiDetailHtml } from '../../../helpers/html-fixtures.js';
-import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
-import { MongoInitializer } from '../../../../src/infrastructure/outbound/persistence/mongo-init.js';
+import type { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 
@@ -25,25 +25,23 @@ function mockPorts() {
 }
 
 describe('Merged-DM — Direct Mode (Signal 2a manual + Signal 2b clipboard)', () => {
-  let storage: any;
+  let tc: TestContainer;
   let adapter: MongoJobLifecycleAdapter;
   let realBus: RealDipBus;
 
   function realIngestor(): JobIngestor {
-    return new JobIngestor(adapter, realBus.parsePort, realBus.routePort);
+    return tc.ingestor;
   }
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    const initializer = new MongoInitializer(storage.client, storage.dbName);
-    await initializer.init();
-    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-    realBus = await createRealDipBus('jobs.events.int.c4.direct-mode');
+    tc = await createTestContainer({ ns: 'c4-direct-mode' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
+    realBus = tc.bus;
   }, 120000);
 
   afterAll(async () => {
-    await realBus.teardown();
-    await storage.stop();
+    await tc.stop();
   });
 
   it('Signal 2a upgrades PARTIAL_PARSED to FULL_PARSED with merged fields — real-DIP', async () => {
@@ -108,7 +106,7 @@ describe('Merged-DM — Direct Mode (Signal 2a manual + Signal 2b clipboard)', (
 
   it('Signal 2b creates new FULL_PARSED job with clip-* ID — real-DIP', async () => {
     const ingestor = realIngestor();
-    const col = storage.client.db(storage.dbName).collection('job_lifecycle');
+    const col = tc.db.collection("job_lifecycle");
     const docsBefore = await col.countDocuments({});
 
     const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
@@ -132,8 +130,8 @@ describe('Merged-DM — Direct Mode (Signal 2a manual + Signal 2b clipboard)', (
   it('Signal 2b duplicate role+company silently skips', async () => {
     const { parseEvents, parseEventPort } = mockPorts();
     const ingestor = new JobIngestor(adapter, parseEventPort as any, { emitJobQueued: vi.fn(), emitJobTrashed: vi.fn(), emitRouteFailed: vi.fn() } as any);
-    const col = storage.client.db(storage.dbName).collection('job_lifecycle');
-    await storage.clearDb();
+    const col = tc.db.collection("job_lifecycle");
+    await tc.storage.clearDb();
 
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DM_HTML_2B, undefined, undefined, new Date());
 
@@ -151,27 +149,25 @@ describe('Merged-DM — Direct Mode (Signal 2a manual + Signal 2b clipboard)', (
 });
 
 describe('Merged direct-lifecycle — Direct mode [b]→[i]→S2→[j]/[d] lifecycle (Case 4)', () => {
-  let storage: any;
+  let tc: TestContainer;
   let dbCollection: any;
   let adapter: MongoJobLifecycleAdapter;
   let realBus: RealDipBus;
 
   function realIngestor(): JobIngestor {
-    return new JobIngestor(adapter, realBus.parsePort, realBus.routePort);
+    return tc.ingestor;
   }
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    const initializer = new MongoInitializer(storage.client, storage.dbName);
-    await initializer.init();
-    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-    dbCollection = storage.client.db(storage.dbName).collection('job_lifecycle');
-    realBus = await createRealDipBus('jobs.events.int.c4.direct-lifecycle');
+    tc = await createTestContainer({ ns: 'c4-direct-lifecycle' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
+    dbCollection = tc.db.collection('job_lifecycle');
+    realBus = tc.bus;
   }, 120000);
 
   afterAll(async () => {
-    await realBus.teardown();
-    await storage.stop();
+    await tc.stop();
   });
 
   it('signal2bManual creates clip-* doc and emits parse.completed (simulates [i] in direct mode) — real-DIP', async () => {

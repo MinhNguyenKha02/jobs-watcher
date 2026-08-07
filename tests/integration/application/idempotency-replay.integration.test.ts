@@ -1,29 +1,29 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { createTestStorage } from '../../helpers/create-test-storage.js';
+import { createTestContainer, type TestContainer } from '../../helpers/test-container.js';
 import { createParseEventPort, createRoutingPort } from '../../helpers/mock-ports.js';
-import { MongoJobLifecycleAdapter } from '../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
-import { MongoInitializer } from '../../../src/infrastructure/outbound/persistence/mongo-init.js';
+import type { MongoJobLifecycleAdapter } from '../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { JobIngestor } from '../../../src/application/ingestor.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
 
 describe('Idempotency — command replay', () => {
-  let storage: Awaited<ReturnType<typeof createTestStorage>>;
+  let tc: TestContainer;
   let adapter: MongoJobLifecycleAdapter;
   let ingestor: JobIngestor;
   let parseEventPort: ReturnType<typeof createParseEventPort>;
   let routingPort: ReturnType<typeof createRoutingPort>;
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
+    tc = await createTestContainer({ ns: 'app-idempotency' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
     parseEventPort = createParseEventPort();
     routingPort = createRoutingPort();
     ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
   }, 120000);
 
   afterAll(async () => {
-    await storage.stop();
+    await tc.stop();
   });
 
   it('replaying same processIngest with same jobLifecycleId does not duplicate in DB', async () => {
@@ -83,7 +83,7 @@ describe('Idempotency — command replay', () => {
 });
 
 describe('PRC-002 — Stage-replay idempotency ([c]/[i] replay, s3-after-s4 no regression)', () => {
-  let storage: Awaited<ReturnType<typeof createTestStorage>>;
+  let tc: TestContainer;
   let adapter: MongoJobLifecycleAdapter;
   let ingestor: JobIngestor;
   let parseEvents: string[];
@@ -91,15 +91,14 @@ describe('PRC-002 — Stage-replay idempotency ([c]/[i] replay, s3-after-s4 no r
   let dbCollection: any;
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    const initializer = new MongoInitializer(storage.client, storage.dbName);
-    await initializer.init();
-    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-    dbCollection = storage.client.db(storage.dbName).collection('job_lifecycle');
+    tc = await createTestContainer({ ns: 'app-idempotency-prc2' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
+    dbCollection = tc.db.collection('job_lifecycle');
   }, 120000);
 
   beforeEach(async () => {
-    await storage.clearDb();
+    await tc.storage.clearDb();
     parseEvents = [];
     routingEvents = [];
     const parseEventPort = createParseEventPort((tag) => parseEvents.push(tag));
@@ -108,7 +107,7 @@ describe('PRC-002 — Stage-replay idempotency ([c]/[i] replay, s3-after-s4 no r
   });
 
   afterAll(async () => {
-    await storage.stop();
+    await tc.stop();
   });
 
   it('[i] direct mode replay: repeated identical FULL_PARSED ingest → single doc, single completed event', async () => {

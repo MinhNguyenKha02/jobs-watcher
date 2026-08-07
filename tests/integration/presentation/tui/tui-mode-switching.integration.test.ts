@@ -31,6 +31,19 @@ function publish(ch: Channel, key: string, payload: unknown): void {
   ch.publish(EXCHANGE, key, Buffer.from(JSON.stringify(payload)), { persistent: true });
 }
 
+async function waitFor(
+  check: () => boolean,
+  timeoutMs = 8000,
+  intervalMs = 50,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (check()) return;
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  throw new Error(`waitFor timed out after ${timeoutMs}ms`);
+}
+
 describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () => {
   let conn: Connection;
   let ch: Channel;
@@ -135,12 +148,11 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     await new Promise((r) => setTimeout(r, 300));
 
     publish(ch, ActionEvent.GENERATED, { _id: 'complete-1', role: 'Data Engineer', company: 'DoneCo', stage: JobStage.PARTIAL_PARSED });
-    await new Promise((r) => setTimeout(r, 400));
     publish(ch, ActionEvent.PARSE_COMPLETED, { _id: 'complete-1', role: 'Data Engineer', company: 'DoneCo', stage: JobStage.FULL_PARSED });
-    await new Promise((r) => setTimeout(r, 400));
+    await waitFor(() => getCurrentJob().jobLifecycleId === 'complete-1');
 
     publish(ch, ActionEvent.QUEUED, 'complete-1');
-    await new Promise((r) => setTimeout(r, 500));
+    await waitFor(() => getCurrentJob().jobLifecycleId === null);
 
     const cur = getCurrentJob();
     expect(cur.jobLifecycleId).toBeNull();
@@ -153,10 +165,10 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     await new Promise((r) => setTimeout(r, 300));
 
     publish(ch, ActionEvent.GENERATED, { _id: 'fail-adv-1', role: 'Web Developer', company: 'FailCo', stage: JobStage.PARTIAL_PARSED });
-    await new Promise((r) => setTimeout(r, 400));
+    await waitFor(() => getCurrentJob().jobLifecycleId === 'fail-adv-1');
 
     publish(ch, ActionEvent.PARSE_FAILED, 'fail-adv-1');
-    await new Promise((r) => setTimeout(r, 500));
+    await waitFor(() => getCurrentJob().jobLifecycleId === null);
 
     const cur = getCurrentJob();
     expect(cur.jobLifecycleId).toBeNull();
@@ -181,12 +193,13 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     publish(ch, ActionEvent.GENERATED, { _id: 'seq-2', role: 'Backend Developer', company: 'SeqCo2', stage: JobStage.PARTIAL_PARSED });
     publish(ch, ActionEvent.GENERATED, { _id: 'seq-3', role: 'Data Engineer', company: 'SeqCo3', stage: JobStage.PARTIAL_PARSED });
 
-    await new Promise((r) => setTimeout(r, 600));
+    await waitFor(() => getCurrentJob().jobLifecycleId === 'seq-1', 15000);
+    await waitFor(() => reader.getQueueDepth() === 2, 15000);
     const cur = getCurrentJob();
     expect(cur.jobLifecycleId).toBe('seq-1');
     expect(reader.getQueueDepth()).toBe(2);
     reader.stop();
-  }, 20000);
+  }, 25000);
 
   it('clearCurrentJob resets active-mode substate', () => {
     setQueueMode(false);

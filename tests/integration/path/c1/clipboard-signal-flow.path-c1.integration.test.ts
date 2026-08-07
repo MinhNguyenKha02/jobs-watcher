@@ -1,19 +1,19 @@
+/* Path cell (c1): S1 uds+ingestor+job_lifecycle (clipboard signal) (see plans/tests-path-matrix.md) */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { createTestStorage } from '../../../helpers/create-test-storage.js';
+import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
 import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
 
-import { createRealDipBus, type RealDipBus } from '../../../helpers/real-dip-bus.js';
 import { topcvDetailHtml, nonJobHtml } from '../../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../../helpers/test-builders.js';
-import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
-import { MongoInitializer } from '../../../../src/infrastructure/outbound/persistence/mongo-init.js';
+import type { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js' ;
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
+import type { RealDipBus } from '../../../helpers/real-dip-bus.js';
 
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
 
 describe('Clipboard ingest signal flow with real storage', () => {
-  let storage: any;
+  let tc: TestContainer;
   let adapter: MongoJobLifecycleAdapter;
   let collection: any;
   let parseEvents: any[];
@@ -21,24 +21,22 @@ describe('Clipboard ingest signal flow with real storage', () => {
   let realBus: RealDipBus;
 
   beforeAll(async () => {
-    storage = await createTestStorage();
-    const initializer = new MongoInitializer(storage.client, storage.dbName);
-    await initializer.init();
-    adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
-    collection = storage.client.db(storage.dbName).collection('job_lifecycle');
-    realBus = await createRealDipBus('jobs.events.int.c1.clipboard');
+    tc = await createTestContainer({ ns: 'c1-clipboard-signal' });
+    await tc.start();
+    adapter = tc.mongoJobLifecycleAdapter;
+    collection = tc.db.collection('job_lifecycle');
+    realBus = tc.bus;
 
     parseEvents = [];
     routingEvents = [];
   }, 120000);
 
   afterAll(async () => {
-    await realBus.teardown();
-    await storage.stop();
+    await tc.stop();
   });
 
   async function clearCollections() {
-    await storage.clearDb();
+    await tc.storage.clearDb();
   }
 
   // parts-integ: mock event ports for deterministic guard/no-emit/failure-injection assertions.
@@ -48,9 +46,9 @@ describe('Clipboard ingest signal flow with real storage', () => {
     return new JobIngestor(adapter, parseEventPort, routingPort);
   }
 
-  // real-DIP: real RabbitMQ Parse/Route adapters wired over the application ports.
+  // real-DIP: the production composition-root ingestor (real RabbitMQ Parse/Route adapters).
   function realIngestor(): JobIngestor {
-    return new JobIngestor(adapter, realBus.parsePort, realBus.routePort);
+    return tc.ingestor;
   }
 
   describe('signal2aManual (simulates [c] in Case 1)', () => {

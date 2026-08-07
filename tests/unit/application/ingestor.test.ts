@@ -255,5 +255,19 @@ describe('JobIngestor', () => {
       );
       expect(routingPort.emitJobTrashed).toHaveBeenCalled();
     });
+
+    it('propagates non-11000 upsert errors instead of swallowing them', async () => {
+      storage.upsert.mockRejectedValueOnce(
+        Object.assign(new Error('Disk full'), { code: 9000 }),
+      );
+      await expect(
+        ingestor.processIngest(
+          JobSource.MANUAL,
+          JobStage.FULL_PARSED,
+          makeTopCvDetailHtml(),
+          undefined,
+        ),
+      ).rejects.toThrow('Disk full');
+    });
   });
 });
