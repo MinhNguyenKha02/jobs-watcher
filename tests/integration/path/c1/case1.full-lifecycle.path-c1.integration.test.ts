@@ -1,5 +1,6 @@
 /* Path cell (c1): S1 uds+ingestor+job_lifecycle; deep-parse enrichment S2 via rabbitmq (see plans/tests-path-matrix.md) */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import fc from 'fast-check';
 import { createTestContainer } from '../../../helpers/test-container.js';
 import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
 
@@ -176,5 +177,64 @@ describe('Case 1 partial→[o][p][c]→full→[j][d]→next', () => {
     const failedDoc = await tc.mongoJobLifecycleAdapter.findById(jobLifecycleId);
     expect(failedDoc).not.toBeNull();
     expect(failedDoc!.status).toBe(JobStatus.ENRICHING);
+  });
+
+  it('T1f: [c] MANUAL FULL without jobLifecycleId is silent — no fabricated id, no parse.failed (B9)', async () => {
+    const ingestor = mockIngestor();
+    const failedBefore = parseEvents.filter(([t]) => t === 'failed').length;
+
+    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML);
+
+    const failedAfter = parseEvents.filter(([t]) => t === 'failed').length;
+    expect(failedAfter).toBe(failedBefore);
+  });
+
+  describe('fast-check saga property invariants (consolidated from integration/application)', () => {
+    const ROLES = ['Software Engineer', 'Backend Developer', 'Full Stack Developer', 'Data Engineer'];
+
+    it('property: random role/company pairs never crash the saga and always converge to valid states', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.constantFrom(...ROLES),
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.integer({ min: 0, max: 9 }),
+          async (role, company, workerIdx) => {
+            const ingestor = realIngestor();
+            const safeCompany = company.replace(/[<>&]/g, '') || 'Co';
+            await ingestor.processIngest(
+              JobSource.BROWSER_AUTO,
+              JobStage.PARTIAL_PARSED,
+              topcvEmailHtmlMany([{ role, company: `${safeCompany}${workerIdx}` }]),
+              undefined,
+              { messageId: `prop-${workerIdx}-${role.replace(/\s+/g, '')}` },
+            );
+            const doc = await tc.mongoJobLifecycleAdapter.findById(`prop-${workerIdx}-${role.replace(/\s+/g, '')}-job-0`);
+            if (doc) {
+              expect([JobStatus.ENRICHING, JobStatus.ENRICHED]).toContain(doc.status);
+            }
+            return true;
+          },
+        ),
+        { numRuns: 30 },
+      );
+    });
+
+    it('property: repeated identical s1 ingests are idempotent (dedupe on role+company)', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.constantFrom(...ROLES),
+          async (role) => {
+            const ingestor = realIngestor();
+            const company = `DedupePropCo-${Math.random().toString(36).slice(2, 8)}`;
+            await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role, company }]), undefined, { messageId: 'prop-dedupe' });
+            await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role, company }]), undefined, { messageId: 'prop-dedupe' });
+            const docs = await tc.db.collection('job_lifecycle').find({ role, company }).toArray();
+            expect(docs.length).toBeLessThanOrEqual(1);
+            return true;
+          },
+        ),
+        { numRuns: 15 },
+      );
+    });
   });
 });
