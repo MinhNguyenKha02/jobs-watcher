@@ -16,12 +16,16 @@ import {
 } from '../../../../src/presentation/tui/shared-tui-state.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
-const EXCHANGE = 'jobs.events';
 
-// RabbitMqJobReader hardcodes these queue names.
-const S1_QUEUE = 'tui.s1';
-const S2_QUEUE = 'tui.s2';
-const S34_QUEUE = 'tui.s3s4';
+// Private per-run topology so the reader does NOT consume the global
+// `jobs.events` firehose that parallel integration files publish into (which
+// inflated pendingJobs and made exact depth/current assertions timing-dependent).
+const TOKEN = `${process.pid}.${Date.now()}`;
+const EXCHANGE = `jobs.events.tui.itest.${TOKEN}`;
+const S1_QUEUE = `tui.itest.${TOKEN}.s1`;
+const S2_QUEUE = `tui.itest.${TOKEN}.s2`;
+const S34_QUEUE = `tui.itest.${TOKEN}.s3s4`;
+const READER_OPTS = { exchange: EXCHANGE, s1Queue: S1_QUEUE, s2Queue: S2_QUEUE, s34Queue: S34_QUEUE };
 
 // Isolate shared-state to a temp dir so tests don't collide with real TUI state.
 const sharedStateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tui-mode-'));
@@ -112,7 +116,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
   });
 
   it('[c] chain: s1 (GENERATED) then s2 (PARSE_COMPLETED) merges into pending → advances', async () => {
-    const reader = new RabbitMqJobReader(RMQ_URL);
+    const reader = new RabbitMqJobReader(RMQ_URL, READER_OPTS);
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
 
@@ -128,7 +132,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
   }, 20000);
 
   it('[i] direct-mode standalone PARSE_COMPLETED sets current job', async () => {
-    const reader = new RabbitMqJobReader(RMQ_URL);
+    const reader = new RabbitMqJobReader(RMQ_URL, READER_OPTS);
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
     setQueueMode(false);
@@ -143,7 +147,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
   }, 20000);
 
   it('s3s4 completion (QUEUED) removes job from pending and clears current', async () => {
-    const reader = new RabbitMqJobReader(RMQ_URL);
+    const reader = new RabbitMqJobReader(RMQ_URL, READER_OPTS);
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
 
@@ -160,7 +164,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
   }, 20000);
 
   it('s4 (PARSE_FAILED) clears current job and advances', async () => {
-    const reader = new RabbitMqJobReader(RMQ_URL);
+    const reader = new RabbitMqJobReader(RMQ_URL, READER_OPTS);
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
 
@@ -176,7 +180,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
   }, 20000);
 
   it('reader stays connected after start (isConnected)', async () => {
-    const reader = new RabbitMqJobReader(RMQ_URL);
+    const reader = new RabbitMqJobReader(RMQ_URL, READER_OPTS);
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
     expect(reader.isConnected()).toBe(true);
@@ -185,7 +189,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
   }, 20000);
 
   it('multiple s1 jobs queue up in pending and auto-advance sequentially', async () => {
-    const reader = new RabbitMqJobReader(RMQ_URL);
+    const reader = new RabbitMqJobReader(RMQ_URL, READER_OPTS);
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
 
@@ -193,8 +197,8 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     publish(ch, ActionEvent.GENERATED, { _id: 'seq-2', role: 'Backend Developer', company: 'SeqCo2', stage: JobStage.PARTIAL_PARSED });
     publish(ch, ActionEvent.GENERATED, { _id: 'seq-3', role: 'Data Engineer', company: 'SeqCo3', stage: JobStage.PARTIAL_PARSED });
 
-    await waitFor(() => getCurrentJob().jobLifecycleId === 'seq-1', 15000);
-    await waitFor(() => reader.getQueueDepth() === 2, 15000);
+    await waitFor(() => getCurrentJob().jobLifecycleId === 'seq-1');
+    await waitFor(() => reader.getQueueDepth() === 2);
     const cur = getCurrentJob();
     expect(cur.jobLifecycleId).toBe('seq-1');
     expect(reader.getQueueDepth()).toBe(2);

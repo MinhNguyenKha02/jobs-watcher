@@ -22,6 +22,13 @@ const PREFETCH = 5;
 const DEFERRED_S2_MAX = 10;
 const DEFERRED_S2_TTL = 30_000;
 
+export interface RabbitMqJobReaderOptions {
+  exchange?: string;
+  s1Queue?: string;
+  s2Queue?: string;
+  s34Queue?: string;
+}
+
 interface PendingJob {
   readonly job: Partial<JobLifecycleDocument>;
   stage: JobStage.PARTIAL_PARSED | JobStage.FULL_PARSED;
@@ -47,7 +54,20 @@ export class RabbitMqJobReader {
   private connected = false;
   private evictTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(private baseUrl: string) {}
+  constructor(
+    private baseUrl: string,
+    options: RabbitMqJobReaderOptions = {},
+  ) {
+    this.exchange = options.exchange ?? EXCHANGE;
+    this.s1Queue = options.s1Queue ?? S1_QUEUE;
+    this.s2Queue = options.s2Queue ?? S2_QUEUE;
+    this.s34Queue = options.s34Queue ?? S34_QUEUE;
+  }
+
+  private readonly exchange: string;
+  private readonly s1Queue: string;
+  private readonly s2Queue: string;
+  private readonly s34Queue: string;
 
   getQueueDepth(): number {
     return this.pendingJobs.length;
@@ -66,29 +86,29 @@ export class RabbitMqJobReader {
       this.s2channel = s2;
       this.s34channel = s34;
 
-      await s1.assertExchange(EXCHANGE, 'topic', { durable: true });
-      await s1.assertQueue(S1_QUEUE, { durable: true });
-      await s2.assertQueue(S2_QUEUE, { durable: true });
-      await s34.assertQueue(S34_QUEUE, { durable: true });
+      await s1.assertExchange(this.exchange, 'topic', { durable: true });
+      await s1.assertQueue(this.s1Queue, { durable: true });
+      await s2.assertQueue(this.s2Queue, { durable: true });
+      await s34.assertQueue(this.s34Queue, { durable: true });
 
-      await s1.bindQueue(S1_QUEUE, EXCHANGE, ActionEvent.GENERATED);
-      await s2.bindQueue(S2_QUEUE, EXCHANGE, ActionEvent.PARSE_COMPLETED);
-      await s34.bindQueue(S34_QUEUE, EXCHANGE, ActionEvent.QUEUED);
-      await s34.bindQueue(S34_QUEUE, EXCHANGE, ActionEvent.TRASHED);
-      await s34.bindQueue(S34_QUEUE, EXCHANGE, ActionEvent.ROUTE_FAILED);
-      await s34.bindQueue(S34_QUEUE, EXCHANGE, ActionEvent.PARSE_FAILED);
+      await s1.bindQueue(this.s1Queue, this.exchange, ActionEvent.GENERATED);
+      await s2.bindQueue(this.s2Queue, this.exchange, ActionEvent.PARSE_COMPLETED);
+      await s34.bindQueue(this.s34Queue, this.exchange, ActionEvent.QUEUED);
+      await s34.bindQueue(this.s34Queue, this.exchange, ActionEvent.TRASHED);
+      await s34.bindQueue(this.s34Queue, this.exchange, ActionEvent.ROUTE_FAILED);
+      await s34.bindQueue(this.s34Queue, this.exchange, ActionEvent.PARSE_FAILED);
 
       await s1.prefetch(PREFETCH);
       await s2.prefetch(PREFETCH);
       await s34.prefetch(PREFETCH);
 
-      await s1.consume(S1_QUEUE, (msg) => {
+      await s1.consume(this.s1Queue, (msg) => {
         if (msg) this.onMessageS1(msg);
       });
-      await s2.consume(S2_QUEUE, (msg) => {
+      await s2.consume(this.s2Queue, (msg) => {
         if (msg) this.onMessageS2(msg);
       });
-      await s34.consume(S34_QUEUE, (msg) => {
+      await s34.consume(this.s34Queue, (msg) => {
         if (msg) this.onMessageS3S4(msg);
       });
 

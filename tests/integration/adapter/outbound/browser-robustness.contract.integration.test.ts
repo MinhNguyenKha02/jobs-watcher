@@ -58,13 +58,16 @@ describe.skipIf(!hasPlaywright)('PRC-004 — Browser adapter robustness + crash 
     } catch {
       /* best-effort */
     }
+    // playwright-extra surfaces the cdpSession "target closed" rejection asynchronously
+    // AFTER stop() returns; give it a tick-window while the guard is still attached.
+    await new Promise((r) => setTimeout(r, 1200));
   });
 
   afterAll(async () => {
     await server.close();
     // let any in-flight playwright-extra cdpSession rejections surface while the
     // guard is still attached, then detach it so it does not mask later files.
-    await new Promise((r) => setTimeout(r, 750));
+    await new Promise((r) => setTimeout(r, 8000));
     process.removeListener('unhandledRejection', swallowBrowserRejection);
   });
 
