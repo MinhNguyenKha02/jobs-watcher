@@ -1,9 +1,9 @@
-/* Path cell (c1): S1 uds+ingestor+job_lifecycle (clipboard signal) (see plans/tests-path-matrix.md) */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+/* Path cell (c1): S1 uds+ingestor+job_lifecycle (clipboard + direct Signal 2a) (see plans/tests-path-matrix.md) */
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
 import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
 
-import { topcvDetailHtml, nonJobHtml } from '../../../helpers/html-fixtures.js';
+import { topcvDetailHtml, nonJobHtml, linkedinSduiDetailHtml } from '../../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../../helpers/test-builders.js';
 import type { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js' ;
@@ -11,6 +11,9 @@ import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 import type { RealDipBus } from '../../../helpers/real-dip-bus.js';
 
 const { JobIngestor } = await import('../../../../src/application/ingestor.js');
+
+const DM_HTML = linkedinSduiDetailHtml('Backend Developer', 'ClipJuniorCorp');
+const DM_EMPTY = '';
 
 describe('Clipboard ingest signal flow with real storage', () => {
   let tc: TestContainer;
@@ -123,82 +126,6 @@ describe('Clipboard ingest signal flow with real storage', () => {
     });
   });
 
-  describe('signal2bManual (simulates [i] in Case 4)', () => {
-    beforeEach(async () => {
-      await clearCollections();
-      parseEvents.length = 0;
-      routingEvents.length = 0;
-    });
-
-    it('creates new clip-* doc with FULL_PARSED from clipboard HTML — real-DIP', async () => {
-      const ingestor = realIngestor();
-      const docsBefore = await collection.countDocuments({});
-
-      const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'ClipCo'));
-
-      const compMsg = await comp.msg();
-      expect(compMsg.job).toBeDefined();
-      const clipId = compMsg.job._id;
-      expect(clipId).toMatch(/^clip-/);
-
-      const docsAfter = await collection.countDocuments({});
-      expect(docsAfter).toBe(docsBefore + 1);
-
-      const doc = await adapter.findById(clipId);
-      expect(doc).not.toBeNull();
-      expect(doc!.stage).toBe(JobStage.FULL_PARSED);
-      expect(doc!.status).toBe(JobStatus.ENRICHED);
-      expect(doc!.company).toBe('ClipCo');
-      expect(doc!.role).toBe('Software Engineer');
-    });
-
-    it('emits parse.failed on unparsable clipboard HTML', async () => {
-      const ingestor = mockIngestor();
-      const docsBefore = await collection.countDocuments({});
-
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, nonJobHtml());
-
-      const docsAfter = await collection.countDocuments({});
-      expect(docsAfter).toBe(docsBefore);
-
-      const failedEvents = parseEvents.filter(([t]) => t === 'failed');
-      expect(failedEvents.length).toBe(1);
-      expect(failedEvents[0][2]).toEqual(expect.objectContaining({ error: 'HTML parse failed' }));
-    });
-
-    it('silently skips duplicate role+company (MongoDB 11000)', async () => {
-      const ingestor = mockIngestor();
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Unique Role', 'DedupCorp'));
-
-      const docsBefore = await collection.countDocuments({});
-      const completedBefore = parseEvents.filter(([t]) => t === 'completed').length;
-
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Unique Role', 'DedupCorp'));
-
-      const docsAfter = await collection.countDocuments({});
-      expect(docsAfter).toBe(docsBefore);
-
-      const completedEvents = parseEvents.filter(([t]) => t === 'completed');
-      expect(completedEvents.length).toBe(completedBefore);
-    });
-
-    it('passed through filter and creates clip-* doc — real-DIP', async () => {
-      const ingestor = realIngestor();
-
-      const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'FilterPassCo'));
-
-      const compMsg = await comp.msg();
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toMatch(/^clip-/);
-
-      const doc = await collection.findOne({ company: 'FilterPassCo' });
-      expect(doc).not.toBeNull();
-      expect(doc!._id).toMatch(/^clip-/);
-    });
-  });
-
   describe('signal2aManual → resolution (Case 1 completion: [c]→[j]/[d])', () => {
     beforeEach(async () => {
       await clearCollections();
@@ -270,76 +197,65 @@ describe('Clipboard ingest signal flow with real storage', () => {
     });
   });
 
-  describe('signal2bManual → resolution (Case 4 completion: [i]→[j]/[d])', () => {
-    beforeEach(async () => {
-      await clearCollections();
-      parseEvents.length = 0;
-      routingEvents.length = 0;
-    });
-
-    it('[i] then [j]: signal2bManual creates clip-*, then queue resolution succeeds — real-DIP', async () => {
+  describe('Direct signal2a (simulates [c] in direct mode — merged-DM)', () => {
+    it('Signal 2a upgrades PARTIAL_PARSED to FULL_PARSED with merged fields — real-DIP', async () => {
       const ingestor = realIngestor();
+      const jobLifecycleId = 'e2e-2a-1';
+      const partialDoc = {
+        _id: jobLifecycleId,
+        raw: '<html><body>partial</body></html>',
+        stage: JobStage.PARTIAL_PARSED,
+        status: JobStatus.ENRICHING,
+        source: JobSource.BROWSER_AUTO,
+        company: 'OldCorp',
+        role: 'Backend Developer',
+        url: 'https://example.com/job',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        stageTimestamp: new Date(),
+      };
+      await adapter.upsert(partialDoc as any);
 
       const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'ClipQueueCo'));
-
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DM_HTML, jobLifecycleId, undefined, new Date());
       const compMsg = await comp.msg();
-      const clipId = compMsg.job._id;
-      expect(clipId).toMatch(/^clip-/);
+      expect(compMsg.job).toBeDefined();
+      expect(compMsg.job._id).toBe(jobLifecycleId);
 
-      const queue = await realBus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
-      await ingestor.processResolution(clipId, 'queue');
-
-      const queueMsg = await queue.msg();
-      expect(queueMsg.jobLifecycleId).toBe(clipId);
-
-      const doc = await adapter.findById(clipId);
-      expect(doc).not.toBeNull();
-      expect(doc!.status).toBe(JobStatus.QUEUED);
+      const fullDoc = await adapter.findById(jobLifecycleId);
+      expect(fullDoc).not.toBeNull();
+      expect(fullDoc!.stage).toBe(JobStage.FULL_PARSED);
+      expect(fullDoc!.status).toBe(JobStatus.ENRICHED);
+      expect(fullDoc!.company).toBe('ClipJuniorCorp');
+      expect(fullDoc!.role).toBe('Backend Developer');
+      expect(fullDoc!.location).toBe('Ho Chi Minh City, Vietnam');
     });
 
-    it('[i] then [d]: signal2bManual creates clip-*, then trash resolution succeeds — real-DIP', async () => {
+    it('Signal 2a with empty payload fails gracefully — real-DIP', async () => {
       const ingestor = realIngestor();
+      const jobLifecycleId = 'e2e-2a-empty';
+      const partialDoc = {
+        _id: jobLifecycleId,
+        raw: '<html><body>partial</body></html>',
+        stage: JobStage.PARTIAL_PARSED,
+        status: JobStatus.ENRICHING,
+        source: JobSource.BROWSER_AUTO,
+        company: 'FailCorp',
+        role: 'Backend Developer',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        stageTimestamp: new Date(),
+      };
+      await adapter.upsert(partialDoc as any);
 
-      const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'ClipTrashCo'));
+      const fail = await realBus.setup([ActionEvent.PARSE_FAILED]);
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DM_EMPTY, jobLifecycleId, undefined, new Date());
+      const failMsg = await fail.msg();
+      expect(failMsg.jobLifecycleId).toBe(jobLifecycleId);
 
-      const compMsg = await comp.msg();
-      const clipId = compMsg.job._id;
-      expect(clipId).toMatch(/^clip-/);
-
-      const trash = await realBus.setup([ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED, ActionEvent.PARSE_FAILED]);
-      await ingestor.processResolution(clipId, 'trash');
-
-      const trashMsg = await trash.msg();
-      expect(trashMsg.jobLifecycleId).toBe(clipId);
-      expect(trashMsg.reason).toBe('operator:trash');
-
-      const doc = await adapter.findById(clipId);
+      const doc = await adapter.findById(jobLifecycleId);
       expect(doc).not.toBeNull();
-      expect(doc!.status).toBe(JobStatus.TRASHED);
-    });
-
-    it('resolution failure on clip-* doc emits route.failed', async () => {
-      const ingestor = mockIngestor();
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'FailResolutionCo'));
-
-      const completedEvents = parseEvents.filter(([t]) => t === 'completed');
-      expect(completedEvents.length).toBe(1);
-
-      const col = collection;
-      const docs = await col.find({}).sort({ createdAt: -1 }).limit(1).toArray();
-      const clipId = docs[0]._id;
-
-      vi.spyOn(adapter, 'updateStage').mockRejectedValueOnce(new Error('DB timeout'));
-
-      await ingestor.processResolution(clipId, 'queue');
-
-      const routeFailedEvents = routingEvents.filter(([t]) => t === 'failed');
-      expect(routeFailedEvents.length).toBe(1);
-      expect(routeFailedEvents[0][2]).toBe('DB timeout');
-
-      vi.restoreAllMocks();
+      expect(doc!.stage).toBe(JobStage.PARTIAL_PARSED);
     });
   });
 });
