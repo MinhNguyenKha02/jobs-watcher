@@ -13,13 +13,14 @@ import { SkillKeyNormalizer } from '../../../domain/profile/resume/normalization
 const logger = createLogger('AssetProducer');
 
 export class AssetProducingAdapter implements AssetProducingPort {
-  private outputDir: string = path.resolve(process.cwd(), 'assets');
+  readonly outputDir: string;
 
   private profile: ProfileSource;
 
   private result: BuildResult = {};
 
-  constructor() {
+  constructor(outputDir?: string) {
+    this.outputDir = outputDir ?? path.resolve(process.cwd(), 'assets');
     this.profile = profileSource;
   }
 

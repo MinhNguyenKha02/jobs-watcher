@@ -20,6 +20,9 @@ async function main(): Promise<void> {
       health: {
         port: Number(process.env.HEALTH_PORT || '9090'),
       },
+      asset: {
+        outputDir: process.env.ASSET_OUTPUT_DIR || config.generatedPath || './assets',
+      },
     },
     {},
   );

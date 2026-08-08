@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import amqplib, { type Channel, type Connection } from 'amqplib';
-import { chromium } from 'playwright-extra';
 import { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { MongoInitializer } from '../../src/infrastructure/outbound/persistence/mongo-init.js';
 import { MongoExtractionQueueAdapter } from '../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
@@ -47,14 +46,6 @@ function topcvDetailHtml(role: string, company: string): string {
 </body></html>`;
 }
 
-const hasPlaywright = (() => {
-  try {
-    return fs.existsSync(chromium.executablePath());
-  } catch {
-    return false;
-  }
-})();
-
 function startDetailServer(): Promise<{ server: http.Server; urlFor: (role: string, company: string) => string; close: () => Promise<void> }> {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
@@ -92,7 +83,7 @@ function seedPartialJob(adapter: MongoJobLifecycleAdapter, id: string, url: stri
   } as any);
 }
 
-describe.skipIf(!hasPlaywright)('C2 browser-auto e2e — seed s1 → real scheduler + Playwright → s2c full parse → [j] queue + PDF / [d] trash → next pick', () => {
+describe('C2 browser-auto e2e — seed s1 → real scheduler + Playwright → s2c full parse → [j] queue + PDF / [d] trash → next pick', () => {
   let storage: Awaited<ReturnType<typeof createTestStorage>>;
   let rmqConn: Connection;
   let conCh: Channel;

@@ -2,15 +2,6 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import http from 'http';
 import { PlaywrightBrowserAdapter } from '../../../../src/infrastructure/outbound/browser/browser-adapter.js';
 
-const hasPlaywright = ((): boolean => {
-  try {
-    require.resolve('playwright');
-    return true;
-  } catch {
-    return false;
-  }
-})();
-
 function startHtmlServer(): Promise<{ server: http.Server; url: string; close: () => Promise<void> }> {
   return new Promise((resolve) => {
     const server = http.createServer((_req, res) => {
@@ -28,7 +19,7 @@ function startHtmlServer(): Promise<{ server: http.Server; url: string; close: (
   });
 }
 
-describe.skipIf(!hasPlaywright)('PRC-004 — Browser adapter robustness + crash fallback', () => {
+describe('PRC-004 — Browser adapter robustness + crash fallback', () => {
   let server: Awaited<ReturnType<typeof startHtmlServer>>;
   let adapter: PlaywrightBrowserAdapter;
 

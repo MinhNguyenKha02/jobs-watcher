@@ -28,6 +28,7 @@ export interface SystemContainerConfig {
   rabbitmq: { url: string; exchange: string };
   uds: { socketPath: string; token?: string };
   health: { port: number };
+  asset: { outputDir: string };
 }
 
 /**
@@ -41,6 +42,7 @@ export interface SystemContainerOverrides {
   uds?: { socketPath?: string; token?: string };
   health?: { port?: number };
   browser?: { headless?: boolean; timeout?: number };
+  asset?: { outputDir?: string };
 }
 
 export interface AppContainer {
@@ -70,6 +72,7 @@ export function buildSystemContainer(
   const rabbitmq = { ...cfg.rabbitmq, ...overrides.rabbitmq };
   const uds = { ...cfg.uds, ...overrides.uds };
   const health = { ...cfg.health, ...overrides.health };
+  const asset = { ...cfg.asset, ...overrides.asset };
 
   const mongoConnector = new MongoConnector(mongodb.uri);
   const mongoInitializer = new MongoInitializer(
@@ -87,7 +90,7 @@ export function buildSystemContainer(
 
   const parseAdapter = new RabbitMqParseAdapter(rmq);
   const routeAdapter = new RabbitMqRoutingAdapter(rmq);
-  const assetProducingAdapter = new AssetProducingAdapter();
+  const assetProducingAdapter = new AssetProducingAdapter(asset.outputDir);
   const mongoJobLifecycleAdapter = new MongoJobLifecycleAdapter(mongoInitializer.dbInstance);
   const extractionQueueAdapter = new MongoExtractionQueueAdapter(
     metricsRegistry,

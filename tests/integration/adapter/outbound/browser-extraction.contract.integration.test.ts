@@ -1,22 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import fs from 'node:fs';
 import http from 'node:http';
-import { chromium } from 'playwright-extra';
 import { PlaywrightBrowserAdapter } from '../../../../src/infrastructure/outbound/browser/browser-adapter.js';
 
 const FIXTURE_HTML = `<html><body><div class="test-fixture"><h1>Integration Test</h1><p>Hello from Playwright + stealth</p></div></body></html>`;
 
-const hasPlaywright = (() => {
-  try {
-    return fs.existsSync(chromium.executablePath());
-  } catch {
-    return false;
-  }
-})();
-
-const describeBrowser = hasPlaywright ? describe : describe.skip;
-
-describeBrowser('PlaywrightBrowserAdapter — integration', { timeout: 30000 }, () => {
+describe('PlaywrightBrowserAdapter — integration', { timeout: 30000 }, () => {
   let server: http.Server;
   let serverUrl: string;
   let adapter: PlaywrightBrowserAdapter;
