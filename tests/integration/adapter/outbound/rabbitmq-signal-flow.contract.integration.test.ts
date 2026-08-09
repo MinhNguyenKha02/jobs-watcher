@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import amqplib, { type Channel, type Connection, type ConsumeMessage } from 'amqplib';
+import amqplib, { type Channel, type ChannelModel, type ConsumeMessage } from 'amqplib';
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
@@ -49,7 +49,7 @@ function consumeMatching(ch: Channel, queue: string, predicate: (body: any) => b
 }
 
 describe('RMQ Signal Flow Integration', { timeout: 30000 }, () => {
-  let conn: Connection;
+  let conn: ChannelModel;
   let pubChannel: Channel;
   let conChannel: Channel;
 

@@ -32,7 +32,7 @@ describe('PRC-004 — Browser adapter robustness + crash fallback', () => {
       return;
     }
     process.removeListener('unhandledRejection', swallowBrowserRejection);
-    process.nextTick(() => process.emit('unhandledRejection', err));
+    process.nextTick(() => (process as NodeJS.EventEmitter).emit('unhandledRejection', err));
   };
 
   beforeAll(async () => {

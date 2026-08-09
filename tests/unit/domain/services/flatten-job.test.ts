@@ -100,9 +100,9 @@ describe('flattenJobDetails', () => {
     expect(result).toContain('Requirements:');
   });
 
-  it('uses raw key as label for unknown fields', () => {
+  it('uses raw key as label for unknown fields (extraSections)', () => {
     const result = flattenJobDetails({
-      customField: 'custom value',
+      extraSections: { customField: 'custom value' },
     });
 
     expect(result).toContain('customField:');

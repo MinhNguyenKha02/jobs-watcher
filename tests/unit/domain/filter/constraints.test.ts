@@ -154,5 +154,35 @@ describe('matchesExperience', () => {
   it('rejects senior software engineer pattern', () => {
     expect(matchesExperience('Senior Software Engineer')).toEqual({ passed: false, reasons: ['Not matching experience level'] });
   });
+
+  it.each([
+    ['2-3 years experience', '2-3 years experience'],
+    ['2-4 years experience', '2-4 years experience'],
+    ['2 to 4 years experience', '2 to 4 years experience'],
+    ['3-5 years experience', '3-5 years experience'],
+    ['3 to 5 years experience', '3 to 5 years experience'],
+    ['4-6 years experience', '4-6 years experience'],
+    ['5-7 years experience', '5-7 years experience'],
+  ])('cause: role/copy states %s → effect: matchesExperience rejects with reason', (_label, input) => {
+    const result = matchesExperience(input);
+    expect(result.passed).toBe(false);
+    expect(result.reasons).toEqual(['Not matching experience level']);
+  });
+
+  it.each([
+    ['10', '10 years experience'],
+    ['10+', '10+ years experience'],
+    ['99', '99 years experience'],
+    ['7', '7 years experience'],
+  ])('cause: 2-digit experience %s years → effect: matchesExperience rejects with reason', (_label, input) => {
+    const result = matchesExperience(input);
+    expect(result.passed).toBe(false);
+    expect(result.reasons).toEqual(['Not matching experience level']);
+  });
+
+  it('cause: 100 years experience (numeric carve-out, out of scope) → effect: not rejected by numeric patterns', () => {
+    const result = matchesExperience('100 years experience');
+    expect(result.reasons).toEqual([]);
+  });
 });
 

@@ -1,9 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTestStorage } from '../../../helpers/create-test-storage.js';
 import { createParseEventPort, createRoutingPort } from '../../../helpers/mock-ports.js';
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { JobIngestor } from '../../../../src/application/ingestor.js';
 import { JobStage, JobStatus, JobSource } from '../../../../src/domain/types/job-lifecycle.js';
+import { MetricsRegistry } from '../../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
+import { Registry } from 'prom-client';
+import type { ExtractionQueuePort } from '../../../../src/application/ports/extraction-queue.port.js';
+import type { AssetProducingPort } from '../../../../src/application/ports/asset-producing.port.js';
 
 function topcvHtml(role: string, company: string, langContent: string): string {
   return '<div class="job-detail__info--title"><h1>' + role + '</h1></div>'
@@ -24,7 +28,16 @@ describe('Webhook-to-completion saga (S1->S2->S3->S4)', () => {
     adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
     parseEventPort = createParseEventPort();
     routingPort = createRoutingPort();
-    ingestor = new JobIngestor(adapter, parseEventPort, routingPort);
+    const extractionQueue: ExtractionQueuePort = { enqueue: vi.fn(), dequeue: vi.fn(), size: vi.fn(), onEnqueue: vi.fn() };
+    const assetProducing: AssetProducingPort = { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) };
+    ingestor = new JobIngestor(
+      adapter,
+      parseEventPort,
+      routingPort,
+      extractionQueue,
+      assetProducing,
+      new MetricsRegistry(new Registry()),
+    );
   }, 120000);
 
   afterAll(async () => {

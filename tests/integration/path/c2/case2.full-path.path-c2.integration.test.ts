@@ -456,13 +456,13 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(await eqAdapter.size()).toBe(0);
     }, 60000);
 
-    it('d3: empty queue never crashes the real scheduler (stays healthy across an idle window)', async () => {
-      // The scheduler was started in beforeAll; let it spin against an empty queue.
-      const idleStart = Date.now();
+    it('d3: S3 empty queue → real scheduler never crashes (stays healthy across an idle window)', async () => {
+      // Let the scheduler spin against an empty queue for an idle window, then
+      // prove it is still alive behaviorally: a follow-up enqueue is consumed
+      // and resolved. No wall-clock timing assertion — the completion is the
+      // (deterministic) observation.
       await new Promise((r) => setTimeout(r, 1000));
-      expect(Date.now() - idleStart).toBeGreaterThanOrEqual(500);
 
-      // Still alive: a follow-up enqueue is consumed and resolved.
       const jobId = 'c2-idle-0';
       await seedPartial(adapter, jobId, detail.urlFor('Backend Developer', 'C2IdleCo'), 'Backend Developer', 'C2IdleCo');
       const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
@@ -474,6 +474,24 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
       expect(await eqAdapter.size()).toBe(0);
     }, 60000);
+  });
+
+  describe('(f) S4 explicit — browser HTML-parse failure', () => {
+    it('f1: S2 BROWSER_AUTO FULL_PARSED garbage HTML → PARSE_FAILED emitted, seeded doc stays ENRICHING', async () => {
+      const jobId = 'c2-s4-1';
+      await seedPartial(adapter, jobId, 'https://127.0.0.1:1/nope', 'Backend Developer', 'S4FailCo');
+
+      const fail = await tc.bus.setup([ActionEvent.PARSE_FAILED]);
+      await tc.ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, '<div>not a job format</div>', jobId);
+
+      const failMsg = await fail.msg();
+      expect(failMsg.jobLifecycleId).toBe(jobId);
+
+      const doc = await adapter.findById(jobId);
+      expect(doc).not.toBeNull();
+      expect(doc!.status).toBe(JobStatus.ENRICHING);
+      expect(doc!.stage).toBe(JobStage.PARTIAL_PARSED);
+    });
   });
 
   describe('(e) scheduler extraction-failure fallback to PARTIAL_PARSED-ENRICHING', () => {
@@ -502,7 +520,7 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(after!.status).not.toBe(JobStatus.TRASHED);
     }, 60000);
 
-    it('e2: mid-stream extraction error still drains the remaining enqueued items', async () => {
+    it('e2: S3 mid-stream extraction error → remaining enqueued items still drain', async () => {
       const badId = 'c2-midstream-bad';
       const goodId = 'c2-midstream-good';
       await seedPartial(adapter, badId, 'http://127.0.0.1:59998/nope', 'Backend Developer', 'C2MidBadCo');

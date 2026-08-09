@@ -137,7 +137,7 @@ describe('PRC-006 — Webhook adapter contract', () => {
     const res = await postJson(port, '/webhook', { messageId: 'empty-body-msg' });
 
     expect(res.status).toBe(202);
-    expect(ingestor.processProcessIngest || ingestor.processIngest).not.toHaveBeenCalled();
+    expect(ingestor.processIngest).not.toHaveBeenCalled();
   });
 
   it('GmailClient failure → 500 error response (no silent swallow)', async () => {

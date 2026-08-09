@@ -1,7 +1,10 @@
 import { GmailService } from '../../../../src/infrastructure/outbound/gmail.js';
 
-describe('GmailService (unit)', () => {
-  it('extracts headers by name (case-insensitive)', () => {
+// Pure message-deserialization cases migrated from the removed tests/unit/adapter/
+// contract layer (no mocks, no network). Adapter↔port conformance for Gmail lives in
+// tests/integration/adapter/inbound/webhook-adapter-contract.contract.integration.test.ts.
+describe('Gmail message parsing (pure)', () => {
+  it('GIVEN a message with headers WHEN extracting by name THEN returns case-insensitive value', () => {
     const service = new GmailService({});
     const message = {
       payload: {
@@ -17,7 +20,7 @@ describe('GmailService (unit)', () => {
     expect(service.extractHeader(message, 'From')).toBe('jobs@linkedin.com');
   });
 
-  it('extracts body from text/html parts', () => {
+  it('GIVEN a message with text/html part WHEN extracting body THEN returns decoded html', () => {
     const service = new GmailService({});
     const html = '<html><body>Test</body></html>';
     const encoded = Buffer.from(html, 'utf-8').toString('base64');
@@ -35,7 +38,7 @@ describe('GmailService (unit)', () => {
     expect(body).toContain('Test');
   });
 
-  it('extracts body from nested parts', () => {
+  it('GIVEN a message with nested multipart parts WHEN extracting body THEN decodes inner part', () => {
     const service = new GmailService({});
     const nested = Buffer.from('Nested Body', 'utf-8').toString('base64');
 
@@ -56,7 +59,7 @@ describe('GmailService (unit)', () => {
     expect(body).toContain('Nested Body');
   });
 
-  it('extracts body from payload body when no parts exist', () => {
+  it('GIVEN a message with top-level body WHEN extracting body THEN returns decoded payload', () => {
     const service = new GmailService({});
     const raw = Buffer.from('Raw Body', 'utf-8').toString('base64');
 

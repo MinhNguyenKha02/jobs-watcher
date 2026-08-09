@@ -1,15 +1,11 @@
 import 'dotenv/config';
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import amqplib, { type Channel, type Connection } from 'amqplib';
+import amqplib, { type Channel, type ChannelModel } from 'amqplib';
 import { UdsActionWriter } from '../../../../src/presentation/tui/components/UdsActionWriter.js';
-import { JobIngestor } from '../../../../src/application/ingestor.js';
-import { JobStage, JobStatus, JobSource } from '../../../../src/domain/types/job-lifecycle.js';
-import { MetricsRegistry } from '../../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
-import { Registry } from 'prom-client';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 
@@ -41,7 +37,7 @@ function collectMessages(ch: Channel, queue: string): { messages: amqplib.Consum
 }
 
 describe('PRC-008 — RMQ redelivery contracts (deterministic, no latency assertions)', () => {
-  let rmqConn: Connection;
+  let rmqConn: ChannelModel;
   let ch: Channel;
 
   beforeAll(async () => {
@@ -108,59 +104,5 @@ describe('PRC-008 — UdsActionWriter maxRetries=3 (real UDS HTTP server returni
       await new Promise<void>((r) => server.close(() => r()));
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
-  });
-});
-
-describe('PRC-008 — JobIngestor queryWithRetry budget (maxRetries=5)', () => {
-  const metrics = new MetricsRegistry(new Registry());
-
-  it('missing job: queries findById 5 times then emits ROUTE_FAILED', async () => {
-    const findById = vi.fn().mockResolvedValue(null);
-    const emitRouteFailed = vi.fn().mockResolvedValue(undefined);
-
-    const ingestor = new JobIngestor(
-      { findById } as any,
-      {} as any,
-      { emitRouteFailed } as any,
-      {} as any,
-      undefined as any,
-      metrics,
-    );
-
-    await ingestor.processResolution('missing-job', 'queue');
-
-    expect(findById).toHaveBeenCalledTimes(5);
-    expect(emitRouteFailed).toHaveBeenCalledWith('missing-job', 'No existing job lifecycle found');
-  });
-
-  it('found on first query: no wasted retries, resolves directly', async () => {
-    const doc = {
-      _id: 'job-ok',
-      role: 'Engineer',
-      company: 'PRC Co',
-      stage: JobStage.FULL_PARSED,
-      status: JobStatus.ENRICHED,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      stageTimestamp: new Date(),
-    };
-    const findById = vi.fn().mockResolvedValue(doc);
-    const updateStage = vi.fn().mockResolvedValue(undefined);
-    const emitJobQueued = vi.fn().mockResolvedValue(undefined);
-
-    const ingestor = new JobIngestor(
-      { findById, updateStage } as any,
-      {} as any,
-      { emitRouteFailed: vi.fn(), emitJobQueued } as any,
-      {} as any,
-      undefined as any,
-      metrics,
-    );
-
-    await ingestor.processResolution('job-ok', 'queue');
-
-    expect(findById).toHaveBeenCalledTimes(1);
-    expect(updateStage).toHaveBeenCalledWith('job-ok', JobStage.FULL_PARSED, JobStatus.QUEUED);
-    expect(emitJobQueued).toHaveBeenCalledWith('job-ok', { source: JobSource.MANUAL });
   });
 });

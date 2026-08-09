@@ -104,7 +104,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       await tc.ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_EMAIL_HTML, undefined, { messageId, subject: 'Backend Developer' });
 
       const docs = await tc.db.collection('job_lifecycle').find({}).toArray();
-      const jobLifecycleId: string = docs[0]._id;
+      const jobLifecycleId: string = String(docs[0]._id);
       expect(docs.length).toBe(1);
 
       const action = await uds.action(jobLifecycleId, 'queue');

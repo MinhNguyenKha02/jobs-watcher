@@ -147,7 +147,7 @@ describe('Failure cycle (S4→S1 auto-advance)', () => {
     expect(nextGenMsg._id).toBe('fpcy-keep-msg-job-0');
   });
 
-  it('S2a manual with an existing jobLifecycleId still enriches instead of failing', async () => {
+  it('S2a manual with an existing jobLifecycleId → S2 enriches instead of failing', async () => {
     const docId = 'c3-b9-integration-job';
     await adapter.upsert(makeStage1Partial({
       _id: docId,
@@ -220,6 +220,26 @@ describe('Failure injection (cause→effect, real-DIP)', () => {
     expect(msg.jobLifecycleId).toBe('fail-route-id');
     expect(msg.reason).toBe('Routing unavailable');
     vi.restoreAllMocks();
+  });
+
+  it('cause: trash routing write failure ([d] variant) → effect: ROUTE_FAILED with the propagating reason', async () => {
+    await adapter.upsert(makeFullParsedDoc({
+      _id: 'fail-route-trash-id',
+      company: 'TrashRouteCo',
+      role: 'Backend Developer',
+    }));
+
+    vi.spyOn(tc.container.routeAdapter, 'emitJobTrashed').mockRejectedValueOnce(new Error('Trash route unavailable'));
+    const fail = await bus.setup([ActionEvent.ROUTE_FAILED]);
+    await UDS(tc).action('fail-route-trash-id', 'trash');
+    const msg = await fail.msg();
+    expect(msg.jobLifecycleId).toBe('fail-route-trash-id');
+    expect(msg.reason).toBe('Trash route unavailable');
+    vi.restoreAllMocks();
+
+    const doc = await adapter.findById('fail-route-trash-id');
+    expect(doc).not.toBeNull();
+    expect(doc!.status).toBe(JobStatus.TRASHED);
   });
 
   it('cause: detail-page HTML on a PARTIAL_PARSED pass → effect: still resolves without emitting', async () => {
@@ -576,16 +596,21 @@ describe('fast-check failure-cycle invariants', () => {
   });
 
   it('property: arbitrary parse-failure attempts never move a partial doc to a routed terminal state', async () => {
+    let run = 0;
     await fc.assert(
       fc.asyncProperty(
-        fc.string({ minLength: 4, maxLength: 16 }),
         fc.integer({ min: 0, max: 3 }),
-        async (suffix, attempts) => {
-          const jobId = `fc-parse-${suffix}-${attempts}`;
+        async (attempts) => {
+          // Monotonic per-run token keeps role+company unique across runs, so
+          // the dedup index (E11000) can never fake a collision inside the
+          // property — the identity to test is the injected failure, not fate.
+          const token = `p${run}-${attempts}`;
+          run += 1;
+          const jobId = `fc-parse-${token}`;
           await adapter.upsert(makeStage1Partial({
             _id: jobId,
-            role: `FcRole-${suffix}-${attempts}`,
-            company: `FcCo-${suffix}-${attempts}`,
+            role: `FcRole-${token}`,
+            company: `FcCo-${token}`,
           }));
 
           for (let i = 0; i < attempts; i++) {
@@ -604,16 +629,23 @@ describe('fast-check failure-cycle invariants', () => {
   });
 
   it('property: route failure then valid S1 always recovers to an ENRICHED clip-* doc', async () => {
+    let run = 0;
     await fc.assert(
       fc.asyncProperty(
         fc.string({ minLength: 1, maxLength: 12 }),
         async (name) => {
           const clean = name.replace(/[^a-zA-Z0-9]/g, '') || 'Co';
-          const jobId = `fc-route-${clean}-${Math.random().toString(36).slice(2, 6)}`;
+          // Monotonic per-run token keeps role+company unique across runs
+          // (name-derived strings can collide as two samples), so the dedup
+          // index never fakes a duplicate — only the injected route failure
+          // drives the outcome.
+          const token = `${clean}-${run}`;
+          run += 1;
+          const jobId = `fc-route-${token}`;
           await adapter.upsert(makeFullParsedDoc({
             _id: jobId,
-            role: `FcRole-${clean}`,
-            company: `FcCo-${clean}`,
+            role: `FcRole-${token}`,
+            company: `FcCo-${token}`,
           }));
 
           vi.spyOn(adapter, 'updateStage').mockRejectedValueOnce(new Error('fc-timeout'));
@@ -624,7 +656,7 @@ describe('fast-check failure-cycle invariants', () => {
           await tc.ingestor.processIngest(
             JobSource.MANUAL,
             JobStage.FULL_PARSED,
-            topcvDetailHtml('Software Engineer', `RecoverCo-${clean}-${jobId}`),
+            topcvDetailHtml('Software Engineer', `RecoverCo-${token}`),
             undefined,
             undefined,
             new Date(),

@@ -38,7 +38,7 @@ describe('Container conformance — IoC composition root', () => {
     await storage.stop();
   });
 
-  it('JobIngestor is wired with the 6 real port adapters (no stubs, no divergent 3-arg wiring)', async () => {
+  it('JobIngestor wiring → all 6 real port adapters resolved (no stubs, no divergent 3-arg wiring)', async () => {
     expect(container.ingestor).toBeDefined();
     expect(typeof container.ingestor.processIngest).toBe('function');
     expect(typeof container.ingestor.processResolution).toBe('function');
@@ -51,7 +51,7 @@ describe('Container conformance — IoC composition root', () => {
     expect(container.metricsRegistry).toBeDefined();
   });
 
-  it('each JobIngestor dependency is a concrete runtime adapter exposing its port', async () => {
+  it('each JobIngestor dependency → a concrete runtime adapter exposing its port', async () => {
     expect(typeof container.mongoJobLifecycleAdapter.upsert).toBe('function');
     expect(typeof container.parseAdapter.emitGenerated).toBe('function');
     expect(typeof container.routeAdapter.emitJobQueued).toBe('function');
@@ -60,7 +60,7 @@ describe('Container conformance — IoC composition root', () => {
     expect(typeof container.metricsRegistry.metrics).toBe('function');
   });
 
-  it('the scheduler app owns the container browser adapter and the asset port owns the configured output dir', async () => {
+  it('container layout → scheduler owns browser adapter; asset port owns configured output dir', async () => {
     expect(typeof container.extractionScheduler.start).toBe('function');
     expect(typeof container.extractionScheduler.stop).toBe('function');
     expect(typeof container.browserAdapter.extract).toBe('function');
@@ -70,12 +70,12 @@ describe('Container conformance — IoC composition root', () => {
     expect(path.resolve(container.assetProducingAdapter.outputDir)).toBe(path.resolve(assetDir));
   });
 
-  it('the UDS tui-boundary adapter is composed against the ingestor (queue/trash inbound)', async () => {
+  it('UDS tui-boundary adapter → composed against the ingestor (queue/trash inbound)', async () => {
     expect(typeof container.udsAdapter.start).toBe('function');
     expect(typeof container.udsAdapter.stop).toBe('function');
   });
 
-  it('start()/stop() roundtrips without throwing', async () => {
+  it('start()/stop() → roundtrips without throwing', async () => {
     await container.start();
     await container.stop();
 

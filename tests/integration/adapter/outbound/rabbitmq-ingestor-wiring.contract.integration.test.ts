@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import amqplib, { type Channel, type Connection } from 'amqplib';
+import amqplib, { type Channel, type ChannelModel } from 'amqplib';
 import { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import { RabbitMqConnection } from '../../../../src/infrastructure/outbound/rabbitmq/rabbitmq-connection.js';
 import { RabbitMqParseAdapter } from '../../../../src/infrastructure/outbound/rabbitmq/rabbitmq-parse-adapter.js';
@@ -58,7 +58,7 @@ function consumeOne(ch: Channel, queue: string): Promise<any> {
 }
 
 describe('RMQ + Ingestor wiring', { timeout: 30000 }, () => {
-  let rmqConn: Connection;
+  let rmqConn: ChannelModel;
   let pubCh: Channel;
   let conCh: Channel;
   let storage: Awaited<ReturnType<typeof createTestStorage>>;

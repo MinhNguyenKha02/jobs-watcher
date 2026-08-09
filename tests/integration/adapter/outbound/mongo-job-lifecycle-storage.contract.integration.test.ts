@@ -8,17 +8,17 @@ const now = new Date();
 
 function makeDoc(overrides: Partial<JobLifecycleDocument> & { _id: string }): JobLifecycleDocument {
   return {
-    _id: overrides._id,
     raw: overrides.raw || '<html>test</html>',
     stage: overrides.stage || JobStage.PARTIAL_PARSED,
     status: overrides.status || JobStatus.ENRICHING,
     source: overrides.source || JobSource.BROWSER_AUTO,
+    company: overrides.company ?? '',
+    role: overrides.role ?? '',
     createdAt: overrides.createdAt || now,
     updatedAt: overrides.updatedAt || now,
     stageTimestamp: overrides.stageTimestamp || now,
-    company: overrides.company,
-    role: overrides.role,
     ...overrides,
+    _id: overrides._id,
   };
 }
 
@@ -48,16 +48,16 @@ describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
     expect(found!.stage).toBe(JobStage.PARTIAL_PARSED);
   });
 
-  it('upserts replaces existing document with same _id', async () => {
-    const doc1 = makeDoc({ _id: 'it-upsert-1', company: 'UpsertCorp', role: 'Engineer', source: JobSource.MANUAL, stage: JobStage.PARTIAL_PARSED, rawPayload: 'v1' });
+  it('upsert replaces the existing document (same _id) — prior payload is fully overwritten', async () => {
+    const doc1 = makeDoc({ _id: 'it-upsert-1', company: 'UpsertCorp', role: 'Engineer', source: JobSource.MANUAL, stage: JobStage.PARTIAL_PARSED, raw: 'v1' });
     await adapter!.upsert(doc1);
 
-    const doc2 = makeDoc({ _id: 'it-upsert-1', company: 'UpsertCorp', role: 'Engineer', source: JobSource.MANUAL, stage: JobStage.FULL_PARSED, rawPayload: 'v2' });
+    const doc2 = makeDoc({ _id: 'it-upsert-1', company: 'UpsertCorp', role: 'Engineer', source: JobSource.MANUAL, stage: JobStage.FULL_PARSED, raw: 'v2' });
     await adapter!.upsert(doc2);
 
     const all = await collection.find({ _id: 'it-upsert-1' }).toArray();
     expect(all).toHaveLength(1);
-    expect(all[0].rawPayload).toBe('v2');
+    expect(all[0].raw).toBe('v2');
     expect(all[0].stage).toBe(JobStage.FULL_PARSED);
   });
 

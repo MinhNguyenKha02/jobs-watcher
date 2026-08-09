@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { JobIngestor } from '../../../src/application/ingestor.js';
 import { JobStage, JobStatus, JobSource } from '../../../src/domain/types/job-lifecycle.js';
+import { MetricsRegistry } from '../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
+import { Registry } from 'prom-client';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
 
 function mockPort() {
@@ -97,7 +99,7 @@ describe('JobIngestor', () => {
     queue = mockQueue();
     parsePort = mockParsePort();
     routingPort = mockRoutingPort();
-    ingestor = new JobIngestor(storage, parsePort, routingPort, queue);
+    ingestor = new JobIngestor(storage, parsePort, routingPort, queue, { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) }, new MetricsRegistry(new Registry()));
   });
 
   describe('processIngest — BROWSER_AUTO PARTIAL_PARSED', () => {
@@ -119,7 +121,7 @@ describe('JobIngestor', () => {
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
-        undefined,
+        '',
         'existing-id',
       );
       expect(storage.findById).toHaveBeenCalledWith('existing-id');
@@ -268,6 +270,27 @@ describe('JobIngestor', () => {
           undefined,
         ),
       ).rejects.toThrow('Disk full');
+    });
+  });
+
+  describe('processResolution — queryWithRetry budget (cause→effect, maxRetries=5)', () => {
+    it('cause: resolve a missing job → effect: 5 findById probes then ROUTE_FAILED emitted', async () => {
+      storage.findById.mockResolvedValue(null);
+      await ingestor.processResolution('missing-job', 'queue');
+
+      expect(storage.findById).toHaveBeenCalledTimes(5);
+      expect(routingPort.emitRouteFailed).toHaveBeenCalledWith('missing-job', 'No existing job lifecycle found');
+      expect(routingPort.emitJobQueued).not.toHaveBeenCalled();
+    });
+
+    it('cause: resolve an existing ENRICHED job → effect: single findById, updateStage to QUEUED, QUEUED emitted', async () => {
+      storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'job-ok', status: JobStatus.ENRICHED }));
+      await ingestor.processResolution('job-ok', 'queue');
+
+      expect(storage.findById).toHaveBeenCalledTimes(1);
+      expect(storage.updateStage).toHaveBeenCalledWith('job-ok', JobStage.FULL_PARSED, JobStatus.QUEUED);
+      expect(routingPort.emitJobQueued).toHaveBeenCalledWith('job-ok', expect.objectContaining({ source: JobSource.MANUAL }));
+      expect(routingPort.emitRouteFailed).not.toHaveBeenCalled();
     });
   });
 });

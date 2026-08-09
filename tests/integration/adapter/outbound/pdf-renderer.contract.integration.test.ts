@@ -24,12 +24,11 @@ function makeAsset(overrides?: Partial<PdfAsset>): PdfAsset {
   };
 }
 
-describe('renderPdf', () => {
-  it('generates a PDF file with proper header bytes', async () => {
-    const asset = makeAsset();
+describe('PRC-010 — PdfRenderer contract (real template + real chromium → temp dir)', () => {
+  it('renders a PDF with %%PDF header bytes into the configured output dir', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-test-'));
     try {
-      const outputPath = await renderPdf(asset, tmpDir);
+      const outputPath = await renderPdf(makeAsset(), tmpDir);
       expect(outputPath).toContain('ats.pdf');
       expect(fs.existsSync(outputPath)).toBe(true);
       const header = fs.readFileSync(outputPath).slice(0, 4).toString();
@@ -39,23 +38,21 @@ describe('renderPdf', () => {
     }
   });
 
-  it('creates intermediate directories', async () => {
-    const asset = makeAsset();
+  it('creates intermediate output directories before writing the PDF', async () => {
     const nestedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-nested-'));
     const deepDir = path.join(nestedDir, 'sub', 'dir');
     try {
-      const outputPath = await renderPdf(asset, deepDir);
+      const outputPath = await renderPdf(makeAsset(), deepDir);
       expect(fs.existsSync(outputPath)).toBe(true);
     } finally {
       fs.rmSync(nestedDir, { recursive: true, force: true });
     }
   });
 
-  it('outputs a non-empty file', async () => {
-    const asset = makeAsset();
+  it('outputs a non-empty PDF file', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-size-'));
     try {
-      const outputPath = await renderPdf(asset, tmpDir);
+      const outputPath = await renderPdf(makeAsset(), tmpDir);
       const stat = fs.statSync(outputPath);
       expect(stat.size).toBeGreaterThan(0);
     } finally {
@@ -63,11 +60,10 @@ describe('renderPdf', () => {
     }
   });
 
-  it('renders candidate name in the HTML output', async () => {
-    const asset = makeAsset();
+  it('renders the candidate name into the intermediate HTML source', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-name-'));
     try {
-      await renderPdf(asset, tmpDir);
+      await renderPdf(makeAsset(), tmpDir);
       const htmlPath = path.join(tmpDir, 'ats.html');
       expect(fs.existsSync(htmlPath)).toBe(true);
       const html = fs.readFileSync(htmlPath, 'utf-8');

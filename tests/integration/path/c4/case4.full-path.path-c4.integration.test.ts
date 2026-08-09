@@ -68,7 +68,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(job!.role).toBe('Backend Developer');
     });
 
-    it('passes the full filter and stores a clip-* doc', async () => {
+    it('full filter pass → S2 stores a clip-* doc', async () => {
       const id = await ingestClip(topcvDetailHtml('Software Engineer', 'FilterPassCo'));
       const doc = await jobCol().findOne({ company: 'FilterPassCo' });
       expect(doc).not.toBeNull();
@@ -87,7 +87,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(docsAfter).toBe(docsBefore);
     });
 
-    it('duplicate role+company ingested over the socket is also silently skipped', async () => {
+    it('duplicate role+company over the socket → S1 also silently skipped', async () => {
       const html = linkedinSduiDetailHtml('Socket Dedup Role', 'SocketDedupCo');
       const firstSetup = realBus.setup([ActionEvent.PARSE_COMPLETED]);
       const firstRes = await uds.ingest(html);
@@ -104,7 +104,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
   });
 
   describe('clipboard paste path over the real UDS socket ([b] direct ingest + [j]/[d] actions)', () => {
-    it('uds.ingest without a webhook fabricates a clip-* id for the full direct ingest', async () => {
+    it('uds.ingest without a webhook → S1 fabricates a clip-* id for the full direct ingest', async () => {
       const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
       const res = await uds.ingest(linkedinSduiDetailHtml('Socket Engineer', 'UdsDirectCo'));
       expect(res.statusCode).toBe(200);
@@ -230,7 +230,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(docsAfter).toBe(docsBefore);
     });
 
-    it('second ingest with a different company creates a separate clip-* doc (latest-wins semantics)', async () => {
+    it('second ingest with a different company → S1 creates a separate clip-* doc (latest-wins)', async () => {
       const firstId = await ingestClip(linkedinSduiDetailHtml('B17 Role', 'FirstWinCo'));
       const secondId = await ingestClip(linkedinSduiDetailHtml('B17 Role', 'SecondWinCo'));
       expect(secondId).not.toBe(firstId);
@@ -280,7 +280,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
   });
 
   describe('fast-check property over direct clipboard 2b', () => {
-    it('random role/company seeds never crash and either create a clip-* doc or dedupe on duplicate', async () => {
+    it('property: random role/company seeds never crash and either create a clip-* doc or dedupe on duplicate', async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.string({ minLength: 2, maxLength: 20 }),
