@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import http from 'http';
-import { WebhookAdapter } from '../../../../src/infrastructure/inbound/web/webhook-adapter.js';
+import { buildSystemContainer } from '../../../../src/application/container.js';
+import type { IngestorPort } from '../../../../src/application/ports/inbound/ingestor.port.js';
 import { JobStage, JobSource } from '../../../../src/domain/types/job-lifecycle.js';
+import type {
+  GmailClient,
+  WebhookAdapter,
+} from '../../../../src/infrastructure/inbound/web/webhook-adapter.js';
 
 const CLIPBOARD_HTML = `<html><body>
 <div class="job-detail__info--title"><h1>Software Engineer</h1></div>
@@ -9,7 +14,7 @@ const CLIPBOARD_HTML = `<html><body>
 <p>TypeScript developer</p>
 </body></html>`;
 
-function makeGmailClient(overrides: Record<string, unknown> = {}) {
+function makeGmailClient(overrides: Record<string, unknown> = {}): GmailClient {
   return {
     getMessage: vi.fn().mockResolvedValue({}),
     extractHeader: vi.fn(() => ''),
@@ -17,6 +22,10 @@ function makeGmailClient(overrides: Record<string, unknown> = {}) {
     getMessagesSinceHistory: vi.fn().mockResolvedValue(['msg-history-1']),
     ...overrides,
   };
+}
+
+function madeIngestor(): IngestorPort {
+  return { processIngest: vi.fn(), processResolution: vi.fn() };
 }
 
 async function postJson(
@@ -81,11 +90,33 @@ describe('PRC-006 — Webhook adapter contract', () => {
     if (adapter) await adapter.stop();
   });
 
-  it('PubSub push resolves history → message → body → ingestor processIngest with BROWSER_AUTO PARTIAL_PARSED', async () => {
+  /**
+   * Boot the real WebhookAdapter through the production composition root with a
+   * scripted `ports.ingestor` binding + gmail transport seam (never `start()`),
+   * so the adapter under test is the container-resolved one.
+   */
+  function boot(gmail: GmailClient, ingestor: IngestorPort) {
+    const container = buildSystemContainer(
+      {
+        nodeEnv: 'test',
+        mongodb: { uri: 'mongodb://localhost/jw-webhook', dbName: 'unit' },
+        rabbitmq: {
+          url: process.env.RABBITMQ_URL || 'amqp://localhost',
+          exchange: 'jobs.events.ct',
+        },
+        uds: { socketPath: '/tmp/jobs-watcher-webhook.sock', token: 'ct-token' },
+        health: { port: 0 },
+        asset: { outputDir: '/tmp/jobs-watcher-webhook-assets' },
+      },
+      { ports: { ingestor }, gmail }
+    );
+    adapter = container.webhookAdapter;
+    return { gmail, ingestor };
+  }
+
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN PubSub push resolves history → message → body → ingestor processIngest with BROWSER_AUTO PARTIAL_PARSED (S1)', async () => {
     const port = freshPort();
-    const gmail = makeGmailClient();
-    const ingestor = { processIngest: vi.fn(), processResolution: vi.fn() };
-    adapter = new WebhookAdapter(ingestor as any, gmail as any);
+    const { gmail, ingestor } = boot(makeGmailClient(), madeIngestor());
     await listen(adapter, port);
 
     const pubsubData = Buffer.from(
@@ -108,11 +139,11 @@ describe('PRC-006 — Webhook adapter contract', () => {
     );
   });
 
-  it('simulated push with raw messageId → getMessage → processIngest', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN simulated push with raw messageId → getMessage → processIngest', async () => {
     const port = freshPort();
     const gmail = makeGmailClient();
     const ingestor = { processIngest: vi.fn(), processResolution: vi.fn() };
-    adapter = new WebhookAdapter(ingestor as any, gmail as any);
+    boot(gmail, ingestor);
     await listen(adapter, port);
 
     const res = await postJson(port, '/webhook', { messageId: 'sim-msg-1' });
@@ -122,11 +153,11 @@ describe('PRC-006 — Webhook adapter contract', () => {
     expect(ingestor.processIngest).toHaveBeenCalled();
   });
 
-  it('invalid base64 pubsub data → no messageId → 202 accepted with empty messageId, no ingest', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN invalid base64 pubsub data → no messageId → 202 accepted with empty messageId, no ingest', async () => {
     const port = freshPort();
     const gmail = makeGmailClient();
     const ingestor = { processIngest: vi.fn(), processResolution: vi.fn() };
-    adapter = new WebhookAdapter(ingestor as any, gmail as any);
+    boot(gmail, ingestor);
     await listen(adapter, port);
 
     const res = await postJson(port, '/webhook', {
@@ -139,11 +170,11 @@ describe('PRC-006 — Webhook adapter contract', () => {
     expect(ingestor.processIngest).not.toHaveBeenCalled();
   });
 
-  it('malformed payload (no message / no messageId) → 202 accepted, no ingest, no crash', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN malformed payload (no message / no messageId) → 202 accepted, no ingest, no crash', async () => {
     const port = freshPort();
     const gmail = makeGmailClient();
     const ingestor = { processIngest: vi.fn(), processResolution: vi.fn() };
-    adapter = new WebhookAdapter(ingestor as any, gmail as any);
+    boot(gmail, ingestor);
     await listen(adapter, port);
 
     const res = await postJson(port, '/webhook', {});
@@ -153,11 +184,11 @@ describe('PRC-006 — Webhook adapter contract', () => {
     expect(ingestor.processIngest).not.toHaveBeenCalled();
   });
 
-  it('empty extracted body → 202 accepted, no ingest (graceful)', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN empty extracted body → 202 accepted, no ingest (graceful)', async () => {
     const port = freshPort();
     const gmail = makeGmailClient({ extractBody: vi.fn(() => '') });
     const ingestor = { processIngest: vi.fn(), processResolution: vi.fn() };
-    adapter = new WebhookAdapter(ingestor as any, gmail as any);
+    boot(gmail, ingestor);
     await listen(adapter, port);
 
     const res = await postJson(port, '/webhook', { messageId: 'empty-body-msg' });
@@ -166,13 +197,13 @@ describe('PRC-006 — Webhook adapter contract', () => {
     expect(ingestor.processIngest).not.toHaveBeenCalled();
   });
 
-  it('GmailClient failure → 500 error response (no silent swallow)', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN GmailClient failure → 500 error response (no silent swallow)', async () => {
     const port = freshPort();
     const gmail = makeGmailClient({
       getMessage: vi.fn().mockRejectedValue(new Error('gmail down')),
     });
     const ingestor = { processIngest: vi.fn(), processResolution: vi.fn() };
-    adapter = new WebhookAdapter(ingestor as any, gmail as any);
+    boot(gmail, ingestor);
     await listen(adapter, port);
 
     const res = await postJson(port, '/webhook', { messageId: 'down-msg' });
@@ -181,14 +212,14 @@ describe('PRC-006 — Webhook adapter contract', () => {
     expect(res.data.status).toBe('error');
   });
 
-  it('ingestor failure → 500 error response', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN ingestor failure → 500 error response', async () => {
     const port = freshPort();
     const gmail = makeGmailClient();
     const ingestor = {
       processIngest: vi.fn().mockRejectedValue(new Error('ingestor boom')),
       processResolution: vi.fn(),
     };
-    adapter = new WebhookAdapter(ingestor as any, gmail as any);
+    boot(gmail, ingestor);
     await listen(adapter, port);
 
     const res = await postJson(port, '/webhook', { messageId: 'boom-msg' });
@@ -197,7 +228,7 @@ describe('PRC-006 — Webhook adapter contract', () => {
     expect(res.data.status).toBe('error');
   });
 
-  it('extractHeader supplies subject/from/to metadata to processIngest', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN extractHeader supplies subject/from/to metadata to processIngest', async () => {
     const port = freshPort();
     const gmail = makeGmailClient({
       extractHeader: vi.fn(
@@ -211,7 +242,7 @@ describe('PRC-006 — Webhook adapter contract', () => {
       ),
     });
     const ingestor = { processIngest: vi.fn(), processResolution: vi.fn() };
-    adapter = new WebhookAdapter(ingestor as any, gmail as any);
+    boot(gmail, ingestor);
     await listen(adapter, port);
 
     await postJson(port, '/webhook', { messageId: 'meta-msg' });

@@ -25,7 +25,7 @@ describe('MetricsRecorder (integration)', () => {
     await mongod.stop();
   });
 
-  it('records and retrieves a metric', async () => {
+  it('GIVEN MetricsRecorder WHEN recorder.record THEN records and retrieves a metric', async () => {
     const metric: ApplicationMetric = {
       jobId: 'job-123',
       profileHash: 'hash-abc',

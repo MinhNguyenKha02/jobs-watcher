@@ -1,3 +1,8 @@
+/*
+ * e2e c3-error (prod bootstrap, real deps, black-box; no IoC in the body):
+ * GIVEN an unparseable UDS clipboard WHEN the parse fails THEN S4 PARSE_FAILED,
+ * and the next valid clipboard recovers to S2 PARSE_COMPLETED (ENRICHED clip-* doc).
+ */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createE2eApp, ActionEvent, type E2eApp } from '../helpers/e2e-app.js';
 import { topcvDetailHtml, nonJobHtml } from '../helpers/html-fixtures.js';
@@ -15,7 +20,7 @@ describe('C3 error e2e — s2 failure → s4 → next valid s2 recovers (prod bo
     await app.stop();
   });
 
-  it('unparseable UDS ingest → PARSE_FAILED (s4); next valid clipboard → PARSE_COMPLETED + ENRICHED clip-* doc (recovery)', async () => {
+  it('GIVEN unparseable UDS ingest WHEN PARSE_FAILED (s4); next valid clipboard THEN PARSE_COMPLETED + ENRICHED clip-* doc (recovery)', async () => {
     const fail = await app.events.on([ActionEvent.PARSE_FAILED]);
     const failRes = await app.uds.ingest(nonJobHtml(), messageId);
     expect(failRes.statusCode).toBe(200);
@@ -33,9 +38,25 @@ describe('C3 error e2e — s2 failure → s4 → next valid s2 recovers (prod bo
     expect(compMsg.job.company).toBe('C3RecoveryCo');
     expect(compMsg.job.stage).toBe(JobStage.FULL_PARSED);
     expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
+  }, 60000);
 
-    const okDoc = await app.adapter.findById(compMsg.job._id);
-    expect(okDoc).not.toBeNull();
-    expect(okDoc!.company).toBe('C3RecoveryCo');
+  it('GIVEN a [j] action for an unknown jobLifecycleId WHEN the path is exercised THEN ROUTE_FAILED (s4); next valid clipboard still recovers', async () => {
+    const fail = await app.events.on([ActionEvent.ROUTE_FAILED]);
+    const res = await app.uds.action('c3-route-fail-unknown', 'queue');
+    expect(res.statusCode).toBe(200);
+
+    const failMsg = await fail.msg();
+    expect(failMsg.jobLifecycleId).toBe('c3-route-fail-unknown');
+    expect(failMsg.reason).toBe('No existing job lifecycle found');
+
+    const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
+    const okRes = await app.uds.ingest(topcvDetailHtml('Software Engineer', 'C3ResilientCo'));
+    expect(okRes.statusCode).toBe(200);
+
+    const compMsg = await comp.msg();
+    expect(compMsg.job).toBeDefined();
+    expect(compMsg.job._id).toMatch(/^clip-/);
+    expect(compMsg.job.company).toBe('C3ResilientCo');
+    expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
   }, 60000);
 });

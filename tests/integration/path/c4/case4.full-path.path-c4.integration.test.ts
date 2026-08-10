@@ -1,6 +1,9 @@
-/* Path cell (c4): direct full-path clipboard 2b -> clip-* FULL_PARSED doc -> queue/trash resolution over UDS and the real-DIP bus (see plans/tests-path-matrix.md) */
+/* Path cell (c4): direct full-path clipboard 2b -> clip-* FULL_PARSED doc -> queue/trash resolution over UDS and the real-DIP bus (see plans/tests-path-matrix.md)
+ * GWT cause-effect (path c4, no S1): GIVEN a clipboard [i] direct ingest WHEN [j]/[d] UDS resolution is applied
+ *   THEN S3 QUEUED / S3 TRASHED (+ PDF asset) clip-* doc, duplicates dedupe (11000), latest-wins stays current. */
 import fc from 'fast-check';
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { readdirSync } from 'node:fs';
 
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
@@ -57,8 +60,26 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
     expect(timedOut).toBe(true);
   }
 
+  function waitForPdfFiles(dir: string, timeoutMs = 20000): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const start = Date.now();
+      const poll = () => {
+        try {
+          const files = readdirSync(dir).filter((f) => f.endsWith('.pdf'));
+          if (files.length > 0) return resolve();
+        } catch {
+          /* dir may not be created yet */
+        }
+        if (Date.now() - start > timeoutMs)
+          return reject(new Error(`Timeout waiting for pdf asset in ${dir}`));
+        setTimeout(poll, 250);
+      };
+      poll();
+    });
+  }
+
   describe('signal2bManual creates a full-parsed clip-* doc and emits parse.completed — real-DIP', () => {
-    it('creates a new FULL_PARSED job with a fabricated clip-* id', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN findById loads the doc THEN creates a new FULL_PARSED job with a fabricated clip-* id (S2) · path c4', async () => {
       const docsBefore = await jobCol().countDocuments({});
       const id = await ingestClip(DIRECT_HTML);
       const docsAfter = await jobCol().countDocuments({});
@@ -72,7 +93,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(job!.role).toBe('Backend Developer');
     });
 
-    it('full filter pass → S2 stores a clip-* doc', async () => {
+    it('GIVEN full filter pass WHEN the path is exercised THEN S2 stores a clip-* doc · path c4', async () => {
       const id = await ingestClip(topcvDetailHtml('Software Engineer', 'FilterPassCo'));
       const doc = await jobCol().findOne({ company: 'FilterPassCo' });
       expect(doc).not.toBeNull();
@@ -81,7 +102,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(doc!.status).toBe(JobStatus.ENRICHED);
     });
 
-    it('duplicate role+company silently skips (MongoDB 11000) and emits no second parse.completed', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN duplicate role+company silently skips (MongoDB 11000) and emits no second parse.completed (S2) · path c4', async () => {
       const html = linkedinSduiDetailHtml('Duplicate Role', 'DuplicateClipCo');
       await ingestClip(html);
       const docsBefore = await jobCol().countDocuments({});
@@ -91,7 +112,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(docsAfter).toBe(docsBefore);
     });
 
-    it('duplicate role+company over the socket → S1 also silently skipped', async () => {
+    it('GIVEN duplicate role+company over the socket WHEN the path is exercised THEN S1 also silently skipped (S2) · path c4', async () => {
       const html = linkedinSduiDetailHtml('Socket Dedup Role', 'SocketDedupCo');
       const firstSetup = realBus.setup([ActionEvent.PARSE_COMPLETED]);
       const firstRes = await uds.ingest(html);
@@ -108,7 +129,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
   });
 
   describe('clipboard paste path over the real UDS socket ([b] direct ingest + [j]/[d] actions)', () => {
-    it('uds.ingest without a webhook → S1 fabricates a clip-* id for the full direct ingest', async () => {
+    it('GIVEN uds.ingest without a webhook WHEN the path is exercised THEN S1 fabricates a clip-* id for the full direct ingest (S2) · path c4', async () => {
       const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
       const res = await uds.ingest(linkedinSduiDetailHtml('Socket Engineer', 'UdsDirectCo'));
       expect(res.statusCode).toBe(200);
@@ -122,7 +143,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(doc!.company).toBe('UdsDirectCo');
     });
 
-    it('uds.action(clip, queue) routes the clipboard job to QUEUED', async () => {
+    it('GIVEN the path c4 preconditions WHEN a UDS action is dispatched THEN uds.action(clip, queue) routes the clipboard job to QUEUED + pdf asset (S2+S3) · path c4', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Socket Queue Role', 'UdsQueueCo'));
       const queue = await realBus.setup([
         ActionEvent.QUEUED,
@@ -133,12 +154,13 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(res.statusCode).toBe(200);
       const queueMsg = await queue.msg();
       expect(queueMsg.jobLifecycleId).toBe(id);
+      await waitForPdfFiles(tc.assetDir);
       const doc = await tc.mongoJobLifecycleAdapter.findById(id);
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.QUEUED);
     });
 
-    it('uds.action(clip, trash) routes the clipboard job to TRASHED', async () => {
+    it('GIVEN the path c4 preconditions WHEN a UDS action is dispatched THEN uds.action(clip, trash) routes the clipboard job to TRASHED (S2+S3) · path c4', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Socket Trash Role', 'UdsTrashCo'));
       const trash = await realBus.setup([
         ActionEvent.TRASHED,
@@ -157,7 +179,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
   });
 
   describe('direct lifecycle completion ([i] to [j] / [d]) — Case 4', () => {
-    it('signal2bManual queue resolution: full clipboard-to-queued flow', async () => {
+    it('GIVEN the path c4 preconditions WHEN a resolution is applied THEN signal2bManual queue resolution: full clipboard-to-queued flow + pdf asset (S2+S3) · path c4', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Clipboard Queue Role', 'ClipQueueCorp'));
       const queue = await realBus.setup([
         ActionEvent.QUEUED,
@@ -167,12 +189,13 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       await tc.ingestor.processResolution(id, 'queue');
       const queueMsg = await queue.msg();
       expect(queueMsg.jobLifecycleId).toBe(id);
+      await waitForPdfFiles(tc.assetDir);
       const doc = await tc.mongoJobLifecycleAdapter.findById(id);
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.QUEUED);
     });
 
-    it('signal2bManual trash resolution: full clipboard-to-trashed flow', async () => {
+    it('GIVEN the path c4 preconditions WHEN a resolution is applied THEN signal2bManual trash resolution: full clipboard-to-trashed flow (S2+S3) · path c4', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Clipboard Trash Role', 'ClipTrashCorp'));
       const trash = await realBus.setup([
         ActionEvent.TRASHED,
@@ -190,7 +213,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
   });
 
   describe('resolution guards (not-ENRICHED and terminal-state protections over the real bus)', () => {
-    it('queue on a not-ENRICHED job is guarded — no queued event, status unchanged', async () => {
+    it('GIVEN an S1 manual PARTIAL_PARSED input WHEN a resolution is applied THEN queue on a not-ENRICHED job is guarded — no queued event, status unchanged (S1+S3+S4+S2) · path c4', async () => {
       const guardId = 'c4-guard-not-enriched';
       await tc.mongoJobLifecycleAdapter.upsert({
         _id: guardId,
@@ -222,7 +245,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(doc!.status).toBe(JobStatus.ENRICHING);
     });
 
-    it('a QUEUED job rejects a later trash action (terminal-state protection)', async () => {
+    it('GIVEN the path c4 preconditions WHEN a resolution is applied THEN a QUEUED job rejects a later trash action (terminal-state protection) (S2+S3) · path c4', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Guard Trash Role', 'GuardTrashCo'));
       const queue = await realBus.setup([
         ActionEvent.QUEUED,
@@ -248,7 +271,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
   });
 
   describe('duplicate detection and latest-wins across multiple clip ingests', () => {
-    it('second identical ingest leaves the doc count unchanged and emits no parse.completed', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN second identical ingest leaves the doc count unchanged and emits no parse.completed (S2) · path c4', async () => {
       const html = linkedinSduiDetailHtml('Dedup Role', 'DedupClipCo');
       await ingestClip(html);
       const docsBefore = await jobCol().countDocuments({});
@@ -258,7 +281,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(docsAfter).toBe(docsBefore);
     });
 
-    it('second ingest with a different company → S1 creates a separate clip-* doc (latest-wins)', async () => {
+    it('GIVEN second ingest with a different company WHEN the path is exercised THEN S1 creates a separate clip-* doc (latest-wins) · path c4', async () => {
       const firstId = await ingestClip(linkedinSduiDetailHtml('B17 Role', 'FirstWinCo'));
       const secondId = await ingestClip(linkedinSduiDetailHtml('B17 Role', 'SecondWinCo'));
       expect(secondId).not.toBe(firstId);
@@ -272,7 +295,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
   });
 
   describe('negative and failure paths (unparsable/empty clipboard, route failure injection)', () => {
-    it('unparsable clipboard HTML emits parse.failed and creates no doc', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN unparsable clipboard HTML emits parse.failed and creates no doc (S2+S4) · path c4', async () => {
       const docsBefore = await jobCol().countDocuments({});
       const fail = await realBus.setup([ActionEvent.PARSE_FAILED]);
       await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, nonJobHtml());
@@ -282,7 +305,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(docsAfter).toBe(docsBefore);
     });
 
-    it('empty clipboard HTML emits parse.failed and creates no doc', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN empty clipboard HTML emits parse.failed and creates no doc (S2+S4) · path c4', async () => {
       const docsBefore = await jobCol().countDocuments({});
       const fail = await realBus.setup([ActionEvent.PARSE_FAILED]);
       await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '');
@@ -292,7 +315,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(docsAfter).toBe(docsBefore);
     });
 
-    it('stage update failure emits route.failed, doc stays ENRICHED, mocks restored', async () => {
+    it('GIVEN the path c4 preconditions WHEN a resolution is applied THEN stage update failure emits route.failed, doc stays ENRICHED, mocks restored (S4+S2) · path c4', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Route Fail Role', 'RouteFailCo'));
       const fail = await realBus.setup([ActionEvent.ROUTE_FAILED]);
       vi.spyOn(tc.mongoJobLifecycleAdapter, 'updateStage').mockRejectedValueOnce(

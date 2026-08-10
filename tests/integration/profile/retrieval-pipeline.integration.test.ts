@@ -4,7 +4,7 @@ import { buildHydratedArtifactBundle } from '../../helpers/profile/integration-f
 
 describe('Retrieval Pipeline Integration', () => {
   describe('INT-001: lexical hit produces signal', () => {
-    it('should create a signal with correct metadata when job text contains a canonical surface', () => {
+    it('GIVEN job text contains a canonical surface WHEN engine.retrieve THEN create a signal with correct metadata', () => {
       const bundle = buildHydratedArtifactBundle({
         anchors: {
           nodejs: { id: 'cap.nodejs' as any, kind: 'cap', category: 'language', key: 'nodejs' },
@@ -26,7 +26,7 @@ describe('Retrieval Pipeline Integration', () => {
   });
 
   describe('INT-002: lexical hit propagates through adjacency', () => {
-    it('should propagate score from matched anchor to adjacent anchor', () => {
+    it('GIVEN Retrieval WHEN engine.retrieve THEN propagate score from matched anchor to adjacent anchor', () => {
       const bundle = buildHydratedArtifactBundle({
         anchors: {
           nodejs: { id: 'cap.nodejs' as any, kind: 'cap', category: 'language', key: 'nodejs' },
@@ -74,7 +74,7 @@ describe('Retrieval Pipeline Integration', () => {
   });
 
   describe('INT-003: propagated signals participate in ranking', () => {
-    it('should include propagation contribution in expanded signal scores', () => {
+    it('GIVEN Retrieval WHEN engine.retrieve THEN include propagation contribution in expanded signal scores', () => {
       const bundle = buildHydratedArtifactBundle({
         anchors: {
           nodejs: { id: 'cap.nodejs' as any, kind: 'cap', category: 'language', key: 'nodejs' },

@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { MongoExtractionQueueAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
+import type { ExtractionQueuePort } from '../../../../src/application/ports/extraction-queue.port.js';
 import { MetricsRegistry } from '../../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
 import { Registry } from 'prom-client';
 import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
 
 describe('ExtractionQueue storage (Mongo FIFO, mongodb-memory-server)', () => {
   let tc: TestContainer;
-  let queue: MongoExtractionQueueAdapter;
+  let queue: ExtractionQueuePort;
 
   beforeAll(async () => {
     tc = await createTestContainer({ ns: 'extraction-queue' });
@@ -18,7 +18,7 @@ describe('ExtractionQueue storage (Mongo FIFO, mongodb-memory-server)', () => {
     await tc.stop();
   });
 
-  it('dequeues in FIFO order and returns the persisted identity per job', async () => {
+  it('GIVEN the ExtractionQueue precondition WHEN enqueue → dequeue → size on the real ExtractionQueue THEN dequeues in FIFO order and returns the persisted identity per job', async () => {
     await queue.enqueue('job-a');
     await queue.enqueue('job-b');
     await queue.enqueue('job-c');
@@ -29,7 +29,7 @@ describe('ExtractionQueue storage (Mongo FIFO, mongodb-memory-server)', () => {
     expect(await queue.size()).toBe(0);
   });
 
-  it('re-enqueuing the same job lifecycle id is idempotent (no duplicate rows, size stable)', async () => {
+  it('GIVEN the ExtractionQueue precondition WHEN enqueue → size → dequeue on the real ExtractionQueue THEN re-enqueuing the same job lifecycle id is idempotent (no duplicate rows, size stable)', async () => {
     await queue.enqueue('job-idem');
     await queue.enqueue('job-idem');
 
@@ -38,11 +38,11 @@ describe('ExtractionQueue storage (Mongo FIFO, mongodb-memory-server)', () => {
     expect(await queue.size()).toBe(0);
   });
 
-  it('dequeue on an empty queue returns null without error', async () => {
+  it('GIVEN the ExtractionQueue precondition WHEN dequeue on the real ExtractionQueue THEN dequeue on an empty queue returns null without error', async () => {
     expect(await queue.dequeue()).toBeNull();
   });
 
-  it('onEnqueue callback fires for every enqueue, including idempotent re-enqueue', async () => {
+  it('GIVEN the ExtractionQueue precondition WHEN onEnqueue → enqueue → dequeue on the real ExtractionQueue THEN onEnqueue callback fires for every enqueue, including idempotent re-enqueue', async () => {
     const cb = vi.fn();
     queue.onEnqueue(cb);
 

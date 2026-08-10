@@ -5,7 +5,7 @@ import type { ProfileSource } from '../../../../../src/domain/profile/source/sou
 describe('AnchorProducer', () => {
   const producer = new AnchorProducer();
 
-  it('produces anchors from all sections', () => {
+  it('GIVEN AnchorProducer WHEN AnchorProducer evaluates THEN produces anchors from all sections', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -24,7 +24,7 @@ describe('AnchorProducer', () => {
     expect(anchors.has('tech.tool.Kubernetes')).toBe(true);
   });
 
-  it('creates anchor nodes with correct shape', () => {
+  it('GIVEN AnchorProducer WHEN AnchorProducer evaluates THEN creates anchor nodes with correct shape', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -41,7 +41,7 @@ describe('AnchorProducer', () => {
     });
   });
 
-  it('handles empty sections gracefully', () => {
+  it('GIVEN AnchorProducer WHEN AnchorProducer evaluates THEN handles empty sections gracefully', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -54,7 +54,7 @@ describe('AnchorProducer', () => {
     expect(anchors.size).toBe(0);
   });
 
-  it('handles missing sections', () => {
+  it('GIVEN AnchorProducer WHEN AnchorProducer evaluates THEN handles missing sections', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -64,7 +64,7 @@ describe('AnchorProducer', () => {
     expect(anchors.size).toBe(0);
   });
 
-  it('iterates category entries preserving order', () => {
+  it('GIVEN AnchorProducer WHEN AnchorProducer evaluates THEN iterates category entries preserving order', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -76,7 +76,7 @@ describe('AnchorProducer', () => {
     expect([...anchors.keys()]).toEqual(['tech.tool.Docker', 'tech.platform.AWS']);
   });
 
-  it('uses empty map for completely empty profile', () => {
+  it('GIVEN AnchorProducer WHEN AnchorProducer evaluates THEN uses empty map for completely empty profile', () => {
     const anchors = producer.produce({} as ProfileSource);
     expect(anchors.size).toBe(0);
   });

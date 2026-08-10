@@ -28,7 +28,7 @@ describe('RankingFeaturesExtractor', () => {
   });
 
   describe('Feat-001: lexical score from direct signal', () => {
-    it('should use direct signal score when direct signal exists', () => {
+    it('GIVEN direct signal exists WHEN RankingFeaturesExtractor evaluates THEN use direct signal score', () => {
       const signal = makeSignal('cap.test');
       const direct = new Map([['cap.test', makeSignal('cap.test', { score: 0.8 })]]);
       const expanded = new Map();
@@ -40,7 +40,7 @@ describe('RankingFeaturesExtractor', () => {
   });
 
   describe('Feat-002: no direct signal yields lexical score 0', () => {
-    it('should return lexical score 0 when no direct signal exists', () => {
+    it('GIVEN no direct signal exists WHEN RankingFeaturesExtractor evaluates THEN return lexical score 0', () => {
       const signal = makeSignal('cap.test');
       const direct = new Map();
       const expanded = new Map();
@@ -52,7 +52,7 @@ describe('RankingFeaturesExtractor', () => {
   });
 
   describe('Feat-003: propagation score with both direct and expanded', () => {
-    it('should compute propagation score as expanded minus direct', () => {
+    it('GIVEN RankingFeaturesExtractor WHEN RankingFeaturesExtractor evaluates THEN compute propagation score as expanded minus direct', () => {
       const signal = makeSignal('cap.test');
       const direct = new Map([['cap.test', makeSignal('cap.test', { score: 0.3 })]]);
       const expanded = new Map([['cap.test', makeSignal('cap.test', { score: 0.9 })]]);
@@ -65,7 +65,7 @@ describe('RankingFeaturesExtractor', () => {
   });
 
   describe('Feat-004: propagation-only signal', () => {
-    it('should treat expanded score as propagation and lexical as 0', () => {
+    it('GIVEN RankingFeaturesExtractor WHEN RankingFeaturesExtractor evaluates THEN treat expanded score as propagation and lexical as 0', () => {
       const signal = makeSignal('cap.test');
       const direct = new Map();
       const expanded = new Map([['cap.test', makeSignal('cap.test', { score: 0.7 })]]);
@@ -78,7 +78,7 @@ describe('RankingFeaturesExtractor', () => {
   });
 
   describe('Feat-005: source diversity', () => {
-    it('should return number of unique sources', () => {
+    it('GIVEN RankingFeaturesExtractor WHEN RankingFeaturesExtractor evaluates THEN return number of unique sources', () => {
       const signal = makeSignal('cap.test', { sources: new Set(['canonical', 'vendor']) });
       const direct = new Map();
       const expanded = new Map();

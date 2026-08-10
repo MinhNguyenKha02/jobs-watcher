@@ -9,7 +9,7 @@ import { RetrievalLogger } from '../../../src/domain/profile/retrieval/logging/r
 
 describe('Artifact Integrity Integration', () => {
   describe('INT-014: propagation to non-existent anchor is skipped', () => {
-    it('should not propagate to an anchor without a direct match', () => {
+    it('GIVEN Artifact WHEN directMatches.set THEN not propagate to an anchor without a direct match', () => {
       const bundle = buildHydratedArtifactBundle({
         anchors: {
           skillA: {
@@ -41,7 +41,7 @@ describe('Artifact Integrity Integration', () => {
   });
 
   describe('INT-015: invalid evidence mapping is rejected', () => {
-    it('should reject signal when anchorToEvidence maps to non-existent evidence', () => {
+    it('GIVEN anchorToEvidence maps to non-existent evidence WHEN validator.validate THEN reject signal', () => {
       const bundle = buildHydratedArtifactBundle({
         anchors: {
           skillA: {

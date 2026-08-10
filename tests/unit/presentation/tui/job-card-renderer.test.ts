@@ -27,7 +27,7 @@ describe('JobCardRenderer', () => {
       },
     };
 
-    it('renders card with job metadata', () => {
+    it('GIVEN JobCardRenderer WHEN renderer.renderCard THEN renders card with job metadata', () => {
       const output = renderer.renderCard(fullJob as any, {
         sseConnected: true,
         udsReady: true,
@@ -39,7 +39,7 @@ describe('JobCardRenderer', () => {
       expect(output).toContain('$150k');
     });
 
-    it('includes state indicator in header', () => {
+    it('GIVEN JobCardRenderer WHEN renderer.renderCard THEN includes state indicator in header', () => {
       const output = renderer.renderCard(fullJob as any, {
         sseConnected: true,
         udsReady: true,
@@ -48,7 +48,7 @@ describe('JobCardRenderer', () => {
       expect(output).toContain('[DISPLAY]');
     });
 
-    it('shows SSE/UDS indicators', () => {
+    it('GIVEN JobCardRenderer WHEN renderer.renderCard THEN shows SSE/UDS indicators', () => {
       const output = renderer.renderCard(fullJob as any, {
         sseConnected: true,
         udsReady: true,
@@ -57,7 +57,7 @@ describe('JobCardRenderer', () => {
       expect(output).toContain('UDS');
     });
 
-    it('includes action footer with job present', () => {
+    it('GIVEN JobCardRenderer WHEN renderer.renderCard THEN includes action footer with job present', () => {
       const output = renderer.renderCard(fullJob as any, {
         sseConnected: true,
         udsReady: true,
@@ -67,7 +67,7 @@ describe('JobCardRenderer', () => {
       expect(output).toContain('d=trash');
     });
 
-    it('renders details sub-fields', () => {
+    it('GIVEN JobCardRenderer WHEN renderer.renderCard THEN renders details sub-fields', () => {
       const output = renderer.renderCard(fullJob as any, {
         sseConnected: true,
         udsReady: true,
@@ -85,7 +85,7 @@ describe('JobCardRenderer', () => {
       matchScore: 0,
     };
 
-    it('renders partial job metadata', () => {
+    it('GIVEN JobCardRenderer WHEN renderer.renderCard THEN renders partial job metadata', () => {
       const output = renderer.renderCard(partialJob as any, {
         sseConnected: true,
         udsReady: false,
@@ -95,7 +95,7 @@ describe('JobCardRenderer', () => {
       expect(output).toContain('Junior Dev');
     });
 
-    it('shows matchScore 0 for partial jobs', () => {
+    it('GIVEN JobCardRenderer WHEN renderer.renderCard THEN shows matchScore 0 for partial jobs', () => {
       const output = renderer.renderCard(partialJob as any, {
         sseConnected: true,
         udsReady: false,
@@ -106,7 +106,7 @@ describe('JobCardRenderer', () => {
   });
 
   describe('renderCard with null job (waiting/idle)', () => {
-    it('shows waiting state in queue mode', () => {
+    it('GIVEN JobCardRenderer WHEN renderer.renderCard THEN shows waiting state in queue mode', () => {
       const output = renderer.renderCard(null, {
         sseConnected: true,
         udsReady: true,
@@ -117,7 +117,7 @@ describe('JobCardRenderer', () => {
       expect(output).toContain('eval-fetch-and-trigger');
     });
 
-    it('shows direct mode instructions in direct mode', () => {
+    it('GIVEN JobCardRenderer WHEN renderer.renderCard THEN shows direct mode instructions in direct mode', () => {
       const output = renderer.renderCard(null, {
         sseConnected: true,
         udsReady: true,
@@ -128,7 +128,7 @@ describe('JobCardRenderer', () => {
       expect(output).toContain('[i] ingest');
     });
 
-    it('shows red UDS indicator when UDS not ready', () => {
+    it('GIVEN UDS not ready WHEN renderer.renderCard THEN shows red UDS indicator', () => {
       const output = renderer.renderCard(null, {
         sseConnected: true,
         udsReady: false,
@@ -139,7 +139,7 @@ describe('JobCardRenderer', () => {
   });
 
   describe('renderCard with action in progress', () => {
-    it('shows action status when actionInProgress is set', () => {
+    it('GIVEN actionInProgress is set WHEN renderer.renderCard THEN shows action status', () => {
       const job = { _id: 'job-3', company: 'ActCo', role: 'Dev' };
       const output = renderer.renderCard(
         job as any,
@@ -154,19 +154,19 @@ describe('JobCardRenderer', () => {
   });
 
   describe('renderScoreBar', () => {
-    it('clamps score at 0', () => {
+    it('GIVEN JobCardRenderer WHEN exercised THEN clamps score at 0', () => {
       const result = (renderer as any).renderScoreBar(-10);
       expect(result).toContain('░');
     });
 
-    it('clamps score at 100', () => {
+    it('GIVEN JobCardRenderer WHEN exercised THEN clamps score at 100', () => {
       const result = (renderer as any).renderScoreBar(110);
       expect(result).toContain('█');
     });
   });
 
   describe('static renderSample', () => {
-    it('produces output without error', () => {
+    it('GIVEN JobCardRenderer WHEN JobCardRenderer.renderSample THEN produces output without error', () => {
       const output = JobCardRenderer.renderSample();
       expect(output).toBeTruthy();
       expect(output.length).toBeGreaterThan(100);

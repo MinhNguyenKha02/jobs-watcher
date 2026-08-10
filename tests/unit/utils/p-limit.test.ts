@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import pLimit from '../../../src/infrastructure/utils/p-limit.js';
 
 describe('pLimit', () => {
-  it('limits concurrency to 1', async () => {
+  it('GIVEN pLimit WHEN exercised THEN limits concurrency to 1', async () => {
     const limit = pLimit(1);
     let running = 0;
     let maxRunning = 0;
@@ -22,7 +22,7 @@ describe('pLimit', () => {
     expect(maxRunning).toBe(1);
   });
 
-  it('limits concurrency to 2', async () => {
+  it('GIVEN pLimit WHEN exercised THEN limits concurrency to 2', async () => {
     const limit = pLimit(2);
     let running = 0;
     let maxRunning = 0;
@@ -40,12 +40,12 @@ describe('pLimit', () => {
     expect(maxRunning).toBe(2);
   });
 
-  it('respects concurrency floor of 1', () => {
+  it('GIVEN pLimit WHEN exercised THEN respects concurrency floor of 1', () => {
     const limit = pLimit(0);
     expect(limit).toBeDefined();
   });
 
-  it('handles errors without blocking queue', async () => {
+  it('GIVEN pLimit WHEN exercised THEN handles errors without blocking queue', async () => {
     const limit = pLimit(1);
 
     const errorTask = limit(async () => {
@@ -57,7 +57,7 @@ describe('pLimit', () => {
     await expect(successTask).resolves.toBe('ok');
   });
 
-  it('processes in FIFO order', async () => {
+  it('GIVEN pLimit WHEN order.push THEN processes in FIFO order', async () => {
     const limit = pLimit(1);
     const order: number[] = [];
 
@@ -82,7 +82,7 @@ describe('pLimit', () => {
     expect(order).toEqual([1, 2, 3]);
   });
 
-  it('returns resolved values', async () => {
+  it('GIVEN pLimit WHEN exercised THEN returns resolved values', async () => {
     const limit = pLimit(3);
     const results = await Promise.all([
       limit(async () => 'a'),
@@ -92,7 +92,7 @@ describe('pLimit', () => {
     expect(results).toEqual(['a', 'b', 'c']);
   });
 
-  it('does not exceed concurrency with many tasks', async () => {
+  it('GIVEN pLimit WHEN exercised THEN does not exceed concurrency with many tasks', async () => {
     const limit = pLimit(3);
     let running = 0;
     let maxRunning = 0;

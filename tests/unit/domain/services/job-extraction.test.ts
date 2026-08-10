@@ -81,7 +81,7 @@ function makeIndeedEmailHtml(
 
 describe('JobExtractionService', () => {
   describe('extractAllJobs — TopCV fixtures', () => {
-    it('extracts all jobs from fixture', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts all jobs from fixture', () => {
       const jobs = extractAllJobs(topCVEmailAlert);
       expect(jobs).toHaveLength(3);
       expect(jobs[0]).toMatchObject({
@@ -98,31 +98,31 @@ describe('JobExtractionService', () => {
       });
     });
 
-    it('extracts salary from fixture', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts salary from fixture', () => {
       const jobs = extractAllJobs(topCVEmailAlert);
       expect(jobs[0].salary).toContain('8 triệu');
       expect(jobs[1].salary).toContain('Thỏa thuận');
     });
 
-    it('extracts deadline from fixture', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts deadline from fixture', () => {
       const jobs = extractAllJobs(topCVEmailAlert);
       expect(jobs[0].deadline).toContain('30 ngày');
     });
 
-    it('extracts location from fixture', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts location from fixture', () => {
       const jobs = extractAllJobs(topCVEmailAlert);
       expect(jobs[0].location).toContain('Hà Nội');
       expect(jobs[1].location).toContain('Hồ Chí Minh');
     });
 
-    it('extracts url from fixture', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts url from fixture', () => {
       const jobs = extractAllJobs(topCVEmailAlert);
       expect(jobs[0].url).toContain('topcv.vn');
     });
   });
 
   describe('extractAllJobs — TopCV inline factory', () => {
-    it('extracts multiple jobs', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts multiple jobs', () => {
       const html = makeTopCvEmailHtml(
         {
           role: 'Software Developer',
@@ -145,7 +145,7 @@ describe('JobExtractionService', () => {
       expect(jobs[1]).toMatchObject({ role: 'Frontend Engineer', company: 'XYZ Ltd' });
     });
 
-    it('extracts single job', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts single job', () => {
       const html = makeTopCvEmailHtml({
         role: 'Backend Developer',
         company: 'Tech Inc',
@@ -158,7 +158,7 @@ describe('JobExtractionService', () => {
       expect(jobs[0].role).toBe('Backend Developer');
     });
 
-    it('extracts deadline', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts deadline', () => {
       const html = makeTopCvEmailHtml({
         role: 'DevOps Engineer',
         company: 'Cloud Co',
@@ -174,7 +174,7 @@ describe('JobExtractionService', () => {
   });
 
   describe('extractAllJobs — Indeed fixtures', () => {
-    it('extracts jobs from fixture', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts jobs from fixture', () => {
       const jobs = extractAllJobs(indeedEmailAlert);
       expect(jobs).toHaveLength(2);
       expect(jobs[0]).toMatchObject({ role: 'Senior Frontend Developer', company: 'Zalo' });
@@ -184,25 +184,25 @@ describe('JobExtractionService', () => {
       });
     });
 
-    it('extracts salary from fixture', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts salary from fixture (2)', () => {
       const jobs = extractAllJobs(indeedEmailAlert);
       expect(jobs[0].salary).toContain('15,000,000');
     });
 
-    it('extracts deadline from fixture', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts deadline from fixture (2)', () => {
       const jobs = extractAllJobs(indeedEmailAlert);
       expect(jobs[0].deadline).toContain('Just posted');
       expect(jobs[1].deadline).toContain('2 days ago');
     });
 
-    it('extracts url from fixture', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts url from fixture (2)', () => {
       const jobs = extractAllJobs(indeedEmailAlert);
       expect(jobs[0].url).toContain('indeed.com');
     });
   });
 
   describe('extractAllJobs — Indeed inline factory', () => {
-    it('extracts a single Indeed job', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts a single Indeed job', () => {
       const html = makeIndeedEmailHtml([
         {
           role: 'Senior Frontend Developer',
@@ -217,7 +217,7 @@ describe('JobExtractionService', () => {
       expect(jobs[0]).toMatchObject({ role: 'Senior Frontend Developer', company: 'Zalo' });
     });
 
-    it('extracts company, salary and deadline', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts company, salary and deadline', () => {
       const html = makeIndeedEmailHtml([
         {
           role: 'Backend Developer',
@@ -235,7 +235,7 @@ describe('JobExtractionService', () => {
       expect(jobs[0].deadline).toBe('5 days ago');
     });
 
-    it('detects easyApply', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN detects easyApply', () => {
       const html = makeIndeedEmailHtml([
         {
           role: 'Frontend Developer',
@@ -252,17 +252,17 @@ describe('JobExtractionService', () => {
   });
 
   describe('extractAllJobs — non-job HTML', () => {
-    it('returns empty array for plain HTML', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN returns empty array for plain HTML', () => {
       const html = '<html><body><p>No job content here</p></body></html>';
       const jobs = extractAllJobs(html);
       expect(jobs).toHaveLength(0);
     });
 
-    it('returns empty array for empty string', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN returns empty array for empty string', () => {
       expect(extractAllJobs('')).toHaveLength(0);
     });
 
-    it('returns empty array for malformed HTML', () => {
+    it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN returns empty array for malformed HTML', () => {
       expect(extractAllJobs('<unclosed>')).toHaveLength(0);
     });
   });

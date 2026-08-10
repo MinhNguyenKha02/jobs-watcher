@@ -50,7 +50,7 @@ describe('RetrievalRanker', () => {
   });
 
   describe('Rank-001: lexical only', () => {
-    it('should derive score only from lexical weight', () => {
+    it('GIVEN RetrievalRanker WHEN RetrievalRanker evaluates THEN derive score only from lexical weight', () => {
       // Arrange: Mock the extractor to return only lexical score
       const mockFeatures = {
         lexicalScore: 1.0,
@@ -91,7 +91,7 @@ describe('RetrievalRanker', () => {
   });
 
   describe('Rank-002: lexical + evidence', () => {
-    it('should give higher score than lexical-only', () => {
+    it('GIVEN RetrievalRanker WHEN RetrievalRanker evaluates THEN give higher score than lexical-only', () => {
       // Arrange: Mock the extractor to return lexical and evidence scores
       const mockFeatures = {
         lexicalScore: 1.0,
@@ -134,7 +134,7 @@ describe('RetrievalRanker', () => {
   });
 
   describe('Rank-003: propagation only', () => {
-    it('should have lexical score = 0 and propagation score > 0', () => {
+    it('GIVEN RetrievalRanker WHEN RetrievalRanker evaluates THEN have lexical score = 0 and propagation score > 0', () => {
       // Arrange: Mock the extractor to return propagation score only
       const mockFeatures = {
         lexicalScore: 0.0,
@@ -175,7 +175,7 @@ describe('RetrievalRanker', () => {
   });
 
   describe('Rank-004: negative feature values', () => {
-    it('should ensure finalScore >= 0', () => {
+    it('GIVEN RetrievalRanker WHEN RetrievalRanker evaluates THEN ensure finalScore >= 0', () => {
       // Arrange: Mock the extractor to return negative scores
       const mockFeatures = {
         lexicalScore: -1.0,
@@ -217,7 +217,7 @@ describe('RetrievalRanker', () => {
   });
 
   describe('Rank-005: boundary validation', () => {
-    it('should classify correctly based on finalScore and evidence', () => {
+    it('GIVEN RetrievalRanker WHEN RetrievalRanker evaluates THEN classify correctly based on finalScore and evidence', () => {
       // We need to mock the retrievalPolicy to return the thresholds from the sprint document.
       (retrievalPolicy as any).resolution = {
         strongThreshold: 0.7,

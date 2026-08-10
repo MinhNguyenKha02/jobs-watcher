@@ -10,7 +10,7 @@ describe('AdjacencyProducer', () => {
     'tech.framework.React' as AnchorId,
   ]);
 
-  it('builds adjacency edges from relations', () => {
+  it('GIVEN AdjacencyProducer input "validAnchors" WHEN AdjacencyProducer evaluates THEN builds adjacency edges from relations', () => {
     const relations: RelationsSource = {
       cap: {
         language: {
@@ -41,7 +41,7 @@ describe('AdjacencyProducer', () => {
     });
   });
 
-  it('returns empty array for anchors with no adjacent entries', () => {
+  it('GIVEN AdjacencyProducer input "validAnchors" WHEN AdjacencyProducer evaluates THEN returns empty array for anchors with no adjacent entries', () => {
     const relations: RelationsSource = {
       cap: {
         language: {
@@ -61,7 +61,7 @@ describe('AdjacencyProducer', () => {
     expect(edges).toEqual([]);
   });
 
-  it('skips unresolvable adjacent targets', () => {
+  it('GIVEN AdjacencyProducer input "validAnchors" WHEN AdjacencyProducer evaluates THEN skips unresolvable adjacent targets', () => {
     const relations: RelationsSource = {
       cap: {
         language: {
@@ -81,7 +81,7 @@ describe('AdjacencyProducer', () => {
     expect(edges).toEqual([]);
   });
 
-  it('handles empty relations', () => {
+  it('GIVEN AdjacencyProducer input "validAnchors" WHEN AdjacencyProducer evaluates THEN handles empty relations', () => {
     const producer = new AdjacencyProducer(validAnchors);
     const graph = producer.produce({});
     expect(graph.size).toBe(0);

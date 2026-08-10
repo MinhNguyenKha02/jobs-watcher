@@ -51,7 +51,7 @@ describe('PropagationEngine', () => {
   };
 
   describe('Prop-001: Single edge', () => {
-    it('should resolve B when A -> B exists', () => {
+    it('GIVEN A -> B exists WHEN PropagationEngine evaluates THEN resolve B', () => {
       // Arrange
       const aId: AnchorId = 'cap.A';
       const bId: AnchorId = 'cap.B';
@@ -92,7 +92,7 @@ describe('PropagationEngine', () => {
   });
 
   describe('Prop-002: Decay formula', () => {
-    it('should apply the decay formula correctly', () => {
+    it('GIVEN PropagationEngine input "{\n          propagation: {\n            maxDepth: 2" WHEN PropagationEngine evaluates THEN apply the decay formula correctly', () => {
       // Arrange
       const aId: AnchorId = 'cap.A';
       const bId: AnchorId = 'cap.B';
@@ -130,7 +130,7 @@ describe('PropagationEngine', () => {
   });
 
   describe('Prop-003: Depth limit', () => {
-    it('should not propagate beyond maxDepth', () => {
+    it('GIVEN PropagationEngine input "{\n          propagation: {\n            maxDepth: 2" WHEN PropagationEngine evaluates THEN not propagate beyond maxDepth', () => {
       // Arrange
       const aId: AnchorId = 'cap.A';
       const bId: AnchorId = 'cap.B';
@@ -182,7 +182,7 @@ describe('PropagationEngine', () => {
   });
 
   describe('Prop-004: Blocked kinds', () => {
-    it('should not propagate to blocked kinds', () => {
+    it('GIVEN PropagationEngine input "{\n          propagation: {\n            maxDepth: 2" WHEN PropagationEngine evaluates THEN not propagate to blocked kinds', () => {
       // Arrange
       const aId: AnchorId = 'cap.A';
       const bId: AnchorId = 'beh.B'; // blocked kind
@@ -218,7 +218,7 @@ describe('PropagationEngine', () => {
   });
 
   describe('Prop-005: Min edge weight', () => {
-    it('should ignore edges with weight below minEdgeWeight', () => {
+    it('GIVEN PropagationEngine input "{\n          propagation: {\n            maxDepth: 2" WHEN PropagationEngine evaluates THEN ignore edges with weight below minEdgeWeight', () => {
       // Arrange
       const aId: AnchorId = 'cap.A';
       const bId: AnchorId = 'cap.B';

@@ -42,7 +42,7 @@ describe('ArtifactHydrator', () => {
     ...overrides,
   });
 
-  it('adds aho property to the bundle', () => {
+  it('GIVEN ArtifactHydrator WHEN ArtifactHydrator evaluates THEN adds aho property to the bundle', () => {
     const bundle = makeBundle();
     const hydrated = hydrator.hydrate(bundle);
 
@@ -51,7 +51,7 @@ describe('ArtifactHydrator', () => {
     expect(hydrated.aho).toHaveProperty('vi');
   });
 
-  it('preserves all original bundle properties', () => {
+  it('GIVEN ArtifactHydrator WHEN ArtifactHydrator evaluates THEN preserves all original bundle properties', () => {
     const bundle = makeBundle();
     const hydrated = hydrator.hydrate(bundle);
 
@@ -63,7 +63,7 @@ describe('ArtifactHydrator', () => {
     expect(hydrated.anchorToEvidence).toBe(bundle.anchorToEvidence);
   });
 
-  it('builds aho automaton for each language', () => {
+  it('GIVEN ArtifactHydrator WHEN ArtifactHydrator evaluates THEN builds aho automaton for each language', () => {
     const bundle = makeBundle({
       enSurfaces: [
         {
@@ -97,7 +97,7 @@ describe('ArtifactHydrator', () => {
     expect(hydrated.aho.vi).toBeDefined();
   });
 
-  it('returns a valid HydratedArtifactBundle', () => {
+  it('GIVEN ArtifactHydrator WHEN ArtifactHydrator evaluates THEN returns a valid HydratedArtifactBundle', () => {
     const bundle = makeBundle();
     const hydrated = hydrator.hydrate(bundle);
 

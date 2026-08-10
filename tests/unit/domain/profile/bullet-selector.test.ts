@@ -9,7 +9,7 @@ describe('BulletSelector', () => {
   });
 
   describe('Bullet-001: topK returns longest bullets', () => {
-    it('should sort bullets by length descending and return top K', () => {
+    it('GIVEN BulletSelector WHEN BulletSelector evaluates THEN sort bullets by length descending and return top K', () => {
       const bullets = ['a', 'longer bullet here', 'medium', 'very long bullet text indeed'];
       const result = selector.topK(bullets, 2);
       expect(result).toEqual(['very long bullet text indeed', 'longer bullet here']);
@@ -17,7 +17,7 @@ describe('BulletSelector', () => {
   });
 
   describe('Bullet-002: topK with default limit', () => {
-    it('should default to limit of 4', () => {
+    it('GIVEN BulletSelector WHEN BulletSelector evaluates THEN default to limit of 4', () => {
       const bullets = Array.from({ length: 6 }, (_, i) => 'x'.repeat(i + 1));
       const result = selector.topK(bullets);
       expect(result.length).toBe(4);
@@ -27,7 +27,7 @@ describe('BulletSelector', () => {
   });
 
   describe('Bullet-003: topK fewer bullets than limit', () => {
-    it('should return all bullets when fewer than limit', () => {
+    it('GIVEN fewer than limit WHEN BulletSelector evaluates THEN return all bullets', () => {
       const bullets = ['short', 'medium length'];
       const result = selector.topK(bullets, 5);
       expect(result).toEqual(['medium length', 'short']);

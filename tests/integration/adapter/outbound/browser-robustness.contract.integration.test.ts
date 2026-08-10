@@ -68,26 +68,26 @@ describe('PRC-004 — Browser adapter robustness + crash fallback', () => {
     process.removeListener('unhandledRejection', swallowBrowserRejection);
   });
 
-  it('start→extract returns page HTML (real Playwright)', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN start→extract returns page HTML (real Playwright)', async () => {
     adapter = new PlaywrightBrowserAdapter({ headless: true });
     await adapter.start();
     const result = await adapter.extract(server.url);
     expect(result.html).toContain('Job Detail');
   }, 60000);
 
-  it('extract before start throws explicit error (no silent hang)', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN extract before start throws explicit error (no silent hang)', async () => {
     adapter = new PlaywrightBrowserAdapter({ headless: true });
     await expect(adapter.extract(server.url)).rejects.toThrow(/not started|Browser not started/);
   }, 30000);
 
-  it('double-stop is idempotent (no throw on second stop)', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN double-stop is idempotent (no throw on second stop)', async () => {
     adapter = new PlaywrightBrowserAdapter({ headless: true });
     await adapter.start();
     await adapter.stop();
     await expect(adapter.stop()).resolves.toBeUndefined();
   }, 30000);
 
-  it('multiple extractions on same browser instance succeed (idempotent extraction)', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN multiple extractions on same browser instance succeed (idempotent extraction)', async () => {
     adapter = new PlaywrightBrowserAdapter({ headless: true });
     await adapter.start();
     const r1 = await adapter.extract(server.url);
@@ -96,13 +96,13 @@ describe('PRC-004 — Browser adapter robustness + crash fallback', () => {
     expect(r2.html).toContain('Job Detail');
   }, 60000);
 
-  it('goto timeout on unreachable host throws (adapter surfaces failure, not silent)', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN goto timeout on unreachable host throws (adapter surfaces failure, not silent)', async () => {
     adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 2000 });
     await adapter.start();
     await expect(adapter.extract('http://127.0.0.1:1/unreachable')).rejects.toBeTruthy();
   }, 60000);
 
-  it('adapter recovers after a failed extraction (context recreated)', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN adapter recovers after a failed extraction (context recreated)', async () => {
     adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 2000 });
     await adapter.start();
     await adapter.extract('http://127.0.0.1:1/unreachable').catch(() => {});

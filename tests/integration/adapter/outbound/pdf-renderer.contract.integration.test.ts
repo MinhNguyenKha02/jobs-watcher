@@ -25,7 +25,7 @@ function makeAsset(overrides?: Partial<PdfAsset>): PdfAsset {
 }
 
 describe('PRC-010 — PdfRenderer contract (real template + real chromium → temp dir)', () => {
-  it('renders a PDF with %%PDF header bytes into the configured output dir', async () => {
+  it('GIVEN the PRC precondition WHEN renderPdf on the real PRC THEN renders a PDF with %%PDF header bytes into the configured output dir', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-test-'));
     try {
       const outputPath = await renderPdf(makeAsset(), tmpDir);
@@ -38,7 +38,7 @@ describe('PRC-010 — PdfRenderer contract (real template + real chromium → te
     }
   });
 
-  it('creates intermediate output directories before writing the PDF', async () => {
+  it('GIVEN the PRC precondition WHEN renderPdf on the real PRC THEN creates intermediate output directories before writing the PDF', async () => {
     const nestedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-nested-'));
     const deepDir = path.join(nestedDir, 'sub', 'dir');
     try {
@@ -49,7 +49,7 @@ describe('PRC-010 — PdfRenderer contract (real template + real chromium → te
     }
   });
 
-  it('outputs a non-empty PDF file', async () => {
+  it('GIVEN the PRC precondition WHEN renderPdf on the real PRC THEN outputs a non-empty PDF file', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-size-'));
     try {
       const outputPath = await renderPdf(makeAsset(), tmpDir);
@@ -60,7 +60,7 @@ describe('PRC-010 — PdfRenderer contract (real template + real chromium → te
     }
   });
 
-  it('renders the candidate name into the intermediate HTML source', async () => {
+  it('GIVEN the PRC precondition WHEN renderPdf on the real PRC THEN renders the candidate name into the intermediate HTML source', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-name-'));
     try {
       await renderPdf(makeAsset(), tmpDir);

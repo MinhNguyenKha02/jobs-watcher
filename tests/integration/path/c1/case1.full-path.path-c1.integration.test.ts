@@ -1,6 +1,9 @@
-/* Path cell (c1): S1 uds+ingestor+job_lifecycle; [o][p][c] deep-parse S2; [j]/[d] over UDS (see plans/tests-path-matrix.md) */
+/* Path cell (c1): S1 uds+ingestor+job_lifecycle; [o][p][c] deep-parse S2; [j]/[d] over UDS (see plans/tests-path-matrix.md)
+ * GWT cause-effect (path c1): GIVEN webhook S1 partial WHEN [c]/[o][p] paste + [j]/[d] UDS action THEN
+ *   S3 QUEUED / S4 TRASHED, and a failed S2/S3 → next S1 recovers (checkpoint contract §1). */
 import fc from 'fast-check';
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { readdirSync } from 'node:fs';
 
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
@@ -22,6 +25,24 @@ const CLIPBOARD_HTML = topcvDetailHtml('Backend Developer', 'Case1Co', {
 });
 
 const DM_HTML = linkedinSduiDetailHtml('Backend Developer', 'ClipJuniorCorp');
+
+function waitForPdfFiles(dir: string, timeoutMs = 20000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const poll = () => {
+      try {
+        const files = readdirSync(dir).filter((f) => f.endsWith('.pdf'));
+        if (files.length > 0) return resolve();
+      } catch {
+        /* dir may not be created yet */
+      }
+      if (Date.now() - start > timeoutMs)
+        return reject(new Error(`Timeout waiting for pdf asset in ${dir}`));
+      setTimeout(poll, 250);
+    };
+    poll();
+  });
+}
 
 describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] → next', () => {
   let tc: TestContainer;
@@ -48,7 +69,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
   }
 
   describe('canonical S1 → [c] paste → [j]/[d] over UDS', () => {
-    it('T1a: S1 partial → [c] webhook ingest → [j] queue — canonical Case 1', async () => {
+    it('GIVEN S1 partial WHEN [c] webhook ingest THEN [j] queue — canonical Case 1 (S1+S2+S3) · path c1', async () => {
       const messageId = 'c1-msg-1';
       const gen = await tc.bus.setup([ActionEvent.GENERATED]);
       await tc.ingestor.processIngest(
@@ -87,12 +108,14 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       const queueMsg = await queue.msg();
       expect(queueMsg.jobLifecycleId).toBe(jobLifecycleId);
 
+      await waitForPdfFiles(tc.assetDir);
+
       const routedDoc = await tc.mongoJobLifecycleAdapter.findById(jobLifecycleId);
       expect(routedDoc).not.toBeNull();
       expect(routedDoc!.status).toBe(JobStatus.QUEUED);
     });
 
-    it('T1c: S1 → [c] paste → [d] trash via UDS', async () => {
+    it('GIVEN S1 WHEN [c] paste THEN [d] trash via UDS (S1+S2+S3) · path c1', async () => {
       const messageId = 'c1-msg-trash';
       const gen = await tc.bus.setup([ActionEvent.GENERATED]);
       await tc.ingestor.processIngest(
@@ -124,7 +147,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(trashedDoc!.status).toBe(JobStatus.TRASHED);
     });
 
-    it('T1b: [j] before S2 arrives is guarded (deferred enrichment) — no state change', async () => {
+    it('GIVEN an S1 browser auto PARTIAL_PARSED input WHEN an ingest signal is processed THEN [j] before S2 arrives is guarded (deferred enrichment) — no state change (S1) · path c1', async () => {
       const messageId = 'c1-msg-defer';
       await tc.ingestor.processIngest(
         JobSource.BROWSER_AUTO,
@@ -149,7 +172,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
   });
 
   describe('signal2aManual ([c]) upgrade + S4 failure paths', () => {
-    it('[c] upgrades PARTIAL_PARSED to FULL_PARSED with merged fields — real-DIP', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] upgrades PARTIAL_PARSED to FULL_PARSED with merged fields — real-DIP (S2) · path c1', async () => {
       const jobLifecycleId = await seedPartial({
         _id: 'c1-2a-valid',
         company: 'OldCo',
@@ -175,7 +198,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(doc!.role).toBe('Software Engineer');
     });
 
-    it('[c] with empty clipboard emits parse.failed (S4 via B1) and keeps doc ENRICHING', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] with empty clipboard emits parse.failed (S4 via B1) and keeps doc ENRICHING (S1+S2+S4) · path c1', async () => {
       const jobLifecycleId = await seedPartial({ _id: 'c1-2a-empty' });
 
       const fail = await tc.bus.setup([ActionEvent.PARSE_FAILED]);
@@ -194,7 +217,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(doc!.stage).toBe(JobStage.PARTIAL_PARSED);
     });
 
-    it('[c] with unparsable clipboard emits parse.failed — no doc change', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] with unparsable clipboard emits parse.failed — no doc change (S1+S2+S4) · path c1', async () => {
       const jobLifecycleId = await seedPartial({ _id: 'c1-2a-noparse' });
 
       const fail = await tc.bus.setup([ActionEvent.PARSE_FAILED]);
@@ -212,7 +235,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(doc!.status).toBe(JobStatus.ENRICHING);
     });
 
-    it('[c] with missing stage1Partial builds FULL_PARSED from parsed HTML alone', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] with missing stage1Partial builds FULL_PARSED from parsed HTML alone (S2) · path c1', async () => {
       const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
       await tc.ingestor.processIngest(
         JobSource.MANUAL,
@@ -231,7 +254,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(doc!.stage).toBe(JobStage.FULL_PARSED);
     });
 
-    it('[c] on an already FULL_PARSED job is a no-op (B2 guard)', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] on an already FULL_PARSED job is a no-op (B2 guard) (S2) · path c1', async () => {
       const jobLifecycleId = await seedPartial({ _id: 'c1-already-full', company: 'AlreadyCo' });
       await tc.ingestor.processIngest(
         JobSource.MANUAL,
@@ -256,7 +279,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(await tc.db.collection('job_lifecycle').countDocuments({})).toBe(1);
     });
 
-    it('MANUAL FULL without jobLifecycleId is silent — no parse.failed (B9), clip-* doc created', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN MANUAL FULL without jobLifecycleId is silent — no parse.failed (B9), clip-* doc created (S2+S4) · path c1', async () => {
       const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
       await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML);
       const compMsg = await comp.msg();
@@ -273,7 +296,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
   });
 
   describe('[c] → [j]/[d] completion and S4 → S1 recovery', () => {
-    it('[c] then [j] via UDS — queue resolution succeeds', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] then [j] via UDS — queue resolution succeeds (S2+S3) · path c1', async () => {
       const jobLifecycleId = await seedPartial({ _id: 'c1-2a-queue' });
 
       const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
@@ -295,12 +318,14 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       const queueMsg = await queue.msg();
       expect(queueMsg.jobLifecycleId).toBe(jobLifecycleId);
 
+      await waitForPdfFiles(tc.assetDir);
+
       const doc = await tc.mongoJobLifecycleAdapter.findById(jobLifecycleId);
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.QUEUED);
     });
 
-    it('[c] then [d] via UDS — trash resolution succeeds', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] then [d] via UDS — trash resolution succeeds (S2+S3) · path c1', async () => {
       const jobLifecycleId = await seedPartial({ _id: 'c1-2a-trash' });
 
       const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
@@ -327,7 +352,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(doc!.status).toBe(JobStatus.TRASHED);
     });
 
-    it('S2 failure (S4) then next S1 still processes — real-DIP', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN S2 failure (S4) then next S1 still processes — real-DIP (S2+S4) · path c1', async () => {
       const failedId = await seedPartial({ _id: 'c1-s4-fail' });
 
       const fail = await tc.bus.setup([ActionEvent.PARSE_FAILED]);
@@ -352,7 +377,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(recoveryDoc!.status).toBe(JobStatus.ENRICHED);
     });
 
-    it('route failure (S4) emits route.failed then next S1 recovers — real-DIP', async () => {
+    it('GIVEN an S2 browser auto FULL_PARSED input WHEN a resolution is applied THEN route failure (S4) emits route.failed then next S1 recovers — real-DIP (S1+S2+S4) · path c1', async () => {
       const routeFailId = await seedPartial({
         _id: 'c1-s4b-fail',
         stage: JobStage.FULL_PARSED,
@@ -387,7 +412,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
   });
 
   describe('direct mode signal2a ([c] in merged-DM)', () => {
-    it('Signal 2a upgrades PARTIAL_PARSED to FULL_PARSED with merged fields — real-DIP', async () => {
+    it('GIVEN an S1 browser auto PARTIAL_PARSED input WHEN an ingest signal is processed THEN Signal 2a upgrades PARTIAL_PARSED to FULL_PARSED with merged fields — real-DIP (S2+S1) · path c1', async () => {
       const jobLifecycleId = 'c1-dm-2a-1';
       const partialDoc = {
         _id: jobLifecycleId,
@@ -426,7 +451,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(fullDoc!.location).toBe('Ho Chi Minh City, Vietnam');
     });
 
-    it('Signal 2a with empty payload fails gracefully — doc stays PARTIAL_PARSED', async () => {
+    it('GIVEN an S1 browser auto PARTIAL_PARSED input WHEN an ingest signal is processed THEN Signal 2a with empty payload fails gracefully — doc stays PARTIAL_PARSED (S2+S1+S4) · path c1', async () => {
       const jobLifecycleId = 'c1-dm-2a-empty';
       const partialDoc = {
         _id: jobLifecycleId,

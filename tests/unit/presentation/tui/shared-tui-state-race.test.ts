@@ -34,7 +34,7 @@ describe('T3: Shared state file race condition', () => {
 
   afterEach(cleanState);
 
-  it('concurrent setCurrentJob calls do not corrupt state', async () => {
+  it('GIVEN T3 WHEN exercised THEN concurrent setCurrentJob calls do not corrupt state (S2+S1)', async () => {
     const job1 = { _id: 'race-job-1', company: 'Alpha', role: 'Engineer A' } as any;
     const job2 = { _id: 'race-job-2', company: 'Beta', role: 'Engineer B' } as any;
 
@@ -49,7 +49,7 @@ describe('T3: Shared state file race condition', () => {
     expect(state.stage).toBe(JobStage.PARTIAL_PARSED);
   });
 
-  it('concurrent clearCurrentJob + setCurrentJob proves race exists (either outcome valid)', async () => {
+  it('GIVEN T3 WHEN exercised THEN concurrent clearCurrentJob + setCurrentJob proves race exists (either outcome valid) (S2+S1)', async () => {
     const job = { _id: 'race-job-3', company: 'Gamma', role: 'Engineer C' } as any;
     setCurrentJob('race-job-3', job, JobStage.FULL_PARSED);
 
@@ -68,7 +68,7 @@ describe('T3: Shared state file race condition', () => {
     );
   });
 
-  it('concurrent queue mode toggle and setCurrentJob', async () => {
+  it('GIVEN T3 WHEN exercised THEN concurrent queue mode toggle and setCurrentJob (S2)', async () => {
     await Promise.all([
       setQueueMode(false),
       setQueueMode(true),
@@ -84,7 +84,7 @@ describe('T3: Shared state file race condition', () => {
     expect(state.stage).toBe(JobStage.FULL_PARSED);
   });
 
-  it('rapid sequential set/get across modes does not lose writes', async () => {
+  it('GIVEN T3 WHEN ops.push THEN rapid sequential set/get across modes does not lose writes (S2+S1)', async () => {
     const ops = [];
     for (let i = 0; i < 20; i++) {
       const id = `race-seq-${i}`;
@@ -99,7 +99,7 @@ describe('T3: Shared state file race condition', () => {
     expect(final.jobLifecycleId).toBe('race-seq-0');
   });
 
-  it('lock file is cleaned after write failure simulation', async () => {
+  it('GIVEN T3 WHEN exercised THEN lock file is cleaned after write failure simulation (S2)', async () => {
     expect(existsSync(TEST_STATE_PATH + '.lock')).toBe(false);
 
     const job = { _id: 'race-job-lock', company: 'LockCorp', role: 'Engineer' } as any;

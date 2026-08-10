@@ -33,7 +33,7 @@ function makeSignal(overrides: Partial<MatchSignal> = {}): MatchSignal {
 
 describe('ResolutionStrength', () => {
   describe('Res-001: strong classification', () => {
-    it('should classify as strong when score >= strongThreshold and has direct evidence', () => {
+    it('GIVEN score >= strongThreshold and has direct evidence WHEN ResolutionStrength evaluates THEN classify as strong', () => {
       const signal = makeSignal({ stages: new Set(['lexical']) });
       const result = classifyResolutionStrength(0.8, signal, defaultPolicy as any);
       expect(result).toBe('strong');
@@ -41,7 +41,7 @@ describe('ResolutionStrength', () => {
   });
 
   describe('Res-002: partial classification', () => {
-    it('should classify as partial when score >= partialThreshold but < strongThreshold', () => {
+    it('GIVEN score >= partialThreshold but < strongThreshold WHEN ResolutionStrength evaluates THEN classify as partial', () => {
       const signal = makeSignal({ stages: new Set(['lexical']) });
       const result = classifyResolutionStrength(0.5, signal, defaultPolicy as any);
       expect(result).toBe('partial');
@@ -49,7 +49,7 @@ describe('ResolutionStrength', () => {
   });
 
   describe('Res-003: weak classification', () => {
-    it('should classify as weak when score >= weakThreshold but < partialThreshold', () => {
+    it('GIVEN score >= weakThreshold but < partialThreshold WHEN ResolutionStrength evaluates THEN classify as weak', () => {
       const signal = makeSignal({ stages: new Set(['lexical']) });
       const result = classifyResolutionStrength(0.3, signal, defaultPolicy as any);
       expect(result).toBe('weak');
@@ -57,7 +57,7 @@ describe('ResolutionStrength', () => {
   });
 
   describe('Res-004: missing classification', () => {
-    it('should classify as missing when score < weakThreshold', () => {
+    it('GIVEN score < weakThreshold WHEN ResolutionStrength evaluates THEN classify as missing', () => {
       const signal = makeSignal({ stages: new Set(['lexical']) });
       const result = classifyResolutionStrength(0.1, signal, defaultPolicy as any);
       expect(result).toBe('missing');
@@ -65,7 +65,7 @@ describe('ResolutionStrength', () => {
   });
 
   describe('Res-005: propagation-only not strong', () => {
-    it('should not classify as strong even with high score if propagation-only', () => {
+    it('GIVEN propagation-only WHEN ResolutionStrength evaluates THEN not classify as strong even with high score', () => {
       const signal = makeSignal({ stages: new Set(['propagation']) });
       const result = classifyResolutionStrength(0.9, signal, defaultPolicy as any);
       expect(result).not.toBe('strong');
@@ -73,19 +73,19 @@ describe('ResolutionStrength', () => {
   });
 
   describe('Res-006: isSignalViable', () => {
-    it('should return true when score >= weakThreshold', () => {
+    it('GIVEN score >= weakThreshold WHEN ResolutionStrength evaluates THEN return true', () => {
       const signal = makeSignal({ score: 0.3 });
       expect(isSignalViable(signal, defaultPolicy as any)).toBe(true);
     });
 
-    it('should return false when score < weakThreshold', () => {
+    it('GIVEN score < weakThreshold WHEN ResolutionStrength evaluates THEN return false', () => {
       const signal = makeSignal({ score: 0.1 });
       expect(isSignalViable(signal, defaultPolicy as any)).toBe(false);
     });
   });
 
   describe('Res-007: getResolutionStrengthDescription', () => {
-    it('should return human-readable descriptions', () => {
+    it('GIVEN ResolutionStrength WHEN ResolutionStrength evaluates THEN return human-readable descriptions', () => {
       expect(getResolutionStrengthDescription('strong')).toBe(
         'Direct evidence with high confidence score'
       );

@@ -59,7 +59,7 @@ describe('PRC-005 — TUI shared state cross-process integrity', () => {
     fs.rmSync(path.dirname(statePath), { recursive: true, force: true });
   });
 
-  it('concurrent workers from separate processes never corrupt the JSON file', async () => {
+  it('GIVEN PRC WHEN exercised THEN concurrent workers from separate processes never corrupt the JSON file', async () => {
     const results = await Promise.all([
       runWorker('A', 'AlphaCo'),
       runWorker('B', 'BetaCo'),
@@ -77,13 +77,13 @@ describe('PRC-005 — TUI shared state cross-process integrity', () => {
     expect(typeof parsed.queueMode).toBe('boolean');
   });
 
-  it('no temp or lock files remain after concurrent writes', () => {
+  it('GIVEN PRC WHEN leftovers.filter THEN no temp or lock files remain after concurrent writes', () => {
     const leftovers = fs.readdirSync(path.dirname(statePath));
     expect(leftovers.filter((f) => f.endsWith('.tmp'))).toEqual([]);
     expect(leftovers.filter((f) => f.endsWith('.lock'))).toEqual([]);
   });
 
-  it('state file reflects a coherent single job (last writer wins, no interleave)', async () => {
+  it('GIVEN PRC WHEN exercised THEN state file reflects a coherent single job (last writer wins, no interleave)', async () => {
     const parsed = JSON.parse(fs.readFileSync(statePath, 'utf8'));
     const active = parsed.queue;
     expect(active).toBeDefined();
@@ -93,7 +93,7 @@ describe('PRC-005 — TUI shared state cross-process integrity', () => {
     }
   });
 
-  it('rewriting via worker then reading from parent yields consistent version', async () => {
+  it('GIVEN PRC WHEN exercised THEN rewriting via worker then reading from parent yields consistent version', async () => {
     await runWorker('D', 'DeltaCo');
     const parsed = JSON.parse(fs.readFileSync(statePath, 'utf8'));
     expect(parsed.version).toBe(2);

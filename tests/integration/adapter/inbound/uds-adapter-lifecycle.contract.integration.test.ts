@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import http from 'node:http';
-import { UdsAdapter } from '../../../../src/infrastructure/inbound/uds/uds-adapter.js';
+import { buildSystemContainer } from '../../../../src/application/container.js';
 import type { IngestorPort } from '../../../../src/application/ports/inbound/ingestor.port.js';
+import type { UdsAdapter } from '../../../../src/infrastructure/inbound/uds/uds-adapter.js';
 import { postJsonOverUds } from '../../../../src/infrastructure/utils/uds-http.js';
 
 describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
@@ -30,30 +30,49 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     await adapter.stop().catch(() => {});
   });
 
-  it('start creates the socket file', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath });
+  /** Resolve the real UdsAdapter through the production composition root (port-seam). */
+  function boot(socket: string, token?: string): UdsAdapter {
+    const container = buildSystemContainer(
+      {
+        nodeEnv: 'test',
+        mongodb: { uri: 'mongodb://localhost/jw-uds', dbName: 'unit' },
+        rabbitmq: {
+          url: process.env.RABBITMQ_URL || 'amqp://localhost',
+          exchange: 'jobs.events.ct',
+        },
+        uds: { socketPath: socket, token },
+        health: { port: 0 },
+        asset: { outputDir: '/tmp/jobs-watcher-uds-assets' },
+      },
+      { ports: { ingestor: ingestorMock } }
+    );
+    return container.udsAdapter;
+  }
+
+  it('GIVEN the UdsAdapter precondition WHEN start on the real UdsAdapter THEN start creates the socket file', async () => {
+    adapter = boot(socketPath);
     expect(fs.existsSync(socketPath)).toBe(false);
     await adapter.start();
     expect(fs.existsSync(socketPath)).toBe(true);
   });
 
-  it('stop removes the socket file', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath });
+  it('GIVEN the UdsAdapter precondition WHEN start → stop on the real UdsAdapter THEN stop removes the socket file', async () => {
+    adapter = boot(socketPath);
     await adapter.start();
     expect(fs.existsSync(socketPath)).toBe(true);
     await adapter.stop();
     expect(fs.existsSync(socketPath)).toBe(false);
   });
 
-  it('stop is safe to call twice', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath });
+  it('GIVEN the UdsAdapter precondition WHEN start → stop on the real UdsAdapter THEN stop is safe to call twice', async () => {
+    adapter = boot(socketPath);
     await adapter.start();
     await adapter.stop();
     await expect(adapter.stop()).resolves.toBeUndefined();
   });
 
-  it('POST /internal/action with queue action calls processResolution', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath });
+  it('GIVEN the UdsAdapter precondition WHEN start on the real UdsAdapter THEN POST /internal/action with queue action calls processResolution', async () => {
+    adapter = boot(socketPath);
     await adapter.start();
 
     const res = await postJsonOverUds(
@@ -64,8 +83,8 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     expect(ingestorMock.processResolution).toHaveBeenCalledWith('test-job-1', 'queue');
   });
 
-  it('POST /internal/action with trash action calls processResolution', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath });
+  it('GIVEN the UdsAdapter precondition WHEN start on the real UdsAdapter THEN POST /internal/action with trash action calls processResolution', async () => {
+    adapter = boot(socketPath);
     await adapter.start();
 
     const res = await postJsonOverUds(
@@ -76,8 +95,8 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     expect(ingestorMock.processResolution).toHaveBeenCalledWith('test-job-2', 'trash');
   });
 
-  it('POST /internal/action with missing fields returns 400', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath });
+  it('GIVEN the UdsAdapter precondition WHEN start on the real UdsAdapter THEN POST /internal/action with missing fields returns 400', async () => {
+    adapter = boot(socketPath);
     await adapter.start();
 
     const res = await postJsonOverUds(
@@ -87,8 +106,8 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('POST /internal/ingest calls processIngest with correct args', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath });
+  it('GIVEN the UdsAdapter precondition WHEN start on the real UdsAdapter THEN POST /internal/ingest calls processIngest with correct args (S2)', async () => {
+    adapter = boot(socketPath);
     await adapter.start();
 
     const html = '<div>test payload</div>';
@@ -105,8 +124,8 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     );
   });
 
-  it('POST /internal/ingest?webhook=true with jobLifecycleId calls processIngest with id', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath });
+  it('GIVEN the UdsAdapter precondition WHEN start on the real UdsAdapter THEN POST /internal/ingest?webhook=true with jobLifecycleId calls processIngest with id (S2)', async () => {
+    adapter = boot(socketPath);
     await adapter.start();
 
     const html = '<div>webhook payload</div>';
@@ -123,8 +142,8 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     );
   });
 
-  it('POST /internal/ingest with empty html returns 400', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath });
+  it('GIVEN the UdsAdapter precondition WHEN start on the real UdsAdapter THEN POST /internal/ingest with empty html returns 400', async () => {
+    adapter = boot(socketPath);
     await adapter.start();
 
     const res = await postJsonOverUds(
@@ -134,16 +153,16 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('unknown path returns 404', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath });
+  it('GIVEN the UdsAdapter precondition WHEN start on the real UdsAdapter THEN unknown path returns 404', async () => {
+    adapter = boot(socketPath);
     await adapter.start();
 
     const res = await postJsonOverUds({ socketPath, path: '/unknown/path', timeoutMs: 5000 }, {});
     expect(res.statusCode).toBe(404);
   });
 
-  it('auth with valid token passes', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath, token: 'secret-123' });
+  it('GIVEN the UdsAdapter precondition WHEN start on the real UdsAdapter THEN auth with valid token passes', async () => {
+    adapter = boot(socketPath, 'secret-123');
     await adapter.start();
 
     const res = await postJsonOverUds(
@@ -159,8 +178,8 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     expect(ingestorMock.processResolution).toHaveBeenCalledWith('auth-test', 'queue');
   });
 
-  it('auth with invalid token returns 401', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath, token: 'secret-123' });
+  it('GIVEN the UdsAdapter precondition WHEN start on the real UdsAdapter THEN auth with invalid token returns 401', async () => {
+    adapter = boot(socketPath, 'secret-123');
     await adapter.start();
 
     const res = await postJsonOverUds(
@@ -175,8 +194,8 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it('start → stop → start works (restart lifecycle)', async () => {
-    adapter = new UdsAdapter(ingestorMock, { socketPath });
+  it('GIVEN the UdsAdapter precondition WHEN start → stop on the real UdsAdapter THEN start → stop → start works (restart lifecycle)', async () => {
+    adapter = boot(socketPath);
     await adapter.start();
     expect(fs.existsSync(socketPath)).toBe(true);
 

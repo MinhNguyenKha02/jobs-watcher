@@ -4,7 +4,7 @@ import { EvidenceNode } from '../../../../src/domain/profile/types/retrieval.typ
 
 describe('EvidenceFeaturesExtractor', () => {
   describe('Feature-001: Operational keywords', () => {
-    it('should produce operationalScore > 0 when operational keywords are present', () => {
+    it('GIVEN operational keywords are present WHEN EvidenceFeaturesExtractor evaluates THEN produce operationalScore > 0', () => {
       // Arrange
       const evidence: EvidenceNode = {
         id: 'ev.test',
@@ -31,7 +31,7 @@ describe('EvidenceFeaturesExtractor', () => {
   });
 
   describe('Feature-002: Architecture keywords', () => {
-    it('should produce architectureScore > 0 when architecture keywords are present', () => {
+    it('GIVEN architecture keywords are present WHEN EvidenceFeaturesExtractor evaluates THEN produce architectureScore > 0', () => {
       // Arrange
       const evidence: EvidenceNode = {
         id: 'ev.test',
@@ -58,7 +58,7 @@ describe('EvidenceFeaturesExtractor', () => {
   });
 
   describe('Feature-003: Ownership keywords', () => {
-    it('should produce ownershipScore > 0 when ownership keywords are present', () => {
+    it('GIVEN ownership keywords are present WHEN EvidenceFeaturesExtractor evaluates THEN produce ownershipScore > 0', () => {
       // Arrange
       const evidence: EvidenceNode = {
         id: 'ev.test',
@@ -86,7 +86,7 @@ describe('EvidenceFeaturesExtractor', () => {
   });
 
   describe('Feature-004: Quantified metrics', () => {
-    it('should produce quantifiedScore > 0 when quantified metrics are present', () => {
+    it('GIVEN quantified metrics are present WHEN EvidenceFeaturesExtractor evaluates THEN produce quantifiedScore > 0', () => {
       // Arrange
       const evidence: EvidenceNode = {
         id: 'ev.test',
@@ -114,7 +114,7 @@ describe('EvidenceFeaturesExtractor', () => {
   });
 
   describe('Feature-005: Score cap', () => {
-    it('should ensure quantifiedScore <= 1 even with many matches', () => {
+    it('GIVEN EvidenceFeaturesExtractor WHEN EvidenceFeaturesExtractor evaluates THEN ensure quantifiedScore <= 1 even with many matches', () => {
       // Arrange
       const evidence: EvidenceNode = {
         id: 'ev.test',
@@ -139,7 +139,7 @@ describe('EvidenceFeaturesExtractor', () => {
 
   // Additional test: no matches should give zero scores
   describe('Edge case: no matches', () => {
-    it('should produce zero scores when no keywords or metrics are present', () => {
+    it('GIVEN no keywords or metrics are present WHEN EvidenceFeaturesExtractor evaluates THEN produce zero scores', () => {
       // Arrange
       // Using text that avoids accidental substring matches for ownership keywords (e.g., no 'knowledge' which contains 'led')
       const evidence: EvidenceNode = {

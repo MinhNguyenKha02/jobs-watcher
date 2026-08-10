@@ -45,7 +45,7 @@ describe('shared-tui-state extended: mode toggle mid-job', () => {
 
   afterEach(cleanState);
 
-  it('mode toggle clears active display (different substate per mode)', () => {
+  it('GIVEN shared WHEN exercised THEN mode toggle clears active display (different substate per mode) (S1)', () => {
     const job = { _id: 'job-q', company: 'QueueCo', role: 'Engineer' } as any;
     setCurrentJob('job-q', job, JobStage.PARTIAL_PARSED);
     expect(getCurrentJob().jobLifecycleId).toBe('job-q');
@@ -58,7 +58,7 @@ describe('shared-tui-state extended: mode toggle mid-job', () => {
     expect(getCurrentJob().jobLifecycleId).toBe('job-q');
   });
 
-  it('direct mode job preserved when toggling back and forth', () => {
+  it('GIVEN toggling back and forth WHEN exercised THEN direct mode job preserved (S2+S1)', () => {
     setQueueMode(false);
     const directJob = { _id: 'job-d', company: 'DirectCo', role: 'Dev' } as any;
     setCurrentJob('job-d', directJob, JobStage.FULL_PARSED);
@@ -75,7 +75,7 @@ describe('shared-tui-state extended: mode toggle mid-job', () => {
     expect(getCurrentJob().job?.company).toBe('DirectCo');
   });
 
-  it('can set different job in direct mode after toggle', () => {
+  it('GIVEN shared WHEN exercised THEN can set different job in direct mode after toggle (S2)', () => {
     setQueueMode(false);
     const job1 = { _id: 'job-d1', company: 'D1', role: 'Dev' } as any;
     setCurrentJob('job-d1', job1, JobStage.FULL_PARSED);
@@ -85,7 +85,7 @@ describe('shared-tui-state extended: mode toggle mid-job', () => {
     expect(getCurrentJob().jobLifecycleId).toBe('job-d1');
   });
 
-  it('clearCurrentJob only clears active mode', () => {
+  it('GIVEN shared WHEN exercised THEN clearCurrentJob only clears active mode (S2+S1)', () => {
     setQueueMode(false);
     const directJob = { _id: 'job-clear-d', company: 'DC', role: 'Dev' } as any;
     setCurrentJob('job-clear-d', directJob, JobStage.FULL_PARSED);
@@ -110,7 +110,7 @@ describe('shared-tui-state extended: setCurrentJob guard', () => {
 
   afterEach(cleanState);
 
-  it('rejects overwrite with different job ID in queue mode', () => {
+  it('GIVEN shared WHEN exercised THEN rejects overwrite with different job ID in queue mode (S2+S1)', () => {
     const job1 = { _id: 'job-a', company: 'ACo', role: 'Engineer' } as any;
     setCurrentJob('job-a', job1, JobStage.PARTIAL_PARSED);
 
@@ -122,7 +122,7 @@ describe('shared-tui-state extended: setCurrentJob guard', () => {
     expect(state.job?.company).toBe('ACo');
   });
 
-  it('allows overwrite with same job ID (enrichment)', () => {
+  it('GIVEN shared WHEN exercised THEN allows overwrite with same job ID (enrichment) (S2+S1)', () => {
     const job1 = { _id: 'job-same', company: 'Co', role: 'Engineer' } as any;
     setCurrentJob('job-same', job1, JobStage.PARTIAL_PARSED);
 
@@ -136,7 +136,7 @@ describe('shared-tui-state extended: setCurrentJob guard', () => {
     expect(state.job?.matchScore).toBe(90);
   });
 
-  it('allows latest-wins overwrite with different job ID in direct mode (B17)', () => {
+  it('GIVEN shared WHEN exercised THEN allows latest-wins overwrite with different job ID in direct mode (B17) (S2)', () => {
     setQueueMode(false);
 
     const job1 = { _id: 'job-x', company: 'XCo', role: 'Dev' } as any;
@@ -157,7 +157,7 @@ describe('shared-tui-state extended: modal interaction', () => {
 
   afterEach(cleanState);
 
-  it('modal is cleared by clearCurrentJob', () => {
+  it('GIVEN shared WHEN exercised THEN modal is cleared by clearCurrentJob (S2)', () => {
     const job = { _id: 'job-modal', company: 'Co', role: 'Engineer' } as any;
     setCurrentJob('job-modal', job, JobStage.FULL_PARSED);
     setPreviewViewerModal('line1\nline2', 2);
@@ -167,7 +167,7 @@ describe('shared-tui-state extended: modal interaction', () => {
     expect(getCurrentJob().modal).toBeNull();
   });
 
-  it('modal is cleared when new job replaces current in queue mode', () => {
+  it('GIVEN new job replaces current in queue mode WHEN exercised THEN modal is cleared (S2+S1)', () => {
     const job1 = { _id: 'job-m1', company: 'C1', role: 'Engineer' } as any;
     setCurrentJob('job-m1', job1, JobStage.PARTIAL_PARSED);
     setPreviewViewerModal('preview content', 10);
@@ -177,7 +177,7 @@ describe('shared-tui-state extended: modal interaction', () => {
     expect(getCurrentJob().modal).toBeNull();
   });
 
-  it('modal survives mode toggle? (direct mode has own substate)', () => {
+  it('GIVEN shared WHEN exercised THEN modal survives mode toggle? (direct mode has own substate) (S1)', () => {
     setCurrentJob(
       'job-modalq',
       { _id: 'job-modalq', company: 'Q' } as any,
@@ -190,7 +190,7 @@ describe('shared-tui-state extended: modal interaction', () => {
     expect(getCurrentJob().modal).toBeNull();
   });
 
-  it('clearModal removes modal without affecting job', () => {
+  it('GIVEN shared WHEN exercised THEN clearModal removes modal without affecting job (S2)', () => {
     const job = { _id: 'job-cm', company: 'Co', role: 'Engineer' } as any;
     setCurrentJob('job-cm', job, JobStage.FULL_PARSED);
     setPreviewViewerModal('content', 5);
@@ -210,7 +210,7 @@ describe('shared-tui-state extended: file persistence edge cases', () => {
 
   afterEach(cleanState);
 
-  it('recovers from corrupt state file', () => {
+  it('GIVEN shared WHEN exercised THEN recovers from corrupt state file', () => {
     writeFileSync(TEST_STATE_PATH, 'not valid json', 'utf8');
 
     const state = getCurrentJob();
@@ -218,7 +218,7 @@ describe('shared-tui-state extended: file persistence edge cases', () => {
     expect(state.version).toBe(2);
   });
 
-  it('v1 migration with messageId converts to v2 queue sub-state', () => {
+  it('GIVEN shared WHEN exercised THEN v1 migration with messageId converts to v2 queue sub-state (S1)', () => {
     writeFileSync(
       TEST_STATE_PATH,
       JSON.stringify({

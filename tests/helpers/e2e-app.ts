@@ -52,9 +52,6 @@ export interface E2eUds {
 }
 
 export interface E2eApp {
-  tc: TestContainer;
-  adapter: TestContainer['mongoJobLifecycleAdapter'];
-  db: TestContainer['db'];
   events: E2eEvents;
   artifacts: E2eArtifacts;
   webhook: { post(messageId: string): Promise<{ status: number }> };
@@ -150,9 +147,6 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
     });
 
   return {
-    tc,
-    adapter: tc.mongoJobLifecycleAdapter,
-    db: tc.db,
     events: {
       on: (keys, timeoutMs) => tc.bus.setup(keys, timeoutMs),
     },

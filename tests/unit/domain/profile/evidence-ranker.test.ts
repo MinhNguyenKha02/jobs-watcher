@@ -10,7 +10,7 @@ describe('EvidenceRanker', () => {
   });
 
   describe('Evidence-001: All features = 1', () => {
-    it('should return score = 1', () => {
+    it('GIVEN EvidenceRanker WHEN EvidenceRanker evaluates THEN return score = 1', () => {
       vi.spyOn(EvidenceFeaturesExtractor, 'extract').mockReturnValue({
         operationalScore: 1.0,
         architectureScore: 1.0,
@@ -32,7 +32,7 @@ describe('EvidenceRanker', () => {
   });
 
   describe('Evidence-002: All features = 0', () => {
-    it('should return score = 0', () => {
+    it('GIVEN EvidenceRanker WHEN EvidenceRanker evaluates THEN return score = 0', () => {
       vi.spyOn(EvidenceFeaturesExtractor, 'extract').mockReturnValue({
         operationalScore: 0.0,
         architectureScore: 0.0,
@@ -48,7 +48,7 @@ describe('EvidenceRanker', () => {
   });
 
   describe('Non-negative score', () => {
-    it('should return non-negative score even if weighted sum is negative', () => {
+    it('GIVEN weighted sum is negative WHEN EvidenceRanker evaluates THEN return non-negative score even', () => {
       vi.spyOn(EvidenceFeaturesExtractor, 'extract').mockReturnValue({
         operationalScore: 0.0,
         architectureScore: 0.0,
@@ -64,7 +64,7 @@ describe('EvidenceRanker', () => {
   });
 
   describe('Weight usage', () => {
-    it('should apply the weights correctly', () => {
+    it('GIVEN EvidenceRanker WHEN EvidenceRanker evaluates THEN apply the weights correctly', () => {
       vi.spyOn(EvidenceFeaturesExtractor, 'extract').mockReturnValue({
         operationalScore: 1.0,
         architectureScore: 0.0,

@@ -20,7 +20,7 @@ describe('RetrievalAcceptanceResolver', () => {
   });
 
   describe('Accept-001: Score below threshold', () => {
-    it('should reject signal with score 0.54', () => {
+    it('GIVEN RetrievalAcceptanceResolver WHEN RetrievalAcceptanceResolver evaluates THEN reject signal with score 0.54', () => {
       // Arrange
       const signal: MatchSignal = {
         anchorId: 'cap.test',
@@ -46,7 +46,7 @@ describe('RetrievalAcceptanceResolver', () => {
   });
 
   describe('Accept-002: Score at threshold', () => {
-    it('should accept signal with score 0.55', () => {
+    it('GIVEN RetrievalAcceptanceResolver WHEN RetrievalAcceptanceResolver evaluates THEN accept signal with score 0.55', () => {
       // Arrange
       const signal: MatchSignal = {
         anchorId: 'cap.test',
@@ -72,7 +72,7 @@ describe('RetrievalAcceptanceResolver', () => {
   });
 
   describe('Accept-003: No evidence', () => {
-    it('should reject signal with no evidence (when not propagation-only)', () => {
+    it('GIVEN RetrievalAcceptanceResolver WHEN RetrievalAcceptanceResolver evaluates THEN reject signal with no evidence (when not propagation-only)', () => {
       // Arrange
       const signal: MatchSignal = {
         anchorId: 'cap.test',
@@ -98,7 +98,7 @@ describe('RetrievalAcceptanceResolver', () => {
   });
 
   describe('Accept-004: Propagation-only signal', () => {
-    it('should accept propagation-only signal even without evidence', () => {
+    it('GIVEN RetrievalAcceptanceResolver WHEN RetrievalAcceptanceResolver evaluates THEN accept propagation-only signal even without evidence', () => {
       // Arrange
       const signal: MatchSignal = {
         anchorId: 'cap.test',
@@ -125,7 +125,7 @@ describe('RetrievalAcceptanceResolver', () => {
 
   // Additional test for the scoreToUse parameter
   describe('scoreToUse parameter', () => {
-    it('should use the provided score instead of signal.score when scoreToUse is provided', () => {
+    it('GIVEN scoreToUse is provided WHEN RetrievalAcceptanceResolver evaluates THEN use the provided score instead of signal.score', () => {
       // Arrange
       const signal: MatchSignal = {
         anchorId: 'cap.test',

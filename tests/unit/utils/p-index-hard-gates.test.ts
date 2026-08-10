@@ -6,7 +6,7 @@ import {
 } from '../../../src/infrastructure/utils/p-index-hard-gates.js';
 
 describe('verify-e2e-output hard gates', () => {
-  it('passes P0 when runtime action evidence and route correlation are present', () => {
+  it('GIVEN runtime action evidence and route correlation are present WHEN exercised THEN passes P0 (S3)', () => {
     const failures = validateP0HardGate({
       actionLog: [
         {
@@ -24,7 +24,7 @@ describe('verify-e2e-output hard gates', () => {
     expect(failures).toEqual([]);
   });
 
-  it('fails P0 when action evidence is missing', () => {
+  it('GIVEN action evidence is missing WHEN failures.some THEN fails P0', () => {
     const failures = validateP0HardGate({
       actionLog: [],
       needsEnrichment: [{ messageId: 'msg-1', finalRoute: 'job_queue' }],
@@ -36,7 +36,7 @@ describe('verify-e2e-output hard gates', () => {
     expect(failures.some((failure) => failure.gate === 'P0')).toBe(true);
   });
 
-  it('fails P0 when operator evidence is stale under freshness enforcement', () => {
+  it('GIVEN operator evidence is stale under freshness enforcement WHEN vi.spyOn THEN fails P0 (S3)', () => {
     const now = Date.parse('2026-03-06T12:00:00.000Z');
     const stale = new Date(now - 26 * 60 * 60 * 1000).toISOString();
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(now);
@@ -70,7 +70,7 @@ describe('verify-e2e-output hard gates', () => {
     }
   });
 
-  it('passes P1/P2 when required alert and metrics evidence exists', () => {
+  it('GIVEN required alert and metrics evidence exists WHEN exercised THEN passes P1/P2', () => {
     const failures = validateP1P2HardGate({
       actionLog: [{ action: 'alert_routed_email', details: { channel: 'email' } }],
       needsEnrichment: [],
@@ -88,7 +88,7 @@ describe('verify-e2e-output hard gates', () => {
     expect(failures).toEqual([]);
   });
 
-  it('fails P1/P2 when queue lag, alert, and stability signals are missing', () => {
+  it('GIVEN queue lag, alert, and stability signals are missing WHEN failures.some THEN fails P1/P2', () => {
     const failures = validateP1P2HardGate({
       actionLog: [],
       needsEnrichment: [],

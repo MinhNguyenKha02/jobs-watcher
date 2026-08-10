@@ -64,7 +64,7 @@ describe('PRC-008 — RMQ redelivery contracts (deterministic, no latency assert
     } catch {}
   });
 
-  it('nack(requeue=true) redelivers the message with fields.redelivered === true', async () => {
+  it('GIVEN the PRC precondition WHEN assertQueue → sendToQueue → nack on the real PRC THEN nack(requeue=true) redelivers the message with fields.redelivered === true', async () => {
     const { queue } = await ch.assertQueue('', { exclusive: true });
     const sink = collectMessages(ch, queue);
     ch.sendToQueue(queue, Buffer.from(JSON.stringify({ id: 'job-r1' })));
@@ -81,7 +81,7 @@ describe('PRC-008 — RMQ redelivery contracts (deterministic, no latency assert
     ch.ack(redelivered);
   });
 
-  it('nack(requeue=false) drops the message — queue drains to 0', async () => {
+  it('GIVEN the PRC precondition WHEN assertQueue → sendToQueue → nack on the real PRC THEN nack(requeue=false) drops the message — queue drains to 0', async () => {
     const { queue } = await ch.assertQueue('', { exclusive: true });
     const sink = collectMessages(ch, queue);
     ch.sendToQueue(queue, Buffer.from(JSON.stringify({ id: 'job-drop' })));
@@ -97,7 +97,7 @@ describe('PRC-008 — RMQ redelivery contracts (deterministic, no latency assert
 });
 
 describe('PRC-008 — UdsActionWriter maxRetries=3 (real UDS HTTP server returning 500)', () => {
-  it('exhausts exactly 3 attempts then throws on persistent non-2xx', async () => {
+  it('GIVEN the PRC precondition WHEN the port is exercised on the real PRC THEN exhausts exactly 3 attempts then throws on persistent non-2xx (S4)', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prc008-uds-'));
     const socketPath = path.join(tmpDir, 'ingest.sock');
     let requests = 0;

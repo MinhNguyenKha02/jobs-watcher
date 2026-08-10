@@ -77,12 +77,12 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
     await storage.stop();
   });
 
-  it('health endpoint is reachable (readiness probe)', async () => {
+  it('GIVEN PRC WHEN exercised THEN health endpoint is reachable (readiness probe)', async () => {
     const res = await fetchText(healthPort, '/health');
     expect(res.status).toBe(200);
   }, 15000);
 
-  it('prometheus /metrics endpoint exposes jobs_brokered_total after an ingest', async () => {
+  it('GIVEN PRC WHEN exercised THEN prometheus /metrics endpoint exposes jobs_brokered_total after an ingest', async () => {
     await ingestor.processIngest(
       JobSource.BROWSER_AUTO,
       JobStage.PARTIAL_PARSED,
@@ -95,7 +95,7 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
     expect(res.body).toContain('jobs_brokered_total');
   }, 15000);
 
-  it('jobs_brokered_total increments per source (browser-auto)', async () => {
+  it('GIVEN PRC WHEN exercised THEN jobs_brokered_total increments per source (browser-auto)', async () => {
     await ingestor.processIngest(
       JobSource.BROWSER_AUTO,
       JobStage.PARTIAL_PARSED,
@@ -111,7 +111,7 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
     expect(Number(browserAuto?.value ?? 0)).toBeGreaterThan(0);
   }, 15000);
 
-  it('job_stage_total tracks s1 enriching after PARTIAL_PARSED ingest', async () => {
+  it('GIVEN PRC WHEN exercised THEN job_stage_total tracks s1 enriching after PARTIAL_PARSED ingest', async () => {
     await ingestor.processIngest(
       JobSource.BROWSER_AUTO,
       JobStage.PARTIAL_PARSED,
@@ -125,7 +125,7 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
     expect(Number(s1?.value ?? 0)).toBeGreaterThan(0);
   }, 15000);
 
-  it('job_stage_total tracks s2 enriched after FULL_PARSED merge', async () => {
+  it('GIVEN PRC WHEN exercised THEN job_stage_total tracks s2 enriched after FULL_PARSED merge', async () => {
     await ingestor.processIngest(
       JobSource.BROWSER_AUTO,
       JobStage.PARTIAL_PARSED,
@@ -146,7 +146,7 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
     expect(Number(s2?.value ?? 0)).toBeGreaterThan(0);
   }, 15000);
 
-  it('job_stage_total tracks s3 queued after queue resolution', async () => {
+  it('GIVEN PRC WHEN exercised THEN job_stage_total tracks s3 queued after queue resolution', async () => {
     await ingestor.processIngest(
       JobSource.BROWSER_AUTO,
       JobStage.PARTIAL_PARSED,
@@ -168,7 +168,7 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
     expect(Number(s3?.value ?? 0)).toBeGreaterThan(0);
   }, 15000);
 
-  it('job_errors_total increments on s2 parse failure', async () => {
+  it('GIVEN PRC WHEN exercised THEN job_errors_total increments on s2 parse failure', async () => {
     await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'metric-fail-1');
     const m = registry.getSingleMetric('job_errors_total');
     const values = m ? await m.get() : null;
@@ -176,7 +176,7 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
     expect(Number(s2?.value ?? 0)).toBeGreaterThan(0);
   }, 15000);
 
-  it('jobs_in_flight gauge returns to zero after processed job (no leak)', async () => {
+  it('GIVEN PRC WHEN exercised THEN jobs_in_flight gauge returns to zero after processed job (no leak)', async () => {
     await ingestor.processIngest(
       JobSource.BROWSER_AUTO,
       JobStage.PARTIAL_PARSED,
@@ -190,23 +190,23 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
     expect(Number(inFlight?.value ?? 0)).toBe(0);
   }, 15000);
 
-  it('system_memory_bytes gauge registered', async () => {
+  it('GIVEN PRC WHEN registry.getSingleMetric THEN system_memory_bytes gauge registered', async () => {
     const m = registry.getSingleMetric('system_memory_bytes');
     expect(m).toBeDefined();
   });
 
-  it('event_loop_lag_seconds gauge registered', async () => {
+  it('GIVEN PRC WHEN registry.getSingleMetric THEN event_loop_lag_seconds gauge registered', async () => {
     const m = registry.getSingleMetric('event_loop_lag_seconds');
     expect(m).toBeDefined();
   });
 
-  it('metrics are cleared between registries (no duplicate metric error)', () => {
+  it('GIVEN PRC WHEN exercised THEN metrics are cleared between registries (no duplicate metric error)', () => {
     const registry2 = new Registry();
     const m2 = new MetricsRegistry(registry2);
     expect(m2.register).toBeDefined();
   });
 
-  it('s3 route_failed increments job_errors on missing job resolution', async () => {
+  it('GIVEN PRC WHEN exercised THEN s3 route_failed increments job_errors on missing job resolution', async () => {
     await ingestor.processResolution('missing-metric-job', 'queue');
     const m = registry.getSingleMetric('job_errors_total');
     const values = m ? await m.get() : null;

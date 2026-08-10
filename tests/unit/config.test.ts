@@ -28,7 +28,7 @@ describe('Config loading', () => {
     process.env = { ...OLD_ENV };
   });
 
-  it('returns defaults when minimal env vars are set', () => {
+  it('GIVEN minimal env vars are set WHEN exercised THEN returns defaults', () => {
     const cfg = loadConfig();
     expect(cfg.nodeEnv).toBe('test');
     expect(cfg.isTest).toBe(true);
@@ -39,24 +39,24 @@ describe('Config loading', () => {
     expect(cfg.gmail.labelName).toBe('Job Alerts');
   });
 
-  it('reads MONGODB_URI from env', () => {
+  it('GIVEN Config WHEN exercised THEN reads MONGODB_URI from env', () => {
     const cfg = loadConfig();
     expect(cfg.mongodb.uri).toBe('mongodb://localhost:27017/test');
   });
 
-  it('reads MONGODB_DB_NAME from env', () => {
+  it('GIVEN Config WHEN exercised THEN reads MONGODB_DB_NAME from env', () => {
     process.env.MONGODB_DB_NAME = 'custom-db';
     const cfg = loadConfig();
     expect(cfg.mongodb.dbName).toBe('custom-db');
   });
 
-  it('reads WEBHOOK_PORT from env', () => {
+  it('GIVEN Config WHEN exercised THEN reads WEBHOOK_PORT from env', () => {
     process.env.WEBHOOK_PORT = '4000';
     const cfg = loadConfig();
     expect(cfg.webhook.port).toBe(4000);
   });
 
-  it('fails when GMAIL_CLIENT_ID is missing', () => {
+  it('GIVEN GMAIL_CLIENT_ID is missing WHEN vi.spyOn THEN fails', () => {
     delete process.env.GMAIL_CLIENT_ID;
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -70,7 +70,7 @@ describe('Config loading', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('fails when GMAIL_CLIENT_SECRET is missing', () => {
+  it('GIVEN GMAIL_CLIENT_SECRET is missing WHEN vi.spyOn THEN fails', () => {
     delete process.env.GMAIL_CLIENT_SECRET;
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -84,7 +84,7 @@ describe('Config loading', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('uses isDev/isProd/isTest flags consistently', () => {
+  it('GIVEN Config WHEN exercised THEN uses isDev/isProd/isTest flags consistently', () => {
     process.env.NODE_ENV = 'production';
     const prodCfg = loadConfig();
     expect(prodCfg.isProd).toBe(true);

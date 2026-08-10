@@ -4,6 +4,8 @@
    (consolidated: case2.browser-full-parsed / extraction-exhaustion /
    extraction-scheduler / extraction-pipeline). See plans/tests-path-matrix.md.
    All boundaries cross the REAL UDS socket; the production composition root
+ * GWT cause-effect (path c2): GIVEN email S1 with URL WHEN scheduler+Playwright S2 full parse + [j]/[d] UDS action
+ *   THEN S3 QUEUED + real pdf / S4 TRASHED, with S3 drain + extraction-failure fallbacks (checkpoint contract §1).
    provides the real ingestor, scheduler, Playwright browser, RMQ events and the
    AssetProducingAdapter rendering PDFs into tc.assetDir (see test-container.ts). */
 import fs from 'node:fs';
@@ -14,8 +16,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
-import type { MongoExtractionQueueAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
-import type { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
+import type { JobLifecyclePort } from '../../../../src/application/ports/job-lifecycle.port.js';
+import type { ExtractionQueuePort } from '../../../../src/application/ports/extraction-queue.port.js';
 import { udsHelpers } from '../../../helpers/e2e-harness.js';
 import { indeedEmailHtmlMany, indeedDetailHtml } from '../../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../../helpers/test-builders.js';
@@ -73,7 +75,7 @@ function startDetailServer(): Promise<DetailServer> {
 }
 
 async function seedPartial(
-  adapter: MongoJobLifecycleAdapter,
+  adapter: JobLifecyclePort,
   id: string,
   url: string,
   role: string,
@@ -93,7 +95,7 @@ async function seedPartial(
 }
 
 async function seedPartialMany(
-  adapter: MongoJobLifecycleAdapter,
+  adapter: JobLifecyclePort,
   ids: string[],
   base: string,
   roleOf: (i: number) => string,
@@ -132,8 +134,8 @@ function waitForPdfFiles(dir: string, timeoutMs = 20000): Promise<void> {
 
 describe('c2 browser extraction + resolution cycle', () => {
   let tc: TestContainer;
-  let adapter: MongoJobLifecycleAdapter;
-  let eqAdapter: MongoExtractionQueueAdapter;
+  let adapter: JobLifecyclePort;
+  let eqAdapter: ExtractionQueuePort;
   let detail: DetailServer;
   let uds: ReturnType<typeof udsHelpers>;
 
@@ -164,7 +166,7 @@ describe('c2 browser extraction + resolution cycle', () => {
   });
 
   describe('(a) S2 full direct arrival — Queue[j] / trash[d]', () => {
-    it('a1: S2 BROWSER_AUTO FULL_PARSED arrival → parse events → [j] over UDS → QUEUED + pdf asset', async () => {
+    it('GIVEN S2 BROWSER_AUTO FULL_PARSED arrival WHEN parse events → [j] over UDS THEN QUEUED + pdf asset (S1+S2+S3) · path c2', async () => {
       const jobLifecycleId = 'e2e-c2-full-arrival';
 
       const gen = await tc.bus.setup([ActionEvent.GENERATED]);
@@ -209,7 +211,7 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(queuedDoc!.status).toBe(JobStatus.QUEUED);
     }, 60000);
 
-    it('a2: S2 BROWSER_AUTO FULL_PARSED arrival → [d] over UDS → TRASHED', async () => {
+    it('GIVEN S2 BROWSER_AUTO FULL_PARSED arrival WHEN [d] over UDS THEN TRASHED (S2+S3) · path c2', async () => {
       const jobLifecycleId = 'e2e-c2-full-trash';
 
       const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
@@ -243,7 +245,7 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(trashedDoc!.status).toBe(JobStatus.TRASHED);
     }, 60000);
 
-    it('a3: S2 BROWSER_AUTO FULL_PARSED without jobLifecycleId auto-creates browser-auto-* doc', async () => {
+    it('GIVEN an S2 browser auto FULL_PARSED input WHEN an ingest signal is processed THEN S2 BROWSER_AUTO FULL_PARSED without jobLifecycleId auto-creates browser-auto-* doc (S2) · path c2', async () => {
       await tc.ingestor.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.FULL_PARSED,
@@ -263,8 +265,8 @@ describe('c2 browser extraction + resolution cycle', () => {
 
   describe('(b) signal1 → signal2 cluster-merge → [j] (no scheduler)', () => {
     let tcB: TestContainer;
-    let adapterB: MongoJobLifecycleAdapter;
-    let eqB: MongoExtractionQueueAdapter;
+    let adapterB: JobLifecyclePort;
+    let eqB: ExtractionQueuePort;
     let udsB: ReturnType<typeof udsHelpers>;
 
     beforeAll(async () => {
@@ -283,7 +285,7 @@ describe('c2 browser extraction + resolution cycle', () => {
       await tcB.storage.clearDb();
     });
 
-    it('b1: signal1 partial with Indeed URL → doc PARTIAL/ENRICHING, deferred to extraction queue (no generated)', async () => {
+    it('GIVEN signal1 partial with Indeed URL WHEN the path is exercised THEN doc PARTIAL/ENRICHING, deferred to extraction queue (no generated) (S1) · path c2', async () => {
       const messageId = 'e2e-c2-merge-sig1';
       const jobLifecycleId = `${messageId}-job-0`;
 
@@ -311,7 +313,7 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(queueSize).toBe(1);
     });
 
-    it('b2: signal1 partial → [c]-style cluster-paste webhook (UDS /internal/ingest) → FULL_PARSED → [j] via UDS → QUEUED + pdf', async () => {
+    it('GIVEN signal1 partial WHEN [c]-style cluster-paste webhook (UDS /internal/ingest) → FULL_PARSED → [j] via UDS THEN QUEUED + pdf (S1+S2+S3) · path c2', async () => {
       const messageId = 'e2e-c2-merge-paste';
       const jobLifecycleId = `${messageId}-job-0`;
 
@@ -371,7 +373,7 @@ describe('c2 browser extraction + resolution cycle', () => {
   });
 
   describe('(c) S3 scheduler real-browser full-parse', () => {
-    it('c1: seed PARTIAL → real scheduler+Playwright dequeue → local server extraction → FULL_PARSED/ENRICHED', async () => {
+    it('GIVEN seed PARTIAL WHEN real scheduler+Playwright dequeue → local server extraction THEN FULL_PARSED/ENRICHED (S1+S2) · path c2', async () => {
       const jobId = 'c2-sched-full-0';
       await seedPartial(
         adapter,
@@ -403,7 +405,7 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(fullDoc!.status).toBe(JobStatus.ENRICHED);
     }, 60000);
 
-    it('c2: scheduler full-parse → [j] UDS → QUEUED + pdf; second seeded job still completes (next pick)', async () => {
+    it('GIVEN scheduler full-parse WHEN [j] UDS → QUEUED + pdf THEN second seeded job still completes (next pick) (S1+S2+S3) · path c2', async () => {
       const jobId = 'c2-sched-route-0';
       await seedPartial(
         adapter,
@@ -454,7 +456,7 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(comp2Msg.job.status).toBe(JobStatus.ENRICHED);
     }, 60000);
 
-    it('c3: scheduler full-parse → [d] trash via UDS → TRASHED; next cycle still completes', async () => {
+    it('GIVEN scheduler full-parse WHEN [d] trash via UDS → TRASHED THEN next cycle still completes (S1+S2+S3) · path c2', async () => {
       const jobId = 'c2-sched-trash-0';
       await seedPartial(
         adapter,
@@ -506,7 +508,7 @@ describe('c2 browser extraction + resolution cycle', () => {
   });
 
   describe('(d) scheduler empty-queue drains + exhaustion/fairness', () => {
-    it('d1: N sequentially-enqueued partial jobs each reach FULL_PARSED/ENRICHED — queue drains to empty', async () => {
+    it('GIVEN the path c2 preconditions WHEN the path is exercised THEN N sequentially-enqueued partial jobs each reach FULL_PARSED/ENRICHED — queue drains to empty (S1+S2) · path c2', async () => {
       const N = 5;
       const ids: string[] = [];
       for (let i = 0; i < N; i++) ids.push(`c2-exhaust-${i}`);
@@ -548,56 +550,35 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(new Set(fullStageIds).size).toBe(N);
     }, 90000);
 
-    it('d2: idle waiters stay parked on an empty queue — late enqueue still wakes and resolves', async () => {
-      await new Promise((r) => setTimeout(r, 750));
+    it.each([750, 1000])(
+      'GIVEN the path c2 preconditions WHEN the path is exercised THEN %sms idle waiters stay parked on an empty queue — late enqueue still wakes and resolves, scheduler stays healthy (S1+S2) · path c2',
+      async (idleMs) => {
+        await new Promise((r) => setTimeout(r, idleMs));
 
-      const jobId = 'c2-wake-0';
-      await seedPartial(
-        adapter,
-        jobId,
-        detail.urlFor('Backend Developer', 'C2WakeCo'),
-        'Backend Developer',
-        'C2WakeCo'
-      );
-      const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
-      await eqAdapter.enqueue(jobId);
+        const jobId = `c2-wake-${idleMs}-0`;
+        await seedPartial(
+          adapter,
+          jobId,
+          detail.urlFor('Backend Developer', `C2WakeCo${idleMs}`),
+          'Backend Developer',
+          `C2WakeCo${idleMs}`
+        );
+        const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
+        await eqAdapter.enqueue(jobId);
 
-      const compMsg = await comp.msg();
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toBe(jobId);
-      expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
+        const compMsg = await comp.msg();
+        expect(compMsg.job).toBeDefined();
+        expect(compMsg.job._id).toBe(jobId);
+        expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
 
-      expect(await eqAdapter.size()).toBe(0);
-    }, 60000);
-
-    it('d3: S3 empty queue → real scheduler never crashes (stays healthy across an idle window)', async () => {
-      // Let the scheduler spin against an empty queue for an idle window, then
-      // prove it is still alive behaviorally: a follow-up enqueue is consumed
-      // and resolved. No wall-clock timing assertion — the completion is the
-      // (deterministic) observation.
-      await new Promise((r) => setTimeout(r, 1000));
-
-      const jobId = 'c2-idle-0';
-      await seedPartial(
-        adapter,
-        jobId,
-        detail.urlFor('Backend Developer', 'C2IdleCo'),
-        'Backend Developer',
-        'C2IdleCo'
-      );
-      const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
-      await eqAdapter.enqueue(jobId);
-
-      const compMsg = await comp.msg();
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toBe(jobId);
-      expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
-      expect(await eqAdapter.size()).toBe(0);
-    }, 60000);
+        expect(await eqAdapter.size()).toBe(0);
+      },
+      60000
+    );
   });
 
   describe('(f) S4 explicit — browser HTML-parse failure', () => {
-    it('f1: S2 BROWSER_AUTO FULL_PARSED garbage HTML → PARSE_FAILED emitted, seeded doc stays ENRICHING', async () => {
+    it('GIVEN S2 BROWSER_AUTO FULL_PARSED garbage HTML WHEN the path is exercised THEN PARSE_FAILED emitted, seeded doc stays ENRICHING (S1+S2+S4) · path c2', async () => {
       const jobId = 'c2-s4-1';
       await seedPartial(
         adapter,
@@ -626,7 +607,7 @@ describe('c2 browser extraction + resolution cycle', () => {
   });
 
   describe('(e) scheduler extraction-failure fallback to PARTIAL_PARSED-ENRICHING', () => {
-    it('e1: unroutable seed URL → real browser fails → fallback keeps doc PARTIAL_PARSED/ENRICHING', async () => {
+    it('GIVEN unroutable seed URL WHEN real browser fails THEN fallback keeps doc PARTIAL_PARSED/ENRICHING (S1+S4) · path c2', async () => {
       const jobId = 'c2-fallback-0';
       await seedPartial(
         adapter,
@@ -660,7 +641,7 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(after!.status).not.toBe(JobStatus.TRASHED);
     }, 60000);
 
-    it('e2: S3 mid-stream extraction error → remaining enqueued items still drain', async () => {
+    it('GIVEN S3 mid-stream extraction error WHEN the path is exercised THEN remaining enqueued items still drain (S1+S2+S4) · path c2', async () => {
       const badId = 'c2-midstream-bad';
       const goodId = 'c2-midstream-good';
       await seedPartial(

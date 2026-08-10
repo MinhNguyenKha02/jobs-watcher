@@ -97,33 +97,33 @@ describe('RabbitMqJobReader', () => {
   });
 
   describe('start / stop', () => {
-    it('connects and consumes 3 queues', () => {
+    it('GIVEN RabbitMqJobReader WHEN reader.isConnected THEN connects and consumes 3 queues', () => {
       expect(mockS1.consume).toHaveBeenCalledWith('tui.s1', expect.any(Function));
       expect(mockS2.consume).toHaveBeenCalledWith('tui.s2', expect.any(Function));
       expect(mockS34.consume).toHaveBeenCalledWith('tui.s3s4', expect.any(Function));
       expect(reader.isConnected()).toBe(true);
     });
 
-    it('stop clears connection state', () => {
+    it('GIVEN RabbitMqJobReader WHEN reader.stop THEN stop clears connection state', () => {
       reader.stop();
       expect(reader.isConnected()).toBe(false);
     });
   });
 
   describe('S1 — job.generated', () => {
-    it('auto-advances when idle', () => {
+    it('GIVEN idle WHEN reader.getQueueDepth THEN auto-advances (S1)', () => {
       (reader as any).onMessageS1(makeS1Msg('job-1'));
       expect(reader.getQueueDepth()).toBe(0);
       expect(currentJob.jobLifecycleId).toBe('job-1');
       expect(currentJob.stage).toBe(JobStage.PARTIAL_PARSED);
     });
 
-    it('stores delivery tag without immediate ack', () => {
+    it('GIVEN RabbitMqJobReader WHEN exercised THEN stores delivery tag without immediate ack', () => {
       (reader as any).onMessageS1(makeS1Msg('job-1'));
       expect(mockS1.ack).not.toHaveBeenCalled();
     });
 
-    it('queues when another job is displayed', () => {
+    it('GIVEN another job is displayed WHEN reader.getQueueDepth THEN queues', () => {
       (reader as any).onMessageS1(makeS1Msg('job-1'));
       (reader as any).onMessageS1(makeS1Msg('job-2'));
       expect(reader.getQueueDepth()).toBe(1);
@@ -132,32 +132,32 @@ describe('RabbitMqJobReader', () => {
   });
 
   describe('S2 — job.parse.completed', () => {
-    it('merges into displayed job and upgrades stage', () => {
+    it('GIVEN RabbitMqJobReader WHEN exercised THEN merges into displayed job and upgrades stage (S2)', () => {
       (reader as any).onMessageS1(makeS1Msg('job-1'));
       (reader as any).onMessageS2(makeS2Msg('job-1'));
       expect(currentJob.stage).toBe(JobStage.FULL_PARSED);
     });
 
-    it('F3: defers S2 when S1 not yet arrived', () => {
+    it('GIVEN S1 not yet arrived WHEN reader.getQueueDepth THEN F3: defers S2', () => {
       (reader as any).onMessageS2(makeS2Msg('job-early'));
       expect(reader.getQueueDepth()).toBe(0);
       expect(currentJob.jobLifecycleId).toBeNull();
     });
 
-    it('F3: drains deferred S2 when S1 arrives', () => {
+    it('GIVEN S1 arrives WHEN exercised THEN F3: drains deferred S2 (S2)', () => {
       (reader as any).onMessageS2(makeS2Msg('job-early'));
       (reader as any).onMessageS1(makeS1Msg('job-early'));
       expect(currentJob.stage).toBe(JobStage.FULL_PARSED);
     });
 
-    it('F5: direct mode sets immediately', () => {
+    it('GIVEN RabbitMqJobReader WHEN exercised THEN F5: direct mode sets immediately (S2)', () => {
       queueMode = false;
       (reader as any).onMessageS2(makeS2Msg('job-d'));
       expect(currentJob.jobLifecycleId).toBe('job-d');
       expect(currentJob.stage).toBe(JobStage.FULL_PARSED);
     });
 
-    it('F5: rapid [i]x2 in direct mode replaces first', () => {
+    it('GIVEN RabbitMqJobReader WHEN exercised THEN F5: rapid [i]x2 in direct mode replaces first', () => {
       queueMode = false;
       (reader as any).onMessageS2(makeS2Msg('job-1'));
       expect(currentJob.jobLifecycleId).toBe('job-1');
@@ -167,7 +167,7 @@ describe('RabbitMqJobReader', () => {
   });
 
   describe('S3/S4 — terminal events', () => {
-    it('F6: S3 in queue mode advances to next', () => {
+    it('GIVEN RabbitMqJobReader WHEN reader.getQueueDepth THEN F6: S3 in queue mode advances to next (S3)', () => {
       (reader as any).onMessageS1(makeS1Msg('job-a'));
       (reader as any).onMessageS1(makeS1Msg('job-b'));
       (reader as any).onMessageS3S4(makeS34Msg('job-a', 'job.queue'));
@@ -175,14 +175,14 @@ describe('RabbitMqJobReader', () => {
       expect(currentJob.jobLifecycleId).toBe('job-b');
     });
 
-    it('F6: S4 in direct mode clears without advance', () => {
+    it('GIVEN RabbitMqJobReader WHEN exercised THEN F6: S4 in direct mode clears without advance (S4)', () => {
       queueMode = false;
       (reader as any).onMessageS2(makeS2Msg('job-x'));
       (reader as any).onMessageS3S4(makeS34Msg('job-x', 'job.trash'));
       expect(currentJob.jobLifecycleId).toBeNull();
     });
 
-    it('acks S34 on S3 event', () => {
+    it('GIVEN RabbitMqJobReader WHEN vi.clearAllMocks THEN acks S34 on S3 event (S3)', () => {
       (reader as any).onMessageS1(makeS1Msg('job-tag'));
       vi.clearAllMocks();
       (reader as any).onMessageS3S4(makeS34Msg('job-tag', 'job.queue'));
@@ -191,7 +191,7 @@ describe('RabbitMqJobReader', () => {
   });
 
   describe('queue depth', () => {
-    it('tracks pending backlog', () => {
+    it('GIVEN RabbitMqJobReader WHEN reader.getQueueDepth THEN tracks pending backlog (S3)', () => {
       (reader as any).onMessageS1(makeS1Msg('j1'));
       (reader as any).onMessageS1(makeS1Msg('j2'));
       expect(reader.getQueueDepth()).toBe(1);
@@ -203,13 +203,13 @@ describe('RabbitMqJobReader', () => {
   });
 
   describe('budget contracts (PRC-008)', () => {
-    it('applies prefetch=5 on every channel', () => {
+    it('GIVEN RabbitMqJobReader WHEN exercised THEN applies prefetch=5 on every channel', () => {
       expect(mockS1.prefetch).toHaveBeenCalledWith(5);
       expect(mockS2.prefetch).toHaveBeenCalledWith(5);
       expect(mockS34.prefetch).toHaveBeenCalledWith(5);
     });
 
-    it('DEFERRED_S2_MAX=10: nacks requeue=true when the deferred S2 buffer is full', () => {
+    it('GIVEN the deferred S2 buffer is full WHEN vi.clearAllMocks THEN DEFERRED_S2_MAX=10: nacks requeue=true', () => {
       vi.clearAllMocks();
       for (let i = 0; i < 10; i++) {
         (reader as any).onMessageS2(makeS2Msg(`early-${i}`));
@@ -219,7 +219,7 @@ describe('RabbitMqJobReader', () => {
       expect(mockS2.nack).toHaveBeenCalledWith(expect.anything(), false, true);
     });
 
-    it('DEFERRED_S2_TTL=30s: evicts stale deferred S2 with requeue=false', () => {
+    it('GIVEN RabbitMqJobReader WHEN vi.clearAllMocks THEN DEFERRED_S2_TTL=30s: evicts stale deferred S2 with requeue=false', () => {
       vi.clearAllMocks();
       (reader as any).onMessageS2(makeS2Msg('early-stale'));
       (reader as any).deferredS2Buffer.set('early-stale', {

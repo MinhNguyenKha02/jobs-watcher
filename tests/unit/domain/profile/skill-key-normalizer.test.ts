@@ -3,7 +3,7 @@ import { SkillKeyNormalizer } from '../../../../src/domain/profile/resume/normal
 
 describe('SkillKeyNormalizer', () => {
   describe('Norm-001: kebab-case to title case', () => {
-    it('should replace hyphens with spaces and capitalize each word', () => {
+    it('GIVEN SkillKeyNormalizer WHEN SkillKeyNormalizer evaluates THEN replace hyphens with spaces and capitalize each word', () => {
       expect(SkillKeyNormalizer.normalizeSkillName('event-driven-processing')).toBe(
         'Event Driven Processing'
       );
@@ -11,35 +11,35 @@ describe('SkillKeyNormalizer', () => {
   });
 
   describe('Norm-002: single word', () => {
-    it('should capitalize first letter and lowercase the rest', () => {
+    it('GIVEN SkillKeyNormalizer WHEN SkillKeyNormalizer evaluates THEN capitalize first letter and lowercase the rest', () => {
       expect(SkillKeyNormalizer.normalizeSkillName('typescript')).toBe('Typescript');
     });
   });
 
   describe('Norm-002b: underscore separator', () => {
-    it('should handle underscore-separated keys', () => {
+    it('GIVEN SkillKeyNormalizer WHEN SkillKeyNormalizer evaluates THEN handle underscore-separated keys', () => {
       expect(SkillKeyNormalizer.normalizeSkillName('backend_framework')).toBe('Backend Framework');
     });
   });
 
   describe('Norm-004: mixed case input', () => {
-    it('should lowercase non-first characters even if input has uppercase', () => {
+    it('GIVEN input has uppercase WHEN SkillKeyNormalizer evaluates THEN lowercase non-first characters even', () => {
       expect(SkillKeyNormalizer.normalizeSkillName('API-Development')).toBe('Api Development');
     });
   });
 
   describe('mapCategoryToLabel', () => {
-    it('should return mapped label for known category', () => {
+    it('GIVEN mapCategoryToLabel input "backend" WHEN mapCategoryToLabel evaluates THEN return mapped label for known category', () => {
       expect(SkillKeyNormalizer.mapCategoryToLabel('backend')).toBe('Backend');
     });
 
-    it('should normalize unknown category as fallback', () => {
+    it('GIVEN mapCategoryToLabel input "custom-zone" WHEN mapCategoryToLabel evaluates THEN normalize unknown category as fallback', () => {
       expect(SkillKeyNormalizer.mapCategoryToLabel('custom-zone')).toBe('Custom Zone');
     });
   });
 
   describe('getCategoryOrder', () => {
-    it('should return ordered list of category labels', () => {
+    it('GIVEN getCategoryOrder input "empty string" WHEN getCategoryOrder evaluates THEN return ordered list of category labels', () => {
       const order = SkillKeyNormalizer.getCategoryOrder();
       expect(order).toContain('Backend');
       expect(order[0]).toBe('Backend');

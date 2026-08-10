@@ -1,5 +1,11 @@
+/*
+ * Cause→effect rows for ExtractionScheduler (unit, IoC-mock ports, path c2):
+ *   GIVEN an enqueued partial (S1) WHEN the worker dequeues → finds the doc → browser.extract
+ *   THEN processIngest(S2 FULL_PARSED) on success, or PARTIAL_PARSED fallback on failure — queue keeps draining.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ExtractionScheduler } from '../../../src/application/extraction-scheduler.js';
+import { buildSystemContainer } from '../../../src/application/container.js';
+import type { ExtractionScheduler } from '../../../src/application/extraction-scheduler.js';
 import { JobSource, JobStage } from '../../../src/domain/types/job-lifecycle.js';
 
 function createMockQueue() {
@@ -49,12 +55,30 @@ describe('ExtractionScheduler', () => {
     browser = createMockBrowser();
     jobLifecyclePort = createMockJobLifecyclePort();
     jobIngestor = createMockJobIngestor();
-    scheduler = new ExtractionScheduler(
-      queue as any,
-      browser as any,
-      jobLifecyclePort as any,
-      jobIngestor as any
-    );
+    // Resolve SUT through the production composition root with an explicit
+    // binding profile (extractionQueue/browser/jobLifecycle/ingestor fakes at
+    // IoC). No start() is called, so the graph is infra-free.
+    scheduler = buildSystemContainer(
+      {
+        nodeEnv: 'test',
+        mongodb: { uri: 'mongodb://localhost/jw-unit', dbName: 'unit' },
+        rabbitmq: {
+          url: process.env.RABBITMQ_URL || 'amqp://localhost',
+          exchange: 'jobs.events.unit',
+        },
+        uds: { socketPath: '/tmp/jobs-watcher-unit.sock', token: 'unit-token' },
+        health: { port: 0 },
+        asset: { outputDir: '/tmp/jobs-watcher-unit-assets' },
+      },
+      {
+        ports: {
+          extractionQueue: queue,
+          browser,
+          jobLifecycle: jobLifecyclePort,
+          ingestor: jobIngestor,
+        },
+      }
+    ).extractionScheduler;
   });
 
   afterEach(async () => {
@@ -62,20 +86,20 @@ describe('ExtractionScheduler', () => {
   });
 
   describe('start / stop lifecycle', () => {
-    it('starts the browser and begins workers', async () => {
+    it('GIVEN start / stop lifecycle WHEN the scheduler starts THEN starts the browser and begins workers · path c2', async () => {
       queue.dequeue.mockResolvedValue(null);
       await scheduler.start();
       expect(browser.start).toHaveBeenCalledOnce();
     });
 
-    it('stops all workers and browser', async () => {
+    it('GIVEN start / stop lifecycle WHEN the scheduler starts → the scheduler stops THEN stops all workers and browser · path c2', async () => {
       queue.dequeue.mockResolvedValue(null);
       await scheduler.start();
       await scheduler.stop();
       expect(browser.stop).toHaveBeenCalledOnce();
     });
 
-    it('survives stop without start (no-op)', async () => {
+    it('GIVEN start / stop lifecycle WHEN the scheduler stops THEN survives stop without start (no-op) · path c2', async () => {
       await expect(scheduler.stop()).resolves.toBeUndefined();
     });
   });
@@ -85,7 +109,7 @@ describe('ExtractionScheduler', () => {
       browser.extract.mockResolvedValue({ html: '<div>parsed content</div>' });
     });
 
-    it('dequeues a job, finds job lifecycle, extracts URL, and calls processIngest with FULL_PARSED', async () => {
+    it('GIVEN an S2 full-parse job WHEN the scheduler starts THEN dequeues a job, finds job lifecycle, extracts URL, and calls processIngest with FULL_PARSED (S2) · path c2', async () => {
       jobLifecyclePort.findById.mockResolvedValue({ url: 'https://example.com/job' });
       const doc = { _id: 'job-1', jobLifecycleId: 'job-1', createdAt: new Date() };
 
@@ -126,7 +150,7 @@ describe('ExtractionScheduler', () => {
       );
     });
 
-    it('handles empty queue by blocking worker (no crash)', async () => {
+    it('GIVEN worker dequeues and processes jobs WHEN the scheduler starts THEN handles empty queue by blocking worker (no crash) · path c2', async () => {
       queue.dequeue.mockResolvedValue(null);
       await scheduler.start();
       await vi.waitFor(
@@ -137,7 +161,7 @@ describe('ExtractionScheduler', () => {
       );
     });
 
-    it('handles extraction failure by calling processIngest with PARTIAL_PARSED', async () => {
+    it('GIVEN an S1 partial job WHEN the scheduler starts THEN handles extraction failure by calling processIngest with PARTIAL_PARSED (S1) · path c2', async () => {
       jobLifecyclePort.findById.mockResolvedValue({ url: 'https://example.com/bad' });
       browser.extract.mockRejectedValue(new Error('Timeout'));
       const doc = { _id: 'job-fail', jobLifecycleId: 'job-fail', createdAt: new Date() };
@@ -158,7 +182,7 @@ describe('ExtractionScheduler', () => {
       );
     });
 
-    it('handles findById returning null by using empty URL', async () => {
+    it('GIVEN worker dequeues and processes jobs WHEN the scheduler starts THEN handles findById returning null by using empty URL · path c2', async () => {
       jobLifecyclePort.findById.mockResolvedValue(null);
       browser.extract.mockRejectedValue(new Error('empty-url'));
       const doc = { _id: 'job-null', jobLifecycleId: 'job-null', createdAt: new Date() };
@@ -174,7 +198,7 @@ describe('ExtractionScheduler', () => {
       );
     });
 
-    it('worker error does not crash scheduler (continues working)', async () => {
+    it('GIVEN worker dequeues and processes jobs WHEN the scheduler starts THEN worker error does not crash scheduler (continues working) · path c2', async () => {
       queue.dequeue.mockRejectedValue(new Error('DB connection lost'));
 
       await scheduler.start();
@@ -186,7 +210,7 @@ describe('ExtractionScheduler', () => {
       );
     });
 
-    it('browser extraction success calls processIngest with BROWSER_AUTO FULL_PARSED', async () => {
+    it('GIVEN an S2 full-parse job WHEN the scheduler starts THEN browser extraction success calls processIngest with BROWSER_AUTO FULL_PARSED (S2) · path c2', async () => {
       jobLifecyclePort.findById.mockResolvedValue({ url: 'https://example.com/job' });
       browser.extract.mockResolvedValue({ html: '<div>success</div>' });
       const doc = { _id: 'job-success', jobLifecycleId: 'job-success', createdAt: new Date() };
@@ -207,7 +231,7 @@ describe('ExtractionScheduler', () => {
       );
     });
 
-    it('browser extraction failure calls processIngest with BROWSER_AUTO PARTIAL_PARSED and empty payload', async () => {
+    it('GIVEN an S1 partial job WHEN the scheduler starts THEN browser extraction failure calls processIngest with BROWSER_AUTO PARTIAL_PARSED and empty payload (S1) · path c2', async () => {
       jobLifecyclePort.findById.mockResolvedValue({ url: 'https://example.com/bad' });
       browser.extract.mockRejectedValue(new Error('Navigation timeout'));
       const doc = { _id: 'job-fail-2', jobLifecycleId: 'job-fail-2', createdAt: new Date() };

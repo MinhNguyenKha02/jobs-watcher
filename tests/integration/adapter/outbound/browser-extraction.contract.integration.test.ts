@@ -27,7 +27,7 @@ describe('PlaywrightBrowserAdapter — integration', { timeout: 30000 }, () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
-  it('extracts HTML from a local HTTP server', async () => {
+  it('GIVEN the PlaywrightBrowserAdapter precondition WHEN extract on the real PlaywrightBrowserAdapter THEN extracts HTML from a local HTTP server', async () => {
     const result = await adapter.extract(serverUrl);
     expect(result).toBeDefined();
     expect(typeof result.html).toBe('string');
@@ -35,18 +35,18 @@ describe('PlaywrightBrowserAdapter — integration', { timeout: 30000 }, () => {
     expect(result.html).toContain('Hello from Playwright + stealth');
   });
 
-  it('extract return shape matches BrowserPort contract', async () => {
+  it('GIVEN the PlaywrightBrowserAdapter precondition WHEN extract on the real PlaywrightBrowserAdapter THEN extract return shape matches BrowserPort contract', async () => {
     const result = await adapter.extract(serverUrl);
     expect(Object.keys(result)).toEqual(['html']);
   });
 
-  it('multiple extractions return consistent content', async () => {
+  it('GIVEN the PlaywrightBrowserAdapter precondition WHEN extract on the real PlaywrightBrowserAdapter THEN multiple extractions return consistent content', async () => {
     const [r1, r2] = await Promise.all([adapter.extract(serverUrl), adapter.extract(serverUrl)]);
     expect(r1.html).toContain('Integration Test');
     expect(r2.html).toContain('Integration Test');
   });
 
-  it('stop is safe to call twice', async () => {
+  it('GIVEN the PlaywrightBrowserAdapter precondition WHEN stop → start → extract on the real PlaywrightBrowserAdapter THEN stop is safe to call twice', async () => {
     await adapter.stop();
     await adapter.stop();
     await adapter.start();

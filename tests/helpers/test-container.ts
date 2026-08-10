@@ -2,12 +2,20 @@ import type { Db } from 'mongodb';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { buildSystemContainer, type AppContainer } from '../../src/application/container.js';
-import type { JobIngestor } from '../../src/application/ingestor.js';
-import type { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
-import type { MongoExtractionQueueAdapter } from '../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
-import type { AssetProducingAdapter } from '../../src/infrastructure/outbound/asset-builder/asset-producing-adapter.js';
-import type { PlaywrightBrowserAdapter } from '../../src/infrastructure/outbound/browser/browser-adapter.js';
+import {
+  buildSystemContainer,
+  type AppContainer,
+  type SystemContainerOverrides,
+} from '../../src/application/container.js';
+import type { JobLifecyclePort } from '../../src/application/ports/job-lifecycle.port.js';
+import type { ExtractionQueuePort } from '../../src/application/ports/extraction-queue.port.js';
+import type { AssetProducingPort } from '../../src/application/ports/asset-producing.port.js';
+import type { BrowserPort } from '../../src/application/ports/browser.port.js';
+import type { IngestorPort } from '../../src/application/ports/inbound/ingestor.port.js';
+import type {
+  WebhookAdapter,
+  GmailClient,
+} from '../../src/infrastructure/inbound/web/webhook-adapter.js';
 import { createTestStorage } from './create-test-storage.js';
 import { createRealDipBus, type RealDipBus } from './real-dip-bus.js';
 
@@ -22,6 +30,10 @@ export interface TestContainerOptions {
   startScheduler?: boolean;
   /** Asset output dir for the real AssetProducingAdapter. Defaults to a temp dir. */
   assetDir?: string;
+  /** Binding-profile port overrides, passed through to the production composition root. */
+  ports?: NonNullable<SystemContainerOverrides['ports']>;
+  /** Gmail transport for the inbound webhook adapter (substituted in tests). */
+  gmail?: GmailClient;
 }
 
 export interface TestContainer {
@@ -33,11 +45,12 @@ export interface TestContainer {
   socket: string;
   assetDir: string;
   db: Db;
-  mongoJobLifecycleAdapter: MongoJobLifecycleAdapter;
-  extractionQueueAdapter: MongoExtractionQueueAdapter;
-  assetProducingAdapter: AssetProducingAdapter;
-  browserAdapter: PlaywrightBrowserAdapter;
-  ingestor: JobIngestor;
+  mongoJobLifecycleAdapter: JobLifecyclePort;
+  extractionQueueAdapter: ExtractionQueuePort;
+  assetProducingAdapter: AssetProducingPort;
+  browserAdapter: BrowserPort;
+  ingestor: IngestorPort;
+  webhookAdapter: WebhookAdapter;
   start: () => Promise<void>;
   stop: () => Promise<void>;
 }
@@ -65,7 +78,10 @@ export async function createTestContainer(opts: TestContainerOptions): Promise<T
       health: { port: 0 },
       asset: { outputDir: assetDir },
     },
-    {}
+    {
+      ports: opts.ports,
+      ...(opts.gmail ? { gmail: opts.gmail } : {}),
+    }
   );
 
   const bus = await createRealDipBus(exchange);
@@ -130,6 +146,7 @@ export async function createTestContainer(opts: TestContainerOptions): Promise<T
     assetProducingAdapter: container.assetProducingAdapter,
     browserAdapter: container.browserAdapter,
     ingestor: container.ingestor,
+    webhookAdapter: container.webhookAdapter,
     start,
     stop,
   };

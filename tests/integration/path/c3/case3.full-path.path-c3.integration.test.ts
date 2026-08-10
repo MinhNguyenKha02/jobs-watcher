@@ -3,14 +3,16 @@
  * and driven through tc.ingestor plus the UDS boundary for [j]/[d] resolution.
  * All failures are injected at the real persistence adapter (updateStage reject)
  * — no mock in-application ports are used anywhere in this file.
+ * GWT cause-effect (path c3): GIVEN an S1 seed WHEN a failure path is exercised (PARSE_FAILED / ROUTE_FAILED)
+ *   THEN S4 is emitted, the doc is untouched, and the next valid S1 recovers (checkpoint contract §1).
  */
 import fc from 'fast-check';
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
-import type { MongoExtractionQueueAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
-import type { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
+import type { JobLifecyclePort } from '../../../../src/application/ports/job-lifecycle.port.js';
+import type { ExtractionQueuePort } from '../../../../src/application/ports/extraction-queue.port.js';
 import { udsHelpers } from '../../../helpers/e2e-harness.js';
 import {
   topcvEmailHtmlMany,
@@ -33,7 +35,7 @@ async function assertNoMessage(handle: Awaited<ReturnType<RealDipBus['setup']>>)
 
 describe('Failure cycle (S4→S1 auto-advance)', () => {
   let tc: TestContainer;
-  let adapter: MongoJobLifecycleAdapter;
+  let adapter: JobLifecyclePort;
   let bus: RealDipBus;
 
   beforeAll(async () => {
@@ -47,7 +49,7 @@ describe('Failure cycle (S4→S1 auto-advance)', () => {
     await tc.stop();
   });
 
-  it('parse-failure cycle: empty FULL_PARSED ing yields PARSE_FAILED, doc stays ENRICHING, next valid S1 recovers', async () => {
+  it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN parse-failure cycle: empty FULL_PARSED ing yields PARSE_FAILED, doc stays ENRICHING, next valid S1 recovers (S1+S2+S4) · path c3', async () => {
     const failedJobId = 'fpcy-parse-fail-1';
     await adapter.upsert(
       makeStage1Partial({
@@ -86,7 +88,7 @@ describe('Failure cycle (S4→S1 auto-advance)', () => {
     expect(nextDoc!.company).toBe('NextCorp');
   });
 
-  it('route-failure cycle: [j] with rejected updateStage emits ROUTE_FAILED(reason), status untouched, next valid S1 recovers', async () => {
+  it('GIVEN an S2 browser auto FULL_PARSED input WHEN findById loads the doc THEN route-failure cycle: [j] with rejected updateStage emits ROUTE_FAILED(reason), status untouched, next valid S1 recovers (S1+S2+S4) · path c3', async () => {
     const routeFailId = 'cycle-route-fail-1';
     await adapter.upsert(
       makeFullParsedDoc({
@@ -126,7 +128,7 @@ describe('Failure cycle (S4→S1 auto-advance)', () => {
     expect(genMsg.company).toBe('NextAfterRouteFail');
   });
 
-  it('S1→S2 enrichment, then the next S1 still dequeues — no saga state leaks between jobs', async () => {
+  it('GIVEN S1 WHEN the path is exercised THEN S2 enrichment, then the next S1 still dequeues — no saga state leaks between jobs (S1+S2) · path c3', async () => {
     const gen = await bus.setup([ActionEvent.GENERATED]);
     await tc.ingestor.processIngest(
       JobSource.BROWSER_AUTO,
@@ -163,7 +165,7 @@ describe('Failure cycle (S4→S1 auto-advance)', () => {
     expect(nextGenMsg._id).toBe('fpcy-keep-msg-job-0');
   });
 
-  it('S2a manual with an existing jobLifecycleId → S2 enriches instead of failing', async () => {
+  it('GIVEN S2a manual with an existing jobLifecycleId WHEN the path is exercised THEN S2 enriches instead of failing · path c3', async () => {
     const docId = 'c3-b9-integration-job';
     await adapter.upsert(
       makeStage1Partial({
@@ -194,7 +196,7 @@ describe('Failure cycle (S4→S1 auto-advance)', () => {
 
 describe('Failure injection (cause→effect, real-DIP)', () => {
   let tc: TestContainer;
-  let adapter: MongoJobLifecycleAdapter;
+  let adapter: JobLifecyclePort;
   let bus: RealDipBus;
 
   beforeAll(async () => {
@@ -208,7 +210,7 @@ describe('Failure injection (cause→effect, real-DIP)', () => {
     await tc.stop();
   });
 
-  it('cause: unparsable FULL_PARSED payload → effect: PARSE_FAILED (saga reaches S4)', async () => {
+  it('GIVEN unparsable FULL_PARSED payload WHEN the path is exercised THEN PARSE_FAILED (saga reaches S4) (S2+S4) · path c3', async () => {
     const fail = await bus.setup([ActionEvent.PARSE_FAILED]);
     await tc.ingestor.processIngest(
       JobSource.BROWSER_AUTO,
@@ -220,7 +222,7 @@ describe('Failure injection (cause→effect, real-DIP)', () => {
     expect(msg.jobLifecycleId).toBe('fail-parse-id');
   });
 
-  it('cause: empty HTML payload → effect: graceful PARSE_FAILED without crash', async () => {
+  it('GIVEN empty HTML payload WHEN the path is exercised THEN graceful PARSE_FAILED without crash (S2+S4) · path c3', async () => {
     const fail = await bus.setup([ActionEvent.PARSE_FAILED]);
     await expect(
       tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'empty-html-id')
@@ -229,7 +231,7 @@ describe('Failure injection (cause→effect, real-DIP)', () => {
     expect(msg.jobLifecycleId).toBe('empty-html-id');
   });
 
-  it('cause: routing write failure → effect: ROUTE_FAILED with the propagating reason', async () => {
+  it('GIVEN routing write failure WHEN the path is exercised THEN ROUTE_FAILED with the propagating reason (S4) · path c3', async () => {
     await adapter.upsert(
       makeFullParsedDoc({
         _id: 'fail-route-id',
@@ -247,7 +249,7 @@ describe('Failure injection (cause→effect, real-DIP)', () => {
     vi.restoreAllMocks();
   });
 
-  it('cause: trash routing write failure ([d] variant) → effect: ROUTE_FAILED with the propagating reason', async () => {
+  it('GIVEN trash routing write failure ([d] variant) WHEN the path is exercised THEN ROUTE_FAILED with the propagating reason (S4) · path c3', async () => {
     await adapter.upsert(
       makeFullParsedDoc({
         _id: 'fail-route-trash-id',
@@ -271,7 +273,7 @@ describe('Failure injection (cause→effect, real-DIP)', () => {
     expect(doc!.status).toBe(JobStatus.TRASHED);
   });
 
-  it('cause: detail-page HTML on a PARTIAL_PARSED pass → effect: still resolves without emitting', async () => {
+  it('GIVEN detail-page HTML on a PARTIAL_PARSED pass WHEN the path is exercised THEN still resolves without emitting (S1+S4) · path c3', async () => {
     const silence = await bus.setup([ActionEvent.GENERATED, ActionEvent.PARSE_FAILED], 1500);
     await expect(
       tc.ingestor.processIngest(
@@ -286,7 +288,7 @@ describe('Failure injection (cause→effect, real-DIP)', () => {
 
 describe('Reliability cycles (S2→S4→S1)', () => {
   let tc: TestContainer;
-  let adapter: MongoJobLifecycleAdapter;
+  let adapter: JobLifecyclePort;
   let bus: RealDipBus;
 
   beforeAll(async () => {
@@ -300,7 +302,7 @@ describe('Reliability cycles (S2→S4→S1)', () => {
     await tc.stop();
   });
 
-  it('S2 parse.failed → next S1 partial emits GENERATED and persists the partial document', async () => {
+  it('GIVEN S2 parse.failed WHEN the path is exercised THEN next S1 partial emits GENERATED and persists the partial document (S1+S2+S4) · path c3', async () => {
     const fail = await bus.setup([ActionEvent.PARSE_FAILED]);
     await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'job-fail-s4a');
     const failMsg = await fail.msg();
@@ -324,7 +326,7 @@ describe('Reliability cycles (S2→S4→S1)', () => {
     expect(doc!.company).toBe('AlphaCo');
   });
 
-  it('S3 route.failed ([j]) → next S1 partial emits GENERATED', async () => {
+  it('GIVEN a queue resolution on an S2 FULL_PARSED doc WHEN routing write fails THEN next S1 partial emits GENERATED (S1+S2+S4) · path c3', async () => {
     await adapter.upsert(
       makeFullParsedDoc({
         _id: 'job-fail-s4b',
@@ -357,7 +359,7 @@ describe('Reliability cycles (S2→S4→S1)', () => {
     expect(genMsg.company).toBe('BetaCo');
   });
 
-  it('S2 parse.failed (empty) then S2a manual succeeds for a different job', async () => {
+  it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN S2 parse.failed (empty) then S2a manual succeeds for a different job (S2+S4) · path c3', async () => {
     const fail = await bus.setup([ActionEvent.PARSE_FAILED]);
     await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'job-s4-empty');
     const failMsg = await fail.msg();
@@ -393,7 +395,7 @@ describe('Reliability cycles (S2→S4→S1)', () => {
 
 describe('High-ROI rate stress & guards (H1-H5)', () => {
   let tc: TestContainer;
-  let adapter: MongoJobLifecycleAdapter;
+  let adapter: JobLifecyclePort;
   let bus: RealDipBus;
 
   beforeAll(async () => {
@@ -415,7 +417,7 @@ describe('High-ROI rate stress & guards (H1-H5)', () => {
     vi.restoreAllMocks();
   });
 
-  it('H1: rate stress — 5 sequential S1→S2→[j] cycles with no state leakage', async () => {
+  it('GIVEN rate stress — 5 sequential S1 WHEN S2 THEN [j] cycles with no state leakage (S1+S2+S3) · path c3', async () => {
     const noFailures = await bus.setup([ActionEvent.PARSE_FAILED, ActionEvent.ROUTE_FAILED], 1500);
     const totalCycles = 5;
 
@@ -474,7 +476,7 @@ describe('High-ROI rate stress & guards (H1-H5)', () => {
     await assertNoMessage(noFailures);
   });
 
-  it('H2: rapid re-[c] on the same partial job does not produce a second completion', async () => {
+  it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN rapid re-[c] on the same partial job does not produce a second completion (S2) · path c3', async () => {
     const jobLifecycleId = 'h2-double-c';
     await adapter.upsert(
       makeStage1Partial({
@@ -514,7 +516,7 @@ describe('High-ROI rate stress & guards (H1-H5)', () => {
     expect(secondDoc!.status).toBe(JobStatus.ENRICHED);
   });
 
-  it('H3: [c]-then-[j] race — S2 enrichment after queue is guarded, status stays QUEUED', async () => {
+  it('GIVEN an S2 manual FULL_PARSED input WHEN findById loads the doc THEN [c]-then-[j] race — S2 enrichment after queue is guarded, status stays QUEUED (S2+S3) · path c3', async () => {
     const jobLifecycleId = 'h3-enrich-after-queue';
     await adapter.upsert(
       makeStage1Partial({
@@ -550,7 +552,7 @@ describe('High-ROI rate stress & guards (H1-H5)', () => {
     expect(guardDoc!.status).toBe(JobStatus.QUEUED);
   });
 
-  it('H4: S2 enrichment with missing stage1Partial falls back to an HTML-only parsed job', async () => {
+  it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN S2 enrichment with missing stage1Partial falls back to an HTML-only parsed job · path c3', async () => {
     const jobLifecycleId = 'h4-no-partial';
 
     const comp = await bus.setup([ActionEvent.PARSE_COMPLETED]);
@@ -572,7 +574,7 @@ describe('High-ROI rate stress & guards (H1-H5)', () => {
     expect(doc!.role).toBe('Fallback Role');
   });
 
-  it('H5: route failure (S4) then next S1 partial processes normally', async () => {
+  it('GIVEN an S2 browser auto FULL_PARSED input WHEN an ingest signal is processed THEN route failure (S4) then next S1 partial processes normally (S1+S2+S4) · path c3', async () => {
     const docId = 'h5-route-fail';
     await adapter.upsert(
       makeStage1Partial({
@@ -617,8 +619,8 @@ describe('High-ROI rate stress & guards (H1-H5)', () => {
 
 describe('Extraction-failure fallback (scheduler with real browser — unroutable URLs)', () => {
   let tc: TestContainer;
-  let adapter: MongoJobLifecycleAdapter;
-  let queueAd: MongoExtractionQueueAdapter;
+  let adapter: JobLifecyclePort;
+  let queueAd: ExtractionQueuePort;
   let bus: RealDipBus;
 
   beforeAll(async () => {
@@ -637,7 +639,7 @@ describe('Extraction-failure fallback (scheduler with real browser — unroutabl
     await tc.storage.clearDb();
   });
 
-  it('real chromium fails on unroutable URLs → scheduler falls back to S1 (GENERATED) and docs stay ENRICHING/PARTIAL', async () => {
+  it('GIVEN real chromium fails on unroutable URLs WHEN the path is exercised THEN scheduler falls back to S1 (GENERATED) and docs stay ENRICHING/PARTIAL · path c3', async () => {
     const jobIds = ['sched-fail-1', 'sched-fail-2'];
     for (const jobLifecycleId of jobIds) {
       await adapter.upsert(
@@ -661,7 +663,7 @@ describe('Extraction-failure fallback (scheduler with real browser — unroutabl
     }
   }, 120000);
 
-  it('enqueued job with a missing lifecycle doc triggers no GENERATED/PARSE_FAILED emission', async () => {
+  it('GIVEN the path c3 preconditions WHEN the path is exercised THEN enqueued job with a missing lifecycle doc triggers no GENERATED/PARSE_FAILED emission · path c3', async () => {
     await vi.waitFor(
       async () => {
         expect(await queueAd.size()).toBe(0);
@@ -686,7 +688,7 @@ describe('Extraction-failure fallback (scheduler with real browser — unroutabl
 
 describe('fast-check failure-cycle invariants', () => {
   let tc: TestContainer;
-  let adapter: MongoJobLifecycleAdapter;
+  let adapter: JobLifecyclePort;
 
   beforeAll(async () => {
     tc = await createTestContainer({ ns: 'c3-full-path-fc' });

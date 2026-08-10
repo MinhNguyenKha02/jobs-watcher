@@ -93,7 +93,7 @@ describe('ResumeResolver', () => {
   });
 
   describe('Resume-001: Accepted skill', () => {
-    it('should emit accepted skill in the skills section', () => {
+    it('GIVEN ResumeResolver WHEN ResumeResolver evaluates THEN emit accepted skill in the skills section', () => {
       const signal: MatchSignal = {
         anchorId: 'cap.test',
         score: 0.5,
@@ -135,7 +135,7 @@ describe('ResumeResolver', () => {
   });
 
   describe('Resume-002: Rejected skill', () => {
-    it('should not emit rejected skill in the skills section', () => {
+    it('GIVEN ResumeResolver WHEN ResumeResolver evaluates THEN not emit rejected skill in the skills section', () => {
       const signal: MatchSignal = {
         anchorId: 'cap.test',
         score: 0.5,
@@ -173,7 +173,7 @@ describe('ResumeResolver', () => {
   });
 
   describe('Resume-003: Failed evidence validation', () => {
-    it('should filter out skills that fail evidence validation', () => {
+    it('GIVEN ResumeResolver WHEN ResumeResolver evaluates THEN filter out skills that fail evidence validation', () => {
       const signal: MatchSignal = {
         anchorId: 'cap.test',
         score: 0.5,
@@ -212,7 +212,7 @@ describe('ResumeResolver', () => {
   });
 
   describe('Resume-004: Experience ordering', () => {
-    it('should return experience records in descending score order', () => {
+    it('GIVEN ResumeResolver WHEN ResumeResolver evaluates THEN return experience records in descending score order', () => {
       const retrieval: RetrievalOutput = {
         direct: new Map(),
         expanded: new Map(),
@@ -242,7 +242,7 @@ describe('ResumeResolver', () => {
   });
 
   describe('Resume-005: Max experience limit', () => {
-    it('should return only the top N experiences based on maxExperience policy', () => {
+    it('GIVEN ResumeResolver WHEN ResumeResolver evaluates THEN return only the top N experiences based on maxExperience policy', () => {
       retrievalPolicy.resolver.maxExperience = 2;
 
       const retrieval: RetrievalOutput = {
@@ -275,7 +275,7 @@ describe('ResumeResolver', () => {
   });
 
   describe('Projects ordering and limit', () => {
-    it('should return projects in descending score order and respect maxProjects limit', () => {
+    it('GIVEN ResumeResolver WHEN ResumeResolver evaluates THEN return projects in descending score order and respect maxProjects limit', () => {
       retrievalPolicy.resolver.maxProjects = 2;
 
       const retrieval: RetrievalOutput = {
@@ -307,7 +307,7 @@ describe('ResumeResolver', () => {
   });
 
   describe('Traces contain resolution strength', () => {
-    it('should update the trace of each signal with the resolution strength from ranking', () => {
+    it('GIVEN ResumeResolver WHEN ResumeResolver evaluates THEN update the trace of each signal with the resolution strength from ranking', () => {
       const signal: MatchSignal = {
         anchorId: 'cap.test',
         score: 0.5,

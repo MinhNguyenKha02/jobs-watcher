@@ -15,7 +15,7 @@ describe('clipboard getter/setter service', () => {
     (global as any).__clipboardJob = undefined;
   });
 
-  test('sets and gets TopCV detail HTML', async () => {
+  test('GIVEN clipboard WHEN exercised THEN sets and gets TopCV detail HTML', async () => {
     await clipboardSetter(fixtures.topCVDetailPageHTML);
     const items = await clipboardGetter();
     expect(Array.isArray(items)).toBe(true);
@@ -23,7 +23,7 @@ describe('clipboard getter/setter service', () => {
     expect(items[0]).toContain('Software Developer For Broadband Devices');
   });
 
-  test('deduplicates repeated get by hash', async () => {
+  test('GIVEN clipboard WHEN exercised THEN deduplicates repeated get by hash', async () => {
     await clipboardSetter(fixtures.indeedDetailPageHTML);
     const first = await clipboardGetter();
     expect(first.length).toBeGreaterThan(0);

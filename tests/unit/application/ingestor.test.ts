@@ -1,8 +1,13 @@
+/*
+ * Cause→effect decision rows for JobIngestor (unit, IoC-mock ports, dummy ports in-proc):
+ *   GIVEN an S1 partial ingest WHEN signal1/signal2 is processed THEN GENERATED / enqueue-defer / filter-trash;
+ *   GIVEN an S2 doc WHEN resolution (queue|trash) is applied THEN QUEUED / TRASHED / ROUTE_FAILED guard + retry budget.
+ *   Path attribution: arrows in titles mark the c1/c2 cause→effect arc they belong to.
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { JobIngestor } from '../../../src/application/ingestor.js';
+import { buildSystemContainer } from '../../../src/application/container.js';
 import { JobStage, JobStatus, JobSource } from '../../../src/domain/types/job-lifecycle.js';
-import { MetricsRegistry } from '../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
-import { Registry } from 'prom-client';
+import type { IngestorPort } from '../../../src/application/ports/inbound/ingestor.port.js';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
 
 function mockPort() {
@@ -96,7 +101,7 @@ function makeTopCvDetailHtml(): string {
 }
 
 describe('JobIngestor', () => {
-  let ingestor: JobIngestor;
+  let ingestor: IngestorPort;
   let storage: ReturnType<typeof mockPort>;
   let queue: ReturnType<typeof mockQueue>;
   let parsePort: ReturnType<typeof mockParsePort>;
@@ -107,31 +112,57 @@ describe('JobIngestor', () => {
     queue = mockQueue();
     parsePort = mockParsePort();
     routingPort = mockRoutingPort();
-    ingestor = new JobIngestor(
-      storage,
-      parsePort,
-      routingPort,
-      queue,
-      { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) },
-      new MetricsRegistry(new Registry())
+    // Unit decision rows resolve the SUT through the production composition
+    // root with an explicit binding profile (mock ports at IoC). No start() is
+    // called, so the graph is infra-free: app decisions only, never infra.
+    const container = buildSystemContainer(
+      {
+        nodeEnv: 'test',
+        mongodb: { uri: 'mongodb://localhost/jw-unit', dbName: 'unit' },
+        rabbitmq: {
+          url: process.env.RABBITMQ_URL || 'amqp://localhost',
+          exchange: 'jobs.events.unit',
+        },
+        uds: { socketPath: '/tmp/jobs-watcher-unit.sock', token: 'unit-token' },
+        health: { port: 0 },
+        asset: { outputDir: '/tmp/jobs-watcher-unit-assets' },
+      },
+      {
+        ports: {
+          jobLifecycle: storage,
+          extractionQueue: queue,
+          parse: parsePort,
+          route: routingPort,
+          assetProducing: { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) },
+        },
+      }
     );
+    ingestor = container.ingestor;
   });
 
   describe('processIngest — BROWSER_AUTO PARTIAL_PARSED', () => {
-    it('calls emitGenerated when rawPayload is provided (no url)', async () => {
-      await ingestor.processIngest(
-        JobSource.BROWSER_AUTO,
-        JobStage.PARTIAL_PARSED,
-        makeTopCvEmailHtml(),
-        undefined,
-        { messageId: 'msg-001' }
-      );
-      expect(storage.upsert).toHaveBeenCalled();
-      expect(parsePort.emitGenerated).toHaveBeenCalled();
-      expect(queue.enqueue).not.toHaveBeenCalled();
-    });
+    it.each(['msg-001', 'nourl-msg'] as const)(
+      'GIVEN no url (messageId %s) WHEN an ingest signal is processed THEN persists S1 partial and emits GENERATED without enqueueing (S1)',
+      async (messageId) => {
+        await ingestor.processIngest(
+          JobSource.BROWSER_AUTO,
+          JobStage.PARTIAL_PARSED,
+          makeTopCvEmailHtml(),
+          undefined,
+          { messageId }
+        );
+        expect(storage.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            stage: JobStage.PARTIAL_PARSED,
+            source: JobSource.BROWSER_AUTO,
+          })
+        );
+        expect(parsePort.emitGenerated).toHaveBeenCalled();
+        expect(queue.enqueue).not.toHaveBeenCalled();
+      }
+    );
 
-    it('falls back to signal1BrowserAutoFallback when only jobLifecycleId', async () => {
+    it('GIVEN only jobLifecycleId WHEN an ingest signal is processed THEN falls back to signal1BrowserAutoFallback (S1)', async () => {
       storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'existing-id' }));
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
@@ -145,7 +176,7 @@ describe('JobIngestor', () => {
   });
 
   describe('Case A: job has url → enqueue to extraction queue', () => {
-    it('enqueues when extracted job has a url', async () => {
+    it('GIVEN extracted job has a url WHEN an ingest signal is processed THEN enqueues (S1)', async () => {
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
@@ -153,29 +184,16 @@ describe('JobIngestor', () => {
         undefined,
         { messageId: 'url-msg' }
       );
-      expect(storage.upsert).toHaveBeenCalled();
+      expect(storage.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO })
+      );
       expect(queue.enqueue).toHaveBeenCalled();
       expect(parsePort.emitGenerated).not.toHaveBeenCalled();
     });
   });
 
-  describe('Case B: job has no url → emitGenerated only', () => {
-    it('emits generated when no url', async () => {
-      await ingestor.processIngest(
-        JobSource.BROWSER_AUTO,
-        JobStage.PARTIAL_PARSED,
-        makeTopCvEmailHtml(),
-        undefined,
-        { messageId: 'nourl-msg' }
-      );
-      expect(storage.upsert).toHaveBeenCalled();
-      expect(parsePort.emitGenerated).toHaveBeenCalled();
-      expect(queue.enqueue).not.toHaveBeenCalled();
-    });
-  });
-
   describe('Filter rejection', () => {
-    it('trashes job when filter rejects', async () => {
+    it('GIVEN filter rejects WHEN an ingest signal is processed THEN trashes job (S1)', async () => {
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
@@ -189,7 +207,7 @@ describe('JobIngestor', () => {
   });
 
   describe('processIngest — BROWSER_AUTO FULL_PARSED (signal2c)', () => {
-    it('parses HTML and emits completed', async () => {
+    it('GIVEN an S1 partial job WHEN an ingest signal is processed THEN parses HTML and emits completed (S2)', async () => {
       storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'browser-job' }));
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
@@ -198,13 +216,15 @@ describe('JobIngestor', () => {
         'browser-job'
       );
       expect(storage.findById).toHaveBeenCalledWith('browser-job');
-      expect(storage.upsert).toHaveBeenCalled();
+      expect(storage.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ stage: JobStage.FULL_PARSED, source: JobSource.BROWSER_AUTO })
+      );
       expect(parsePort.emitCompleted).toHaveBeenCalled();
     });
   });
 
   describe('processIngest — MANUAL FULL_PARSED', () => {
-    it('signal2aManual with jobLifecycleId processes successfully', async () => {
+    it('GIVEN an S1 partial job WHEN an ingest signal is processed THEN signal2aManual with jobLifecycleId processes successfully (S2)', async () => {
       storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'manual-job' }));
       await ingestor.processIngest(
         JobSource.MANUAL,
@@ -217,7 +237,7 @@ describe('JobIngestor', () => {
       expect(parsePort.emitCompleted).toHaveBeenCalled();
     });
 
-    it('signal2bManual without jobLifecycleId treats as clipboard ingest', async () => {
+    it('GIVEN an S2 full-parse job WHEN an ingest signal is processed THEN signal2bManual without jobLifecycleId treats as clipboard ingest (S2)', async () => {
       await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, makeTopCvDetailHtml());
       expect(storage.upsert).toHaveBeenCalled();
       expect(parsePort.emitCompleted).toHaveBeenCalled();
@@ -225,7 +245,7 @@ describe('JobIngestor', () => {
   });
 
   describe('processResolution — [j] guard', () => {
-    it('rejects queue when status !== ENRICHED', async () => {
+    it('GIVEN status !== ENRICHED WHEN a resolution is applied THEN rejects queue (S1)', async () => {
       storage.findById.mockResolvedValue(
         makeStage1Partial({ _id: 'guard-job', status: JobStatus.ENRICHING })
       );
@@ -234,7 +254,7 @@ describe('JobIngestor', () => {
       expect(routingPort.emitJobQueued).not.toHaveBeenCalled();
     });
 
-    it('accepts queue when status === ENRICHED', async () => {
+    it('GIVEN status === ENRICHED WHEN a resolution is applied THEN accepts queue (S2)', async () => {
       storage.findById.mockResolvedValue(
         makeStage1Partial({ _id: 'enriched-job', status: JobStatus.ENRICHED })
       );
@@ -243,7 +263,7 @@ describe('JobIngestor', () => {
       expect(routingPort.emitJobQueued).toHaveBeenCalled();
     });
 
-    it('trash passes through regardless of status', async () => {
+    it('GIVEN an S1 partial job WHEN a resolution is applied THEN trash passes through regardless of status (S1)', async () => {
       storage.findById.mockResolvedValue(
         makeStage1Partial({ _id: 'trash-job', status: JobStatus.ENRICHING })
       );
@@ -254,7 +274,7 @@ describe('JobIngestor', () => {
   });
 
   describe('dedup (E11000)', () => {
-    it('trashes duplicates and does not emit generated', async () => {
+    it('GIVEN an S1 partial job WHEN an ingest signal is processed THEN trashes duplicates and does not emit generated (S1)', async () => {
       storage.upsert.mockRejectedValue({ code: 11000 });
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
@@ -266,7 +286,7 @@ describe('JobIngestor', () => {
       expect(routingPort.emitJobTrashed).toHaveBeenCalled();
     });
 
-    it('propagates non-11000 upsert errors instead of swallowing them', async () => {
+    it('GIVEN an S2 full-parse job WHEN an ingest signal is processed THEN propagates non-11000 upsert errors instead of swallowing them (S2)', async () => {
       storage.upsert.mockRejectedValueOnce(Object.assign(new Error('Disk full'), { code: 9000 }));
       await expect(
         ingestor.processIngest(
@@ -280,7 +300,7 @@ describe('JobIngestor', () => {
   });
 
   describe('processResolution — queryWithRetry budget (cause→effect, maxRetries=5)', () => {
-    it('cause: resolve a missing job → effect: 5 findById probes then ROUTE_FAILED emitted', async () => {
+    it('GIVEN resolve a missing job WHEN a resolution is applied THEN 5 findById probes then ROUTE_FAILED emitted', async () => {
       storage.findById.mockResolvedValue(null);
       await ingestor.processResolution('missing-job', 'queue');
 
@@ -292,7 +312,7 @@ describe('JobIngestor', () => {
       expect(routingPort.emitJobQueued).not.toHaveBeenCalled();
     });
 
-    it('cause: resolve an existing ENRICHED job → effect: single findById, updateStage to QUEUED, QUEUED emitted', async () => {
+    it('GIVEN resolve an existing ENRICHED job WHEN a resolution is applied THEN single findById, updateStage to QUEUED, QUEUED emitted (S2+S3)', async () => {
       storage.findById.mockResolvedValue(
         makeStage1Partial({ _id: 'job-ok', status: JobStatus.ENRICHED })
       );

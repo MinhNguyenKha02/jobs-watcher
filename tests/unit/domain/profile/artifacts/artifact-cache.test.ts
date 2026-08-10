@@ -23,13 +23,13 @@ describe('ArtifactRegistry', () => {
     ArtifactRegistry.clearCache();
   });
 
-  it('is a singleton', () => {
+  it('GIVEN ArtifactRegistry WHEN ArtifactRegistry evaluates THEN is a singleton', () => {
     const a = ArtifactRegistry.getInstance();
     const b = ArtifactRegistry.getInstance();
     expect(a).toBe(b);
   });
 
-  it('returns cached bundle on repeated calls', async () => {
+  it('GIVEN ArtifactRegistry WHEN ArtifactRegistry evaluates THEN returns cached bundle on repeated calls', async () => {
     const fakeBundle = {
       anchors: new Map(),
       evidences: new Map(),
@@ -57,7 +57,7 @@ describe('ArtifactRegistry', () => {
     expect(mockLoader.load).toHaveBeenCalledTimes(1);
   });
 
-  it('loads and hydrates artifacts on first call', async () => {
+  it('GIVEN ArtifactRegistry WHEN ArtifactRegistry evaluates THEN loads and hydrates artifacts on first call', async () => {
     const rawBundle = {
       anchors: new Map(),
       evidences: new Map(),
@@ -78,7 +78,7 @@ describe('ArtifactRegistry', () => {
     expect(result).toBe(hydratedBundle);
   });
 
-  it('shares loading promise for concurrent calls', async () => {
+  it('GIVEN ArtifactRegistry WHEN ArtifactRegistry evaluates THEN shares loading promise for concurrent calls', async () => {
     mockLoader.load.mockResolvedValue({
       anchors: new Map(),
       evidences: new Map(),
@@ -96,7 +96,7 @@ describe('ArtifactRegistry', () => {
     expect(a).toBe(b);
   });
 
-  it('clearCache resets state for fresh load', async () => {
+  it('GIVEN ArtifactRegistry WHEN ArtifactRegistry evaluates THEN clearCache resets state for fresh load', async () => {
     mockLoader.load.mockResolvedValue({
       anchors: new Map(),
       evidences: new Map(),
@@ -116,7 +116,7 @@ describe('ArtifactRegistry', () => {
     expect(mockLoader.load).toHaveBeenCalledTimes(2);
   });
 
-  it('hasCachedArtifacts reflects cache state', async () => {
+  it('GIVEN ArtifactRegistry WHEN ArtifactRegistry evaluates THEN hasCachedArtifacts reflects cache state', async () => {
     expect(ArtifactRegistry.hasCachedArtifacts()).toBe(false);
 
     mockLoader.load.mockResolvedValue({
@@ -139,7 +139,7 @@ describe('ArtifactRegistry', () => {
     expect(ArtifactRegistry.hasCachedArtifacts()).toBe(false);
   });
 
-  it('handles loading errors and allows retry', async () => {
+  it('GIVEN ArtifactRegistry WHEN ArtifactRegistry evaluates THEN handles loading errors and allows retry', async () => {
     mockLoader.load.mockRejectedValueOnce(new Error('File not found'));
     mockLoader.load.mockResolvedValueOnce({
       anchors: new Map(),

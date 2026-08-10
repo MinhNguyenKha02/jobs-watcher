@@ -32,7 +32,7 @@ describe('EvidenceProducer', () => {
     ...overrides,
   });
 
-  it('produces evidence for projects', () => {
+  it('GIVEN EvidenceProducer WHEN EvidenceProducer evaluates THEN produces evidence for projects', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -45,7 +45,7 @@ describe('EvidenceProducer', () => {
     expect(evidences.has('ev.project.1')).toBe(true);
   });
 
-  it('produces evidence for experience', () => {
+  it('GIVEN EvidenceProducer WHEN EvidenceProducer evaluates THEN produces evidence for experience', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -61,7 +61,7 @@ describe('EvidenceProducer', () => {
     expect(evidences.has('ev.exp.1')).toBe(true);
   });
 
-  it('produces mixed project and experience evidence', () => {
+  it('GIVEN EvidenceProducer WHEN EvidenceProducer evaluates THEN produces mixed project and experience evidence', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -75,7 +75,7 @@ describe('EvidenceProducer', () => {
     expect(evidences.has('ev.exp.1')).toBe(true);
   });
 
-  it('builds evidence nodes with correct structure', () => {
+  it('GIVEN EvidenceProducer WHEN EvidenceProducer evaluates THEN builds evidence nodes with correct structure', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -102,7 +102,7 @@ describe('EvidenceProducer', () => {
     expect(node.bullets[2].text).toBe('Users loved it');
   });
 
-  it('assigns bullet weights correctly', () => {
+  it('GIVEN EvidenceProducer WHEN EvidenceProducer evaluates THEN assigns bullet weights correctly', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -120,7 +120,7 @@ describe('EvidenceProducer', () => {
     expect(node.bullets[1].weight).toBe(1);
   });
 
-  it('extracts anchor ids from anchors', () => {
+  it('GIVEN EvidenceProducer WHEN EvidenceProducer evaluates THEN extracts anchor ids from anchors', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -137,7 +137,7 @@ describe('EvidenceProducer', () => {
     expect(node.anchorIds).toContain('tech.framework.React');
   });
 
-  it('handles empty profile gracefully', () => {
+  it('GIVEN EvidenceProducer WHEN EvidenceProducer evaluates THEN handles empty profile gracefully', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -147,7 +147,7 @@ describe('EvidenceProducer', () => {
     expect(evidences.size).toBe(0);
   });
 
-  it('handles missing anchors', () => {
+  it('GIVEN EvidenceProducer WHEN EvidenceProducer evaluates THEN handles missing anchors', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
@@ -159,7 +159,7 @@ describe('EvidenceProducer', () => {
     expect(node.anchorIds).toEqual([]);
   });
 
-  it('sets endDate to Present when not provided', () => {
+  it('GIVEN not provided WHEN EvidenceProducer evaluates THEN sets endDate to Present', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',

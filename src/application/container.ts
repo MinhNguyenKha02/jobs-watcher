@@ -7,6 +7,8 @@ import { RabbitMqParseAdapter } from '../infrastructure/outbound/rabbitmq/rabbit
 import { RabbitMqRoutingAdapter } from '../infrastructure/outbound/rabbitmq/rabbitmq-route-adapter.js';
 import { JobIngestor } from './ingestor.js';
 import { UdsAdapter } from '../infrastructure/inbound/uds/uds-adapter.js';
+import { WebhookAdapter, type GmailClient } from '../infrastructure/inbound/web/webhook-adapter.js';
+import { GmailService } from '../infrastructure/outbound/gmail.js';
 import { startHealthServer } from '../infrastructure/inbound/health/health-adapter.js';
 import { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
 import { SystemMonitor } from '../infrastructure/outbound/monitoring/system-monitor.js';
@@ -14,6 +16,13 @@ import { AssetProducingAdapter } from '../infrastructure/outbound/asset-builder/
 import { ExtractionScheduler } from './extraction-scheduler.js';
 import { PlaywrightBrowserAdapter } from '../infrastructure/outbound/browser/browser-adapter.js';
 import { createLogger } from '../infrastructure/outbound/logging/logger.js';
+import type { JobLifecyclePort } from './ports/job-lifecycle.port.js';
+import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
+import type { ParsePort } from './ports/parse.port.js';
+import type { RoutePort } from './ports/route.port.js';
+import type { AssetProducingPort } from './ports/asset-producing.port.js';
+import type { BrowserPort } from './ports/browser.port.js';
+import type { IngestorPort } from './ports/inbound/ingestor.port.js';
 
 const logger = createLogger('Container');
 
@@ -33,8 +42,11 @@ export interface SystemContainerConfig {
 
 /**
  * Runtime overrides. May replace deterministic seams (infra targets/browser
- * options) but NEVER omit an adapter — the full production adapter set is
- * always composed.
+ * options) and, via `ports`, substitute an adapter slot with a test
+ * implementation (mock or scripted port). A provided `ports` slot replaces
+ * that adapter; an absent one composes the real production adapter. The full
+ * production adapter set is always defaulted, so `src/index.ts` (no overrides)
+ * is unchanged.
  */
 export interface SystemContainerOverrides {
   mongodb?: { uri?: string; dbName?: string };
@@ -43,6 +55,18 @@ export interface SystemContainerOverrides {
   health?: { port?: number };
   browser?: { headless?: boolean; timeout?: number };
   asset?: { outputDir?: string };
+  /** Gmail transport for the inbound webhook adapter (substituted in tests). */
+  gmail?: GmailClient;
+  /** Binding profile: substitute adapter slots for tests. Absent → real adapter. */
+  ports?: {
+    jobLifecycle?: JobLifecyclePort;
+    extractionQueue?: ExtractionQueuePort;
+    parse?: ParsePort;
+    route?: RoutePort;
+    assetProducing?: AssetProducingPort;
+    browser?: BrowserPort;
+    ingestor?: IngestorPort;
+  };
 }
 
 export interface AppContainer {
@@ -51,15 +75,16 @@ export interface AppContainer {
   metricsRegistry: MetricsRegistry;
   systemMonitor: SystemMonitor;
   rmq: RabbitMqConnection;
-  parseAdapter: RabbitMqParseAdapter;
-  routeAdapter: RabbitMqRoutingAdapter;
-  assetProducingAdapter: AssetProducingAdapter;
-  mongoJobLifecycleAdapter: MongoJobLifecycleAdapter;
-  extractionQueueAdapter: MongoExtractionQueueAdapter;
-  ingestor: JobIngestor;
-  browserAdapter: PlaywrightBrowserAdapter;
+  parseAdapter: ParsePort;
+  routeAdapter: RoutePort;
+  assetProducingAdapter: AssetProducingPort;
+  mongoJobLifecycleAdapter: JobLifecyclePort;
+  extractionQueueAdapter: ExtractionQueuePort;
+  ingestor: IngestorPort;
+  browserAdapter: BrowserPort;
   extractionScheduler: ExtractionScheduler;
   udsAdapter: UdsAdapter;
+  webhookAdapter: WebhookAdapter;
   start: () => Promise<void>;
   stop: () => Promise<void>;
 }
@@ -85,25 +110,29 @@ export function buildSystemContainer(
     exchange: rabbitmq.exchange,
   });
 
-  const parseAdapter = new RabbitMqParseAdapter(rmq);
-  const routeAdapter = new RabbitMqRoutingAdapter(rmq);
-  const assetProducingAdapter = new AssetProducingAdapter(asset.outputDir);
-  const mongoJobLifecycleAdapter = new MongoJobLifecycleAdapter(mongoInitializer.dbInstance);
-  const extractionQueueAdapter = new MongoExtractionQueueAdapter(
-    metricsRegistry,
-    mongoInitializer.dbInstance
-  );
+  const ports = overrides.ports ?? {};
 
-  const ingestor = new JobIngestor(
-    mongoJobLifecycleAdapter,
-    parseAdapter,
-    routeAdapter,
-    extractionQueueAdapter,
-    assetProducingAdapter,
-    metricsRegistry
-  );
+  const parseAdapter = ports.parse ?? new RabbitMqParseAdapter(rmq);
+  const routeAdapter = ports.route ?? new RabbitMqRoutingAdapter(rmq);
+  const assetProducingAdapter = ports.assetProducing ?? new AssetProducingAdapter(asset.outputDir);
+  const mongoJobLifecycleAdapter =
+    ports.jobLifecycle ?? new MongoJobLifecycleAdapter(mongoInitializer.dbInstance);
+  const extractionQueueAdapter =
+    ports.extractionQueue ??
+    new MongoExtractionQueueAdapter(metricsRegistry, mongoInitializer.dbInstance);
 
-  const browserAdapter = new PlaywrightBrowserAdapter(overrides.browser);
+  const ingestor =
+    ports.ingestor ??
+    new JobIngestor(
+      mongoJobLifecycleAdapter,
+      parseAdapter,
+      routeAdapter,
+      extractionQueueAdapter,
+      assetProducingAdapter,
+      metricsRegistry
+    );
+
+  const browserAdapter = ports.browser ?? new PlaywrightBrowserAdapter(overrides.browser);
 
   const extractionScheduler = new ExtractionScheduler(
     extractionQueueAdapter,
@@ -117,6 +146,8 @@ export function buildSystemContainer(
     socketPath: uds.socketPath,
     token: uds.token,
   });
+
+  const webhookAdapter = new WebhookAdapter(ingestor, overrides.gmail ?? new GmailService());
 
   let started = false;
 
@@ -177,6 +208,7 @@ export function buildSystemContainer(
     browserAdapter,
     extractionScheduler,
     udsAdapter,
+    webhookAdapter,
     start,
     stop,
   };

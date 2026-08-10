@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
-import type { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
+import type { JobLifecyclePort } from '../../../../src/application/ports/job-lifecycle.port.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
 import type { JobLifecycleDocument } from '../../../../src/domain/types/job-lifecycle.js';
 
@@ -24,7 +24,7 @@ function makeDoc(overrides: Partial<JobLifecycleDocument> & { _id: string }): Jo
 
 describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
   let tc: TestContainer;
-  let adapter: MongoJobLifecycleAdapter;
+  let adapter: JobLifecyclePort;
   let collection: any;
 
   beforeAll(async () => {
@@ -38,7 +38,7 @@ describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
     await tc.stop();
   });
 
-  it('stores and retrieves a job lifecycle document', async () => {
+  it('GIVEN the Ingestor precondition WHEN upsert → findById on the real Ingestor THEN stores and retrieves a job lifecycle document (S1)', async () => {
     const doc = makeDoc({ _id: 'it-test-1', company: 'Acme Inc.', role: 'Senior Tester' });
     await adapter!.upsert(doc);
 
@@ -48,7 +48,7 @@ describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
     expect(found!.stage).toBe(JobStage.PARTIAL_PARSED);
   });
 
-  it('upsert replaces the existing document (same _id) — prior payload is fully overwritten', async () => {
+  it('GIVEN the Ingestor precondition WHEN upsert on the real Ingestor THEN upsert replaces the existing document (same _id) — prior payload is fully overwritten (S2+S1)', async () => {
     const doc1 = makeDoc({
       _id: 'it-upsert-1',
       company: 'UpsertCorp',
@@ -75,7 +75,7 @@ describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
     expect(all[0].stage).toBe(JobStage.FULL_PARSED);
   });
 
-  it('updates job status', async () => {
+  it('GIVEN the Ingestor precondition WHEN upsert → updateStage → findById on the real Ingestor THEN updates job status (S2+S3+S1)', async () => {
     const doc = makeDoc({
       _id: 'it-status-1',
       company: 'StatusCorp',
@@ -92,7 +92,7 @@ describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
     expect(updated!.status).toBe(JobStatus.QUEUED);
   });
 
-  it('creates required indexes on init', async () => {
+  it('GIVEN the Ingestor precondition WHEN the port is exercised on the real Ingestor THEN creates required indexes on init', async () => {
     const indexes = await collection.indexes();
     const idIndex = indexes.find((i: any) => i.key?._id === 1);
     expect(idIndex).toBeDefined();

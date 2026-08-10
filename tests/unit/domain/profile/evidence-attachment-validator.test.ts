@@ -46,7 +46,7 @@ describe('EvidenceAttachmentValidator', () => {
   });
 
   describe('Attachment-001: Anchor missing', () => {
-    it('should return invalid when anchor does not exist', () => {
+    it('GIVEN anchor does not exist WHEN EvidenceAttachmentValidator evaluates THEN return invalid', () => {
       // Arrange: anchorId 'cap.test' is not in the artifacts.anchors map
 
       // Act
@@ -61,7 +61,7 @@ describe('EvidenceAttachmentValidator', () => {
   });
 
   describe('Attachment-002: No mapping exists', () => {
-    it('should return invalid when anchor exists but has no evidence mappings', () => {
+    it('GIVEN anchor exists but has no evidence mappings WHEN EvidenceAttachmentValidator evaluates THEN return invalid', () => {
       // Arrange
       const anchor = {
         id: 'cap.test',
@@ -84,7 +84,7 @@ describe('EvidenceAttachmentValidator', () => {
   });
 
   describe('Attachment-003: Evidence missing', () => {
-    it('should return invalid when anchor and mapping exist but evidence does not', () => {
+    it('GIVEN anchor and mapping exist but evidence does not WHEN EvidenceAttachmentValidator evaluates THEN return invalid', () => {
       // Arrange
       const anchor = {
         id: 'cap.test',
@@ -112,7 +112,7 @@ describe('EvidenceAttachmentValidator', () => {
   });
 
   describe('Attachment-004: Valid mapping', () => {
-    it('should return valid when anchor, mapping, and evidence all exist', () => {
+    it('GIVEN anchor, mapping, and evidence all exist WHEN EvidenceAttachmentValidator evaluates THEN return valid', () => {
       // Arrange
       const anchor = {
         id: 'cap.test',

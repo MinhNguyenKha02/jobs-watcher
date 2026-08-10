@@ -8,7 +8,7 @@ describe('Acceptance Validation Integration', () => {
   const resolver = new RetrievalAcceptanceResolver(retrievalPolicy);
 
   describe('INT-004: ranking threshold enforced', () => {
-    it('should reject signals below minAcceptedScore and accept those above', () => {
+    it('GIVEN Acceptance WHEN resolver.accept THEN reject signals below minAcceptedScore and accept those above', () => {
       const lowSignal = makeSignal('cap.test' as any, {
         score: 0.1,
         evidenceIds: new Set(['ev.1' as any]),
@@ -29,7 +29,7 @@ describe('Acceptance Validation Integration', () => {
   });
 
   describe('INT-005: accepted signal without evidence rejected', () => {
-    it('should reject when signal has no evidence IDs and is not propagation', () => {
+    it('GIVEN signal has no evidence IDs and is not propagation WHEN resolver.accept THEN reject', () => {
       const signal = makeSignal('cap.test' as any, {
         score: 0.6,
         evidenceIds: new Set(),
@@ -43,7 +43,7 @@ describe('Acceptance Validation Integration', () => {
   });
 
   describe('INT-006: accepted signal with evidence is accepted', () => {
-    it('should accept when signal has evidence IDs', () => {
+    it('GIVEN signal has evidence IDs WHEN resolver.accept THEN accept', () => {
       const signal = makeSignal('cap.test' as any, {
         score: 0.6,
         evidenceIds: new Set(['ev.1' as any]),

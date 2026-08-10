@@ -26,7 +26,7 @@ describe('AnalyticsQueries (integration)', () => {
     await mongod.stop();
   });
 
-  it('computes totalSent, successRate, avgJobFit, topProfileGaps', async () => {
+  it('GIVEN AnalyticsQueries WHEN recorder.record THEN computes totalSent, successRate, avgJobFit, topProfileGaps', async () => {
     // Insert metrics
     await recorder.record({
       jobId: 'job-1',

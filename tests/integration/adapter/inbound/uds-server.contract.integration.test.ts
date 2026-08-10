@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import { UdsAdapter } from '../../../../src/infrastructure/inbound/uds/uds-adapter.js';
+import { buildSystemContainer } from '../../../../src/application/container.js';
 import type { IngestorPort } from '../../../../src/application/ports/inbound/ingestor.port.js';
+import type { UdsAdapter } from '../../../../src/infrastructure/inbound/uds/uds-adapter.js';
 import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -69,10 +70,7 @@ async function collectBody(res: http.IncomingMessage): Promise<string> {
 describe('UDS Server Integration', () => {
   let socketPath: string;
   let adapter: UdsAdapter;
-  let ingestorMock: {
-    processIngest: ReturnType<typeof vi.fn>;
-    processResolution: ReturnType<typeof vi.fn>;
-  };
+  let ingestorMock: IngestorPort;
 
   beforeAll(async () => {
     socketPath = path.join(os.tmpdir(), `uds-test-${Date.now()}.sock`);
@@ -85,7 +83,22 @@ describe('UDS Server Integration', () => {
       processResolution: vi.fn().mockResolvedValue(undefined),
     };
 
-    adapter = new UdsAdapter(ingestorMock as unknown as IngestorPort, { socketPath, token: TOKEN });
+    // Resolve the real UdsAdapter through the production composition root
+    // (port-seam: scripted ingestor + UDS bind).
+    adapter = buildSystemContainer(
+      {
+        nodeEnv: 'test',
+        mongodb: { uri: 'mongodb://localhost/jw-uds', dbName: 'unit' },
+        rabbitmq: {
+          url: process.env.RABBITMQ_URL || 'amqp://localhost',
+          exchange: 'jobs.events.ct',
+        },
+        uds: { socketPath, token: TOKEN },
+        health: { port: 0 },
+        asset: { outputDir: '/tmp/jobs-watcher-uds-assets' },
+      },
+      { ports: { ingestor: ingestorMock } }
+    ).udsAdapter;
     await adapter.start();
   });
 
@@ -97,7 +110,7 @@ describe('UDS Server Integration', () => {
   });
 
   describe('POST /internal/ingest', () => {
-    it('accepts valid ingest request and forwards to ingestor', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN accepts valid ingest request and forwards to ingestor', async () => {
       const res = await postJson(
         socketPath,
         '/internal/ingest',
@@ -110,7 +123,7 @@ describe('UDS Server Integration', () => {
       expect(ingestorMock.processIngest).toHaveBeenCalledOnce();
     });
 
-    it('accepts webhook ingest with html', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN accepts webhook ingest with html', async () => {
       const res = await postJson(
         socketPath,
         '/internal/ingest?webhook=true',
@@ -120,14 +133,14 @@ describe('UDS Server Integration', () => {
       expect(res.statusCode).toBe(200);
     });
 
-    it('rejects webhook ingest without html', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN rejects webhook ingest without html', async () => {
       const res = await postJson(socketPath, '/internal/ingest?webhook=true', { html: '' }, TOKEN);
       expect(res.statusCode).toBe(400);
       const body = JSON.parse(await collectBody(res));
       expect(body.error).toBe('Empty html payload');
     });
 
-    it('accepts ingest with jobLifecycleId', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN accepts ingest with jobLifecycleId', async () => {
       const res = await postJson(
         socketPath,
         '/internal/ingest',
@@ -139,7 +152,7 @@ describe('UDS Server Integration', () => {
   });
 
   describe('POST /internal/action', () => {
-    it('accepts queue action', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN accepts queue action', async () => {
       const res = await postJson(
         socketPath,
         '/internal/action',
@@ -152,7 +165,7 @@ describe('UDS Server Integration', () => {
       expect(ingestorMock.processResolution).toHaveBeenCalledWith('job-1', 'queue');
     });
 
-    it('accepts trash action', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN accepts trash action', async () => {
       const res = await postJson(
         socketPath,
         '/internal/action',
@@ -162,7 +175,7 @@ describe('UDS Server Integration', () => {
       expect(res.statusCode).toBe(200);
     });
 
-    it('accepts action with editedKVs', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN accepts action with editedKVs', async () => {
       const res = await postJson(
         socketPath,
         '/internal/action',
@@ -177,7 +190,7 @@ describe('UDS Server Integration', () => {
       expect(ingestorMock.processResolution).toHaveBeenCalledWith('job-3', 'queue');
     });
 
-    it('rejects action missing jobLifecycleId', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN rejects action missing jobLifecycleId', async () => {
       const res = await postJson(socketPath, '/internal/action', { action: 'queue' }, TOKEN);
       expect(res.statusCode).toBe(400);
       const body = JSON.parse(await collectBody(res));
@@ -186,19 +199,19 @@ describe('UDS Server Integration', () => {
   });
 
   describe('POST /internal/ingest — auth', () => {
-    it('rejects requests without token', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN rejects requests without token', async () => {
       const res = await postJson(socketPath, '/internal/ingest', { html: '<html/>' });
       expect(res.statusCode).toBe(401);
       const body = JSON.parse(await collectBody(res));
       expect(body.error).toBe('Unauthorized');
     });
 
-    it('accepts requests with correct token', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN accepts requests with correct token', async () => {
       const res = await postJson(socketPath, '/internal/ingest', { html: '<html/>' }, TOKEN);
       expect(res.statusCode).toBe(200);
     });
 
-    it('rejects requests with wrong token', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN rejects requests with wrong token', async () => {
       const res = await postJson(
         socketPath,
         '/internal/ingest',
@@ -210,33 +223,33 @@ describe('UDS Server Integration', () => {
   });
 
   describe('non-existent routes', () => {
-    it('returns 404 for unknown path', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN returns 404 for unknown path', async () => {
       const res = await postJson(socketPath, '/internal/unknown', {}, TOKEN);
       expect(res.statusCode).toBe(404);
     });
   });
 
   describe('edge cases', () => {
-    it('handles empty JSON body', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN handles empty JSON body', async () => {
       const res = await postJson(socketPath, '/internal/ingest', {}, TOKEN);
       expect(res.statusCode).toBe(400);
     });
 
-    it('handles invalid JSON body gracefully', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN handles invalid JSON body gracefully', async () => {
       const res = await sendRaw(socketPath, '/internal/ingest', 'POST', 'not-json', {
         'x-internal-token': TOKEN,
       });
       expect(res.statusCode).toBe(500);
     });
 
-    it('handles GET request to /internal/ingest (wrong method)', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN handles GET request to /internal/ingest (wrong method)', async () => {
       const res = await sendRaw(socketPath, '/internal/ingest', 'GET', '', {
         'x-internal-token': TOKEN,
       });
       expect(res.statusCode).toBe(404);
     });
 
-    it('handles concurrent requests', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN handles concurrent requests', async () => {
       const payloads = [
         { html: '<html>job1</html>', jobLifecycleId: 'concurrent-1' },
         { html: '<html>job2</html>', jobLifecycleId: 'concurrent-2' },
@@ -248,7 +261,7 @@ describe('UDS Server Integration', () => {
       results.forEach((res) => expect(res.statusCode).toBe(200));
     });
 
-    it('handles chunked body via multiple data events', async () => {
+    it('GIVEN the UDS precondition WHEN the port is exercised on the real UDS THEN handles chunked body via multiple data events', async () => {
       const chunks = ['{"html":', '"<html>', 'chunked', '</html>', '"}'];
       const fullBody = chunks.join('');
       const res = await new Promise<http.IncomingMessage>((resolve, reject) => {

@@ -14,7 +14,7 @@ describe('PreviewViewerModal', () => {
     modal: null,
   };
 
-  it('renders modal with content', () => {
+  it('GIVEN PreviewViewerModal WHEN exercised THEN renders modal with content', () => {
     const modal: any = {
       type: 'PREVIEW_VIEWER',
       clipboardContent: sampleLines,
@@ -29,7 +29,7 @@ describe('PreviewViewerModal', () => {
     expect(output).not.toContain('Line 21');
   });
 
-  it('renders correct page 2 content', () => {
+  it('GIVEN PreviewViewerModal WHEN exercised THEN renders correct page 2 content', () => {
     const modal: any = {
       type: 'PREVIEW_VIEWER',
       clipboardContent: sampleLines,
@@ -44,7 +44,7 @@ describe('PreviewViewerModal', () => {
     expect(output).not.toContain('Line 1');
   });
 
-  it('renders pagination info', () => {
+  it('GIVEN PreviewViewerModal WHEN exercised THEN renders pagination info', () => {
     const modal: any = {
       type: 'PREVIEW_VIEWER',
       clipboardContent: sampleLines,
@@ -57,7 +57,7 @@ describe('PreviewViewerModal', () => {
     expect(output).toContain('1/3');
   });
 
-  it('handles empty content', () => {
+  it('GIVEN PreviewViewerModal WHEN exercised THEN handles empty content', () => {
     const modal: any = {
       type: 'PREVIEW_VIEWER',
       clipboardContent: [],
@@ -70,7 +70,7 @@ describe('PreviewViewerModal', () => {
     expect(output).toContain('1/1');
   });
 
-  it('truncates long lines', () => {
+  it('GIVEN PreviewViewerModal WHEN exercised THEN truncates long lines', () => {
     const longLine = 'x'.repeat(200);
     const modal: any = {
       type: 'PREVIEW_VIEWER',
@@ -84,7 +84,7 @@ describe('PreviewViewerModal', () => {
     expect(output).toContain('...');
   });
 
-  it('pads remaining lines on last page', () => {
+  it('GIVEN PreviewViewerModal WHEN exercised THEN pads remaining lines on last page', () => {
     const lines = ['a', 'b'];
     const modal: any = {
       type: 'PREVIEW_VIEWER',

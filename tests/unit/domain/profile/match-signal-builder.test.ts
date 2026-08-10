@@ -26,7 +26,7 @@ describe('MatchSignalBuilder', () => {
   });
 
   describe('Signal-001: Single lexical hit', () => {
-    it('should increment occurrence, attach lexical stage, record source, and increment score', () => {
+    it('GIVEN MatchSignalBuilder WHEN MatchSignalBuilder evaluates THEN increment occurrence, attach lexical stage, record source, and increment score', () => {
       // Arrange
       const signal = builder.create('cap.test');
       const pattern = 'test pattern';
@@ -51,7 +51,7 @@ describe('MatchSignalBuilder', () => {
   });
 
   describe('Signal-002: Occurrence saturation', () => {
-    it('should show diminishing returns on repeated same hits', () => {
+    it('GIVEN MatchSignalBuilder WHEN MatchSignalBuilder evaluates THEN show diminishing returns on repeated same hits', () => {
       // Arrange
       const signal = builder.create('cap.test');
       const pattern = 'test pattern';
@@ -90,7 +90,7 @@ describe('MatchSignalBuilder', () => {
   });
 
   describe('Signal-003: Propagation append', () => {
-    it('should attach propagation stage and increase score', () => {
+    it('GIVEN MatchSignalBuilder WHEN MatchSignalBuilder evaluates THEN attach propagation stage and increase score', () => {
       // Arrange
       const signal = builder.create('cap.test');
       const fromAnchorId = 'comp.test';
@@ -115,7 +115,7 @@ describe('MatchSignalBuilder', () => {
   });
 
   describe('Signal-004: Confidence finalization', () => {
-    it('should ensure confidence is between 0 and 1', () => {
+    it('GIVEN MatchSignalBuilder WHEN MatchSignalBuilder evaluates THEN ensure confidence is between 0 and 1', () => {
       // Arrange
       const signal = builder.create('cap.test');
 

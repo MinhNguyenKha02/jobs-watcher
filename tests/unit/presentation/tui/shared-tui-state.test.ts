@@ -53,14 +53,14 @@ describe('shared-tui-state', () => {
   afterEach(cleanState);
 
   describe('getCurrentJob / setCurrentJob', () => {
-    it('returns default state before any job is set', () => {
+    it('GIVEN shared WHEN exercised THEN returns default state before any job is set', () => {
       const state = getCurrentJob();
       expect(state.jobLifecycleId).toBeNull();
       expect(state.job).toBeNull();
       expect(state.stage).toBeNull();
     });
 
-    it('sets and gets a job', () => {
+    it('GIVEN shared WHEN exercised THEN sets and gets a job (S2)', () => {
       const job = { _id: 'job-1', company: 'Acme', role: 'Junior Engineer' } as any;
       setCurrentJob('job-1', job, JobStage.FULL_PARSED);
 
@@ -70,7 +70,7 @@ describe('shared-tui-state', () => {
       expect(state.stage).toBe(JobStage.FULL_PARSED);
     });
 
-    it('updates stage on second call with same ID', () => {
+    it('GIVEN shared WHEN exercised THEN updates stage on second call with same ID (S2+S1)', () => {
       const job = { _id: 'job-1', company: 'Acme', role: 'Junior Engineer' } as any;
       setCurrentJob('job-1', job, JobStage.PARTIAL_PARSED);
 
@@ -82,7 +82,7 @@ describe('shared-tui-state', () => {
       expect(state.job?.matchScore).toBe(85);
     });
 
-    it('rejects overwrite for different job ID in queue mode', () => {
+    it('GIVEN shared WHEN exercised THEN rejects overwrite for different job ID in queue mode (S2+S1)', () => {
       const job1 = { _id: 'job-1', company: 'Acme', role: 'Engineer' } as any;
       setCurrentJob('job-1', job1, JobStage.PARTIAL_PARSED);
 
@@ -93,7 +93,7 @@ describe('shared-tui-state', () => {
       expect(state.jobLifecycleId).toBe('job-1');
     });
 
-    it('allows overwrite for different job ID in direct mode (B17 — latest wins)', () => {
+    it('GIVEN shared WHEN exercised THEN allows overwrite for different job ID in direct mode (B17 — latest wins) (S2)', () => {
       setQueueMode(false);
 
       const job1 = { _id: 'direct-1', company: 'FirstCo', role: 'Role1' } as any;
@@ -114,18 +114,18 @@ describe('shared-tui-state', () => {
   });
 
   describe('queue mode toggle', () => {
-    it('defaults to queue mode true', () => {
+    it('GIVEN shared WHEN exercised THEN defaults to queue mode true', () => {
       expect(getQueueMode()).toBe(true);
     });
 
-    it('toggles queue mode off and on', () => {
+    it('GIVEN shared WHEN exercised THEN toggles queue mode off and on', () => {
       setQueueMode(false);
       expect(getQueueMode()).toBe(false);
       setQueueMode(true);
       expect(getQueueMode()).toBe(true);
     });
 
-    it('maintains separate sub-states per mode', () => {
+    it('GIVEN shared WHEN exercised THEN maintains separate sub-states per mode (S2+S1)', () => {
       const jobQ = { _id: 'q-job', company: 'QueueCo', role: 'Engineer' } as any;
       setCurrentJob('q-job', jobQ, JobStage.PARTIAL_PARSED);
       expect(getCurrentJob().jobLifecycleId).toBe('q-job');
@@ -143,7 +143,7 @@ describe('shared-tui-state', () => {
   });
 
   describe('clearCurrentJob', () => {
-    it('clears the active sub-state', () => {
+    it('GIVEN shared WHEN exercised THEN clears the active sub-state (S2)', () => {
       const job = { _id: 'job-clear', company: 'ClearCo', role: 'Engineer' } as any;
       setCurrentJob('job-clear', job, JobStage.FULL_PARSED);
       clearCurrentJob();
@@ -156,7 +156,7 @@ describe('shared-tui-state', () => {
   });
 
   describe('modal functions', () => {
-    it('setPreviewViewerModal shows modal', () => {
+    it('GIVEN shared WHEN exercised THEN setPreviewViewerModal shows modal (S2)', () => {
       const job = { _id: 'job-modal', company: 'ModalCo', role: 'Engineer' } as any;
       setCurrentJob('job-modal', job, JobStage.FULL_PARSED);
       setPreviewViewerModal('line1\nline2\nline3', 2);
@@ -167,7 +167,7 @@ describe('shared-tui-state', () => {
       expect(state.modal!.clipboardContent).toHaveLength(3);
     });
 
-    it('clearModal removes modal', () => {
+    it('GIVEN shared WHEN exercised THEN clearModal removes modal (S2)', () => {
       const job = { _id: 'job-modal', company: 'ModalCo', role: 'Engineer' } as any;
       setCurrentJob('job-modal', job, JobStage.FULL_PARSED);
       setPreviewViewerModal('content', 5);
@@ -179,7 +179,7 @@ describe('shared-tui-state', () => {
   });
 
   describe('file persistence', () => {
-    it('writes state file on setCurrentJob (verify on disk)', () => {
+    it('GIVEN shared WHEN exercised THEN writes state file on setCurrentJob (verify on disk) (S2)', () => {
       const job = { _id: 'job-disk', company: 'DiskCo', role: 'Engineer' } as any;
       setCurrentJob('job-disk', job, JobStage.FULL_PARSED);
 
@@ -188,7 +188,7 @@ describe('shared-tui-state', () => {
       expect(parsed.queue.jobLifecycleId).toBe('job-disk');
     });
 
-    it('reads existing state file on getCurrentJob', () => {
+    it('GIVEN shared WHEN exercised THEN reads existing state file on getCurrentJob (S2)', () => {
       writeFileSync(
         TEST_STATE_PATH,
         JSON.stringify({
@@ -216,7 +216,7 @@ describe('shared-tui-state', () => {
   describe('flock exclusive lock', () => {
     beforeEach(cleanState);
 
-    it('creates lock file before write and removes it after', () => {
+    it('GIVEN shared WHEN exercised THEN creates lock file before write and removes it after (S2)', () => {
       const lockPath = TEST_STATE_PATH + '.lock';
       const job = { _id: 'job-lock', company: 'LockCo', role: 'Engineer' } as any;
       setCurrentJob('job-lock', job, JobStage.FULL_PARSED);
@@ -225,7 +225,7 @@ describe('shared-tui-state', () => {
       expect(existsSync(TEST_STATE_PATH)).toBe(true);
     });
 
-    it('lock acquisition blocks concurrent writes', () => {
+    it('GIVEN shared WHEN exercised THEN lock acquisition blocks concurrent writes (S2)', () => {
       const lockPath = TEST_STATE_PATH + '.lock';
 
       const fd = openSync(lockPath, 'wx');
@@ -243,7 +243,7 @@ describe('shared-tui-state', () => {
       unlinkSync(lockPath);
     });
 
-    it('recovers after lock is released', () => {
+    it('GIVEN shared WHEN exercised THEN recovers after lock is released (S2)', () => {
       const lockPath = TEST_STATE_PATH + '.lock';
 
       const fd = openSync(lockPath, 'wx');

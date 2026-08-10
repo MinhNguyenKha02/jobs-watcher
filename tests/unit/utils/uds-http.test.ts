@@ -43,7 +43,7 @@ describe('uds-http', () => {
     vi.useRealTimers();
   });
 
-  it('sends POST request to correct socket path and endpoint', async () => {
+  it('GIVEN uds WHEN mockResponses.push THEN sends POST request to correct socket path and endpoint', async () => {
     mockResponses.push({ statusCode: 200, body: '{}' });
     const promise = postJsonOverUds(
       { socketPath: SOCKET_PATH, path: '/internal/ingest' },
@@ -58,7 +58,7 @@ describe('uds-http', () => {
     await promise;
   });
 
-  it('sets Content-Type and Content-Length headers', async () => {
+  it('GIVEN uds WHEN mockResponses.push THEN sets Content-Type and Content-Length headers', async () => {
     mockResponses.push({ statusCode: 200, body: '{}' });
     const promise = postJsonOverUds({ socketPath: SOCKET_PATH, path: '/test' }, { key: 'value' });
     await vi.advanceTimersByTimeAsync(20);
@@ -69,7 +69,7 @@ describe('uds-http', () => {
     await promise;
   });
 
-  it('merges custom headers', async () => {
+  it('GIVEN uds WHEN mockResponses.push THEN merges custom headers', async () => {
     mockResponses.push({ statusCode: 200, body: '{}' });
     const promise = postJsonOverUds(
       { socketPath: SOCKET_PATH, path: '/test', headers: { 'x-custom': 'val' } },
@@ -82,7 +82,7 @@ describe('uds-http', () => {
     await promise;
   });
 
-  it('serializes object body to JSON', async () => {
+  it('GIVEN uds WHEN mockResponses.push THEN serializes object body to JSON', async () => {
     mockResponses.push({ statusCode: 200, body: '{}' });
     const promise = postJsonOverUds({ socketPath: SOCKET_PATH, path: '/test' }, { hello: 'world' });
     await vi.advanceTimersByTimeAsync(20);
@@ -91,7 +91,7 @@ describe('uds-http', () => {
     await promise;
   });
 
-  it('writes string body directly', async () => {
+  it('GIVEN uds WHEN mockResponses.push THEN writes string body directly', async () => {
     mockResponses.push({ statusCode: 200, body: '{}' });
     const promise = postJsonOverUds({ socketPath: SOCKET_PATH, path: '/test' }, 'raw string');
     await vi.advanceTimersByTimeAsync(20);
@@ -100,7 +100,7 @@ describe('uds-http', () => {
     await promise;
   });
 
-  it('returns statusCode and body on success', async () => {
+  it('GIVEN uds WHEN mockResponses.push THEN returns statusCode and body on success', async () => {
     mockResponses.push({ statusCode: 200, body: '{"ok":true}' });
     const promise = postJsonOverUds({ socketPath: SOCKET_PATH, path: '/test' }, {});
     await vi.advanceTimersByTimeAsync(20);
@@ -110,7 +110,7 @@ describe('uds-http', () => {
     expect(result.body).toBe('{"ok":true}');
   });
 
-  it('rejects on request error', async () => {
+  it('GIVEN uds WHEN vi.restoreAllMocks THEN rejects on request error', async () => {
     vi.restoreAllMocks();
     vi.useRealTimers();
     let errorHandler: ((...args: any[]) => void) | undefined;
@@ -128,7 +128,7 @@ describe('uds-http', () => {
     await expect(promise).rejects.toThrow('connection refused');
   });
 
-  it('handles timeout option', async () => {
+  it('GIVEN uds WHEN mockResponses.push THEN handles timeout option', async () => {
     mockResponses.push({ statusCode: 200, body: '{}' });
     const promise = postJsonOverUds(
       { socketPath: SOCKET_PATH, path: '/test', timeoutMs: 5000 },

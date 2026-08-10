@@ -97,18 +97,18 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     fs.rmSync(sharedStateDir, { recursive: true, force: true });
   });
 
-  it('[b] default mode is queue mode (true)', () => {
+  it('GIVEN PRC WHEN exercised THEN [b] default mode is queue mode (true)', () => {
     expect(getQueueMode()).toBe(true);
   });
 
-  it('[b] toggle queue → direct → queue via setQueueMode', () => {
+  it('GIVEN PRC WHEN exercised THEN [b] toggle queue → direct → queue via setQueueMode', () => {
     setQueueMode(false);
     expect(getQueueMode()).toBe(false);
     setQueueMode(true);
     expect(getQueueMode()).toBe(true);
   });
 
-  it('[b] direct mode [i]-style setCurrentJob latest-wins (overwrites previous)', () => {
+  it('GIVEN PRC WHEN exercised THEN [b] direct mode [i]-style setCurrentJob latest-wins (overwrites previous) (S2)', () => {
     setQueueMode(false);
     setCurrentJob(
       'direct-job-1',
@@ -126,7 +126,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     expect(cur.job?.company).toBe('SecondCo');
   });
 
-  it('[b] queue mode setCurrentJob rejects overwrite of different displayed job', () => {
+  it('GIVEN PRC WHEN exercised THEN [b] queue mode setCurrentJob rejects overwrite of different displayed job (S1)', () => {
     setQueueMode(true);
     setCurrentJob('queue-job-1', { role: 'A', company: 'ACo' } as any, JobStage.PARTIAL_PARSED);
     setCurrentJob('queue-job-2', { role: 'B', company: 'BCo' } as any, JobStage.PARTIAL_PARSED);
@@ -136,7 +136,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     expect(cur.job?.company).toBe('ACo');
   });
 
-  it('[c] chain: s1 (GENERATED) then s2 (PARSE_COMPLETED) merges into pending → advances', async () => {
+  it('GIVEN PRC WHEN exercised THEN [c] chain: s1 (GENERATED) then s2 (PARSE_COMPLETED) merges into pending → advances', async () => {
     const reader = new RabbitMqJobReader(RMQ_URL, READER_OPTS);
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
@@ -163,7 +163,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     reader.stop();
   }, 20000);
 
-  it('[i] direct-mode standalone PARSE_COMPLETED sets current job', async () => {
+  it('GIVEN PRC WHEN exercised THEN [i] direct-mode standalone PARSE_COMPLETED sets current job', async () => {
     const reader = new RabbitMqJobReader(RMQ_URL, READER_OPTS);
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
@@ -183,7 +183,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     reader.stop();
   }, 20000);
 
-  it('s3s4 completion (QUEUED) removes job from pending and clears current', async () => {
+  it('GIVEN PRC WHEN exercised THEN s3s4 completion (QUEUED) removes job from pending and clears current', async () => {
     const reader = new RabbitMqJobReader(RMQ_URL, READER_OPTS);
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
@@ -210,7 +210,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     reader.stop();
   }, 20000);
 
-  it('s4 (PARSE_FAILED) clears current job and advances', async () => {
+  it('GIVEN PRC WHEN exercised THEN s4 (PARSE_FAILED) clears current job and advances', async () => {
     const reader = new RabbitMqJobReader(RMQ_URL, READER_OPTS);
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
@@ -231,7 +231,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     reader.stop();
   }, 20000);
 
-  it('reader stays connected after start (isConnected)', async () => {
+  it('GIVEN PRC WHEN exercised THEN reader stays connected after start (isConnected)', async () => {
     const reader = new RabbitMqJobReader(RMQ_URL, READER_OPTS);
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
@@ -240,7 +240,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     await new Promise((r) => setTimeout(r, 200));
   }, 20000);
 
-  it('multiple s1 jobs queue up in pending and auto-advance sequentially', async () => {
+  it('GIVEN PRC WHEN exercised THEN multiple s1 jobs queue up in pending and auto-advance sequentially', async () => {
     const reader = new RabbitMqJobReader(RMQ_URL, READER_OPTS);
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
@@ -272,7 +272,7 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     reader.stop();
   }, 25000);
 
-  it('clearCurrentJob resets active-mode substate', () => {
+  it('GIVEN PRC WHEN exercised THEN clearCurrentJob resets active-mode substate (S2)', () => {
     setQueueMode(false);
     setCurrentJob(
       'clear-1',

@@ -13,60 +13,55 @@ function makeJob(overrides: Record<string, unknown>) {
 }
 
 describe('hybridJobFilter - strict junior/software logic', () => {
-  test('Office Manager (non-software) fails', () => {
-    const job = makeJob({
+  // Decision family (tier 1): matchesRole decides everything; lang/experience irrelevant.
+  const logicRows: Array<{
+    role: string;
+    description: string;
+    expectPass: boolean;
+    reason?: RegExp;
+  }> = [
+    {
       role: 'Office Manager',
       description: 'Manage office operations.',
-    });
-    const res = hybridJobFilter(job);
-    expect(res.passed).toBe(false);
-    expect(res.reasons.join(' ')).toMatch(/non-software/i);
-  });
-
-  test('Junior developer (no years requirement) passes with high skill match', () => {
-    const job = makeJob({
+      expectPass: false,
+      reason: /non-software/i,
+    },
+    {
       role: 'Junior Software Engineer',
       description: 'We are hiring a junior developer. TypeScript, React, Node.js required.',
-    });
-    const res = hybridJobFilter(job);
-    expect(res.passed).toBe(true);
-  });
-
-  test('Senior role passes tier-1 filter (only role is checked)', () => {
-    const job = makeJob({
+      expectPass: true,
+    },
+    {
       role: 'Senior Software Engineer',
       description: 'Senior role with 5+ years of experience required.',
-    });
-    const res = hybridJobFilter(job);
-    expect(res.passed).toBe(true);
-  });
-
-  test('Entry-level or fresh graduate keyword passes', () => {
-    const job = makeJob({
+      expectPass: true,
+    },
+    {
       role: 'Junior Software Engineer',
       description: 'Fresh graduates welcome. No experience required. TypeScript.',
-    });
-    const res = hybridJobFilter(job);
-    expect(res.passed).toBe(true);
-  });
-
-  test('Mid-level role fails (no specific software prefix)', () => {
-    const job = makeJob({
+      expectPass: true,
+    },
+    {
       role: 'Mid-Level Developer',
       description: 'We are seeking a mid-level developer with 3-5 years of experience.',
-    });
-    const res = hybridJobFilter(job);
-    expect(res.passed).toBe(false);
-  });
-
-  test('Job with no technical skills mentioned still passes (skills advisory)', () => {
-    const job = makeJob({
+      expectPass: false,
+      reason: /non-software/i,
+    },
+    {
       role: 'Junior Software Engineer',
       description: 'Great opportunity for fresh graduates. Join our dynamic team! Node.js.',
-    });
-    const res = hybridJobFilter(job);
-    expect(res.passed).toBe(true);
-  });
+      expectPass: true,
+    },
+  ];
+
+  it.each(logicRows.map((row) => [row.role, row.description, row.expectPass, row.reason] as const))(
+    'GIVEN hybridJobFilter input %s WHEN hybridJobFilter evaluates THEN %s passes = %s',
+    (role, description, expectPass, reason) => {
+      const res = hybridJobFilter(makeJob({ role, description }));
+      expect(res.passed).toBe(expectPass);
+      if (reason) expect(res.reasons.join(' ')).toMatch(reason);
+    }
+  );
 });
 
 describe('hybridJobFilter - decision table by filter logic analysis', () => {
@@ -136,45 +131,44 @@ describe('hybridJobFilter - decision table by filter logic analysis', () => {
     },
   ];
 
-  for (const row of table) {
-    test(`hybrid filter: ${row.label}`, () => {
-      const job = makeJob({ role: row.role, description: row.desc, details: row.details });
-      const res = hybridJobFilter(job, row.tier === 2 ? { sinceTier: 2 } : undefined);
-      expect(res.passed).toBe(row.expectPass);
-    });
-  }
+  it.each(table.map((row) => [row.label, row] as const))('hybrid filter: %s', (_label, row) => {
+    const job = makeJob({ role: row.role, description: row.desc, details: row.details });
+    const res = hybridJobFilter(job, row.tier === 2 ? { sinceTier: 2 } : undefined);
+    expect(res.passed).toBe(row.expectPass);
+  });
 });
 
 describe('hybridJobFilter - metamorphic relations', () => {
-  test('if sinceTier=2 passes then sinceTier=1 also passes', () => {
+  test('GIVEN sinceTier=2 passes WHEN hybridJobFilter evaluates THEN sinceTier=1 also passes', () => {
     const job = makeJob({
       role: 'Junior Software Engineer',
-      description: 'TypeScript, Node.js. Fresh graduates welcome.',
+      description: 'Fresh graduates welcome.',
+      details: { requirements: 'TypeScript, Node.js' },
     });
     const t2 = hybridJobFilter(job, { sinceTier: 2 });
     const t1 = hybridJobFilter(job);
-    if (t2.passed) {
-      expect(t1.passed).toBe(true);
-    }
+    expect(t2.passed).toBe(true);
+    expect(t1.passed).toBe(true);
   });
 
-  test('adding seniority keywords flips pass to fail at tier 2', () => {
+  test('GIVEN hybridJobFilter input "junior" WHEN hybridJobFilter evaluates THEN adding seniority keywords flips pass to fail at tier 2', () => {
     const junior = makeJob({
       role: 'Junior Software Engineer',
-      description: 'TypeScript, Python. Fresh graduates welcome.',
+      description: 'Fresh graduates welcome.',
+      details: { requirements: 'TypeScript, Python' },
     });
     const senior = makeJob({
       role: 'Senior Software Engineer',
-      description: 'TypeScript, Python. 3+ years experience required.',
+      description: '3+ years experience required.',
+      details: { requirements: 'TypeScript, Python' },
     });
     const juniorRes = hybridJobFilter(junior, { sinceTier: 2 });
     const seniorRes = hybridJobFilter(senior, { sinceTier: 2 });
-    if (juniorRes.passed) {
-      expect(seniorRes.passed).toBe(false);
-    }
+    expect(juniorRes.passed).toBe(true);
+    expect(seniorRes.passed).toBe(false);
   });
 
-  test('adding non-software role prefix flips pass to fail', () => {
+  test('GIVEN hybridJobFilter input "software" WHEN hybridJobFilter evaluates THEN replacing the role with a non-software prefix flips pass to fail at tier 1', () => {
     const software = makeJob({
       role: 'Junior Software Engineer',
       description: 'TypeScript, Python.',
@@ -183,10 +177,9 @@ describe('hybridJobFilter - metamorphic relations', () => {
       role: 'Junior Marketing Manager',
       description: 'TypeScript, Python.',
     });
-    const swRes = hybridJobFilter(software, { sinceTier: 2 });
-    const nonSwRes = hybridJobFilter(nonSoftware, { sinceTier: 2 });
-    if (swRes.passed) {
-      expect(nonSwRes.passed).toBe(false);
-    }
+    const swRes = hybridJobFilter(software);
+    const nonSwRes = hybridJobFilter(nonSoftware);
+    expect(swRes.passed).toBe(true);
+    expect(nonSwRes.passed).toBe(false);
   });
 });

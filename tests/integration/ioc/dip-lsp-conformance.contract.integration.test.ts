@@ -26,7 +26,7 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
     await tc.stop();
   });
 
-  it('job-lifecycle port: upsert → findById → updateStage roundtrip through the mongo adapter', async () => {
+  it('GIVEN the DIP precondition WHEN upsert → findById → updateStage on the real DIP THEN job-lifecycle port: upsert → findById → updateStage roundtrip through the mongo adapter (S2+S1+S3)', async () => {
     const port = tc.container.mongoJobLifecycleAdapter;
     const doc = {
       _id: 'dip-storage-1',
@@ -50,7 +50,7 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
     expect(updated!.status).toBe(JobStatus.QUEUED);
   });
 
-  it('extraction-queue port: enqueue → size → FIFO dequeue through the mongo adapter', async () => {
+  it('GIVEN the DIP precondition WHEN enqueue → size → dequeue on the real DIP THEN extraction-queue port: enqueue → size → FIFO dequeue through the mongo adapter', async () => {
     const port = tc.container.extractionQueueAdapter;
     await port.enqueue('dip-q-1');
     await port.enqueue('dip-q-2');
@@ -59,7 +59,7 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
     expect((await port.dequeue())?._id).toBe('dip-q-2');
   });
 
-  it('parse port: emitGenerated publishes a GENERATED action reachable over real RMQ', async () => {
+  it('GIVEN the DIP precondition WHEN the port is exercised on the real DIP THEN parse port: emitGenerated publishes a GENERATED action reachable over real RMQ', async () => {
     const bus = tc.bus;
     const handle = await bus.setup([ActionEvent.GENERATED]);
     const port = tc.container.parseAdapter;
@@ -81,7 +81,7 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
     expect(msg.company).toBe('GenCo');
   }, 20000);
 
-  it('route port: emitJobQueued publishes a QUEUED action reachable over real RMQ', async () => {
+  it('GIVEN the DIP precondition WHEN the port is exercised on the real DIP THEN route port: emitJobQueued publishes a QUEUED action reachable over real RMQ', async () => {
     const bus = tc.bus;
     const handle = await bus.setup([ActionEvent.QUEUED]);
     const port = tc.container.routeAdapter;
@@ -92,7 +92,7 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
     expect(msg.jobLifecycleId).toBe('dip-route-1');
   }, 20000);
 
-  it('ingestor composition: missing-job resolution emits ROUTE_FAILED over real RMQ', async () => {
+  it('GIVEN the DIP precondition WHEN the port is exercised on the real DIP THEN ingestor composition: missing-job resolution emits ROUTE_FAILED over real RMQ', async () => {
     const bus = tc.bus;
     const handle = await bus.setup([ActionEvent.ROUTE_FAILED]);
 
@@ -103,7 +103,7 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
     expect(msg.reason).toContain('No existing job lifecycle');
   }, 20000);
 
-  it('asset port: toAsset resolves a PDF into the container-configured temp dir → real chromium render', async () => {
+  it('GIVEN the DIP precondition WHEN the port is exercised on the real DIP THEN asset port: toAsset resolves a PDF into the container-configured temp dir → real chromium render', async () => {
     const retriever = new ProfileInfoRetriever();
     await retriever.init();
     const text =

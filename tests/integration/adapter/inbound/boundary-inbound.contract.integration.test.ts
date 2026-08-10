@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import { UdsAdapter } from '../../../../src/infrastructure/inbound/uds/uds-adapter.js';
+import { buildSystemContainer } from '../../../../src/application/container.js';
 import type { IngestorPort } from '../../../../src/application/ports/inbound/ingestor.port.js';
+import type { UdsAdapter } from '../../../../src/infrastructure/inbound/uds/uds-adapter.js';
 import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -42,10 +43,7 @@ async function collectBody(res: http.IncomingMessage): Promise<string> {
 describe('Boundary failures at adapter boundaries', () => {
   let socketPath: string;
   let adapter: UdsAdapter;
-  let ingestorMock: {
-    processIngest: ReturnType<typeof vi.fn>;
-    processResolution: ReturnType<typeof vi.fn>;
-  };
+  let ingestorMock: IngestorPort;
 
   beforeAll(async () => {
     socketPath = path.join(os.tmpdir(), `boundary-test-${Date.now()}.sock`);
@@ -58,7 +56,20 @@ describe('Boundary failures at adapter boundaries', () => {
       processResolution: vi.fn().mockResolvedValue(undefined),
     };
 
-    adapter = new UdsAdapter(ingestorMock as unknown as IngestorPort, { socketPath, token: TOKEN });
+    adapter = buildSystemContainer(
+      {
+        nodeEnv: 'test',
+        mongodb: { uri: 'mongodb://localhost/jw-uds', dbName: 'unit' },
+        rabbitmq: {
+          url: process.env.RABBITMQ_URL || 'amqp://localhost',
+          exchange: 'jobs.events.ct',
+        },
+        uds: { socketPath, token: TOKEN },
+        health: { port: 0 },
+        asset: { outputDir: '/tmp/jobs-watcher-uds-assets' },
+      },
+      { ports: { ingestor: ingestorMock } }
+    ).udsAdapter;
     await adapter.start();
   });
 
@@ -70,7 +81,7 @@ describe('Boundary failures at adapter boundaries', () => {
   });
 
   describe('malformed payloads', () => {
-    it('returns 500 for invalid JSON on /internal/ingest', async () => {
+    it('GIVEN the Boundary precondition WHEN the port is exercised on the real Boundary THEN returns 500 for invalid JSON on /internal/ingest', async () => {
       const res = await sendRaw(socketPath, '/internal/ingest', 'POST', 'not-json-at-all', {
         'x-internal-token': TOKEN,
       });
@@ -79,28 +90,28 @@ describe('Boundary failures at adapter boundaries', () => {
       expect(body.error).toBe('Internal server error');
     });
 
-    it('returns 500 for invalid JSON on /internal/action', async () => {
+    it('GIVEN the Boundary precondition WHEN the port is exercised on the real Boundary THEN returns 500 for invalid JSON on /internal/action', async () => {
       const res = await sendRaw(socketPath, '/internal/action', 'POST', '{invalid json!!!}', {
         'x-internal-token': TOKEN,
       });
       expect(res.statusCode).toBe(500);
     });
 
-    it('returns 500 for empty body', async () => {
+    it('GIVEN the Boundary precondition WHEN the port is exercised on the real Boundary THEN returns 500 for empty body', async () => {
       const res = await sendRaw(socketPath, '/internal/ingest', 'POST', '', {
         'x-internal-token': TOKEN,
       });
       expect(res.statusCode).toBe(500);
     });
 
-    it('returns 500 for null body', async () => {
+    it('GIVEN the Boundary precondition WHEN the port is exercised on the real Boundary THEN returns 500 for null body', async () => {
       const res = await sendRaw(socketPath, '/internal/ingest', 'POST', 'null', {
         'x-internal-token': TOKEN,
       });
       expect(res.statusCode).toBe(500);
     });
 
-    it('returns 400 for empty JSON object (no html field)', async () => {
+    it('GIVEN the Boundary precondition WHEN the port is exercised on the real Boundary THEN returns 400 for empty JSON object (no html field)', async () => {
       const res = await sendRaw(socketPath, '/internal/ingest', 'POST', '{}', {
         'x-internal-token': TOKEN,
       });
@@ -109,7 +120,7 @@ describe('Boundary failures at adapter boundaries', () => {
   });
 
   describe('auth boundary', () => {
-    it('rejects when token header is completely missing', async () => {
+    it('GIVEN the Boundary precondition WHEN the port is exercised on the real Boundary THEN rejects when token header is completely missing', async () => {
       const res = await sendRaw(
         socketPath,
         '/internal/ingest',
@@ -121,7 +132,7 @@ describe('Boundary failures at adapter boundaries', () => {
       expect(body.error).toBe('Unauthorized');
     });
 
-    it('rejects with empty token header', async () => {
+    it('GIVEN the Boundary precondition WHEN the port is exercised on the real Boundary THEN rejects with empty token header', async () => {
       const res = await sendRaw(
         socketPath,
         '/internal/ingest',
@@ -132,7 +143,7 @@ describe('Boundary failures at adapter boundaries', () => {
       expect(res.statusCode).toBe(401);
     });
 
-    it('rejects with whitespace-only token', async () => {
+    it('GIVEN the Boundary precondition WHEN the port is exercised on the real Boundary THEN rejects with whitespace-only token', async () => {
       const res = await sendRaw(
         socketPath,
         '/internal/ingest',
@@ -145,21 +156,21 @@ describe('Boundary failures at adapter boundaries', () => {
   });
 
   describe('HTTP method boundary', () => {
-    it('returns 404 for GET on /internal/ingest', async () => {
+    it('GIVEN the Boundary precondition WHEN the port is exercised on the real Boundary THEN returns 404 for GET on /internal/ingest', async () => {
       const res = await sendRaw(socketPath, '/internal/ingest', 'GET', '', {
         'x-internal-token': TOKEN,
       });
       expect(res.statusCode).toBe(404);
     });
 
-    it('returns 404 for PUT on /internal/ingest', async () => {
+    it('GIVEN the Boundary precondition WHEN the port is exercised on the real Boundary THEN returns 404 for PUT on /internal/ingest', async () => {
       const res = await sendRaw(socketPath, '/internal/ingest', 'PUT', '{}', {
         'x-internal-token': TOKEN,
       });
       expect(res.statusCode).toBe(404);
     });
 
-    it('returns 404 for DELETE on /internal/ingest', async () => {
+    it('GIVEN the Boundary precondition WHEN the port is exercised on the real Boundary THEN returns 404 for DELETE on /internal/ingest', async () => {
       const res = await sendRaw(socketPath, '/internal/ingest', 'DELETE', '', {
         'x-internal-token': TOKEN,
       });
@@ -168,7 +179,7 @@ describe('Boundary failures at adapter boundaries', () => {
   });
 
   describe('large payload boundary', () => {
-    it('handles large HTML payload', async () => {
+    it('GIVEN the Boundary precondition WHEN the port is exercised on the real Boundary THEN handles large HTML payload', async () => {
       const largeHtml = '<html>' + 'x'.repeat(50000) + '</html>';
       const res = await sendRaw(
         socketPath,

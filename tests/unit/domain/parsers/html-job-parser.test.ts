@@ -22,7 +22,7 @@ describe('HtmlJobParser', () => {
   });
 
   describe('TopCV detail parsing', () => {
-    it('parses core fields from detail HTML', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN parses core fields from detail HTML', () => {
       const html = `
         <html>
           <h1 class="job-detail__info--title">Senior Backend Engineer</h1>
@@ -54,7 +54,7 @@ describe('HtmlJobParser', () => {
       expect(result?.url).toContain('topcv.vn');
     });
 
-    it('handles anchor titles and verified badge', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN handles anchor titles and verified badge', () => {
       const html = `
         <html>
           <div class="job-detail__info">
@@ -79,7 +79,7 @@ describe('HtmlJobParser', () => {
       expect(result?.company).toContain('Gear Inc');
     });
 
-    it('handles missing optional fields', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN handles missing optional fields', () => {
       const html = `
         <html>
           <h1 class="job-detail__info--title">Test Position</h1>
@@ -101,7 +101,7 @@ describe('HtmlJobParser', () => {
   });
 
   describe('Indeed detail parsing', () => {
-    it('parses core fields from detail HTML', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN parses core fields from detail HTML (2)', () => {
       const html = `
         <html>
           <h1 data-testid="jobsearch-JobInfoHeader-title">
@@ -132,7 +132,7 @@ describe('HtmlJobParser', () => {
       expect(result?.description).toContain('React');
     });
 
-    it('provides defaults when company/location missing', () => {
+    it('GIVEN company/location missing WHEN HtmlJobParser evaluates THEN provides defaults', () => {
       const html = `
         <html>
           <h1 data-testid="jobsearch-JobInfoHeader-title">
@@ -148,7 +148,7 @@ describe('HtmlJobParser', () => {
       expect(result?.location).toBe('Unknown Location');
     });
 
-    it('extracts nested heading sections', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN extracts nested heading sections', () => {
       const html = `
         <html>
           <h1 data-testid="jobsearch-JobInfoHeader-title"><span>Test Developer</span></h1>
@@ -172,7 +172,7 @@ describe('HtmlJobParser', () => {
       expect(result?.details?.benefits).toBeTruthy();
     });
 
-    it('extracts bold-label sections', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN extracts bold-label sections', () => {
       const html = `
         <html>
           <h1 data-testid="jobsearch-JobInfoHeader-title"><span>Labelled Developer</span></h1>
@@ -195,7 +195,7 @@ describe('HtmlJobParser', () => {
       expect(result?.details?.benefits).toBeTruthy();
     });
 
-    it('parses embedded job detail (sample 1)', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN parses embedded job detail (sample 1)', () => {
       const result = parser.parseJobFromHtml(indeedPlatformPageHtml1);
 
       expect(result?.role).toContain('Senior Full-stack Python Developer');
@@ -207,7 +207,7 @@ describe('HtmlJobParser', () => {
       expect(result?.details?.benefits).toBeTruthy();
     });
 
-    it('parses embedded job detail (sample 2)', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN parses embedded job detail (sample 2)', () => {
       const result = parser.parseJobFromHtml(indeedPlatformPageHtml2);
 
       expect(result?.role).toContain('Data Engineer Fresher');
@@ -220,7 +220,7 @@ describe('HtmlJobParser', () => {
   });
 
   describe('LinkedIn detail parsing', () => {
-    it('parses core fields from LinkedIn job detail (sample 1)', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN parses core fields from LinkedIn job detail (sample 1)', () => {
       const result = parser.parseJobFromHtml(linkedinPlatformPageHtml1);
 
       expect(result?.role).toBe('Research Engineer Intern');
@@ -229,7 +229,7 @@ describe('HtmlJobParser', () => {
       expect(result?.description).toBeTruthy();
     });
 
-    it('parses core fields from LinkedIn job detail (sample 2)', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN parses core fields from LinkedIn job detail (sample 2)', () => {
       const result = parser.parseJobFromHtml(linkedinPlatformPageHtml2);
 
       expect(result?.role).toBe('Software Developers');
@@ -240,7 +240,7 @@ describe('HtmlJobParser', () => {
   });
 
   describe('LinkedIn SDUi detail parsing', () => {
-    it('parses core fields from SDUi format (sample 1)', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN parses core fields from SDUi format (sample 1)', () => {
       const result = parser.parseJobFromHtml(linkedinSduiHtml1);
 
       expect(result?.role).toBe('Senior Software Engineer');
@@ -253,7 +253,7 @@ describe('HtmlJobParser', () => {
       expect(result?.details?.jobType).toContain('Full-time');
     });
 
-    it('parses core fields from SDUi format (sample 2 - salary, easy apply)', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN parses core fields from SDUi format (sample 2 - salary, easy apply)', () => {
       const result = parser.parseJobFromHtml(linkedinSduiHtml2);
 
       expect(result?.role).toBe('Data Analyst');
@@ -267,7 +267,7 @@ describe('HtmlJobParser', () => {
       expect(result?.details?.requirements).toBeTruthy();
     });
 
-    it('parses companyInfo from SDUi AboutTheCompany component (sample 3)', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN parses companyInfo from SDUi AboutTheCompany component (sample 3)', () => {
       const result = parser.parseJobFromHtml(linkedinSduiHtml3);
 
       expect(result?.role).toBe('Product Manager');
@@ -280,7 +280,7 @@ describe('HtmlJobParser', () => {
       expect(result?.details?.requirements).toBeTruthy();
     });
 
-    it('captures uncaptured sections via extraSections fallback', () => {
+    it('GIVEN HtmlJobParser WHEN HtmlJobParser evaluates THEN captures uncaptured sections via extraSections fallback', () => {
       const result = parser.parseJobFromHtml(linkedinSduiHtml3);
 
       expect(result?.details?.extraSections).toBeDefined();
@@ -291,7 +291,7 @@ describe('HtmlJobParser', () => {
   });
 
   describe('Fixtures', () => {
-    it('parses TopCV detail fixture', () => {
+    it('GIVEN Fixtures WHEN Fixtures evaluates THEN parses TopCV detail fixture', () => {
       const result = parser.parseJobFromHtml(topCVDetailPageHTML);
 
       expect(result).not.toBeNull();
@@ -306,7 +306,7 @@ describe('HtmlJobParser', () => {
       }
     });
 
-    it('parses Indeed detail fixture', () => {
+    it('GIVEN Fixtures WHEN Fixtures evaluates THEN parses Indeed detail fixture', () => {
       const result = parser.parseJobFromHtml(indeedDetailPageHTML);
 
       expect(result).not.toBeNull();
@@ -319,23 +319,24 @@ describe('HtmlJobParser', () => {
   });
 
   describe('Edge cases', () => {
-    it('handles empty HTML', () => {
+    it('GIVEN Fixtures WHEN Fixtures evaluates THEN handles empty HTML', () => {
       const result = parser.parseJobFromHtml('');
 
       expect(result).toBeNull();
     });
 
-    it('handles malformed HTML gracefully', () => {
+    it('GIVEN Fixtures WHEN Fixtures evaluates THEN handles malformed HTML gracefully', () => {
       const html = '<html><h1 class="job-detail__info--title">Title without closing';
 
       const result = parser.parseJobFromHtml(html);
 
-      expect(result === null || result?.role).toBeTruthy();
+      expect(result).not.toBeNull();
+      expect(result?.role).toBe('Title without closing');
     });
   });
 
   describe('Equivalence partitioning', () => {
-    it('parses valid TopCV HTML with all fields', () => {
+    it('GIVEN Fixtures WHEN Fixtures evaluates THEN parses valid TopCV HTML with all fields', () => {
       const html = `
         <html>
           <h1 class="job-detail__info--title">Senior Fullstack Developer</h1>
@@ -354,15 +355,15 @@ describe('HtmlJobParser', () => {
       expect(result?.salary).toContain('$3000');
     });
 
-    it('returns null for empty string (null equivalence class)', () => {
+    it('GIVEN Fixtures WHEN Fixtures evaluates THEN returns null for empty string (null equivalence class)', () => {
       expect(parser.parseJobFromHtml('')).toBeNull();
     });
 
-    it('returns null for whitespace-only string', () => {
+    it('GIVEN Fixtures WHEN Fixtures evaluates THEN returns null for whitespace-only string', () => {
       expect(parser.parseJobFromHtml('   \n  \t  ')).toBeNull();
     });
 
-    it('parses HTML with only required fields (partial input)', () => {
+    it('GIVEN Fixtures WHEN Fixtures evaluates THEN parses HTML with only required fields (partial input)', () => {
       const html = `
         <html>
           <h1 class="job-detail__info--title">Minimal Role</h1>
@@ -375,7 +376,7 @@ describe('HtmlJobParser', () => {
       expect(result?.company).toBe('Minimal Co');
     });
 
-    it('handles HTML with no recognizable job format', () => {
+    it('GIVEN Fixtures WHEN Fixtures evaluates THEN handles HTML with no recognizable job format', () => {
       const html = '<div>Random non-job content</div>';
       const result = parser.parseJobFromHtml(html);
       expect(result).toBeNull();
@@ -393,7 +394,7 @@ describe('HtmlJobParser', () => {
       .map(normalizeWs)
       .filter((s) => s.length > 0 && !s.includes('<') && !s.includes('&') && !s.includes('>'));
 
-    it('extracts role from TopCV format for any non-empty title', () => {
+    it('GIVEN Fixtures WHEN Fixtures evaluates THEN extracts role from TopCV format for any non-empty title', () => {
       fc.assert(
         fc.property(nonEmptyString, (role) => {
           const html = `
@@ -410,7 +411,7 @@ describe('HtmlJobParser', () => {
       );
     });
 
-    it('extracts company from TopCV format for any non-empty name', () => {
+    it('GIVEN Fixtures WHEN Fixtures evaluates THEN extracts company from TopCV format for any non-empty name', () => {
       fc.assert(
         fc.property(nonEmptyString80, (company) => {
           const html = `
@@ -427,7 +428,7 @@ describe('HtmlJobParser', () => {
       );
     });
 
-    it('extracts salary from TopCV format when present', () => {
+    it('GIVEN present WHEN Fixtures evaluates THEN extracts salary from TopCV format', () => {
       fc.assert(
         fc.property(nonEmptyString, nonEmptyString80, (role, salary) => {
           const html = `

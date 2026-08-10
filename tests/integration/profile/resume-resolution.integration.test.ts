@@ -51,7 +51,7 @@ describe('Resume Resolution Integration', () => {
   }
 
   describe('INT-007: accepted signal produces skills output', () => {
-    it('should emit a skills section when signals pass acceptance and validation', () => {
+    it('GIVEN signals pass acceptance and validation WHEN engine.retrieve THEN emit a skills section', () => {
       const bundle = buildFullBundle();
       const engine = new ProfileRetrievalEngine(bundle);
       const retrieval = engine.retrieve('skill a and skill b');
@@ -72,7 +72,7 @@ describe('Resume Resolution Integration', () => {
   });
 
   describe('INT-008: ranked experiences sorted descending', () => {
-    it('should return experience records sorted by score descending', () => {
+    it('GIVEN Resume WHEN engine.retrieve THEN return experience records sorted by score descending', () => {
       const bundle = buildFullBundle();
       const engine = new ProfileRetrievalEngine(bundle);
       const retrieval = engine.retrieve('skill a and skill b');
@@ -96,7 +96,7 @@ describe('Resume Resolution Integration', () => {
   });
 
   describe('INT-009: ranked projects sorted descending', () => {
-    it('should return project records sorted by score descending', () => {
+    it('GIVEN Resume WHEN engine.retrieve THEN return project records sorted by score descending', () => {
       const bundle = buildFullBundle();
       const engine = new ProfileRetrievalEngine(bundle);
       const retrieval = engine.retrieve('skill a and skill b');
@@ -118,7 +118,7 @@ describe('Resume Resolution Integration', () => {
   });
 
   describe('INT-010: maxExperience enforced', () => {
-    it('should not exceed maxExperience limit in output', () => {
+    it('GIVEN Resume WHEN engine.retrieve THEN not exceed maxExperience limit in output', () => {
       const maxExp = retrievalPolicy.resolver.maxExperience;
       const bundle = buildFullBundle();
       const engine = new ProfileRetrievalEngine(bundle);
@@ -137,7 +137,7 @@ describe('Resume Resolution Integration', () => {
   });
 
   describe('INT-011: maxProjects enforced', () => {
-    it('should not exceed maxProjects limit in output', () => {
+    it('GIVEN Resume WHEN engine.retrieve THEN not exceed maxProjects limit in output', () => {
       const maxProj = retrievalPolicy.resolver.maxProjects;
       const bundle = buildFullBundle();
       const engine = new ProfileRetrievalEngine(bundle);
@@ -156,7 +156,7 @@ describe('Resume Resolution Integration', () => {
   });
 
   describe('INT-012: trace generated', () => {
-    it('should produce trace entries with anchor ID and score', () => {
+    it('GIVEN Resume WHEN engine.retrieve THEN produce trace entries with anchor ID and score', () => {
       const bundle = buildFullBundle();
       const engine = new ProfileRetrievalEngine(bundle);
       const retrieval = engine.retrieve('skill a and skill b');
@@ -178,7 +178,7 @@ describe('Resume Resolution Integration', () => {
   });
 
   describe('INT-013: resolution strength propagated to trace', () => {
-    it('should attach resolution strength to each trace entry', () => {
+    it('GIVEN Resume WHEN engine.retrieve THEN attach resolution strength to each trace entry', () => {
       const bundle = buildFullBundle();
       const engine = new ProfileRetrievalEngine(bundle);
       const retrieval = engine.retrieve('skill a and skill b');

@@ -4,7 +4,7 @@ import { GmailService } from '../../../../src/infrastructure/outbound/gmail.js';
 // contract layer (no mocks, no network). Adapter↔port conformance for Gmail lives in
 // tests/integration/adapter/inbound/webhook-adapter-contract.contract.integration.test.ts.
 describe('Gmail message parsing (pure)', () => {
-  it('GIVEN a message with headers WHEN extracting by name THEN returns case-insensitive value', () => {
+  it('GIVEN extracting by name THEN returns case-insensitive value WHEN Gmail evaluates THEN GIVEN a message with headers', () => {
     const service = new GmailService({});
     const message = {
       payload: {
@@ -20,7 +20,7 @@ describe('Gmail message parsing (pure)', () => {
     expect(service.extractHeader(message, 'From')).toBe('jobs@linkedin.com');
   });
 
-  it('GIVEN a message with text/html part WHEN extracting body THEN returns decoded html', () => {
+  it('GIVEN extracting body THEN returns decoded html WHEN Gmail evaluates THEN GIVEN a message with text/html part', () => {
     const service = new GmailService({});
     const html = '<html><body>Test</body></html>';
     const encoded = Buffer.from(html, 'utf-8').toString('base64');
@@ -38,7 +38,7 @@ describe('Gmail message parsing (pure)', () => {
     expect(body).toContain('Test');
   });
 
-  it('GIVEN a message with nested multipart parts WHEN extracting body THEN decodes inner part', () => {
+  it('GIVEN extracting body THEN decodes inner part WHEN Gmail evaluates THEN GIVEN a message with nested multipart parts', () => {
     const service = new GmailService({});
     const nested = Buffer.from('Nested Body', 'utf-8').toString('base64');
 
@@ -57,7 +57,7 @@ describe('Gmail message parsing (pure)', () => {
     expect(body).toContain('Nested Body');
   });
 
-  it('GIVEN a message with top-level body WHEN extracting body THEN returns decoded payload', () => {
+  it('GIVEN extracting body THEN returns decoded payload WHEN Gmail evaluates THEN GIVEN a message with top-level body', () => {
     const service = new GmailService({});
     const raw = Buffer.from('Raw Body', 'utf-8').toString('base64');
 
