@@ -32,7 +32,11 @@ describe('C4 direct e2e — [i] clipboard ingest → fully job → [d] trash →
     expect(stored!.status).toBe(JobStatus.ENRICHED);
     expect(stored!.source).toBe('manual');
 
-    const trash = await app.events.on([ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED, ActionEvent.PARSE_FAILED]);
+    const trash = await app.events.on([
+      ActionEvent.TRASHED,
+      ActionEvent.ROUTE_FAILED,
+      ActionEvent.PARSE_FAILED,
+    ]);
     const dRes = await app.uds.action(firstJobId, 'trash');
     expect(dRes.statusCode).toBe(200);
 

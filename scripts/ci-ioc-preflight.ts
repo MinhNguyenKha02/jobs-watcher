@@ -93,7 +93,9 @@ async function main(): Promise<void> {
   await checkChromium();
   await checkUds();
   if (failures > 0) {
-    console.error(`[preflight] ${failures} prerequisite check(s) failed — refusing to run the suite.`);
+    console.error(
+      `[preflight] ${failures} prerequisite check(s) failed — refusing to run the suite.`
+    );
     process.exit(1);
   }
   console.log('[preflight] all runner prerequisites ready.');

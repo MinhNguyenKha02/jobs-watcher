@@ -1,6 +1,4 @@
-export function topcvEmailHtmlMany(
-  jobs: Array<{ role: string; company: string }>,
-): string {
+export function topcvEmailHtmlMany(jobs: Array<{ role: string; company: string }>): string {
   const items = jobs
     .map((job) => {
       const encodedUrl = `/viec-lam/${job.role.toLowerCase().replace(/\s+/g, '-')}`;
@@ -30,28 +28,40 @@ export interface TopCvDetailOptions {
 export function topcvDetailHtml(
   role: string,
   company: string,
-  opts: TopCvDetailOptions = {},
+  opts: TopCvDetailOptions = {}
 ): string {
   const description = opts.description ?? 'We need a TypeScript developer with JavaScript skills';
   const meta = [
     opts.salary
-      ? '<div class="meta-item section-salary"><span class="job-detail__info--section-content-value">'
-        + opts.salary + '</span></div>'
+      ? '<div class="meta-item section-salary"><span class="job-detail__info--section-content-value">' +
+        opts.salary +
+        '</span></div>'
       : '',
     opts.location
-      ? '<div class="meta-item section-location"><span class="job-detail__info--section-content-value">'
-        + opts.location + '</span></div>'
+      ? '<div class="meta-item section-location"><span class="job-detail__info--section-content-value">' +
+        opts.location +
+        '</span></div>'
       : '',
-  ].filter(Boolean).join('');
+  ]
+    .filter(Boolean)
+    .join('');
 
-  return '<div class="job-detail__info--title"><h1>' + role + '</h1></div>'
-    + '<div class="company-name-label"><a class="name">' + company + '</a></div>'
-    + '<div>topcv</div>'
-    + '<p>TypeScript</p>'
-    + (meta ? '<div class="job-detail__meta">' + meta + '</div>' : '')
-    + '<div class="job-description__item"><h3>Mô tả công việc</h3>'
-    + '<div class="job-description__item--content">' + description + '</div>'
-    + '</div>';
+  return (
+    '<div class="job-detail__info--title"><h1>' +
+    role +
+    '</h1></div>' +
+    '<div class="company-name-label"><a class="name">' +
+    company +
+    '</a></div>' +
+    '<div>topcv</div>' +
+    '<p>TypeScript</p>' +
+    (meta ? '<div class="job-detail__meta">' + meta + '</div>' : '') +
+    '<div class="job-description__item"><h3>Mô tả công việc</h3>' +
+    '<div class="job-description__item--content">' +
+    description +
+    '</div>' +
+    '</div>'
+  );
 }
 
 /**
@@ -72,7 +82,7 @@ export function linkedinSduiDetailHtml(
   role: string,
   company: string,
   location = 'Ho Chi Minh City, Vietnam',
-  description = `${role} role at ${company}. We are looking for an experienced developer.`,
+  description = `${role} role at ${company}. We are looking for an experienced developer.`
 ): string {
   const slug = company.toLowerCase().replace(/[^a-z0-9]+/g, '');
   return `<div data-component-type="LazyColumn">
@@ -103,10 +113,11 @@ export function linkedinSduiDetailHtml(
  * role + url come from `h2 > a[href*=viewjob]`; company from the trailing div.
  */
 export function indeedEmailHtmlMany(
-  jobs: Array<{ role: string; company: string; url: string }>,
+  jobs: Array<{ role: string; company: string; url: string }>
 ): string {
   const rows = jobs
-    .map((job) => `<td class="pb-24" style="padding-bottom:24px">
+    .map(
+      (job) => `<td class="pb-24" style="padding-bottom:24px">
       <h2><a href="${job.url}">${job.role}</a></h2>
       <table>
         <tr><td style="padding:0 12px;color:#2d2d2d;font-size:14px;line-height:21px">${job.company}</td></tr>
@@ -114,7 +125,8 @@ export function indeedEmailHtmlMany(
       <div style="color:#2d2d2d">Ho Chi Minh City</div>
       <div style="padding:0;color:#767676;font-size:14px;line-height:21px">${job.role} opportunity</div>
       <div style="font-size:12px;line-height:18px">Just posted</div>
-    </td>`)
+    </td>`
+    )
     .map((row) => `<tr>${row}</tr>`)
     .join('\n');
   return `<html><body><span class="strong-text-link">Indeed Job Alert</span><table>${rows}</table></body></html>`;
@@ -128,7 +140,7 @@ export function indeedEmailHtmlMany(
 export function indeedDetailHtml(
   role: string,
   company: string,
-  url = 'https://vn.indeed.com/viewjob?jk=000000000000',
+  url = 'https://vn.indeed.com/viewjob?jk=000000000000'
 ): string {
   return `<html><body>
 <div id="jobsearch-ViewjobHeader">

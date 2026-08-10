@@ -116,7 +116,6 @@ export function loadConfig(): Config {
       url: process.env.RABBITMQ_URL || 'amqp://localhost',
       exchange: process.env.RABBITMQ_EXCHANGE || 'jobs.events',
     },
-
   };
 
   try {

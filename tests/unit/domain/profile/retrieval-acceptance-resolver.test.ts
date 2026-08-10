@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { RetrievalAcceptanceResolver } from '../../../../src/domain/profile/retrieval/resolver/retrieval-acceptance.resolver.js' ;
+import { RetrievalAcceptanceResolver } from '../../../../src/domain/profile/retrieval/resolver/retrieval-acceptance.resolver.js';
 import { RetrievalPolicy } from '../../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
-import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js' ;
+import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js';
 
 describe('RetrievalAcceptanceResolver', () => {
   let resolver: RetrievalAcceptanceResolver;
@@ -12,8 +12,8 @@ describe('RetrievalAcceptanceResolver', () => {
     policy = {
       resolver: {
         minAcceptedScore: 0.55,
-        requireEvidenceForSkills: true
-      }
+        requireEvidenceForSkills: true,
+      },
     };
 
     resolver = new RetrievalAcceptanceResolver(policy as RetrievalPolicy);
@@ -32,7 +32,7 @@ describe('RetrievalAcceptanceResolver', () => {
         matchedPatterns: ['test pattern'],
         occurrencesDetail: [],
         sources: new Set(['canonical']),
-        trace: []
+        trace: [],
       };
 
       // Act
@@ -58,7 +58,7 @@ describe('RetrievalAcceptanceResolver', () => {
         matchedPatterns: ['test pattern'],
         occurrencesDetail: [],
         sources: new Set(['canonical']),
-        trace: []
+        trace: [],
       };
 
       // Act
@@ -84,7 +84,7 @@ describe('RetrievalAcceptanceResolver', () => {
         matchedPatterns: ['test pattern'],
         occurrencesDetail: [],
         sources: new Set(['canonical']),
-        trace: []
+        trace: [],
       };
 
       // Act
@@ -110,7 +110,7 @@ describe('RetrievalAcceptanceResolver', () => {
         matchedPatterns: ['test pattern'],
         occurrencesDetail: [],
         sources: new Set(['canonical']),
-        trace: []
+        trace: [],
       };
 
       // Act
@@ -137,7 +137,7 @@ describe('RetrievalAcceptanceResolver', () => {
         matchedPatterns: ['test pattern'],
         occurrencesDetail: [],
         sources: new Set(['canonical']),
-        trace: []
+        trace: [],
       };
       const scoreToUse = 0.6; // Above threshold
 

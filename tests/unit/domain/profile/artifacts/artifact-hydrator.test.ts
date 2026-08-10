@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ArtifactHydrator } from '../../../../../src/domain/profile/artifacts/loaders/artifact-hydrator.js' ;
-import type { ArtifactBundle } from '../../../../../src/domain/profile/artifacts/types/artifact.types.js' ;
+import { ArtifactHydrator } from '../../../../../src/domain/profile/artifacts/loaders/artifact-hydrator.js';
+import type { ArtifactBundle } from '../../../../../src/domain/profile/artifacts/types/artifact.types.js';
 
 vi.mock('../../../../../src/services/profile/artifacts/producers/aho.producer.js', () => ({
   AhoProducer: vi.fn().mockImplementation(() => ({
@@ -19,8 +19,24 @@ describe('ArtifactHydrator', () => {
   const makeBundle = (overrides: Partial<ArtifactBundle> = {}): ArtifactBundle => ({
     anchors: new Map(),
     evidences: new Map(),
-    enSurfaces: [{ pattern: 'test', anchorId: 'cap.language.Go' as any, language: 'en', source: 'canonical', weight: 1 }],
-    viSurfaces: [{ pattern: 'kiem tra', anchorId: 'cap.language.Go' as any, language: 'vi', source: 'canonical', weight: 1 }],
+    enSurfaces: [
+      {
+        pattern: 'test',
+        anchorId: 'cap.language.Go' as any,
+        language: 'en',
+        source: 'canonical',
+        weight: 1,
+      },
+    ],
+    viSurfaces: [
+      {
+        pattern: 'kiem tra',
+        anchorId: 'cap.language.Go' as any,
+        language: 'vi',
+        source: 'canonical',
+        weight: 1,
+      },
+    ],
     adjacency: new Map(),
     anchorToEvidence: new Map(),
     ...overrides,
@@ -50,11 +66,29 @@ describe('ArtifactHydrator', () => {
   it('builds aho automaton for each language', () => {
     const bundle = makeBundle({
       enSurfaces: [
-        { pattern: 'Go developer', anchorId: 'cap.language.Go' as any, language: 'en', source: 'canonical', weight: 1 },
-        { pattern: 'TypeScript', anchorId: 'cap.language.TypeScript' as any, language: 'en', source: 'canonical', weight: 1 },
+        {
+          pattern: 'Go developer',
+          anchorId: 'cap.language.Go' as any,
+          language: 'en',
+          source: 'canonical',
+          weight: 1,
+        },
+        {
+          pattern: 'TypeScript',
+          anchorId: 'cap.language.TypeScript' as any,
+          language: 'en',
+          source: 'canonical',
+          weight: 1,
+        },
       ],
       viSurfaces: [
-        { pattern: 'lap trinh vien Go', anchorId: 'cap.language.Go' as any, language: 'vi', source: 'canonical', weight: 1 },
+        {
+          pattern: 'lap trinh vien Go',
+          anchorId: 'cap.language.Go' as any,
+          language: 'vi',
+          source: 'canonical',
+          weight: 1,
+        },
       ],
     });
 

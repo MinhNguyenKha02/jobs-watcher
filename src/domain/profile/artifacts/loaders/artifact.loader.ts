@@ -1,15 +1,8 @@
-import {
-  deserializeMap,
-  deserializeNestedSetMap,
-} from '../serializers/map.serializer.js';
+import { deserializeMap, deserializeNestedSetMap } from '../serializers/map.serializer.js';
 
-import {
-  readArtifactFile,
-} from '../utils/artifact-file.util.js';
+import { readArtifactFile } from '../utils/artifact-file.util.js';
 
-import {
-  ArtifactBundle,
-} from '../types/artifact.types.js';
+import { ArtifactBundle } from '../types/artifact.types.js';
 
 import {
   AnchorId,
@@ -21,90 +14,33 @@ import {
 } from '../../types/retrieval.types.js';
 
 export class ArtifactLoader {
+  async load(): Promise<ArtifactBundle> {
+    const [anchors, evidences, enSurfaces, viSurfaces, adjacency, anchorToEvidence] =
+      await Promise.all([
+        readArtifactFile<[AnchorId, AnchorNode][]>('anchors.json'),
 
-  async load():
-    Promise<ArtifactBundle> {
+        readArtifactFile<[EvidenceId, EvidenceNode][]>('evidences.json'),
 
-    const [
-      anchors,
-      evidences,
-      enSurfaces,
-      viSurfaces,
-      adjacency,
-      anchorToEvidence,
-    ] = await Promise.all([
-      readArtifactFile<
-        [
-          AnchorId,
-          AnchorNode,
-        ][]
-      >(
-        'anchors.json',
-      ),
+        readArtifactFile<LexicalSurface[]>('surfaces.en.json'),
 
-      readArtifactFile<
-        [
-          EvidenceId,
-          EvidenceNode,
-        ][]
-      >(
-        'evidences.json',
-      ),
+        readArtifactFile<LexicalSurface[]>('surfaces.vi.json'),
 
-      readArtifactFile<
-        LexicalSurface[]
-      >(
-        'surfaces.en.json',
-      ),
+        readArtifactFile<[AnchorId, AdjacencyEdge[]][]>('adjacency.json'),
 
-      readArtifactFile<
-        LexicalSurface[]
-      >(
-        'surfaces.vi.json',
-      ),
-
-      readArtifactFile<
-        [
-          AnchorId,
-          AdjacencyEdge[],
-        ][]
-      >(
-        'adjacency.json',
-      ),
-
-      readArtifactFile<
-        [
-          AnchorId,
-          EvidenceId[],
-        ][]
-      >(
-        'anchor-to-evidence.json',
-      ),
-    ]);
+        readArtifactFile<[AnchorId, EvidenceId[]][]>('anchor-to-evidence.json'),
+      ]);
 
     return {
-      anchors:
-        deserializeMap(
-          anchors,
-        ),
+      anchors: deserializeMap(anchors),
 
-      evidences:
-        deserializeMap(
-          evidences,
-        ),
+      evidences: deserializeMap(evidences),
 
       enSurfaces,
       viSurfaces,
 
-      adjacency:
-        deserializeMap(
-          adjacency,
-        ),
+      adjacency: deserializeMap(adjacency),
 
-      anchorToEvidence:
-        deserializeNestedSetMap(
-          anchorToEvidence,
-        ),
+      anchorToEvidence: deserializeNestedSetMap(anchorToEvidence),
     };
   }
 }

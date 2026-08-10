@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PropagationEngine } from '../../../../src/domain/profile/retrieval/propagation/propagation-engine.js' ;
+import { PropagationEngine } from '../../../../src/domain/profile/retrieval/propagation/propagation-engine.js';
 import { RetrievalPolicy } from '../../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
-import { MatchSignalBuilder } from '../../../../src/domain/profile/retrieval/scoring/match-signal.builder.js' ;
-import { AnchorId, MatchSignal, AdjacencyEdge } from '../../../../src/domain/profile/types/retrieval.types.js' ;
+import { MatchSignalBuilder } from '../../../../src/domain/profile/retrieval/scoring/match-signal.builder.js';
+import {
+  AnchorId,
+  MatchSignal,
+  AdjacencyEdge,
+} from '../../../../src/domain/profile/types/retrieval.types.js';
 
 describe('PropagationEngine', () => {
   let engine: PropagationEngine;
@@ -19,11 +23,11 @@ describe('PropagationEngine', () => {
         decayFactor: 0.72,
         blockedKinds: [], // e.g., ['beh']
         minEdgeWeight: 0.1,
-        maxExpandedAnchors: 1000
+        maxExpandedAnchors: 1000,
       },
       direct: {
-        minScore: 0.1
-      }
+        minScore: 0.1,
+      },
     };
 
     // Create the engine with our adjacency map
@@ -42,7 +46,7 @@ describe('PropagationEngine', () => {
       matchedPatterns: [],
       occurrencesDetail: [],
       sources: new Set(['canonical']),
-      trace: []
+      trace: [],
     } as MatchSignal;
   };
 
@@ -56,18 +60,21 @@ describe('PropagationEngine', () => {
       adjacencyMap.set(aId, [{ from: aId, to: bId, weight: 0.5 }]);
 
       // Create the engine with this adjacency map
-      const engine = new PropagationEngine({
-        propagation: {
-          maxDepth: 2,
-          decayFactor: 0.72,
-          blockedKinds: [],
-          minEdgeWeight: 0.1,
-          maxExpandedAnchors: 1000
-        },
-        direct: {
-          minScore: 0.1
-        }
-      } as RetrievalPolicy, adjacencyMap);
+      const engine = new PropagationEngine(
+        {
+          propagation: {
+            maxDepth: 2,
+            decayFactor: 0.72,
+            blockedKinds: [],
+            minEdgeWeight: 0.1,
+            maxExpandedAnchors: 1000,
+          },
+          direct: {
+            minScore: 0.1,
+          },
+        } as RetrievalPolicy,
+        adjacencyMap
+      );
 
       const directSignals = new Map<AnchorId, MatchSignal>();
       directSignals.set(aId, createDirectSignal(aId, 1.0));
@@ -92,18 +99,21 @@ describe('PropagationEngine', () => {
       const adjacencyMap = new Map<AnchorId, AdjacencyEdge[]>();
       adjacencyMap.set(aId, [{ from: aId, to: bId, weight: 0.35 }]);
 
-      const engine = new PropagationEngine({
-        propagation: {
-          maxDepth: 2,
-          decayFactor: 0.72,
-          blockedKinds: [],
-          minEdgeWeight: 0.1,
-          maxExpandedAnchors: 1000
-        },
-        direct: {
-          minScore: 0.1
-        }
-      } as RetrievalPolicy, adjacencyMap);
+      const engine = new PropagationEngine(
+        {
+          propagation: {
+            maxDepth: 2,
+            decayFactor: 0.72,
+            blockedKinds: [],
+            minEdgeWeight: 0.1,
+            maxExpandedAnchors: 1000,
+          },
+          direct: {
+            minScore: 0.1,
+          },
+        } as RetrievalPolicy,
+        adjacencyMap
+      );
 
       const directSignals = new Map<AnchorId, MatchSignal>();
       directSignals.set(aId, createDirectSignal(aId, 1.0));
@@ -131,18 +141,21 @@ describe('PropagationEngine', () => {
       adjacencyMap.set(bId, [{ from: bId, to: cId, weight: 0.5 }]);
       adjacencyMap.set(cId, [{ from: cId, to: dId, weight: 0.5 }]);
 
-      const engine = new PropagationEngine({
-        propagation: {
-          maxDepth: 2,
-          decayFactor: 0.72,
-          blockedKinds: [],
-          minEdgeWeight: 0.1,
-          maxExpandedAnchors: 1000
-        },
-        direct: {
-          minScore: 0.1
-        }
-      } as RetrievalPolicy, adjacencyMap);
+      const engine = new PropagationEngine(
+        {
+          propagation: {
+            maxDepth: 2,
+            decayFactor: 0.72,
+            blockedKinds: [],
+            minEdgeWeight: 0.1,
+            maxExpandedAnchors: 1000,
+          },
+          direct: {
+            minScore: 0.1,
+          },
+        } as RetrievalPolicy,
+        adjacencyMap
+      );
 
       const directSignals = new Map<AnchorId, MatchSignal>();
       directSignals.set(aId, createDirectSignal(aId, 1.0));
@@ -155,8 +168,8 @@ describe('PropagationEngine', () => {
       // Depth 0: A (direct)
       // Depth 1: B (from A)
       // Depth 2: C (from B)
-      // Depth 3: D (from C) -> should be blocked because depth >= maxDepth (2) when trying to go from C to D? 
-      // Let's check the code: 
+      // Depth 3: D (from C) -> should be blocked because depth >= maxDepth (2) when trying to go from C to D?
+      // Let's check the code:
       //   if (depth >= this.policy.propagation.maxDepth) { return; }
       //   Then we process the edges from the current node.
       //   When we are at node C (depth=2), we check: depth (2) >= maxDepth (2) -> true, so we return without processing edges from C.
@@ -176,18 +189,21 @@ describe('PropagationEngine', () => {
       const adjacencyMap = new Map<AnchorId, AdjacencyEdge[]>();
       adjacencyMap.set(aId, [{ from: aId, to: bId, weight: 0.5 }]);
 
-      const engine = new PropagationEngine({
-        propagation: {
-          maxDepth: 2,
-          decayFactor: 0.72,
-          blockedKinds: ['beh'],
-          minEdgeWeight: 0.1,
-          maxExpandedAnchors: 1000
-        },
-        direct: {
-          minScore: 0.1
-        }
-      } as RetrievalPolicy, adjacencyMap);
+      const engine = new PropagationEngine(
+        {
+          propagation: {
+            maxDepth: 2,
+            decayFactor: 0.72,
+            blockedKinds: ['beh'],
+            minEdgeWeight: 0.1,
+            maxExpandedAnchors: 1000,
+          },
+          direct: {
+            minScore: 0.1,
+          },
+        } as RetrievalPolicy,
+        adjacencyMap
+      );
 
       const directSignals = new Map<AnchorId, MatchSignal>();
       directSignals.set(aId, createDirectSignal(aId, 1.0));
@@ -209,18 +225,21 @@ describe('PropagationEngine', () => {
       const adjacencyMap = new Map<AnchorId, AdjacencyEdge[]>();
       adjacencyMap.set(aId, [{ from: aId, to: bId, weight: 0.05 }]); // below minEdgeWeight of 0.1
 
-      const engine = new PropagationEngine({
-        propagation: {
-          maxDepth: 2,
-          decayFactor: 0.72,
-          blockedKinds: [],
-          minEdgeWeight: 0.1,
-          maxExpandedAnchors: 1000
-        },
-        direct: {
-          minScore: 0.1
-        }
-      } as RetrievalPolicy, adjacencyMap);
+      const engine = new PropagationEngine(
+        {
+          propagation: {
+            maxDepth: 2,
+            decayFactor: 0.72,
+            blockedKinds: [],
+            minEdgeWeight: 0.1,
+            maxExpandedAnchors: 1000,
+          },
+          direct: {
+            minScore: 0.1,
+          },
+        } as RetrievalPolicy,
+        adjacencyMap
+      );
 
       const directSignals = new Map<AnchorId, MatchSignal>();
       directSignals.set(aId, createDirectSignal(aId, 1.0));

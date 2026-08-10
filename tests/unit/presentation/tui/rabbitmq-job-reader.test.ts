@@ -20,17 +20,22 @@ const mockS34 = makeMockChannel();
 
 vi.mock('amqplib', () => ({
   default: {
-    connect: vi.fn().mockImplementation(() => Promise.resolve({
-      createChannel: vi.fn()
-        .mockResolvedValueOnce(mockS1)
-        .mockResolvedValueOnce(mockS2)
-        .mockResolvedValueOnce(mockS34),
-    })),
+    connect: vi.fn().mockImplementation(() =>
+      Promise.resolve({
+        createChannel: vi
+          .fn()
+          .mockResolvedValueOnce(mockS1)
+          .mockResolvedValueOnce(mockS2)
+          .mockResolvedValueOnce(mockS34),
+      })
+    ),
   },
 }));
 
 let currentJob: { jobLifecycleId: string | null; job: any; stage: string | null } = {
-  jobLifecycleId: null, job: null, stage: null,
+  jobLifecycleId: null,
+  job: null,
+  stage: null,
 };
 let queueMode = true;
 
@@ -38,20 +43,32 @@ vi.mock('../../../../src/presentation/tui/shared-tui-state.js', () => ({
   setCurrentJob: vi.fn((id: string, job: any, stage: string) => {
     currentJob = { jobLifecycleId: id, job, stage };
   }),
-  clearCurrentJob: vi.fn(() => { currentJob = { jobLifecycleId: null, job: null, stage: null }; }),
+  clearCurrentJob: vi.fn(() => {
+    currentJob = { jobLifecycleId: null, job: null, stage: null };
+  }),
   getCurrentJob: vi.fn(() => currentJob),
   getQueueMode: vi.fn(() => queueMode),
 }));
 
 function makeS1Msg(id: string, overrides: Record<string, unknown> = {}) {
   return {
-    content: Buffer.from(JSON.stringify({ _id: id, jobLifecycleId: id, company: 'TestCo', ...overrides })),
+    content: Buffer.from(
+      JSON.stringify({ _id: id, jobLifecycleId: id, company: 'TestCo', ...overrides })
+    ),
     fields: { deliveryTag: 1, routingKey: 'job.generated' },
   };
 }
 function makeS2Msg(id: string, overrides: Record<string, unknown> = {}) {
   return {
-    content: Buffer.from(JSON.stringify({ _id: id, jobLifecycleId: id, role: 'Engineer', company: 'TestCo', ...overrides })),
+    content: Buffer.from(
+      JSON.stringify({
+        _id: id,
+        jobLifecycleId: id,
+        role: 'Engineer',
+        company: 'TestCo',
+        ...overrides,
+      })
+    ),
     fields: { deliveryTag: 2, routingKey: 'job.parse.completed' },
   };
 }
@@ -69,12 +86,15 @@ describe('RabbitMqJobReader', () => {
     vi.clearAllMocks();
     currentJob = { jobLifecycleId: null, job: null, stage: null };
     queueMode = true;
-    const { RabbitMqJobReader } = await import('../../../../src/presentation/tui/components/RabbitMqJobReader.js');
+    const { RabbitMqJobReader } =
+      await import('../../../../src/presentation/tui/components/RabbitMqJobReader.js');
     reader = new RabbitMqJobReader('amqp://localhost');
     await reader.start();
   });
 
-  afterEach(() => { reader.stop(); });
+  afterEach(() => {
+    reader.stop();
+  });
 
   describe('start / stop', () => {
     it('connects and consumes 3 queues', () => {

@@ -9,18 +9,18 @@ export interface DebugTraceEntry {
   to?: string;
   resolutionStrength?: ResolutionStrength;
 }
-  
+
 export interface Trace {
   anchorId: AnchorId;
   score: number;
   trace: {
     resolutionStrength: ResolutionStrength;
-    type: "lexical-hit" | "propagation" | "resolver-accepted" | "resolver-rejected";
+    type: 'lexical-hit' | 'propagation' | 'resolver-accepted' | 'resolver-rejected';
     from?: AnchorId;
     to?: AnchorId;
     scoreDelta: number;
     reason: string;
-  }[]
+  }[];
 }
 
 export interface DebugSnapshot {
@@ -57,8 +57,17 @@ export interface DebugSnapshot {
   }[];
 }
 
-function mapTrace(signal: { trace: { type: string; scoreDelta: number; reason: string; from?: string; to?: string; resolutionStrength?: ResolutionStrength }[] }): DebugTraceEntry[] {
-  return signal.trace.map(t => ({
+function mapTrace(signal: {
+  trace: {
+    type: string;
+    scoreDelta: number;
+    reason: string;
+    from?: string;
+    to?: string;
+    resolutionStrength?: ResolutionStrength;
+  }[];
+}): DebugTraceEntry[] {
+  return signal.trace.map((t) => ({
     type: t.type,
     scoreDelta: t.scoreDelta,
     reason: t.reason,
@@ -70,7 +79,20 @@ function mapTrace(signal: { trace: { type: string; scoreDelta: number; reason: s
 
 export function captureDebug(
   retrieval: RetrievalOutput,
-  result?: { traces: { anchorId: string; score: number; trace: { type: string; scoreDelta: number; reason: string; from?: string; to?: string; resolutionStrength?: ResolutionStrength }[] }[] },
+  result?: {
+    traces: {
+      anchorId: string;
+      score: number;
+      trace: {
+        type: string;
+        scoreDelta: number;
+        reason: string;
+        from?: string;
+        to?: string;
+        resolutionStrength?: ResolutionStrength;
+      }[];
+    }[];
+  }
 ): DebugSnapshot {
   const matchedAnchors: DebugSnapshot['matchedAnchors'] = [];
   for (const [anchorId, signal] of retrieval.direct) {
@@ -112,11 +134,11 @@ export function captureDebug(
       : null,
   }));
 
-  const resolvedTraces: DebugSnapshot['resolvedTraces'] = (result?.traces ?? []).map(t => ({
+  const resolvedTraces: DebugSnapshot['resolvedTraces'] = (result?.traces ?? []).map((t) => ({
     anchorId: t.anchorId,
     score: t.score,
-    resolutionStrength: t.trace.find(tt => tt.resolutionStrength)?.resolutionStrength || 'none',
-    trace: t.trace.map(tt => ({
+    resolutionStrength: t.trace.find((tt) => tt.resolutionStrength)?.resolutionStrength || 'none',
+    trace: t.trace.map((tt) => ({
       type: tt.type,
       scoreDelta: tt.scoreDelta,
       reason: tt.reason,

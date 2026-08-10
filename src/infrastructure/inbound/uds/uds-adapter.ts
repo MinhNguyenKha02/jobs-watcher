@@ -17,13 +17,15 @@ export class UdsAdapter {
 
   constructor(
     private ingestor: IngestorPort,
-    private config: UdsAdapterConfig,
+    private config: UdsAdapterConfig
   ) {}
 
   async start(): Promise<void> {
     const dir = path.dirname(this.config.socketPath);
     await fs.promises.mkdir(dir, { recursive: true });
-    try { await fs.promises.unlink(this.config.socketPath); } catch { }
+    try {
+      await fs.promises.unlink(this.config.socketPath);
+    } catch {}
     this.server = http.createServer((req, res) => this.handleRequest(req, res));
     return new Promise<void>((resolve, reject) => {
       this.server!.listen(this.config.socketPath, () => {
@@ -46,7 +48,9 @@ export class UdsAdapter {
   }
 
   private async drain(req: http.IncomingMessage): Promise<void> {
-    for await (const _chunk of req) { /* discard */ }
+    for await (const _chunk of req) {
+      /* discard */
+    }
   }
 
   private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
@@ -96,7 +100,11 @@ export class UdsAdapter {
     }
   }
 
-  private async handleIngest(req: http.IncomingMessage, res: http.ServerResponse, isWebhook: boolean): Promise<void> {
+  private async handleIngest(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    isWebhook: boolean
+  ): Promise<void> {
     try {
       const body = JSON.parse(await this.readBody(req));
       const html = body.html || '';
@@ -110,7 +118,7 @@ export class UdsAdapter {
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
         html,
-        isWebhook ? body.jobLifecycleId : undefined,
+        isWebhook ? body.jobLifecycleId : undefined
       );
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));

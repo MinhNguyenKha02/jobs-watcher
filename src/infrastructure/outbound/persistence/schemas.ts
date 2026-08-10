@@ -18,7 +18,5 @@ export const INDEXES = {
     { key: { role: 1, company: 1 }, unique: true, name: 'idx_role_company' },
     { key: { status: 1 }, name: 'idx_status' },
   ],
-  EXTRACTION_QUEUE: [
-    { key: { status: 1, createdAt: 1 }, name: 'idx_status_created' },
-  ],
+  EXTRACTION_QUEUE: [{ key: { status: 1, createdAt: 1 }, name: 'idx_status_created' }],
 };

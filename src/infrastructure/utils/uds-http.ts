@@ -8,13 +8,19 @@ export interface UdsRequestOptions {
   timeoutMs?: number;
 }
 
-export function postJsonOverUds(opts: UdsRequestOptions, body: unknown): Promise<{ statusCode: number; body: string }> {
+export function postJsonOverUds(
+  opts: UdsRequestOptions,
+  body: unknown
+): Promise<{ statusCode: number; body: string }> {
   const payload = typeof body === 'string' ? body : JSON.stringify(body || {});
   const options: any = {
     method: opts.method || 'POST',
     path: opts.path,
     socketPath: opts.socketPath,
-    headers: Object.assign({ 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }, opts.headers || {}),
+    headers: Object.assign(
+      { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+      opts.headers || {}
+    ),
   };
 
   return new Promise((resolve, reject) => {
@@ -27,7 +33,10 @@ export function postJsonOverUds(opts: UdsRequestOptions, body: unknown): Promise
       });
     });
     req.on('error', (err) => reject(err));
-    if (opts.timeoutMs) req.setTimeout(opts.timeoutMs, () => { req.destroy(new Error('timeout')); });
+    if (opts.timeoutMs)
+      req.setTimeout(opts.timeoutMs, () => {
+        req.destroy(new Error('timeout'));
+      });
     req.write(payload);
     req.end();
   });

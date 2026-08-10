@@ -4,7 +4,9 @@ import { JobStage } from '../../../../src/domain/types/job-lifecycle.js';
 
 const TEST_STATE_PATH = '/tmp/test-tui-state-ext.json';
 if (existsSync(TEST_STATE_PATH)) unlinkSync(TEST_STATE_PATH);
-try { unlinkSync(TEST_STATE_PATH + '.lock'); } catch {}
+try {
+  unlinkSync(TEST_STATE_PATH + '.lock');
+} catch {}
 process.env.TUI_SHARED_STATE_PATH = TEST_STATE_PATH;
 
 vi.mock('node:fs', async (importOriginal) => {
@@ -16,13 +18,23 @@ vi.mock('node:fs', async (importOriginal) => {
 });
 
 const {
-  setCurrentJob, getCurrentJob, getQueueMode, setQueueMode,
-  clearCurrentJob, resetState, setPreviewViewerModal, clearModal,
-} = await import('../../../../src/presentation/tui/shared-tui-state.js' );
+  setCurrentJob,
+  getCurrentJob,
+  getQueueMode,
+  setQueueMode,
+  clearCurrentJob,
+  resetState,
+  setPreviewViewerModal,
+  clearModal,
+} = await import('../../../../src/presentation/tui/shared-tui-state.js');
 
 function cleanState() {
-  try { unlinkSync(TEST_STATE_PATH); } catch {}
-  try { unlinkSync(TEST_STATE_PATH + '.lock'); } catch {}
+  try {
+    unlinkSync(TEST_STATE_PATH);
+  } catch {}
+  try {
+    unlinkSync(TEST_STATE_PATH + '.lock');
+  } catch {}
 }
 
 describe('shared-tui-state extended: mode toggle mid-job', () => {
@@ -166,7 +178,11 @@ describe('shared-tui-state extended: modal interaction', () => {
   });
 
   it('modal survives mode toggle? (direct mode has own substate)', () => {
-    setCurrentJob('job-modalq', { _id: 'job-modalq', company: 'Q' } as any, JobStage.PARTIAL_PARSED);
+    setCurrentJob(
+      'job-modalq',
+      { _id: 'job-modalq', company: 'Q' } as any,
+      JobStage.PARTIAL_PARSED
+    );
     setPreviewViewerModal('queue modal', 5);
     expect(getCurrentJob().modal).not.toBeNull();
 
@@ -203,14 +219,18 @@ describe('shared-tui-state extended: file persistence edge cases', () => {
   });
 
   it('v1 migration with messageId converts to v2 queue sub-state', () => {
-    writeFileSync(TEST_STATE_PATH, JSON.stringify({
-      version: 1,
-      messageId: 'v1-msg-id',
-      job: { _id: 'v1-msg-id', company: 'V1Co', role: 'V1' },
-      stage: 'partial_parsed',
-      editedFields: null,
-      updatedAt: '2025-01-01T00:00:00.000Z',
-    }), 'utf8');
+    writeFileSync(
+      TEST_STATE_PATH,
+      JSON.stringify({
+        version: 1,
+        messageId: 'v1-msg-id',
+        job: { _id: 'v1-msg-id', company: 'V1Co', role: 'V1' },
+        stage: 'partial_parsed',
+        editedFields: null,
+        updatedAt: '2025-01-01T00:00:00.000Z',
+      }),
+      'utf8'
+    );
 
     const state = getCurrentJob();
     expect(state.version).toBe(2);

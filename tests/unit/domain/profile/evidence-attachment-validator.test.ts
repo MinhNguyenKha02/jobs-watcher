@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EvidenceAttachmentValidator } from '../../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js' ;
-import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js' ;
-import { HydratedArtifactBundle } from '../../../../src/domain/profile/artifacts/types/artifact.types.js' ;
-import { RetrievalLogger } from '../../../../src/domain/profile/retrieval/logging/retrieval-logger.js' ;
+import { EvidenceAttachmentValidator } from '../../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js';
+import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js';
+import { HydratedArtifactBundle } from '../../../../src/domain/profile/artifacts/types/artifact.types.js';
+import { RetrievalLogger } from '../../../../src/domain/profile/retrieval/logging/retrieval-logger.js';
 
 describe('EvidenceAttachmentValidator', () => {
   let validator: EvidenceAttachmentValidator;
@@ -15,7 +15,7 @@ describe('EvidenceAttachmentValidator', () => {
 
     // Set up the mock logger
     mockLogger = {
-      logEvidenceAttachmentMissing: vi.fn()
+      logEvidenceAttachmentMissing: vi.fn(),
     } as RetrievalLogger;
     vi.spyOn(RetrievalLogger, 'getInstance').mockReturnValue(mockLogger);
 
@@ -30,7 +30,7 @@ describe('EvidenceAttachmentValidator', () => {
       matchedPatterns: [],
       occurrencesDetail: [],
       sources: new Set(['canonical']),
-      trace: []
+      trace: [],
     } as MatchSignal;
 
     // Set up basic artifacts
@@ -39,7 +39,7 @@ describe('EvidenceAttachmentValidator', () => {
       evidences: new Map<string, any>(),
       surfaces: [],
       adjacency: new Map(),
-      anchorToEvidence: new Map<string, Set<string>>()
+      anchorToEvidence: new Map<string, Set<string>>(),
     } as HydratedArtifactBundle;
 
     validator = new EvidenceAttachmentValidator();
@@ -56,10 +56,7 @@ describe('EvidenceAttachmentValidator', () => {
       expect(result.valid).toBe(false);
       expect(result.reason).toContain('Anchor not found');
       // Verify logger was called
-      expect(mockLogger.logEvidenceAttachmentMissing).toHaveBeenCalledWith(
-        'test-job',
-        'cap.test'
-      );
+      expect(mockLogger.logEvidenceAttachmentMissing).toHaveBeenCalledWith('test-job', 'cap.test');
     });
   });
 
@@ -70,7 +67,7 @@ describe('EvidenceAttachmentValidator', () => {
         id: 'cap.test',
         kind: 'cap' as const,
         category: 'test',
-        key: 'test'
+        key: 'test',
       };
       mockArtifacts.anchors.set('cap.test', anchor);
       // Note: we do NOT set any anchorToEvidence mapping for this anchor
@@ -82,10 +79,7 @@ describe('EvidenceAttachmentValidator', () => {
       expect(result.valid).toBe(false);
       expect(result.reason).toContain('No evidence mappings found');
       // Verify logger was called
-      expect(mockLogger.logEvidenceAttachmentMissing).toHaveBeenCalledWith(
-        'test-job',
-        'cap.test'
-      );
+      expect(mockLogger.logEvidenceAttachmentMissing).toHaveBeenCalledWith('test-job', 'cap.test');
     });
   });
 
@@ -96,7 +90,7 @@ describe('EvidenceAttachmentValidator', () => {
         id: 'cap.test',
         kind: 'cap' as const,
         category: 'test',
-        key: 'test'
+        key: 'test',
       };
       mockArtifacts.anchors.set('cap.test', anchor);
 
@@ -113,10 +107,7 @@ describe('EvidenceAttachmentValidator', () => {
       expect(result.valid).toBe(false);
       expect(result.reason).toContain('No valid evidence found');
       // Verify logger was called
-      expect(mockLogger.logEvidenceAttachmentMissing).toHaveBeenCalledWith(
-        'test-job',
-        'cap.test'
-      );
+      expect(mockLogger.logEvidenceAttachmentMissing).toHaveBeenCalledWith('test-job', 'cap.test');
     });
   });
 
@@ -127,7 +118,7 @@ describe('EvidenceAttachmentValidator', () => {
         id: 'cap.test',
         kind: 'cap' as const,
         category: 'test',
-        key: 'test'
+        key: 'test',
       };
       mockArtifacts.anchors.set('cap.test', anchor);
 
@@ -143,7 +134,7 @@ describe('EvidenceAttachmentValidator', () => {
         title: 'Test Evidence',
         summary: '',
         bullets: [],
-        technologies: []
+        technologies: [],
       };
       mockArtifacts.evidences.set('ev.test', evidence);
 

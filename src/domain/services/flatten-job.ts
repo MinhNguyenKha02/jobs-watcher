@@ -31,7 +31,9 @@ export function flattenJobDetails(details: JobDetails | undefined): string {
   return parts.join('\n\n');
 }
 
-export function flattenJob(job: Pick<Job, 'role' | 'company' | 'description' | 'salary' | 'location' | 'details'>): string {
+export function flattenJob(
+  job: Pick<Job, 'role' | 'company' | 'description' | 'salary' | 'location' | 'details'>
+): string {
   const parts: string[] = [];
   if (job.role) parts.push(`Role:\n${job.role}`);
   if (job.company) parts.push(`Company:\n${job.company}`);

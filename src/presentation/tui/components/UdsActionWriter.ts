@@ -52,7 +52,7 @@ export class UdsActionWriter {
       jobLifecycleId,
       action: OperatorAction.QUEUE,
     };
-    
+
     await this.sendAction(payload);
   }
 
@@ -64,7 +64,7 @@ export class UdsActionWriter {
       jobLifecycleId,
       action: OperatorAction.TRASH,
     };
-    
+
     await this.sendAction(payload);
   }
 
@@ -80,8 +80,10 @@ export class UdsActionWriter {
         throw new Error('Clipboard content is empty');
       }
 
-
-      logger.debug('Pasting HTML from clipboard (webhook stage 2)', { size: html.length, jobLifecycleId });
+      logger.debug('Pasting HTML from clipboard (webhook stage 2)', {
+        size: html.length,
+        jobLifecycleId,
+      });
 
       // POST to /internal/ingest?webhook=true endpoint
       const ingestOpts: UdsRequestOptions = {
@@ -126,7 +128,10 @@ export class UdsActionWriter {
         if (res.statusCode < 200 || res.statusCode >= 300) {
           throw new Error(`Action failed: ${res.statusCode}`);
         }
-        logger.debug('Action sent', { action: payload.action, jobLifecycleId: payload.jobLifecycleId });
+        logger.debug('Action sent', {
+          action: payload.action,
+          jobLifecycleId: payload.jobLifecycleId,
+        });
         return;
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -138,7 +143,7 @@ export class UdsActionWriter {
             maxRetries,
             error: message,
           });
-          await new Promise(r => setTimeout(r, 100 * Math.pow(2, attempt - 1)));
+          await new Promise((r) => setTimeout(r, 100 * Math.pow(2, attempt - 1)));
         } else {
           logger.error('Action failed after max attempts', {
             jobLifecycleId: payload.jobLifecycleId,

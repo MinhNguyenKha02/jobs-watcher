@@ -1,6 +1,18 @@
-import { AhoCorasick } from '../../../src/domain/profile/retrieval/aho-corasick.js' ;
-import { HydratedArtifactBundle } from '../../../src/domain/profile/artifacts/types/artifact.types.js' ;
-import { AdjacencyEdge, AdjacencyMap, AnchorId, AnchorNode, AnchorToEvidenceMap, EvidenceId, EvidenceNode, LexicalSurface, MatchSignal, RetrievalAcceptance, RetrievalEvidenceScore } from '../../../src/domain/profile/types/retrieval.types.js' ;
+import { AhoCorasick } from '../../../src/domain/profile/retrieval/aho-corasick.js';
+import { HydratedArtifactBundle } from '../../../src/domain/profile/artifacts/types/artifact.types.js';
+import {
+  AdjacencyEdge,
+  AdjacencyMap,
+  AnchorId,
+  AnchorNode,
+  AnchorToEvidenceMap,
+  EvidenceId,
+  EvidenceNode,
+  LexicalSurface,
+  MatchSignal,
+  RetrievalAcceptance,
+  RetrievalEvidenceScore,
+} from '../../../src/domain/profile/types/retrieval.types.js';
 
 export type AnchorIdStr = `cap.${string}` | `comp.${string}` | `beh.${string}` | `tech.${string}`;
 
@@ -92,8 +104,8 @@ export function buildHydratedArtifactBundle(opts: {
   adjacency?: { from: AnchorId; to: AnchorId; weight: number }[];
 }): HydratedArtifactBundle {
   const enSurfaces: LexicalSurface[] = opts.surfaces
-    .filter(s => (s.language ?? 'en') !== 'vi')
-    .map(s => ({
+    .filter((s) => (s.language ?? 'en') !== 'vi')
+    .map((s) => ({
       pattern: s.pattern,
       anchorId: s.anchorId,
       language: 'en' as const,
@@ -102,8 +114,8 @@ export function buildHydratedArtifactBundle(opts: {
     }));
 
   const viSurfaces: LexicalSurface[] = opts.surfaces
-    .filter(s => s.language === 'vi')
-    .map(s => ({
+    .filter((s) => s.language === 'vi')
+    .map((s) => ({
       pattern: s.pattern,
       anchorId: s.anchorId,
       language: 'vi' as const,
@@ -111,13 +123,9 @@ export function buildHydratedArtifactBundle(opts: {
       weight: s.weight,
     }));
 
-  const enAho = buildAhoCorasick(
-    opts.surfaces.filter(s => (s.language ?? 'en') !== 'vi')
-  );
+  const enAho = buildAhoCorasick(opts.surfaces.filter((s) => (s.language ?? 'en') !== 'vi'));
 
-  const viAho = buildAhoCorasick(
-    opts.surfaces.filter(s => s.language === 'vi')
-  );
+  const viAho = buildAhoCorasick(opts.surfaces.filter((s) => s.language === 'vi'));
 
   const anchors = buildAnchorMap(opts.anchors);
   const evidences = buildEvidenceMap(opts.evidenceList ?? []);
@@ -150,13 +158,14 @@ export function makeSignal(id: AnchorId, overrides: Partial<MatchSignal> = {}): 
   };
 }
 
-export function makeEvidenceScore(
-  score: number,
-  evidence?: EvidenceNode
-): RetrievalEvidenceScore {
+export function makeEvidenceScore(score: number, evidence?: EvidenceNode): RetrievalEvidenceScore {
   return { score, evidence };
 }
 
-export function makeAcceptance(accepted: boolean, score: number, reason: string): RetrievalAcceptance {
+export function makeAcceptance(
+  accepted: boolean,
+  score: number,
+  reason: string
+): RetrievalAcceptance {
   return { accepted, score, reason };
 }

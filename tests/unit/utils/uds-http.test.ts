@@ -4,7 +4,7 @@ import http from 'node:http';
 let mockReq: any;
 let mockResponses: Array<{ statusCode: number; body: string }>;
 
-const { postJsonOverUds } = await import('../../../src/infrastructure/utils/uds-http.js' );
+const { postJsonOverUds } = await import('../../../src/infrastructure/utils/uds-http.js');
 
 function spyHttpRequest() {
   vi.spyOn(http, 'request').mockImplementation((_opts: any, cb: any) => {
@@ -45,7 +45,10 @@ describe('uds-http', () => {
 
   it('sends POST request to correct socket path and endpoint', async () => {
     mockResponses.push({ statusCode: 200, body: '{}' });
-    const promise = postJsonOverUds({ socketPath: SOCKET_PATH, path: '/internal/ingest' }, { html: '<div>job</div>' });
+    const promise = postJsonOverUds(
+      { socketPath: SOCKET_PATH, path: '/internal/ingest' },
+      { html: '<div>job</div>' }
+    );
     await vi.advanceTimersByTimeAsync(20);
 
     const opts = (http.request as any).mock.calls[0][0];
@@ -68,7 +71,10 @@ describe('uds-http', () => {
 
   it('merges custom headers', async () => {
     mockResponses.push({ statusCode: 200, body: '{}' });
-    const promise = postJsonOverUds({ socketPath: SOCKET_PATH, path: '/test', headers: { 'x-custom': 'val' } }, {});
+    const promise = postJsonOverUds(
+      { socketPath: SOCKET_PATH, path: '/test', headers: { 'x-custom': 'val' } },
+      {}
+    );
     await vi.advanceTimersByTimeAsync(20);
 
     const opts = (http.request as any).mock.calls[0][0];
@@ -124,7 +130,10 @@ describe('uds-http', () => {
 
   it('handles timeout option', async () => {
     mockResponses.push({ statusCode: 200, body: '{}' });
-    const promise = postJsonOverUds({ socketPath: SOCKET_PATH, path: '/test', timeoutMs: 5000 }, {});
+    const promise = postJsonOverUds(
+      { socketPath: SOCKET_PATH, path: '/test', timeoutMs: 5000 },
+      {}
+    );
     await vi.advanceTimersByTimeAsync(20);
 
     expect(mockReq.setTimeout).toHaveBeenCalledWith(5000, expect.any(Function));

@@ -19,19 +19,34 @@ function makeGmailClient(overrides: Record<string, unknown> = {}) {
   };
 }
 
-async function postJson(port: number, path: string, body: unknown): Promise<{ status: number; data: any }> {
+async function postJson(
+  port: number,
+  path: string,
+  body: unknown
+): Promise<{ status: number; data: any }> {
   const data = JSON.stringify(body);
   const attempts = 10;
   for (let i = 0; i < attempts; i++) {
     try {
       return await new Promise<{ status: number; data: any }>((resolve, reject) => {
         const req = http.request(
-          { host: '127.0.0.1', port, path, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } },
+          {
+            host: '127.0.0.1',
+            port,
+            path,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(data),
+            },
+          },
           (res) => {
             let raw = '';
             res.on('data', (c) => (raw += c));
-            res.on('end', () => resolve({ status: res.statusCode ?? 0, data: raw ? JSON.parse(raw) : null }));
-          },
+            res.on('end', () =>
+              resolve({ status: res.statusCode ?? 0, data: raw ? JSON.parse(raw) : null })
+            );
+          }
         );
         req.on('error', reject);
         req.write(data);
@@ -39,7 +54,10 @@ async function postJson(port: number, path: string, body: unknown): Promise<{ st
       });
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;
-      const transient = code === 'ECONNREFUSED' || code === 'ECONNRESET' || (err as Error).message.includes('socket hang up');
+      const transient =
+        code === 'ECONNREFUSED' ||
+        code === 'ECONNRESET' ||
+        (err as Error).message.includes('socket hang up');
       if (!transient || i === attempts - 1) throw err;
       await new Promise((r) => setTimeout(r, 100));
     }
@@ -70,8 +88,13 @@ describe('PRC-006 — Webhook adapter contract', () => {
     adapter = new WebhookAdapter(ingestor as any, gmail as any);
     await listen(adapter, port);
 
-    const pubsubData = Buffer.from(JSON.stringify({ historyId: '12345', emailAddress: 'x@y.com' })).toString('base64');
-    const res = await postJson(port, '/webhook', { message: { data: pubsubData }, subscription: 'sub' });
+    const pubsubData = Buffer.from(
+      JSON.stringify({ historyId: '12345', emailAddress: 'x@y.com' })
+    ).toString('base64');
+    const res = await postJson(port, '/webhook', {
+      message: { data: pubsubData },
+      subscription: 'sub',
+    });
 
     expect(res.status).toBe(202);
     expect(gmail.getMessagesSinceHistory).toHaveBeenCalledWith('12345');
@@ -81,7 +104,7 @@ describe('PRC-006 — Webhook adapter contract', () => {
       JobStage.PARTIAL_PARSED,
       CLIPBOARD_HTML,
       undefined,
-      expect.objectContaining({ messageId: 'msg-history-1' }),
+      expect.objectContaining({ messageId: 'msg-history-1' })
     );
   });
 
@@ -106,7 +129,10 @@ describe('PRC-006 — Webhook adapter contract', () => {
     adapter = new WebhookAdapter(ingestor as any, gmail as any);
     await listen(adapter, port);
 
-    const res = await postJson(port, '/webhook', { message: { data: '%%not-base64-json%%' }, subscription: 'sub' });
+    const res = await postJson(port, '/webhook', {
+      message: { data: '%%not-base64-json%%' },
+      subscription: 'sub',
+    });
 
     expect(res.status).toBe(202);
     expect(res.data.messageId).toBe('');
@@ -142,7 +168,9 @@ describe('PRC-006 — Webhook adapter contract', () => {
 
   it('GmailClient failure → 500 error response (no silent swallow)', async () => {
     const port = freshPort();
-    const gmail = makeGmailClient({ getMessage: vi.fn().mockRejectedValue(new Error('gmail down')) });
+    const gmail = makeGmailClient({
+      getMessage: vi.fn().mockRejectedValue(new Error('gmail down')),
+    });
     const ingestor = { processIngest: vi.fn(), processResolution: vi.fn() };
     adapter = new WebhookAdapter(ingestor as any, gmail as any);
     await listen(adapter, port);
@@ -156,7 +184,10 @@ describe('PRC-006 — Webhook adapter contract', () => {
   it('ingestor failure → 500 error response', async () => {
     const port = freshPort();
     const gmail = makeGmailClient();
-    const ingestor = { processIngest: vi.fn().mockRejectedValue(new Error('ingestor boom')), processResolution: vi.fn() };
+    const ingestor = {
+      processIngest: vi.fn().mockRejectedValue(new Error('ingestor boom')),
+      processResolution: vi.fn(),
+    };
     adapter = new WebhookAdapter(ingestor as any, gmail as any);
     await listen(adapter, port);
 
@@ -169,7 +200,15 @@ describe('PRC-006 — Webhook adapter contract', () => {
   it('extractHeader supplies subject/from/to metadata to processIngest', async () => {
     const port = freshPort();
     const gmail = makeGmailClient({
-      extractHeader: vi.fn((_m: unknown, name: string) => ({ Subject: 'Re: Job Alert', From: 'jobs@topcv.vn', To: 'me@dev.vn', 'Message-ID': 'thr-42' })[name] || ''),
+      extractHeader: vi.fn(
+        (_m: unknown, name: string) =>
+          ({
+            Subject: 'Re: Job Alert',
+            From: 'jobs@topcv.vn',
+            To: 'me@dev.vn',
+            'Message-ID': 'thr-42',
+          })[name] || ''
+      ),
     });
     const ingestor = { processIngest: vi.fn(), processResolution: vi.fn() };
     adapter = new WebhookAdapter(ingestor as any, gmail as any);
@@ -178,6 +217,8 @@ describe('PRC-006 — Webhook adapter contract', () => {
     await postJson(port, '/webhook', { messageId: 'meta-msg' });
 
     const args = ingestor.processIngest.mock.calls[0] as any[];
-    expect(args[4]).toEqual(expect.objectContaining({ subject: 'Re: Job Alert', from: 'jobs@topcv.vn', to: 'me@dev.vn' }));
+    expect(args[4]).toEqual(
+      expect.objectContaining({ subject: 'Re: Job Alert', from: 'jobs@topcv.vn', to: 'me@dev.vn' })
+    );
   });
 });

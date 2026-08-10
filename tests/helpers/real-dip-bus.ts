@@ -53,8 +53,11 @@ export async function createRealDipBus(exchange: string): Promise<RealDipBus> {
       msg: () =>
         new Promise<any>((resolve, reject) => {
           const timer = setTimeout(
-            () => reject(new Error(`Timeout waiting for message on ${exchange}:${routingKeys.join('|')}`)),
-            timeoutMs,
+            () =>
+              reject(
+                new Error(`Timeout waiting for message on ${exchange}:${routingKeys.join('|')}`)
+              ),
+            timeoutMs
           );
           ch.consume(
             queue,
@@ -65,7 +68,7 @@ export async function createRealDipBus(exchange: string): Promise<RealDipBus> {
                 resolve(JSON.parse(msg.content.toString()));
               }
             },
-            { noAck: false },
+            { noAck: false }
           );
         }),
     };
@@ -78,9 +81,15 @@ export async function createRealDipBus(exchange: string): Promise<RealDipBus> {
     routePort: new RabbitMqRoutingAdapter(rmqConnection),
     setup,
     teardown: async () => {
-      try { await rmqConnection.disconnect(); } catch {}
-      try { await ch.close(); } catch {}
-      try { await conn.close(); } catch {}
+      try {
+        await rmqConnection.disconnect();
+      } catch {}
+      try {
+        await ch.close();
+      } catch {}
+      try {
+        await conn.close();
+      } catch {}
     },
   };
 }

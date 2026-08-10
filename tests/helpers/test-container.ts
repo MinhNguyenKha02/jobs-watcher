@@ -2,10 +2,7 @@ import type { Db } from 'mongodb';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {
-  buildSystemContainer,
-  type AppContainer,
-} from '../../src/application/container.js';
+import { buildSystemContainer, type AppContainer } from '../../src/application/container.js';
 import type { JobIngestor } from '../../src/application/ingestor.js';
 import type { MongoJobLifecycleAdapter } from '../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
 import type { MongoExtractionQueueAdapter } from '../../src/infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
@@ -21,7 +18,7 @@ export interface TestContainerOptions {
   ns: string;
   dbName?: string;
   rmqExchange?: string;
-/** Also start the extraction scheduler (+ Playwright browser). Default false. */
+  /** Also start the extraction scheduler (+ Playwright browser). Default false. */
   startScheduler?: boolean;
   /** Asset output dir for the real AssetProducingAdapter. Defaults to a temp dir. */
   assetDir?: string;
@@ -56,7 +53,8 @@ export async function createTestContainer(opts: TestContainerOptions): Promise<T
   const dbName = opts.dbName ?? storage.dbName;
   const exchange = opts.rmqExchange ?? `jobs.events.int.${opts.ns}`;
   const socket = `/tmp/jobs-watcher-${opts.ns}.sock`;
-const assetDir = opts.assetDir ?? fs.mkdtempSync(path.join(os.tmpdir(), `jobs-watcher-${opts.ns}-assets-`));
+  const assetDir =
+    opts.assetDir ?? fs.mkdtempSync(path.join(os.tmpdir(), `jobs-watcher-${opts.ns}-assets-`));
 
   const container = buildSystemContainer(
     {
@@ -67,7 +65,7 @@ const assetDir = opts.assetDir ?? fs.mkdtempSync(path.join(os.tmpdir(), `jobs-wa
       health: { port: 0 },
       asset: { outputDir: assetDir },
     },
-    {},
+    {}
   );
 
   const bus = await createRealDipBus(exchange);
@@ -76,21 +74,45 @@ const assetDir = opts.assetDir ?? fs.mkdtempSync(path.join(os.tmpdir(), `jobs-wa
     await container.mongoConnector.connect();
     await container.mongoInitializer.init();
     await container.rmq.connect();
-if (opts.startScheduler) {
+    if (opts.startScheduler) {
       await container.extractionScheduler.start();
     }
     await container.udsAdapter.start();
   }
 
   async function stop(): Promise<void> {
-    try { await bus.teardown(); } catch { /* best-effort */ }
-    if (opts.startScheduler) {
-      try { await container.extractionScheduler.stop(); } catch { /* best-effort */ }
+    try {
+      await bus.teardown();
+    } catch {
+      /* best-effort */
     }
-    try { await container.udsAdapter.stop(); } catch { /* best-effort */ }
-    try { await container.rmq.disconnect(); } catch { /* best-effort */ }
-    try { await container.mongoConnector.disconnect(); } catch { /* best-effort */ }
-    try { fs.rmSync(assetDir, { recursive: true, force: true }); } catch { /* best-effort */ }
+    if (opts.startScheduler) {
+      try {
+        await container.extractionScheduler.stop();
+      } catch {
+        /* best-effort */
+      }
+    }
+    try {
+      await container.udsAdapter.stop();
+    } catch {
+      /* best-effort */
+    }
+    try {
+      await container.rmq.disconnect();
+    } catch {
+      /* best-effort */
+    }
+    try {
+      await container.mongoConnector.disconnect();
+    } catch {
+      /* best-effort */
+    }
+    try {
+      fs.rmSync(assetDir, { recursive: true, force: true });
+    } catch {
+      /* best-effort */
+    }
     await storage.stop();
   }
 

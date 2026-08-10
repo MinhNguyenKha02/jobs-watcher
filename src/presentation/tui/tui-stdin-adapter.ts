@@ -178,7 +178,10 @@ export class ActionController {
    * Handle input when a modal is active
    * Routes to appropriate modal-specific handler based on modal type
    */
-  private async handleModalInput(action: KeyAction, modal: Exclude<ModalState, null>): Promise<void> {
+  private async handleModalInput(
+    action: KeyAction,
+    modal: Exclude<ModalState, null>
+  ): Promise<void> {
     try {
       if (modal.type === 'PREVIEW_VIEWER') {
         if (action === KeyAction.MODAL_SCROLL_DOWN) {
@@ -195,7 +198,11 @@ export class ActionController {
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      logger.error(' Modal input handling failed', { action, modalType: modal.type, error: errorMsg });
+      logger.error(' Modal input handling failed', {
+        action,
+        modalType: modal.type,
+        error: errorMsg,
+      });
     }
   }
 
@@ -449,11 +456,11 @@ export class ActionController {
     const current = getCurrentJob();
 
     // 1. Extract URL (safely handle possible null job)
-    const url = current.job 
-      ? ((current.job as unknown as Record<string, unknown>)?.url || 
-        (current.job as unknown as Record<string, unknown>)?.link)
+    const url = current.job
+      ? (current.job as unknown as Record<string, unknown>)?.url ||
+        (current.job as unknown as Record<string, unknown>)?.link
       : undefined;
-      
+
     if (typeof url !== 'string' || !url) {
       logger.info(' No URL available in job', { jobLifecycleId: current.jobLifecycleId });
       console.log('[o] No URL available for this job');

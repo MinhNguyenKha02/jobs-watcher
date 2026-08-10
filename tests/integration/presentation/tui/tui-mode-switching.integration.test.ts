@@ -25,7 +25,12 @@ const EXCHANGE = `jobs.events.tui.itest.${TOKEN}`;
 const S1_QUEUE = `tui.itest.${TOKEN}.s1`;
 const S2_QUEUE = `tui.itest.${TOKEN}.s2`;
 const S34_QUEUE = `tui.itest.${TOKEN}.s3s4`;
-const READER_OPTS = { exchange: EXCHANGE, s1Queue: S1_QUEUE, s2Queue: S2_QUEUE, s34Queue: S34_QUEUE };
+const READER_OPTS = {
+  exchange: EXCHANGE,
+  s1Queue: S1_QUEUE,
+  s2Queue: S2_QUEUE,
+  s34Queue: S34_QUEUE,
+};
 
 // Isolate shared-state to a temp dir so tests don't collide with real TUI state.
 const sharedStateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tui-mode-'));
@@ -35,11 +40,7 @@ function publish(ch: Channel, key: string, payload: unknown): void {
   ch.publish(EXCHANGE, key, Buffer.from(JSON.stringify(payload)), { persistent: true });
 }
 
-async function waitFor(
-  check: () => boolean,
-  timeoutMs = 8000,
-  intervalMs = 50,
-): Promise<void> {
+async function waitFor(check: () => boolean, timeoutMs = 8000, intervalMs = 50): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (check()) return;
@@ -69,16 +70,28 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
   }, 30000);
 
   beforeEach(async () => {
-    try { await ch.purgeQueue(S1_QUEUE); } catch {}
-    try { await ch.purgeQueue(S2_QUEUE); } catch {}
-    try { await ch.purgeQueue(S34_QUEUE); } catch {}
+    try {
+      await ch.purgeQueue(S1_QUEUE);
+    } catch {}
+    try {
+      await ch.purgeQueue(S2_QUEUE);
+    } catch {}
+    try {
+      await ch.purgeQueue(S34_QUEUE);
+    } catch {}
     resetState();
   });
 
   afterAll(async () => {
-    try { await ch.purgeQueue(S1_QUEUE); } catch {}
-    try { await ch.purgeQueue(S2_QUEUE); } catch {}
-    try { await ch.purgeQueue(S34_QUEUE); } catch {}
+    try {
+      await ch.purgeQueue(S1_QUEUE);
+    } catch {}
+    try {
+      await ch.purgeQueue(S2_QUEUE);
+    } catch {}
+    try {
+      await ch.purgeQueue(S34_QUEUE);
+    } catch {}
     await ch.close();
     await conn.close();
     fs.rmSync(sharedStateDir, { recursive: true, force: true });
@@ -97,8 +110,16 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
 
   it('[b] direct mode [i]-style setCurrentJob latest-wins (overwrites previous)', () => {
     setQueueMode(false);
-    setCurrentJob('direct-job-1', { role: 'First', company: 'FirstCo' } as any, JobStage.FULL_PARSED);
-    setCurrentJob('direct-job-2', { role: 'Second', company: 'SecondCo' } as any, JobStage.FULL_PARSED);
+    setCurrentJob(
+      'direct-job-1',
+      { role: 'First', company: 'FirstCo' } as any,
+      JobStage.FULL_PARSED
+    );
+    setCurrentJob(
+      'direct-job-2',
+      { role: 'Second', company: 'SecondCo' } as any,
+      JobStage.FULL_PARSED
+    );
 
     const cur = getCurrentJob();
     expect(cur.jobLifecycleId).toBe('direct-job-2');
@@ -120,9 +141,20 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
 
-    publish(ch, ActionEvent.GENERATED, { _id: 'chain-1', role: 'Software Engineer', company: 'ChainCo', stage: JobStage.PARTIAL_PARSED });
+    publish(ch, ActionEvent.GENERATED, {
+      _id: 'chain-1',
+      role: 'Software Engineer',
+      company: 'ChainCo',
+      stage: JobStage.PARTIAL_PARSED,
+    });
     await new Promise((r) => setTimeout(r, 400));
-    publish(ch, ActionEvent.PARSE_COMPLETED, { _id: 'chain-1', role: 'Software Engineer', company: 'ChainCo', description: 'full desc', stage: JobStage.FULL_PARSED });
+    publish(ch, ActionEvent.PARSE_COMPLETED, {
+      _id: 'chain-1',
+      role: 'Software Engineer',
+      company: 'ChainCo',
+      description: 'full desc',
+      stage: JobStage.FULL_PARSED,
+    });
 
     await new Promise((r) => setTimeout(r, 500));
     const cur = getCurrentJob();
@@ -137,7 +169,12 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     await new Promise((r) => setTimeout(r, 300));
     setQueueMode(false);
 
-    publish(ch, ActionEvent.PARSE_COMPLETED, { _id: 'direct-chain-1', role: 'Backend Developer', company: 'DirectCo', stage: JobStage.FULL_PARSED });
+    publish(ch, ActionEvent.PARSE_COMPLETED, {
+      _id: 'direct-chain-1',
+      role: 'Backend Developer',
+      company: 'DirectCo',
+      stage: JobStage.FULL_PARSED,
+    });
 
     await new Promise((r) => setTimeout(r, 500));
     const cur = getCurrentJob();
@@ -151,8 +188,18 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
 
-    publish(ch, ActionEvent.GENERATED, { _id: 'complete-1', role: 'Data Engineer', company: 'DoneCo', stage: JobStage.PARTIAL_PARSED });
-    publish(ch, ActionEvent.PARSE_COMPLETED, { _id: 'complete-1', role: 'Data Engineer', company: 'DoneCo', stage: JobStage.FULL_PARSED });
+    publish(ch, ActionEvent.GENERATED, {
+      _id: 'complete-1',
+      role: 'Data Engineer',
+      company: 'DoneCo',
+      stage: JobStage.PARTIAL_PARSED,
+    });
+    publish(ch, ActionEvent.PARSE_COMPLETED, {
+      _id: 'complete-1',
+      role: 'Data Engineer',
+      company: 'DoneCo',
+      stage: JobStage.FULL_PARSED,
+    });
     await waitFor(() => getCurrentJob().jobLifecycleId === 'complete-1');
 
     publish(ch, ActionEvent.QUEUED, 'complete-1');
@@ -168,7 +215,12 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
 
-    publish(ch, ActionEvent.GENERATED, { _id: 'fail-adv-1', role: 'Web Developer', company: 'FailCo', stage: JobStage.PARTIAL_PARSED });
+    publish(ch, ActionEvent.GENERATED, {
+      _id: 'fail-adv-1',
+      role: 'Web Developer',
+      company: 'FailCo',
+      stage: JobStage.PARTIAL_PARSED,
+    });
     await waitFor(() => getCurrentJob().jobLifecycleId === 'fail-adv-1');
 
     publish(ch, ActionEvent.PARSE_FAILED, 'fail-adv-1');
@@ -193,9 +245,24 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     await reader.start();
     await new Promise((r) => setTimeout(r, 300));
 
-    publish(ch, ActionEvent.GENERATED, { _id: 'seq-1', role: 'Software Engineer', company: 'SeqCo1', stage: JobStage.PARTIAL_PARSED });
-    publish(ch, ActionEvent.GENERATED, { _id: 'seq-2', role: 'Backend Developer', company: 'SeqCo2', stage: JobStage.PARTIAL_PARSED });
-    publish(ch, ActionEvent.GENERATED, { _id: 'seq-3', role: 'Data Engineer', company: 'SeqCo3', stage: JobStage.PARTIAL_PARSED });
+    publish(ch, ActionEvent.GENERATED, {
+      _id: 'seq-1',
+      role: 'Software Engineer',
+      company: 'SeqCo1',
+      stage: JobStage.PARTIAL_PARSED,
+    });
+    publish(ch, ActionEvent.GENERATED, {
+      _id: 'seq-2',
+      role: 'Backend Developer',
+      company: 'SeqCo2',
+      stage: JobStage.PARTIAL_PARSED,
+    });
+    publish(ch, ActionEvent.GENERATED, {
+      _id: 'seq-3',
+      role: 'Data Engineer',
+      company: 'SeqCo3',
+      stage: JobStage.PARTIAL_PARSED,
+    });
 
     await waitFor(() => getCurrentJob().jobLifecycleId === 'seq-1');
     await waitFor(() => reader.getQueueDepth() === 2);
@@ -207,7 +274,11 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
 
   it('clearCurrentJob resets active-mode substate', () => {
     setQueueMode(false);
-    setCurrentJob('clear-1', { role: 'Full Stack Developer', company: 'ClearCo' } as any, JobStage.FULL_PARSED);
+    setCurrentJob(
+      'clear-1',
+      { role: 'Full Stack Developer', company: 'ClearCo' } as any,
+      JobStage.FULL_PARSED
+    );
     clearCurrentJob();
     const cur = getCurrentJob();
     expect(cur.jobLifecycleId).toBeNull();

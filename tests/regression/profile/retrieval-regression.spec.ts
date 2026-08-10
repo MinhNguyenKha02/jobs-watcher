@@ -2,11 +2,17 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPipeline, runSingle, runWithDebug, flattenSkills, type CorpusEntry } from './helpers/run-pipeline.js';
+import {
+  createPipeline,
+  runSingle,
+  runWithDebug,
+  flattenSkills,
+  type CorpusEntry,
+} from './helpers/run-pipeline.js';
 import type { PipelineComponents } from './helpers/run-pipeline.js';
 import type { ResolveOutput } from '../../../src/domain/profile/types/resolve.types.js';
 import { AssetProducingAdapter } from '../../../src/infrastructure/outbound/asset-builder/asset-producing-adapter.js';
-import { renderPdf } from '../../../src/infrastructure/outbound/asset-builder/renderer/pdf-renderer.js' ;
+import { renderPdf } from '../../../src/infrastructure/outbound/asset-builder/renderer/pdf-renderer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,10 +29,12 @@ interface ExpectedEntry {
   expectedResolution: Record<string, string>;
 }
 
-
 function loadCorpusFiles(): { file: string; stem: string; entry: CorpusEntry }[] {
-  const files = fs.readdirSync(CORPUS_DIR).filter(f => f.endsWith('.json')).sort();
-  return files.map(file => {
+  const files = fs
+    .readdirSync(CORPUS_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .sort();
+  return files.map((file) => {
     const entry = JSON.parse(fs.readFileSync(path.join(CORPUS_DIR, file), 'utf-8')) as CorpusEntry;
     const stem = path.basename(file, '.json');
     return { file, stem, entry };
@@ -54,14 +62,16 @@ const profile = {
   summary: '',
   skills: [] as string[],
   experience: [],
-  education: [{
-    institution: 'Ho Chi Minh City Open University',
-    degree: 'Bachelor of Information Technology',
-    field: '',
-    startDate: '2021',
-    endDate: '2025',
-    grade: 'good',
-  }],
+  education: [
+    {
+      institution: 'Ho Chi Minh City Open University',
+      degree: 'Bachelor of Information Technology',
+      field: '',
+      startDate: '2021',
+      endDate: '2025',
+      grade: 'good',
+    },
+  ],
   links: {
     linkedin: 'https://linkedin.com/in/minh-nguyen-kha',
     github: 'https://github.com/MinhNguyenKha02',
@@ -81,12 +91,15 @@ if (RECORD) {
       it(`records expected output for ${stem}`, () => {
         const result = runSingle(pipeline, entry) as ResolveOutput;
         const allSkills = flattenSkills(result);
-        const anchorIds = result.traces.map(t => t.anchorId);
-        const projectTitles = result.projects.map(p => p.evidence?.title).filter(Boolean) as string[];
+        const anchorIds = result.traces.map((t) => t.anchorId);
+        const projectTitles = result.projects
+          .map((p) => p.evidence?.title)
+          .filter(Boolean) as string[];
 
         const resolutionMap: Record<string, string> = {};
         for (const t of result.traces) {
-          const lastEntry = t.trace[t.trace.length - 1] as { resolutionStrength?: string } | undefined;
+          const lastEntry = t.trace[t.trace.length - 1] as
+            { resolutionStrength?: string } | undefined;
           if (lastEntry?.resolutionStrength) {
             resolutionMap[t.anchorId] = lastEntry.resolutionStrength;
           }
@@ -121,7 +134,7 @@ if (RECORD) {
         const expected = loadExpected(stem);
         if (!expected) return;
         const result = runSingle(pipeline, entry) as ResolveOutput;
-        const anchorIds = result.traces.map(t => t.anchorId);
+        const anchorIds = result.traces.map((t) => t.anchorId);
         for (const anchor of expected.expectedAnchors) {
           expect(anchorIds).toContain(anchor);
         }
@@ -141,7 +154,7 @@ if (RECORD) {
         const expected = loadExpected(stem);
         if (!expected) return;
         const result = runSingle(pipeline, entry) as ResolveOutput;
-        const projectTitles = result.projects.map(p => p.evidence?.title).filter(Boolean);
+        const projectTitles = result.projects.map((p) => p.evidence?.title).filter(Boolean);
         for (const project of expected.expectedProjects) {
           expect(projectTitles).toContain(project);
         }
@@ -152,23 +165,22 @@ if (RECORD) {
         if (!expected) return;
         const result = runSingle(pipeline, entry) as ResolveOutput;
         for (const [anchorId, expectedStrength] of Object.entries(expected.expectedResolution)) {
-          const trace = result.traces.find(t => t.anchorId === anchorId);
+          const trace = result.traces.find((t) => t.anchorId === anchorId);
           expect(trace).toBeDefined();
-          const lastTraceEntry = trace!.trace[trace!.trace.length - 1] as { resolutionStrength?: string } | undefined;
+          const lastTraceEntry = trace!.trace[trace!.trace.length - 1] as
+            { resolutionStrength?: string } | undefined;
           expect(lastTraceEntry?.resolutionStrength).toBe(expectedStrength);
         }
       });
 
       it(`CR-006: ${stem} — experience ordering`, () => {
         const result = runSingle(pipeline, entry) as ResolveOutput;
-        const scores = result.experiences.map(e => e.score);
+        const scores = result.experiences.map((e) => e.score);
         for (let i = 1; i < scores.length; i++) {
           expect(scores[i]).toBeLessThanOrEqual(scores[i - 1]);
         }
         expect(result.experiences.length).toBeLessThanOrEqual(2);
       });
-
-
 
       it(`CR-011: ${stem} — retrieval debug snapshot`, () => {
         const { debug } = runWithDebug(pipeline, entry);
@@ -196,7 +208,11 @@ if (RECORD) {
         }
         const outputDir = path.join(GENERATED_DIR, stem);
         fs.mkdirSync(outputDir, { recursive: true });
-        fs.writeFileSync(path.join(outputDir, 'debug.json'), JSON.stringify(debug, null, 2) + '\n', 'utf-8');
+        fs.writeFileSync(
+          path.join(outputDir, 'debug.json'),
+          JSON.stringify(debug, null, 2) + '\n',
+          'utf-8'
+        );
         expect(fs.existsSync(path.join(outputDir, 'debug.json'))).toBe(true);
       });
 

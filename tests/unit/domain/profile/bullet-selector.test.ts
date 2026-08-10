@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BulletSelector } from '../../../../src/domain/profile/resume/resolve/bullet-selector.js' ;
+import { BulletSelector } from '../../../../src/domain/profile/resume/resolve/bullet-selector.js';
 
 describe('BulletSelector', () => {
   let selector: BulletSelector;

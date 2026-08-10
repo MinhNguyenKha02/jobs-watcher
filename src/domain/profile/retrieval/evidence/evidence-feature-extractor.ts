@@ -23,11 +23,8 @@ export class EvidenceFeaturesExtractor {
    */
   static extract(evidence: EvidenceNode): EvidenceFeatures {
     // Combine all text sources: summary, bullets, technologies
-    const bulletTexts = evidence.bullets?.map(bullet => bullet.text) ?? [];
-    const textParts = [
-      evidence.summary ?? '',
-      bulletTexts.join(' ') ?? '',
-    ];
+    const bulletTexts = evidence.bullets?.map((bullet) => bullet.text) ?? [];
+    const textParts = [evidence.summary ?? '', bulletTexts.join(' ') ?? ''];
     const text = textParts.join(' ').toLowerCase();
 
     // Operational keywords
@@ -40,9 +37,12 @@ export class EvidenceFeaturesExtractor {
       'alerting',
       'workflow',
       'systemd',
-      'daemon'
+      'daemon',
     ];
-    const operationalScore = EvidenceFeaturesExtractor.calculateKeywordScore(text, operationalKeywords);
+    const operationalScore = EvidenceFeaturesExtractor.calculateKeywordScore(
+      text,
+      operationalKeywords
+    );
 
     // Architecture keywords
     const architectureKeywords = [
@@ -51,9 +51,12 @@ export class EvidenceFeaturesExtractor {
       'distributed',
       'hexagonal',
       'clean architecture',
-      'saga'
+      'saga',
     ];
-    const architectureScore = EvidenceFeaturesExtractor.calculateKeywordScore(text, architectureKeywords);
+    const architectureScore = EvidenceFeaturesExtractor.calculateKeywordScore(
+      text,
+      architectureKeywords
+    );
 
     // Ownership keywords
     const ownershipKeywords = [
@@ -62,7 +65,7 @@ export class EvidenceFeaturesExtractor {
       'designed',
       'developed',
       'architected',
-      'led'
+      'led',
     ];
     const ownershipScore = EvidenceFeaturesExtractor.calculateKeywordScore(text, ownershipKeywords);
 
@@ -73,7 +76,7 @@ export class EvidenceFeaturesExtractor {
       operationalScore,
       architectureScore,
       ownershipScore,
-      quantifiedScore
+      quantifiedScore,
     };
   }
 
@@ -104,12 +107,12 @@ export class EvidenceFeaturesExtractor {
   private static calculateQuantifiedScore(text: string): number {
     // Define the regex patterns for quantified matches
     const patterns = [
-      /\d+%/g,          // percentages
-      /\d+ms/g,         // milliseconds
-      /\d+x/g,          // times (e.g., 2x)
-      /\d+k/g,          // thousands (e.g., 10k)
-      /\d+m/g,          // millions (e.g., 5m)
-      /\d+/g            // plain numbers
+      /\d+%/g, // percentages
+      /\d+ms/g, // milliseconds
+      /\d+x/g, // times (e.g., 2x)
+      /\d+k/g, // thousands (e.g., 10k)
+      /\d+m/g, // millions (e.g., 5m)
+      /\d+/g, // plain numbers
     ];
 
     let totalMatches = 0;

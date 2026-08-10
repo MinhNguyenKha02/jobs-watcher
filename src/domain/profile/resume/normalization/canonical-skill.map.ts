@@ -2,10 +2,10 @@
 
 /**
  * Canonical skill map for collapsing lexical aliases into canonical skill names.
- * 
+ *
  * The map is from the normalized skill name (as produced by SkillNormalizer.normalizeAnchor)
  * to the canonical skill name that should be used in the ATS skill section.
- * 
+ *
  * Example:
  *   'Rest Api' -> 'API Development'
  *   'Http Api' -> 'API Development'

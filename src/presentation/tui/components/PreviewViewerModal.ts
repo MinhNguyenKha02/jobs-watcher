@@ -61,9 +61,10 @@ export function renderPreviewViewerModal(modal: PreviewViewerModal): string {
   // Display content lines
   for (const contentLine of pageContent) {
     // Truncate line if too long
-    const displayLine = contentLine.length > MODAL_WIDTH - 4
-      ? contentLine.substring(0, MODAL_WIDTH - 7) + '...'
-      : contentLine;
+    const displayLine =
+      contentLine.length > MODAL_WIDTH - 4
+        ? contentLine.substring(0, MODAL_WIDTH - 7) + '...'
+        : contentLine;
 
     lines.push(
       paddingStr +

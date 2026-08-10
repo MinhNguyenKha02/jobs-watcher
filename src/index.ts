@@ -24,7 +24,7 @@ async function main(): Promise<void> {
         outputDir: process.env.ASSET_OUTPUT_DIR || config.generatedPath || './assets',
       },
     },
-    {},
+    {}
   );
 
   await app.start();

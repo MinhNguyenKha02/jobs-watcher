@@ -9,7 +9,8 @@ import { getLogger } from '../src/services/logger.js';
 const WEBHOOK_URL = process.env.WEBHOOK_URL || 'http://127.0.0.1:PORT/webhook'; // Set PORT/env as needed
 const LABEL_NAME = process.env.LABEL_NAME || config.gmail.labelName;
 const FETCH_LIMIT = parseInt(process.env.FETCH_LIMIT || '20', 10);
-const SINCE = process.env.FETCH_SINCE || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+const SINCE =
+  process.env.FETCH_SINCE || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 const TMP_MSGIDS = process.env.TMP_MSGIDS || 'logs/eval-messageids.json';
 
 async function main() {
@@ -18,7 +19,14 @@ async function main() {
   const labelId = await gmail.getLabelId(LABEL_NAME);
   const msgs = await gmail.listMessagesByLabel(labelId, FETCH_LIMIT, SINCE);
 
-  fs.writeFileSync(TMP_MSGIDS, JSON.stringify(msgs.map(m => ({ messageId: m.id })), null, 2));
+  fs.writeFileSync(
+    TMP_MSGIDS,
+    JSON.stringify(
+      msgs.map((m) => ({ messageId: m.id })),
+      null,
+      2
+    )
+  );
   getLogger().info(`[eval-fetch-and-trigger] Saved messageIds: ${msgs.length}`);
 
   // Batch POST messageIds to webhook in Pub/Sub-compatible format
@@ -37,7 +45,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   getLogger().error(`[eval-fetch-and-trigger] Error:`, err);
   process.exit(1);
 });

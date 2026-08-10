@@ -6,7 +6,6 @@ import type { IngestorPort } from './ports/inbound/ingestor.port.js';
 import type { JobLifecyclePort } from './ports/job-lifecycle.port.js';
 import type { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
 
-
 const logger = createLogger('ExtractionScheduler');
 const WORKER_COUNT = 3;
 
@@ -21,7 +20,7 @@ export class ExtractionScheduler {
     private browser: BrowserPort,
     private jobLifecycleColPort: JobLifecyclePort,
     private ingestor: IngestorPort,
-    private metricsRegistry?: MetricsRegistry,
+    private metricsRegistry?: MetricsRegistry
   ) {}
 
   async start(): Promise<void> {
@@ -46,15 +45,21 @@ export class ExtractionScheduler {
   private async waitForTurn(): Promise<void> {
     if (this.stopRequested) return;
 
-    await new Promise<void>(resolve => {
-      if (this.stopRequested) { resolve(); return; }
+    await new Promise<void>((resolve) => {
+      if (this.stopRequested) {
+        resolve();
+        return;
+      }
 
       this.waiters.push(resolve);
 
-      void this.queue.size().then(sz => {
+      void this.queue.size().then((sz) => {
         if (sz > 0) {
           const idx = this.waiters.indexOf(resolve);
-          if (idx !== -1) { this.waiters.splice(idx, 1); resolve(); }
+          if (idx !== -1) {
+            this.waiters.splice(idx, 1);
+            resolve();
+          }
         }
       });
     });
@@ -86,7 +91,12 @@ export class ExtractionScheduler {
         const url = jobDoc?.url || '';
         const extractResult = await this.browser.extract(url);
         const rawPayload = extractResult.html;
-        await this.ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, rawPayload, jobLifecycleId);
+        await this.ingestor.processIngest(
+          JobSource.BROWSER_AUTO,
+          JobStage.FULL_PARSED,
+          rawPayload,
+          jobLifecycleId
+        );
         this.metricsRegistry?.jobsInFlight.dec({ stage: 's1' });
         if (startMs > 0) {
           const durationSec = (Date.now() - startMs) / 1000;
@@ -97,7 +107,12 @@ export class ExtractionScheduler {
         logger.warn('Extraction failed', { workerId, jobLifecycleId, error: errMsg });
         this.metricsRegistry?.jobsInFlight.dec({ stage: 's1' });
         this.metricsRegistry?.jobErrors.inc({ stage: 'extraction', error_type: 'browser' });
-        await this.ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, '', jobLifecycleId);
+        await this.ingestor.processIngest(
+          JobSource.BROWSER_AUTO,
+          JobStage.PARTIAL_PARSED,
+          '',
+          jobLifecycleId
+        );
       }
     }
     logger.info('Worker stopped', { workerId });

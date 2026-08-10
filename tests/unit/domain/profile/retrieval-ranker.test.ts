@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { RetrievalRanker } from '../../../../src/domain/profile/retrieval/ranking/retrieval-ranker.js' ;
+import { RetrievalRanker } from '../../../../src/domain/profile/retrieval/ranking/retrieval-ranker.js';
 
-import { RankingFeaturesExtractor } from '../../../../src/domain/profile/retrieval/ranking/ranking-features.js' ;
-import { rankingPolicy } from '../../../../src/domain/profile/retrieval/ranking/ranking-policy.js' ;
-import { retrievalPolicy } from '../../../../src/domain/profile/retrieval/policies/retrieval.policy.js' ;
-import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js' ;
+import { RankingFeaturesExtractor } from '../../../../src/domain/profile/retrieval/ranking/ranking-features.js';
+import { rankingPolicy } from '../../../../src/domain/profile/retrieval/ranking/ranking-policy.js';
+import { retrievalPolicy } from '../../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
+import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js';
 
 describe('RetrievalRanker', () => {
   let ranker: RetrievalRanker;
@@ -29,7 +29,7 @@ describe('RetrievalRanker', () => {
     directSignals = new Map();
     expandedSignals = new Map();
     evidences = new Map();
-    
+
     // Create a basic signal for testing
     signal = {
       anchorId: 'cap.test',
@@ -41,7 +41,7 @@ describe('RetrievalRanker', () => {
       matchedPatterns: ['test pattern'],
       occurrencesDetail: [],
       sources: new Set(['canonical']),
-      trace: []
+      trace: [],
     } as MatchSignal;
   });
 
@@ -59,7 +59,7 @@ describe('RetrievalRanker', () => {
         sourceDiversity: 0.0,
         occurrenceScore: 0.0,
         adjacencyConfidence: 0.0,
-        atsVisibilityWeight: 0.0
+        atsVisibilityWeight: 0.0,
       };
       extractSpy.mockReturnValue(mockFeatures);
 
@@ -74,9 +74,9 @@ describe('RetrievalRanker', () => {
 
       // Mock the retrievalPolicy to have the thresholds we want for classification (we don't care about the strength for this test, but we need to set it to avoid using the real thresholds)
       (retrievalPolicy as any).resolution = {
-        strongThreshold: 0.70,
-        partialThreshold: 0.40,
-        weakThreshold: 0.20
+        strongThreshold: 0.7,
+        partialThreshold: 0.4,
+        weakThreshold: 0.2,
       };
 
       // Act
@@ -100,7 +100,7 @@ describe('RetrievalRanker', () => {
         sourceDiversity: 0.0,
         occurrenceScore: 0.0,
         adjacencyConfidence: 0.0,
-        atsVisibilityWeight: 0.0
+        atsVisibilityWeight: 0.0,
       };
       extractSpy.mockReturnValue(mockFeatures);
 
@@ -115,9 +115,9 @@ describe('RetrievalRanker', () => {
 
       // Mock the retrievalPolicy to have the thresholds we want
       (retrievalPolicy as any).resolution = {
-        strongThreshold: 0.70,
-        partialThreshold: 0.40,
-        weakThreshold: 0.20
+        strongThreshold: 0.7,
+        partialThreshold: 0.4,
+        weakThreshold: 0.2,
       };
 
       // Act
@@ -143,7 +143,7 @@ describe('RetrievalRanker', () => {
         sourceDiversity: 0.0,
         occurrenceScore: 0.0,
         adjacencyConfidence: 0.0,
-        atsVisibilityWeight: 0.0
+        atsVisibilityWeight: 0.0,
       };
       extractSpy.mockReturnValue(mockFeatures);
 
@@ -158,9 +158,9 @@ describe('RetrievalRanker', () => {
 
       // Mock the retrievalPolicy to have the thresholds we want
       (retrievalPolicy as any).resolution = {
-        strongThreshold: 0.70,
-        partialThreshold: 0.40,
-        weakThreshold: 0.20
+        strongThreshold: 0.7,
+        partialThreshold: 0.4,
+        weakThreshold: 0.2,
       };
 
       // Act
@@ -184,7 +184,7 @@ describe('RetrievalRanker', () => {
         sourceDiversity: -0.1,
         occurrenceScore: -0.3,
         adjacencyConfidence: -0.2,
-        atsVisibilityWeight: -0.4
+        atsVisibilityWeight: -0.4,
       };
       extractSpy.mockReturnValue(mockFeatures);
 
@@ -199,9 +199,9 @@ describe('RetrievalRanker', () => {
 
       // Mock the retrievalPolicy to have the thresholds we want
       (retrievalPolicy as any).resolution = {
-        strongThreshold: 0.70,
-        partialThreshold: 0.40,
-        weakThreshold: 0.20
+        strongThreshold: 0.7,
+        partialThreshold: 0.4,
+        weakThreshold: 0.2,
       };
 
       // Act
@@ -220,9 +220,9 @@ describe('RetrievalRanker', () => {
     it('should classify correctly based on finalScore and evidence', () => {
       // We need to mock the retrievalPolicy to return the thresholds from the sprint document.
       (retrievalPolicy as any).resolution = {
-        strongThreshold: 0.70,
-        partialThreshold: 0.40,
-        weakThreshold: 0.20
+        strongThreshold: 0.7,
+        partialThreshold: 0.4,
+        weakThreshold: 0.2,
       };
 
       // Now we'll test each threshold by setting the finalScore to a specific value and checking the classification.
@@ -243,56 +243,56 @@ describe('RetrievalRanker', () => {
       // Test strong threshold: finalScore >= 0.70 -> strong
       // We'll set lexicalScore to 0.70
       // We also need the signal to have direct evidence (lexical stage without propagation-only) for strong classification
-      // According to the classification logic: hasDirectEvidence = signal.stages.has('lexical') && 
+      // According to the classification logic: hasDirectEvidence = signal.stages.has('lexical') &&
       //   (!signal.stages.has('propagation') || signal.stages.size > 1)
       const mockFeaturesStrong = {
-        lexicalScore: 0.70,
+        lexicalScore: 0.7,
         propagationScore: 0.0,
         evidenceScore: 0.0,
         sourceDiversity: 0.0,
         occurrenceScore: 0.0,
         adjacencyConfidence: 0.0,
-        atsVisibilityWeight: 0.0
+        atsVisibilityWeight: 0.0,
       };
       extractSpy.mockReturnValue(mockFeaturesStrong);
       signal.stages = new Set(['lexical']); // has lexical, not propagation -> hasDirectEvidence = true
       const resultStrong = ranker.rank(signal, directSignals, expandedSignals, evidences);
-      expect(resultStrong.finalScore).toBeCloseTo(0.70);
+      expect(resultStrong.finalScore).toBeCloseTo(0.7);
       expect(resultStrong.resolutionStrength).toBe('strong');
 
       // Test partial threshold: finalScore >= 0.40 and < 0.70 -> partial
       // We'll set lexicalScore to 0.40
       // For partial, we only need the score to be >= partialThreshold (regardless of evidence type)
       const mockFeaturesPartial = {
-        lexicalScore: 0.40,
+        lexicalScore: 0.4,
         propagationScore: 0.0,
         evidenceScore: 0.0,
         sourceDiversity: 0.0,
         occurrenceScore: 0.0,
         adjacencyConfidence: 0.0,
-        atsVisibilityWeight: 0.0
+        atsVisibilityWeight: 0.0,
       };
       extractSpy.mockReturnValue(mockFeaturesPartial);
       signal.stages = new Set(['lexical']); // still has lexical stage
       const resultPartial = ranker.rank(signal, directSignals, expandedSignals, evidences);
-      expect(resultPartial.finalScore).toBeCloseTo(0.40);
+      expect(resultPartial.finalScore).toBeCloseTo(0.4);
       expect(resultPartial.resolutionStrength).toBe('partial');
 
       // Test weak threshold: finalScore >= 0.20 and < 0.40 -> weak
       // We'll set lexicalScore to 0.20
       const mockFeaturesWeak = {
-        lexicalScore: 0.20,
+        lexicalScore: 0.2,
         propagationScore: 0.0,
         evidenceScore: 0.0,
         sourceDiversity: 0.0,
         occurrenceScore: 0.0,
         adjacencyConfidence: 0.0,
-        atsVisibilityWeight: 0.0
+        atsVisibilityWeight: 0.0,
       };
       extractSpy.mockReturnValue(mockFeaturesWeak);
       signal.stages = new Set(['lexical']); // still has lexical stage
       const resultWeak = ranker.rank(signal, directSignals, expandedSignals, evidences);
-      expect(resultWeak.finalScore).toBeCloseTo(0.20);
+      expect(resultWeak.finalScore).toBeCloseTo(0.2);
       expect(resultWeak.resolutionStrength).toBe('weak');
 
       // Test missing: finalScore < 0.20 -> missing
@@ -304,7 +304,7 @@ describe('RetrievalRanker', () => {
         sourceDiversity: 0.0,
         occurrenceScore: 0.0,
         adjacencyConfidence: 0.0,
-        atsVisibilityWeight: 0.0
+        atsVisibilityWeight: 0.0,
       };
       extractSpy.mockReturnValue(mockFeaturesMissing);
       signal.stages = new Set(['lexical']); // still has lexical stage

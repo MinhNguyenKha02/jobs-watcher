@@ -1,7 +1,10 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { WebhookAdapter, type GmailClient } from '../../src/infrastructure/inbound/web/webhook-adapter.js';
+import {
+  WebhookAdapter,
+  type GmailClient,
+} from '../../src/infrastructure/inbound/web/webhook-adapter.js';
 import { createTestContainer, type TestContainer } from './test-container.js';
 import { postJson, udsHelpers } from './e2e-harness.js';
 import { ActionEvent } from '../../src/domain/types/action-event.js';
@@ -84,19 +87,29 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
   const role = opts.role ?? 'Software Engineer';
   const company = opts.company ?? 'E2eCanonicalCo';
 
-  const tc = await createTestContainer({ ns: opts.ns, startScheduler: opts.startScheduler ?? false });
+  const tc = await createTestContainer({
+    ns: opts.ns,
+    startScheduler: opts.startScheduler ?? false,
+  });
   await tc.start();
 
   const gmail = {
     getMessage: async (msgId: string): Promise<unknown> => ({ messageId: msgId }),
     extractHeader: (_m: unknown, name: string) =>
-      ({ Subject: 'Job Alert', From: 'jobs@topcv.vn', To: 'me@dev.vn', 'Message-ID': 'thr-<message-id>' }[name] || ''),
+      ({
+        Subject: 'Job Alert',
+        From: 'jobs@topcv.vn',
+        To: 'me@dev.vn',
+        'Message-ID': 'thr-<message-id>',
+      })[name] || '',
     extractBody: (m: unknown): string => {
       const msgId = (m as { messageId?: string } | undefined)?.messageId ?? '';
       if (opts.emailHtml) return opts.emailHtml(msgId);
       const job = opts.jobForMessage ? opts.jobForMessage(msgId) : { role, company };
       if (/indeed/i.test(msgId)) {
-        const url = opts.indeedUrl ? opts.indeedUrl(job.role, job.company) : 'https://example.invalid/job';
+        const url = opts.indeedUrl
+          ? opts.indeedUrl(job.role, job.company)
+          : 'https://example.invalid/job';
         return indeedEmailHtmlMany([{ role: job.role, company: job.company, url }]);
       }
       return topcvEmailHtmlMany([{ role: job.role, company: job.company }]);
@@ -120,14 +133,17 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
         let pdfs: string[] = [];
         try {
           pdfs = fs.readdirSync(tc.assetDir).filter((f) => f.endsWith('.pdf'));
-        } catch { /* dir not created yet */ }
+        } catch {
+          /* dir not created yet */
+        }
         if (pdfs.length > 0) {
           const newest = pdfs
             .map((f) => path.join(tc.assetDir, f))
             .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0];
           return resolve(newest);
         }
-        if (Date.now() - start > timeoutMs) return reject(new Error('Timeout waiting for asset pdf'));
+        if (Date.now() - start > timeoutMs)
+          return reject(new Error('Timeout waiting for asset pdf'));
         setTimeout(poll, 250);
       };
       poll();
@@ -147,7 +163,11 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
     uds,
     resetDb: () => tc.storage.clearDb(),
     stop: async () => {
-      try { await webhook.stop(); } catch { /* best-effort */ }
+      try {
+        await webhook.stop();
+      } catch {
+        /* best-effort */
+      }
       await tc.stop();
     },
   };

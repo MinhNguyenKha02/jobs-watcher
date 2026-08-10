@@ -12,7 +12,7 @@ const CASES = {
 } as const;
 
 const KEY_BY_JOB: Record<string, string> = Object.fromEntries(
-  Object.entries(CASES).map(([key, job]) => [`${job.role}|${job.company}`, key]),
+  Object.entries(CASES).map(([key, job]) => [`${job.role}|${job.company}`, key])
 );
 
 function jobForMessage(messageId: string): { role: string; company: string } {
@@ -28,14 +28,24 @@ function jobForMessage(messageId: string): { role: string; company: string } {
  * The query carries a single `src` token (no `&`, so cheerio keeps the href
  * intact) which the server maps back to role/company.
  */
-function startDetailServer(): Promise<{ srcUrl: (role: string, company: string) => string; close: () => Promise<void> }> {
+function startDetailServer(): Promise<{
+  srcUrl: (role: string, company: string) => string;
+  close: () => Promise<void>;
+}> {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
       const parsed = new URL(req.url || '/', 'http://127.0.0.1');
       const src = parsed.searchParams.get('src') || '';
-      const job = (CASES as Record<string, { role: string; company: string }>)[src] ?? CASES['c2-auto'];
+      const job =
+        (CASES as Record<string, { role: string; company: string }>)[src] ?? CASES['c2-auto'];
       res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(indeedDetailHtml(job.role, job.company, `http://127.0.0.1:${(server.address() as any).port}/indeed.com/viewjob?src=${src}`));
+      res.end(
+        indeedDetailHtml(
+          job.role,
+          job.company,
+          `http://127.0.0.1:${(server.address() as any).port}/indeed.com/viewjob?src=${src}`
+        )
+      );
     });
     server.listen(0, '127.0.0.1', () => {
       const addr = server.address() as any;
@@ -65,7 +75,11 @@ describe('C2 browser-auto e2e — webhook Indeed s1(url) → scheduler + Playwri
   }, 120000);
 
   afterAll(async () => {
-    try { await detail.close(); } catch { /* best-effort */ }
+    try {
+      await detail.close();
+    } catch {
+      /* best-effort */
+    }
     await app.stop();
   });
 
@@ -82,7 +96,11 @@ describe('C2 browser-auto e2e — webhook Indeed s1(url) → scheduler + Playwri
     expect(compMsg.job.stage).toBe(JobStage.FULL_PARSED);
     expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
 
-    const queue = await app.events.on([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
+    const queue = await app.events.on([
+      ActionEvent.QUEUED,
+      ActionEvent.TRASHED,
+      ActionEvent.ROUTE_FAILED,
+    ]);
     const jRes = await app.uds.action(jobId, 'queue');
     expect(jRes.statusCode).toBe(200);
 
@@ -120,7 +138,11 @@ describe('C2 browser-auto e2e — webhook Indeed s1(url) → scheduler + Playwri
     expect(compMsg.job.company).toBe('C2TrashCo');
     expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
 
-    const trash = await app.events.on([ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED, ActionEvent.PARSE_FAILED]);
+    const trash = await app.events.on([
+      ActionEvent.TRASHED,
+      ActionEvent.ROUTE_FAILED,
+      ActionEvent.PARSE_FAILED,
+    ]);
     const dRes = await app.uds.action(jobId, 'trash');
     expect(dRes.statusCode).toBe(200);
 

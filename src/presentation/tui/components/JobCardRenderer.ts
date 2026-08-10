@@ -112,8 +112,20 @@ export class JobCardRenderer {
     const hasDetails = job.details !== undefined && job.details !== null;
     lines.push('╟─ Job Details (as-is from SSE):');
 
-    const excludeKeys = new Set(['platform', 'jobLifecycleId', '_id', 'ts', 'timestamp', 'recordedAt', 'source', 'action', 'stage', 'ingestSource', 'receivedAt']);
-    
+    const excludeKeys = new Set([
+      'platform',
+      'jobLifecycleId',
+      '_id',
+      'ts',
+      'timestamp',
+      'recordedAt',
+      'source',
+      'action',
+      'stage',
+      'ingestSource',
+      'receivedAt',
+    ]);
+
     for (const [key, value] of Object.entries(job)) {
       if (excludeKeys.has(key)) continue;
 
@@ -162,7 +174,8 @@ export class JobCardRenderer {
         continue;
       }
       if (value && typeof value === 'string' && value.trim()) {
-        const label = labelMap[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+        const label =
+          labelMap[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
         lines.push(`║    ${label}: ${this.truncate(value, this.terminalWidth - 14)}`);
       }
     }
@@ -196,16 +209,26 @@ export class JobCardRenderer {
    */
   private actionLabel(action: KeyAction): string {
     switch (action) {
-      case KeyAction.QUEUE: return 'j=queue';
-      case KeyAction.TRASH: return 'd=trash';
-      case KeyAction.PREVIEW: return 'p=preview';
-      case KeyAction.WEBHOOK_STAGE2_PARSE: return 'c=stage2';
-      case KeyAction.OPEN: return 'o=open-url';
-      case KeyAction.INGEST: return 'i=ingest';
-      case KeyAction.TOGGLE_QUEUE: return 'b=queue/direct';
-      case KeyAction.HELP: return '?=help';
-      case KeyAction.QUIT: return 'q=quit';
-      default: return '';
+      case KeyAction.QUEUE:
+        return 'j=queue';
+      case KeyAction.TRASH:
+        return 'd=trash';
+      case KeyAction.PREVIEW:
+        return 'p=preview';
+      case KeyAction.WEBHOOK_STAGE2_PARSE:
+        return 'c=stage2';
+      case KeyAction.OPEN:
+        return 'o=open-url';
+      case KeyAction.INGEST:
+        return 'i=ingest';
+      case KeyAction.TOGGLE_QUEUE:
+        return 'b=queue/direct';
+      case KeyAction.HELP:
+        return '?=help';
+      case KeyAction.QUIT:
+        return 'q=quit';
+      default:
+        return '';
     }
   }
 
@@ -217,15 +240,31 @@ export class JobCardRenderer {
       const actions = isDirect
         ? [KeyAction.INGEST, KeyAction.PREVIEW, KeyAction.QUIT, KeyAction.TOGGLE_QUEUE]
         : [KeyAction.QUIT, KeyAction.TOGGLE_QUEUE];
-      lines.push('╚ ' + actions.map(a => this.actionLabel(a)).join('  '));
+      lines.push('╚ ' + actions.map((a) => this.actionLabel(a)).join('  '));
       return lines.join('\n');
     }
 
     lines.push('╟─ Actions:');
     const actions = isDirect
-      ? [KeyAction.QUEUE, KeyAction.TRASH, KeyAction.PREVIEW, KeyAction.TOGGLE_QUEUE, KeyAction.HELP, KeyAction.QUIT]
-      : [KeyAction.QUEUE, KeyAction.TRASH, KeyAction.PREVIEW, KeyAction.WEBHOOK_STAGE2_PARSE, KeyAction.OPEN, KeyAction.TOGGLE_QUEUE, KeyAction.HELP, KeyAction.QUIT];
-    lines.push('║  ' + actions.map(a => this.actionLabel(a)).join('  '));
+      ? [
+          KeyAction.QUEUE,
+          KeyAction.TRASH,
+          KeyAction.PREVIEW,
+          KeyAction.TOGGLE_QUEUE,
+          KeyAction.HELP,
+          KeyAction.QUIT,
+        ]
+      : [
+          KeyAction.QUEUE,
+          KeyAction.TRASH,
+          KeyAction.PREVIEW,
+          KeyAction.WEBHOOK_STAGE2_PARSE,
+          KeyAction.OPEN,
+          KeyAction.TOGGLE_QUEUE,
+          KeyAction.HELP,
+          KeyAction.QUIT,
+        ];
+    lines.push('║  ' + actions.map((a) => this.actionLabel(a)).join('  '));
     lines.push('╚' + '═'.repeat(Math.max(0, this.terminalWidth - 2)) + '╝');
 
     return lines.join('\n');
@@ -269,7 +308,6 @@ export class JobCardRenderer {
       role: 'Senior Engineer',
       location: 'San Francisco, CA',
       url: 'https://example.com/job/123',
-
     };
 
     return renderer.renderCard(sampleJob, {

@@ -9,11 +9,9 @@ export class JobReader {
 
   removeEventListener(_eventType: string, _callback: (event: any) => void): void {}
 
-  start(_baseUrl: string, _token?: string): void {
-  }
+  start(_baseUrl: string, _token?: string): void {}
 
-  stop(): void {
-  }
+  stop(): void {}
 
   connect(): boolean {
     return true;

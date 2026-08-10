@@ -65,8 +65,15 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
     const port = tc.container.parseAdapter;
 
     await port.emitGenerated(
-      { _id: 'dip-gen-1', role: 'Engineer', company: 'GenCo', stage: JobStage.PARTIAL_PARSED, status: JobStatus.ENRICHING, source: JobSource.BROWSER_AUTO },
-      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO },
+      {
+        _id: 'dip-gen-1',
+        role: 'Engineer',
+        company: 'GenCo',
+        stage: JobStage.PARTIAL_PARSED,
+        status: JobStatus.ENRICHING,
+        source: JobSource.BROWSER_AUTO,
+      },
+      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
     );
 
     const msg = await handle.msg();
@@ -99,7 +106,8 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
   it('asset port: toAsset resolves a PDF into the container-configured temp dir → real chromium render', async () => {
     const retriever = new ProfileInfoRetriever();
     await retriever.init();
-    const text = 'Role: Platform Engineer\nCompany: LspCo\nDescription: Node.js, Go\nRequirements: Kubernetes, Terraform';
+    const text =
+      'Role: Platform Engineer\nCompany: LspCo\nDescription: Node.js, Go\nRequirements: Kubernetes, Terraform';
     const resolved = retriever.resolve(retriever.retrieve(text));
 
     const result = await tc.container.assetProducingAdapter.toAsset(resolved);

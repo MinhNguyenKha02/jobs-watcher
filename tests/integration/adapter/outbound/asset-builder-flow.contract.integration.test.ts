@@ -63,51 +63,54 @@ describe('Asset builder pipeline — full chain from queue action to PdfAsset', 
     expect(result).not.toContain('Location:');
   });
 
-  (hasArtifacts ? describe : describe.skip)('ProfileInfoRetriever + AssetProducingAdapter pipeline', () => {
-    let retriever: ProfileInfoRetriever;
+  (hasArtifacts ? describe : describe.skip)(
+    'ProfileInfoRetriever + AssetProducingAdapter pipeline',
+    () => {
+      let retriever: ProfileInfoRetriever;
 
-    beforeAll(async () => {
-      retriever = new ProfileInfoRetriever();
-      await retriever.init();
-    }, 30000);
+      beforeAll(async () => {
+        retriever = new ProfileInfoRetriever();
+        await retriever.init();
+      }, 30000);
 
-    it('retrieve + resolve produces ResolveOutput from flattened job text', () => {
-      const jobText =
-        'Role:\nSoftware Engineer\n\nCompany:\nTestCo\n\nDescription:\nNode.js, TypeScript, Go\n\n'
-        + 'Salary:\n$3000\n\nLocation:\nHCMC\n\n'
-        + 'Requirements:\nTypeScript, Node.js, MongoDB\n\n'
-        + 'Benefits:\nHealth insurance, Remote work';
+      it('retrieve + resolve produces ResolveOutput from flattened job text', () => {
+        const jobText =
+          'Role:\nSoftware Engineer\n\nCompany:\nTestCo\n\nDescription:\nNode.js, TypeScript, Go\n\n' +
+          'Salary:\n$3000\n\nLocation:\nHCMC\n\n' +
+          'Requirements:\nTypeScript, Node.js, MongoDB\n\n' +
+          'Benefits:\nHealth insurance, Remote work';
 
-      const retrieval = retriever.retrieve(jobText);
-      expect(retrieval).toBeDefined();
-      expect(retrieval.direct).toBeDefined();
-      expect(retrieval.expanded).toBeDefined();
-      expect(Array.isArray(retrieval.evidences)).toBe(true);
+        const retrieval = retriever.retrieve(jobText);
+        expect(retrieval).toBeDefined();
+        expect(retrieval.direct).toBeDefined();
+        expect(retrieval.expanded).toBeDefined();
+        expect(Array.isArray(retrieval.evidences)).toBe(true);
 
-      const resolved = retriever.resolve(retrieval);
-      expect(resolved).toBeDefined();
-      expect(resolved.skills).toBeDefined();
-      expect(resolved.experiences).toBeDefined();
-      expect(resolved.projects).toBeDefined();
-    });
+        const resolved = retriever.resolve(retrieval);
+        expect(resolved).toBeDefined();
+        expect(resolved.skills).toBeDefined();
+        expect(resolved.experiences).toBeDefined();
+        expect(resolved.projects).toBeDefined();
+      });
 
-    it('AssetProducingAdapter.toPdf maps ResolveOutput to correct PdfAsset structure', () => {
-      const jobText =
-        'Role:\nSenior Frontend Developer\n\nCompany:\nZalo\n\nDescription:\nReact, TypeScript\n\n'
-        + 'Salary:\n$2500\n\nLocation:\nHCMC\n\n'
-        + 'Requirements:\nTypeScript, React\n\n'
-        + 'Benefits:\nHealth insurance';
+      it('AssetProducingAdapter.toPdf maps ResolveOutput to correct PdfAsset structure', () => {
+        const jobText =
+          'Role:\nSenior Frontend Developer\n\nCompany:\nZalo\n\nDescription:\nReact, TypeScript\n\n' +
+          'Salary:\n$2500\n\nLocation:\nHCMC\n\n' +
+          'Requirements:\nTypeScript, React\n\n' +
+          'Benefits:\nHealth insurance';
 
-      const retrieval = retriever.retrieve(jobText);
-      const resolved = retriever.resolve(retrieval);
-      const adapter = new AssetProducingAdapter();
-      const pdf = adapter.toPdf(resolved, profileSource);
+        const retrieval = retriever.retrieve(jobText);
+        const resolved = retriever.resolve(retrieval);
+        const adapter = new AssetProducingAdapter();
+        const pdf = adapter.toPdf(resolved, profileSource);
 
-      expect(pdf.name).toBe(profileSource.name);
-      expect(pdf.contact.email).toBe(profileSource.email);
-      expect(pdf.skillGroups.length).toBeGreaterThan(0);
-      expect(Array.isArray(pdf.experiences)).toBe(true);
-      expect(Array.isArray(pdf.projects)).toBe(true);
-    });
-  });
+        expect(pdf.name).toBe(profileSource.name);
+        expect(pdf.contact.email).toBe(profileSource.email);
+        expect(pdf.skillGroups.length).toBeGreaterThan(0);
+        expect(Array.isArray(pdf.experiences)).toBe(true);
+        expect(Array.isArray(pdf.projects)).toBe(true);
+      });
+    }
+  );
 });

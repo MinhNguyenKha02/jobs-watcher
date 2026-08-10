@@ -2,14 +2,16 @@ import { MongoClient } from 'mongodb';
 
 async function main() {
   const uri = process.env.MONGODB_URI ?? 'mongodb://localhost:27017';
-  const dbName = process.env.MONGODB_DB ?? (() => {
-    try {
-      const u = new URL(process.env.MONGODB_URI ?? 'http://localhost');
-      return (u.pathname && u.pathname !== '/') ? u.pathname.replace(/^\//, '') : 'jobs-watcher';
-    } catch (e) {
-      return 'jobs-watcher';
-    }
-  })();
+  const dbName =
+    process.env.MONGODB_DB ??
+    (() => {
+      try {
+        const u = new URL(process.env.MONGODB_URI ?? 'http://localhost');
+        return u.pathname && u.pathname !== '/' ? u.pathname.replace(/^\//, '') : 'jobs-watcher';
+      } catch (e) {
+        return 'jobs-watcher';
+      }
+    })();
 
   const client = new MongoClient(uri);
   try {
@@ -21,7 +23,9 @@ async function main() {
 
     const skipConfirm = !!process.env.SKIP_CONFIRM;
     if (!skipConfirm) {
-      process.stdout.write(`About to empty collections: ${collections.join(', ')}. Type YES to continue: `);
+      process.stdout.write(
+        `About to empty collections: ${collections.join(', ')}. Type YES to continue: `
+      );
       const buf = Buffer.alloc(64);
       const n = await new Promise<number>((res) => {
         process.stdin.once('data', (d: Buffer) => res(d.copy(buf)));

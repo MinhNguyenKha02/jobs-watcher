@@ -11,22 +11,32 @@ const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 
 // Registers a persistent consumer and resolves each delivery through a queue so
 // that requeued (redelivered) messages are observable on the same consumer.
-function collectMessages(ch: Channel, queue: string): { messages: amqplib.ConsumeMessage[]; next: () => Promise<amqplib.ConsumeMessage> } {
+function collectMessages(
+  ch: Channel,
+  queue: string
+): { messages: amqplib.ConsumeMessage[]; next: () => Promise<amqplib.ConsumeMessage> } {
   const messages: amqplib.ConsumeMessage[] = [];
   const waiters: Array<(msg: amqplib.ConsumeMessage) => void> = [];
-  ch.consume(queue, (msg) => {
-    if (!msg) return;
-    const waiter = waiters.shift();
-    if (waiter) waiter(msg);
-    else messages.push(msg);
-  }, { noAck: false });
+  ch.consume(
+    queue,
+    (msg) => {
+      if (!msg) return;
+      const waiter = waiters.shift();
+      if (waiter) waiter(msg);
+      else messages.push(msg);
+    },
+    { noAck: false }
+  );
   return {
     messages,
     next: () => {
       const buffered = messages.shift();
       if (buffered) return Promise.resolve(buffered);
       return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error(`Timeout waiting for message on ${queue}`)), 8000);
+        const timeout = setTimeout(
+          () => reject(new Error(`Timeout waiting for message on ${queue}`)),
+          8000
+        );
         waiters.push((msg) => {
           clearTimeout(timeout);
           resolve(msg);
@@ -46,8 +56,12 @@ describe('PRC-008 — RMQ redelivery contracts (deterministic, no latency assert
   });
 
   afterAll(async () => {
-    try { await ch.close(); } catch {}
-    try { await rmqConn.close(); } catch {}
+    try {
+      await ch.close();
+    } catch {}
+    try {
+      await rmqConn.close();
+    } catch {}
   });
 
   it('nack(requeue=true) redelivers the message with fields.redelivered === true', async () => {

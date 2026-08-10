@@ -10,7 +10,11 @@ describe('C1 canonical e2e — webhook msg → s1 → s2 full parse → [j] queu
   let app: E2eApp;
 
   beforeAll(async () => {
-    app = await createE2eApp({ ns: 'c1-canonical', role: 'Software Engineer', company: 'C1CanonicalCo' });
+    app = await createE2eApp({
+      ns: 'c1-canonical',
+      role: 'Software Engineer',
+      company: 'C1CanonicalCo',
+    });
   }, 120000);
 
   afterAll(async () => {
@@ -33,7 +37,10 @@ describe('C1 canonical e2e — webhook msg → s1 → s2 full parse → [j] queu
     expect(s1Doc!.status).toBe(JobStatus.ENRICHING);
 
     const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-    const cRes = await app.uds.ingest(topcvDetailHtml('Software Engineer', 'C1CanonicalCo'), jobLifecycleId);
+    const cRes = await app.uds.ingest(
+      topcvDetailHtml('Software Engineer', 'C1CanonicalCo'),
+      jobLifecycleId
+    );
     expect(cRes.statusCode).toBe(200);
 
     const compMsg = await comp.msg();
@@ -42,7 +49,11 @@ describe('C1 canonical e2e — webhook msg → s1 → s2 full parse → [j] queu
     expect(compMsg.job.stage).toBe(JobStage.FULL_PARSED);
     expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
 
-    const queue = await app.events.on([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
+    const queue = await app.events.on([
+      ActionEvent.QUEUED,
+      ActionEvent.TRASHED,
+      ActionEvent.ROUTE_FAILED,
+    ]);
     const jRes = await app.uds.action(jobLifecycleId, 'queue');
     expect(jRes.statusCode).toBe(200);
 

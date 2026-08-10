@@ -15,12 +15,16 @@ vi.mock('node:fs', async (importOriginal) => {
 });
 
 function cleanState() {
-  try { unlinkSync(TEST_STATE_PATH); } catch {}
-  try { unlinkSync(TEST_STATE_PATH + '.lock'); } catch {}
+  try {
+    unlinkSync(TEST_STATE_PATH);
+  } catch {}
+  try {
+    unlinkSync(TEST_STATE_PATH + '.lock');
+  } catch {}
 }
 
-const { setCurrentJob, getCurrentJob, getQueueMode, setQueueMode,
-  clearCurrentJob, resetState } = await import('../../../../src/presentation/tui/shared-tui-state.js' );
+const { setCurrentJob, getCurrentJob, getQueueMode, setQueueMode, clearCurrentJob, resetState } =
+  await import('../../../../src/presentation/tui/shared-tui-state.js');
 
 describe('T3: Shared state file race condition', () => {
   beforeEach(() => {
@@ -51,18 +55,28 @@ describe('T3: Shared state file race condition', () => {
 
     await Promise.all([
       clearCurrentJob(),
-      setCurrentJob('race-job-4', { _id: 'race-job-4', company: 'Delta', role: 'Engineer D' } as any, JobStage.PARTIAL_PARSED),
+      setCurrentJob(
+        'race-job-4',
+        { _id: 'race-job-4', company: 'Delta', role: 'Engineer D' } as any,
+        JobStage.PARTIAL_PARSED
+      ),
     ]);
 
     const state = getCurrentJob();
-    expect(state.jobLifecycleId === 'race-job-3' || state.jobLifecycleId === 'race-job-4').toBe(true);
+    expect(state.jobLifecycleId === 'race-job-3' || state.jobLifecycleId === 'race-job-4').toBe(
+      true
+    );
   });
 
   it('concurrent queue mode toggle and setCurrentJob', async () => {
     await Promise.all([
       setQueueMode(false),
       setQueueMode(true),
-      setCurrentJob('race-job-5', { _id: 'race-job-5', company: 'Epsilon', role: 'Engineer E' } as any, JobStage.FULL_PARSED),
+      setCurrentJob(
+        'race-job-5',
+        { _id: 'race-job-5', company: 'Epsilon', role: 'Engineer E' } as any,
+        JobStage.FULL_PARSED
+      ),
     ]);
 
     const state = getCurrentJob();
@@ -75,7 +89,9 @@ describe('T3: Shared state file race condition', () => {
     for (let i = 0; i < 20; i++) {
       const id = `race-seq-${i}`;
       const job = { _id: id, company: `SeqCorp${i}`, role: `Engineer ${i}` } as any;
-      ops.push(setCurrentJob(id, job, i % 2 === 0 ? JobStage.FULL_PARSED : JobStage.PARTIAL_PARSED));
+      ops.push(
+        setCurrentJob(id, job, i % 2 === 0 ? JobStage.FULL_PARSED : JobStage.PARTIAL_PARSED)
+      );
     }
     await Promise.all(ops);
 

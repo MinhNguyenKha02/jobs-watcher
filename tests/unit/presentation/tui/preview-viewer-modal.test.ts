@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { JobStage } from '../../../../src/domain/types/job-lifecycle.js';
 
-const { renderPreviewViewerModal } = await import('../../../../src/presentation/tui/components/PreviewViewerModal.js' );
+const { renderPreviewViewerModal } =
+  await import('../../../../src/presentation/tui/components/PreviewViewerModal.js');
 
 describe('PreviewViewerModal', () => {
   const sampleLines = Array.from({ length: 50 }, (_, i) => `Line ${i + 1}: test content here`);

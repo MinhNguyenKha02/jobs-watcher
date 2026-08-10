@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { ProfileRetrievalEngine } from '../../../src/domain/profile/retrieval/profile-retrieval-engine.js' ;
-import { ResumeResolver } from '../../../src/domain/profile/resume/resolve/resume-resolver.js' ;
-import { EvidenceAttachmentValidator } from '../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js' ;
-import { retrievalPolicy } from '../../../src/domain/profile/retrieval/policies/retrieval.policy.js' ;
+import { ProfileRetrievalEngine } from '../../../src/domain/profile/retrieval/profile-retrieval-engine.js';
+import { ResumeResolver } from '../../../src/domain/profile/resume/resolve/resume-resolver.js';
+import { EvidenceAttachmentValidator } from '../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js';
+import { retrievalPolicy } from '../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
 import { buildHydratedArtifactBundle } from '../../helpers/profile/integration-fixtures.js';
-import { RetrievalLogger } from '../../../src/domain/profile/retrieval/logging/retrieval-logger.js' ;
-import { retrievalPolicy as originalPolicy } from '../../../src/domain/profile/retrieval/policies/retrieval.policy.js' ;
+import { RetrievalLogger } from '../../../src/domain/profile/retrieval/logging/retrieval-logger.js';
+import { retrievalPolicy as originalPolicy } from '../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
 
 describe('Resume Resolution Integration', () => {
   function buildFullBundle() {
@@ -20,9 +20,28 @@ describe('Resume Resolution Integration', () => {
       ],
       adjacency: [{ from: 'cap.skill-a' as any, to: 'cap.skill-b' as any, weight: 0.5 }],
       evidenceList: [
-        { id: 'ev.exp-1' as any, type: 'experience', title: 'Senior Dev', summary: 'Built things', bullets: [{ text: 'Did coding', kind: 'responsibility' }], anchorIds: ['cap.skill-a' as any] },
-        { id: 'ev.exp-2' as any, type: 'experience', title: 'Junior Dev', bullets: [{ text: 'Learned coding', kind: 'responsibility' }], anchorIds: ['cap.skill-b' as any] },
-        { id: 'ev.proj-1' as any, type: 'project', title: 'Project X', bullets: [{ text: 'Built X', kind: 'outcome' }], anchorIds: ['cap.skill-a' as any] },
+        {
+          id: 'ev.exp-1' as any,
+          type: 'experience',
+          title: 'Senior Dev',
+          summary: 'Built things',
+          bullets: [{ text: 'Did coding', kind: 'responsibility' }],
+          anchorIds: ['cap.skill-a' as any],
+        },
+        {
+          id: 'ev.exp-2' as any,
+          type: 'experience',
+          title: 'Junior Dev',
+          bullets: [{ text: 'Learned coding', kind: 'responsibility' }],
+          anchorIds: ['cap.skill-b' as any],
+        },
+        {
+          id: 'ev.proj-1' as any,
+          type: 'project',
+          title: 'Project X',
+          bullets: [{ text: 'Built X', kind: 'outcome' }],
+          anchorIds: ['cap.skill-a' as any],
+        },
       ],
       anchorToEvidence: [
         ['cap.skill-a' as any, ['ev.exp-1' as any, 'ev.proj-1' as any]],
@@ -68,7 +87,9 @@ describe('Resume Resolution Integration', () => {
 
       if (result.experiences.length > 1) {
         for (let i = 0; i < result.experiences.length - 1; i++) {
-          expect(result.experiences[i].score).toBeGreaterThanOrEqual(result.experiences[i + 1].score);
+          expect(result.experiences[i].score).toBeGreaterThanOrEqual(
+            result.experiences[i + 1].score
+          );
         }
       }
     });

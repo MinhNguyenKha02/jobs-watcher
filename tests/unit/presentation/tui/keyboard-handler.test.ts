@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { KeyboardHandler, KeyAction } from '../../../../src/presentation/tui/components/KeyboardHandler.js';
+import {
+  KeyboardHandler,
+  KeyAction,
+} from '../../../../src/presentation/tui/components/KeyboardHandler.js';
 
 describe('KeyboardHandler — key mapping via public API', () => {
   const handler = new KeyboardHandler();
@@ -114,7 +117,6 @@ describe('KeyboardHandler — key mapping via public API', () => {
   });
 });
 
-
 describe('KeyboardHandler', () => {
   let handler: KeyboardHandler;
 
@@ -123,7 +125,9 @@ describe('KeyboardHandler', () => {
   });
 
   afterEach(() => {
-    try { handler.detach(); } catch {}
+    try {
+      handler.detach();
+    } catch {}
   });
 
   describe('keyToAction mapping', () => {

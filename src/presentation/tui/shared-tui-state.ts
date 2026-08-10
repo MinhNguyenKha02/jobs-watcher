@@ -1,7 +1,18 @@
-import { constants, accessSync, mkdirSync, openSync, closeSync, unlinkSync, readFileSync, renameSync, writeFileSync, watch, statSync } from 'node:fs';
+import {
+  constants,
+  accessSync,
+  mkdirSync,
+  openSync,
+  closeSync,
+  unlinkSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+  watch,
+  statSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
-
 
 import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 import type { Job } from '../../domain/types/job.js';
@@ -63,7 +74,8 @@ const getStateDir = () => {
   return join(homedir(), '.cache');
 };
 
-const sharedStatePath = process.env.TUI_SHARED_STATE_PATH || join(getStateDir(), 'jobs-watcher-tui-state.json');
+const sharedStatePath =
+  process.env.TUI_SHARED_STATE_PATH || join(getStateDir(), 'jobs-watcher-tui-state.json');
 const STATE_VERSION = 2;
 
 function createDefaultModeSubState(): ModeSubState {
@@ -104,9 +116,12 @@ function readSharedStateFromDisk(): TuiSharedState {
       const queue: ModeSubState = {
         jobLifecycleId: typeof old.messageId === 'string' ? old.messageId : null,
         job: old.job && typeof old.job === 'object' ? (old.job as Job) : null,
-        stage: old.stage === JobStage.PARTIAL_PARSED || old.stage === 'PARTIAL' ? JobStage.PARTIAL_PARSED
-          : old.stage === JobStage.FULL_PARSED || old.stage === 'FULL_PARSED' ? JobStage.FULL_PARSED
-          : null,
+        stage:
+          old.stage === JobStage.PARTIAL_PARSED || old.stage === 'PARTIAL'
+            ? JobStage.PARTIAL_PARSED
+            : old.stage === JobStage.FULL_PARSED || old.stage === 'FULL_PARSED'
+              ? JobStage.FULL_PARSED
+              : null,
         editedFields:
           old.editedFields && typeof old.editedFields === 'object'
             ? (old.editedFields as Record<string, unknown>)
@@ -129,12 +144,14 @@ function readSharedStateFromDisk(): TuiSharedState {
       version: typeof parsed.version === 'number' ? parsed.version : STATE_VERSION,
       queueMode: parsed.queueMode === false ? false : true,
       updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : null,
-      queue: parsed.queue && typeof parsed.queue === 'object'
-        ? parseModeSubState(parsed.queue as Record<string, unknown>)
-        : createDefaultModeSubState(),
-      direct: parsed.direct && typeof parsed.direct === 'object'
-        ? parseModeSubState(parsed.direct as Record<string, unknown>)
-        : createDefaultModeSubState(),
+      queue:
+        parsed.queue && typeof parsed.queue === 'object'
+          ? parseModeSubState(parsed.queue as Record<string, unknown>)
+          : createDefaultModeSubState(),
+      direct:
+        parsed.direct && typeof parsed.direct === 'object'
+          ? parseModeSubState(parsed.direct as Record<string, unknown>)
+          : createDefaultModeSubState(),
     };
     return sharedState;
   } catch {
@@ -144,11 +161,19 @@ function readSharedStateFromDisk(): TuiSharedState {
 
 function parseModeSubState(raw: Record<string, unknown>): ModeSubState {
   return {
-    jobLifecycleId: typeof raw.jobLifecycleId === 'string' ? raw.jobLifecycleId : (typeof raw.messageId === 'string' ? raw.messageId : null),
+    jobLifecycleId:
+      typeof raw.jobLifecycleId === 'string'
+        ? raw.jobLifecycleId
+        : typeof raw.messageId === 'string'
+          ? raw.messageId
+          : null,
     job: raw.job && typeof raw.job === 'object' ? (raw.job as Job) : null,
-    stage: raw.stage === JobStage.PARTIAL_PARSED || raw.stage === 'PARTIAL' ? JobStage.PARTIAL_PARSED
-      : raw.stage === JobStage.FULL_PARSED || raw.stage === 'FULL_PARSED' ? JobStage.FULL_PARSED
-      : null,
+    stage:
+      raw.stage === JobStage.PARTIAL_PARSED || raw.stage === 'PARTIAL'
+        ? JobStage.PARTIAL_PARSED
+        : raw.stage === JobStage.FULL_PARSED || raw.stage === 'FULL_PARSED'
+          ? JobStage.FULL_PARSED
+          : null,
     editedFields:
       raw.editedFields && typeof raw.editedFields === 'object'
         ? (raw.editedFields as Record<string, unknown>)
@@ -187,7 +212,9 @@ function acquireExclusiveLock(): string {
 }
 
 function releaseLock(lockPath: string): void {
-  try { unlinkSync(lockPath); } catch {}
+  try {
+    unlinkSync(lockPath);
+  } catch {}
 }
 
 function withExclusiveLock<T>(fn: () => T): T {
@@ -219,10 +246,7 @@ function getActiveSub(root: TuiSharedState): ModeSubState {
   return root[key];
 }
 
-function withUpdatedActiveSub(
-  root: TuiSharedState,
-  patch: Partial<ModeSubState>
-): TuiSharedState {
+function withUpdatedActiveSub(root: TuiSharedState, patch: Partial<ModeSubState>): TuiSharedState {
   const key = activeModeKey(root.queueMode);
   return {
     ...root,
@@ -236,7 +260,11 @@ function persist(root: TuiSharedState): void {
   writeSharedStateToDisk(root);
 }
 
-export function setCurrentJob(jobLifecycleId: string, job: Job, stage: CurrentJobStage = JobStage.FULL_PARSED): void {
+export function setCurrentJob(
+  jobLifecycleId: string,
+  job: Job,
+  stage: CurrentJobStage = JobStage.FULL_PARSED
+): void {
   withExclusiveLock(() => {
     const root = readSharedStateFromDisk();
     const key = activeModeKey(root.queueMode);
@@ -433,5 +461,3 @@ export function clearModal(): void {
   });
   logger.info('[MODAL] Modal cleared');
 }
-
-

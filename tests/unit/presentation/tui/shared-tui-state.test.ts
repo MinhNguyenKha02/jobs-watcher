@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, writeFileSync, readFileSync, unlinkSync, existsSync, renameSync, openSync, closeSync } from 'node:fs';
+import {
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  unlinkSync,
+  existsSync,
+  renameSync,
+  openSync,
+  closeSync,
+} from 'node:fs';
 import { JobStage } from '../../../../src/domain/types/job-lifecycle.js';
 
 const TEST_STATE_PATH = '/tmp/test-tui-state.json';
@@ -14,13 +23,25 @@ vi.mock('node:fs', async (importOriginal) => {
   };
 });
 
-const { setCurrentJob, getCurrentJob, getQueueMode, setQueueMode,
-  clearCurrentJob, resetState, setPreviewViewerModal, clearModal,
-  updatePreviewPage } = await import('../../../../src/presentation/tui/shared-tui-state.js' );
+const {
+  setCurrentJob,
+  getCurrentJob,
+  getQueueMode,
+  setQueueMode,
+  clearCurrentJob,
+  resetState,
+  setPreviewViewerModal,
+  clearModal,
+  updatePreviewPage,
+} = await import('../../../../src/presentation/tui/shared-tui-state.js');
 
 function cleanState() {
-  try { unlinkSync(TEST_STATE_PATH); } catch {}
-  try { unlinkSync(TEST_STATE_PATH + '.lock'); } catch {}
+  try {
+    unlinkSync(TEST_STATE_PATH);
+  } catch {}
+  try {
+    unlinkSync(TEST_STATE_PATH + '.lock');
+  } catch {}
 }
 
 describe('shared-tui-state', () => {
@@ -168,11 +189,23 @@ describe('shared-tui-state', () => {
     });
 
     it('reads existing state file on getCurrentJob', () => {
-      writeFileSync(TEST_STATE_PATH, JSON.stringify({
-        version: 2, queueMode: true, updatedAt: null,
-        queue: { jobLifecycleId: 'file-job', job: { _id: 'file-job', company: 'FileCo' }, stage: 'full_parsed', editedFields: null, modal: null },
-        direct: { jobLifecycleId: null, job: null, stage: null, editedFields: null, modal: null },
-      }), 'utf8');
+      writeFileSync(
+        TEST_STATE_PATH,
+        JSON.stringify({
+          version: 2,
+          queueMode: true,
+          updatedAt: null,
+          queue: {
+            jobLifecycleId: 'file-job',
+            job: { _id: 'file-job', company: 'FileCo' },
+            stage: 'full_parsed',
+            editedFields: null,
+            modal: null,
+          },
+          direct: { jobLifecycleId: null, job: null, stage: null, editedFields: null, modal: null },
+        }),
+        'utf8'
+      );
 
       const state = getCurrentJob();
       expect(state.jobLifecycleId).toBe('file-job');
@@ -199,7 +232,9 @@ describe('shared-tui-state', () => {
       closeSync(fd);
 
       const job = { _id: 'job-blocked', company: 'BlockedCo', role: 'Engineer' } as any;
-      expect(() => setCurrentJob('job-blocked', job, JobStage.FULL_PARSED)).toThrow('Could not acquire lock');
+      expect(() => setCurrentJob('job-blocked', job, JobStage.FULL_PARSED)).toThrow(
+        'Could not acquire lock'
+      );
 
       const state = getCurrentJob();
       expect(state.jobLifecycleId).toBeNull();
@@ -215,7 +250,9 @@ describe('shared-tui-state', () => {
       closeSync(fd);
 
       const job = { _id: 'job-blocked', company: 'BlockedCo', role: 'Engineer' } as any;
-      expect(() => setCurrentJob('job-blocked', job, JobStage.FULL_PARSED)).toThrow('Could not acquire lock');
+      expect(() => setCurrentJob('job-blocked', job, JobStage.FULL_PARSED)).toThrow(
+        'Could not acquire lock'
+      );
 
       const state = getCurrentJob();
       expect(state.jobLifecycleId).toBeNull();

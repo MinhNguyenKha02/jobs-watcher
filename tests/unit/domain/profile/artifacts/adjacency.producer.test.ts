@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { AdjacencyProducer } from '../../../../../src/domain/profile/artifacts/producers/adjacency.producer.js' ;
-import type { RelationsSource } from '../../../../../src/domain/profile/source/source.types.js' ;
-import type { AnchorId } from '../../../../../src/domain/profile/types/retrieval.types.js' ;
+import { AdjacencyProducer } from '../../../../../src/domain/profile/artifacts/producers/adjacency.producer.js';
+import type { RelationsSource } from '../../../../../src/domain/profile/source/source.types.js';
+import type { AnchorId } from '../../../../../src/domain/profile/types/retrieval.types.js';
 
 describe('AdjacencyProducer', () => {
   const validAnchors = new Set<AnchorId>([
@@ -29,8 +29,16 @@ describe('AdjacencyProducer', () => {
     expect(graph.size).toBe(1);
     const edges = graph.get('cap.language.Go' as AnchorId);
     expect(edges).toHaveLength(2);
-    expect(edges![0]).toEqual({ from: 'cap.language.Go', to: 'cap.language.TypeScript', weight: 0.35 });
-    expect(edges![1]).toEqual({ from: 'cap.language.Go', to: 'tech.framework.React', weight: 0.35 });
+    expect(edges![0]).toEqual({
+      from: 'cap.language.Go',
+      to: 'cap.language.TypeScript',
+      weight: 0.35,
+    });
+    expect(edges![1]).toEqual({
+      from: 'cap.language.Go',
+      to: 'tech.framework.React',
+      weight: 0.35,
+    });
   });
 
   it('returns empty array for anchors with no adjacent entries', () => {

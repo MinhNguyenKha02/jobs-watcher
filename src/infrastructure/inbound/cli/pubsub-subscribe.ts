@@ -14,7 +14,8 @@ async function main() {
   }
 
   const subscriptionName = process.env.PUBSUB_SUBSCRIPTION || 'job-alerts-sub';
-  const baseEndpoint = process.env.PUSH_ENDPOINT || `http://localhost:${config.webhook.port}${config.webhook.path}`;
+  const baseEndpoint =
+    process.env.PUSH_ENDPOINT || `http://localhost:${config.webhook.port}${config.webhook.path}`;
 
   const pubsub = new PubSub();
 

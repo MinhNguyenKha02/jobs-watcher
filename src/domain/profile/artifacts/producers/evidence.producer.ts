@@ -5,164 +5,101 @@ import {
   ProjectSource,
 } from '../../source/source.types.js';
 
-import {
-  AnchorId,
-  EvidenceBullet,
-  EvidenceId,
-  EvidenceNode,
-} from '../../types/retrieval.types.js';
+import { AnchorId, EvidenceBullet, EvidenceId, EvidenceNode } from '../../types/retrieval.types.js';
 
 export class EvidenceProducer {
+  private extractAnchorIds(anchor?: {
+    cap?: ProfileAnchorSection;
+    comp?: ProfileAnchorSection;
+    beh?: ProfileAnchorSection;
+    tech?: ProfileAnchorSection;
+  }): AnchorId[] {
+    if (!anchor) return [];
 
-private extractAnchorIds(anchor?: {
-  cap?: ProfileAnchorSection;
-  comp?: ProfileAnchorSection;
-  beh?: ProfileAnchorSection;
-  tech?: ProfileAnchorSection;
-}): AnchorId[] {
-  if (!anchor) return [];
+    const result: AnchorId[] = [];
 
-  const result: AnchorId[] = [];
+    for (const [kind, categories] of Object.entries(anchor)) {
+      if (!categories) continue;
 
-  for (const [kind, categories] of Object.entries(anchor)) {
-    if (!categories) continue;
-
-    for (const [category, values] of Object.entries(categories)) {
-      for (const value of values) {
-        result.push(`${kind}.${category}.${value}` as AnchorId);
+      for (const [category, values] of Object.entries(categories)) {
+        for (const value of values) {
+          result.push(`${kind}.${category}.${value}` as AnchorId);
+        }
       }
     }
+
+    return result;
   }
 
-  return result;
-}
-
-  produce(
-    profile: ProfileSource,
-  ) {
-
-    const evidences =
-      new Map<
-        EvidenceId,
-        EvidenceNode
-      >();
+  produce(profile: ProfileSource) {
+    const evidences = new Map<EvidenceId, EvidenceNode>();
 
     let counter = 0;
 
-    for (
-      const project
-      of profile.projects ?? []
-    ) {
+    for (const project of profile.projects ?? []) {
+      const id = `ev.project.${counter++}` as EvidenceId;
 
-      const id =
-        `ev.project.${counter++}` as EvidenceId;
-
-      evidences.set(
-        id,
-        this.projectNode(
-          id,
-          project,
-        ),
-      );
+      evidences.set(id, this.projectNode(id, project));
     }
 
-    for (
-      const experience
-      of profile.experiences ?? []
-    ) {
+    for (const experience of profile.experiences ?? []) {
+      const id = `ev.exp.${counter++}` as EvidenceId;
 
-      const id =
-        `ev.exp.${counter++}` as EvidenceId;
-
-      evidences.set(
-        id,
-        this.experienceNode(
-          id,
-          experience,
-        ),
-      );
+      evidences.set(id, this.experienceNode(id, experience));
     }
 
     return evidences;
   }
 
-  private projectNode(
-    id: EvidenceId,
-    project: ProjectSource,
-  ): EvidenceNode {
-
+  private projectNode(id: EvidenceId, project: ProjectSource): EvidenceNode {
     return {
       id,
 
-      anchorIds:
-        this.extractAnchorIds(project.anchors),
+      anchorIds: this.extractAnchorIds(project.anchors),
 
-      type:
-        'project',
+      type: 'project',
 
-      title:
-        project.name,
+      title: project.name,
 
-      position:
-        project.position,
+      position: project.position,
 
-      startDate:
-        project.startDate,
+      startDate: project.startDate,
 
-      endDate:
-        project.endDate ?? 'Present',
+      endDate: project.endDate ?? 'Present',
 
-      summary:
-        project.summary?.trim(),
+      summary: project.summary?.trim(),
 
-      bullets:
-        this.buildBullets({
-          responsibilities:
-            project.key_contributions,
+      bullets: this.buildBullets({
+        responsibilities: project.key_contributions,
 
-          outcomes:
-            project.outcomes,
-        }),
+        outcomes: project.outcomes,
+      }),
 
-      links:
-        project.evidences,
+      links: project.evidences,
     };
   }
 
-  private experienceNode(
-    id: EvidenceId,
-    experience: ExperienceSource,
-  ): EvidenceNode {
-
+  private experienceNode(id: EvidenceId, experience: ExperienceSource): EvidenceNode {
     return {
       id,
 
-      anchorIds:
-        this.extractAnchorIds(experience.anchors),
+      anchorIds: this.extractAnchorIds(experience.anchors),
 
-      type:
-        'experience',
+      type: 'experience',
 
-      company:
-        experience.company,
+      company: experience.company,
 
-      position:
-        experience.position,
+      position: experience.position,
 
-      startDate:
-        experience.startDate,
+      startDate: experience.startDate,
 
-      endDate:
-        experience.endDate ?? 'Present',
+      endDate: experience.endDate ?? 'Present',
 
-      bullets:
-        this.buildBullets({
-          responsibilities:
-            experience.responsibilities,
+      bullets: this.buildBullets({
+        responsibilities: experience.responsibilities,
 
-          outcomes:
-            experience.outcomes,
-        }),
+        outcomes: experience.outcomes,
+      }),
     };
   }
 
@@ -173,42 +110,25 @@ private extractAnchorIds(anchor?: {
     responsibilities: string[];
     outcomes: string[];
   }) {
+    const bullets: EvidenceBullet[] = [];
 
-    const bullets:
-      EvidenceBullet[] =
-      [];
-
-    for (
-      const responsibility
-      of responsibilities
-    ) {
-
+    for (const responsibility of responsibilities) {
       bullets.push({
-        text:
-          responsibility,
+        text: responsibility,
 
-        kind:
-          'responsibility',
+        kind: 'responsibility',
 
-        weight:
-          0.8,
+        weight: 0.8,
       });
     }
 
-    for (
-      const outcome
-      of outcomes
-    ) {
-
+    for (const outcome of outcomes) {
       bullets.push({
-        text:
-          outcome,
+        text: outcome,
 
-        kind:
-          'outcome',
+        kind: 'outcome',
 
-        weight:
-          1,
+        weight: 1,
       });
     }
 

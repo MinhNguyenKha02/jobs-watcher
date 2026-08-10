@@ -52,5 +52,4 @@ export class SystemMonitor {
     const cpuPercent = (usedMicros / (elapsedMs * 1000)) * 100;
     return Math.max(0, Math.round(cpuPercent * 100) / 100);
   }
-
 }

@@ -28,7 +28,12 @@ export class RankingFeaturesExtractor {
    * @param evidences Map of evidence ID to evidence node for computing evidence score.
    * @returns The ranking features.
    */
-  static extract(signal: MatchSignal, directSignals: Map<string, MatchSignal>, expandedSignals: Map<string, MatchSignal>, evidences: Map<string, EvidenceNode>): RankingFeatures {
+  static extract(
+    signal: MatchSignal,
+    directSignals: Map<string, MatchSignal>,
+    expandedSignals: Map<string, MatchSignal>,
+    evidences: Map<string, EvidenceNode>
+  ): RankingFeatures {
     // 1. Lexical score: from the direct signal (if exists) or 0 if not.
     const directSignal = directSignals.get(signal.anchorId);
     let lexicalScore = directSignal ? directSignal.score : 0;
@@ -65,7 +70,7 @@ export class RankingFeaturesExtractor {
     // For now, we'll use the raw count.
     const occurrenceScore = signal.occurrences;
 
-    // 6. Adjacency confidence: we can use the average weight of the adjacency edges? 
+    // 6. Adjacency confidence: we can use the average weight of the adjacency edges?
     // But we don't have the adjacency map in the signal. We would need to pass it in.
     // Since we don't have it, we'll set to 0 for now and note that we need the adjacency map.
     // However, note that the signal does not store adjacency information.
@@ -86,7 +91,7 @@ export class RankingFeaturesExtractor {
       sourceDiversity,
       occurrenceScore,
       adjacencyConfidence,
-      atsVisibilityWeight
+      atsVisibilityWeight,
     };
   }
 }

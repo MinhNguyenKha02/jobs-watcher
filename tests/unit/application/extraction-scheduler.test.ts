@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ExtractionScheduler } from '../../../src/application/extraction-scheduler.js';
-import { JobSource, JobStage } from '../../../src/domain/types/job-lifecycle.js' ;
+import { JobSource, JobStage } from '../../../src/domain/types/job-lifecycle.js';
 
 function createMockQueue() {
   return {
-    dequeue: vi.fn<any[], Promise<{ _id: string; jobLifecycleId: string; createdAt: Date } | null>>(),
+    dequeue: vi.fn<
+      any[],
+      Promise<{ _id: string; jobLifecycleId: string; createdAt: Date } | null>
+    >(),
     enqueue: vi.fn(),
     size: vi.fn().mockResolvedValue(0),
     onEnqueue: vi.fn(),
@@ -46,7 +49,12 @@ describe('ExtractionScheduler', () => {
     browser = createMockBrowser();
     jobLifecyclePort = createMockJobLifecyclePort();
     jobIngestor = createMockJobIngestor();
-    scheduler = new ExtractionScheduler(queue as any, browser as any, jobLifecyclePort as any, jobIngestor as any);
+    scheduler = new ExtractionScheduler(
+      queue as any,
+      browser as any,
+      jobLifecyclePort as any,
+      jobIngestor as any
+    );
   });
 
   afterEach(async () => {
@@ -81,39 +89,52 @@ describe('ExtractionScheduler', () => {
       jobLifecyclePort.findById.mockResolvedValue({ url: 'https://example.com/job' });
       const doc = { _id: 'job-1', jobLifecycleId: 'job-1', createdAt: new Date() };
 
-      queue.dequeue
-        .mockResolvedValueOnce(doc)
-        .mockResolvedValue(null);
+      queue.dequeue.mockResolvedValueOnce(doc).mockResolvedValue(null);
 
       await scheduler.start();
-      await vi.waitFor(() => {
-        expect(queue.dequeue).toHaveBeenCalled();
-      }, { interval: 50, timeout: 3000 });
+      await vi.waitFor(
+        () => {
+          expect(queue.dequeue).toHaveBeenCalled();
+        },
+        { interval: 50, timeout: 3000 }
+      );
 
-      await vi.waitFor(() => {
-        expect(jobLifecyclePort.findById).toHaveBeenCalledWith('job-1');
-      }, { interval: 50, timeout: 3000 });
+      await vi.waitFor(
+        () => {
+          expect(jobLifecyclePort.findById).toHaveBeenCalledWith('job-1');
+        },
+        { interval: 50, timeout: 3000 }
+      );
 
-      await vi.waitFor(() => {
-        expect(browser.extract).toHaveBeenCalledWith('https://example.com/job');
-      }, { interval: 50, timeout: 3000 });
+      await vi.waitFor(
+        () => {
+          expect(browser.extract).toHaveBeenCalledWith('https://example.com/job');
+        },
+        { interval: 50, timeout: 3000 }
+      );
 
-      await vi.waitFor(() => {
-        expect(jobIngestor.processIngest).toHaveBeenCalledWith(
-          JobSource.BROWSER_AUTO,
-          JobStage.FULL_PARSED,
-          '<div>parsed content</div>',
-          'job-1',
-        );
-      }, { interval: 50, timeout: 3000 });
+      await vi.waitFor(
+        () => {
+          expect(jobIngestor.processIngest).toHaveBeenCalledWith(
+            JobSource.BROWSER_AUTO,
+            JobStage.FULL_PARSED,
+            '<div>parsed content</div>',
+            'job-1'
+          );
+        },
+        { interval: 50, timeout: 3000 }
+      );
     });
 
     it('handles empty queue by blocking worker (no crash)', async () => {
       queue.dequeue.mockResolvedValue(null);
       await scheduler.start();
-      await vi.waitFor(() => {
-        expect(queue.dequeue).toHaveBeenCalled();
-      }, { interval: 50, timeout: 3000 });
+      await vi.waitFor(
+        () => {
+          expect(queue.dequeue).toHaveBeenCalled();
+        },
+        { interval: 50, timeout: 3000 }
+      );
     });
 
     it('handles extraction failure by calling processIngest with PARTIAL_PARSED', async () => {
@@ -121,19 +142,20 @@ describe('ExtractionScheduler', () => {
       browser.extract.mockRejectedValue(new Error('Timeout'));
       const doc = { _id: 'job-fail', jobLifecycleId: 'job-fail', createdAt: new Date() };
 
-      queue.dequeue
-        .mockResolvedValueOnce(doc)
-        .mockResolvedValue(null);
+      queue.dequeue.mockResolvedValueOnce(doc).mockResolvedValue(null);
 
       await scheduler.start();
-      await vi.waitFor(() => {
-        expect(jobIngestor.processIngest).toHaveBeenCalledWith(
-          JobSource.BROWSER_AUTO,
-          JobStage.PARTIAL_PARSED,
-          '',
-          'job-fail',
-        );
-      }, { interval: 50, timeout: 3000 });
+      await vi.waitFor(
+        () => {
+          expect(jobIngestor.processIngest).toHaveBeenCalledWith(
+            JobSource.BROWSER_AUTO,
+            JobStage.PARTIAL_PARSED,
+            '',
+            'job-fail'
+          );
+        },
+        { interval: 50, timeout: 3000 }
+      );
     });
 
     it('handles findById returning null by using empty URL', async () => {
@@ -141,23 +163,27 @@ describe('ExtractionScheduler', () => {
       browser.extract.mockRejectedValue(new Error('empty-url'));
       const doc = { _id: 'job-null', jobLifecycleId: 'job-null', createdAt: new Date() };
 
-      queue.dequeue
-        .mockResolvedValueOnce(doc)
-        .mockResolvedValue(null);
+      queue.dequeue.mockResolvedValueOnce(doc).mockResolvedValue(null);
 
       await scheduler.start();
-      await vi.waitFor(() => {
-        expect(browser.extract).toHaveBeenCalledWith('');
-      }, { interval: 50, timeout: 3000 });
+      await vi.waitFor(
+        () => {
+          expect(browser.extract).toHaveBeenCalledWith('');
+        },
+        { interval: 50, timeout: 3000 }
+      );
     });
 
     it('worker error does not crash scheduler (continues working)', async () => {
       queue.dequeue.mockRejectedValue(new Error('DB connection lost'));
 
       await scheduler.start();
-      await vi.waitFor(() => {
-        expect(queue.dequeue).toHaveBeenCalled();
-      }, { interval: 50, timeout: 3000 });
+      await vi.waitFor(
+        () => {
+          expect(queue.dequeue).toHaveBeenCalled();
+        },
+        { interval: 50, timeout: 3000 }
+      );
     });
 
     it('browser extraction success calls processIngest with BROWSER_AUTO FULL_PARSED', async () => {
@@ -165,19 +191,20 @@ describe('ExtractionScheduler', () => {
       browser.extract.mockResolvedValue({ html: '<div>success</div>' });
       const doc = { _id: 'job-success', jobLifecycleId: 'job-success', createdAt: new Date() };
 
-      queue.dequeue
-        .mockResolvedValueOnce(doc)
-        .mockResolvedValue(null);
+      queue.dequeue.mockResolvedValueOnce(doc).mockResolvedValue(null);
 
       await scheduler.start();
-      await vi.waitFor(() => {
-        expect(jobIngestor.processIngest).toHaveBeenCalledWith(
-          JobSource.BROWSER_AUTO,
-          JobStage.FULL_PARSED,
-          '<div>success</div>',
-          'job-success',
-        );
-      }, { interval: 50, timeout: 3000 });
+      await vi.waitFor(
+        () => {
+          expect(jobIngestor.processIngest).toHaveBeenCalledWith(
+            JobSource.BROWSER_AUTO,
+            JobStage.FULL_PARSED,
+            '<div>success</div>',
+            'job-success'
+          );
+        },
+        { interval: 50, timeout: 3000 }
+      );
     });
 
     it('browser extraction failure calls processIngest with BROWSER_AUTO PARTIAL_PARSED and empty payload', async () => {
@@ -185,19 +212,20 @@ describe('ExtractionScheduler', () => {
       browser.extract.mockRejectedValue(new Error('Navigation timeout'));
       const doc = { _id: 'job-fail-2', jobLifecycleId: 'job-fail-2', createdAt: new Date() };
 
-      queue.dequeue
-        .mockResolvedValueOnce(doc)
-        .mockResolvedValue(null);
+      queue.dequeue.mockResolvedValueOnce(doc).mockResolvedValue(null);
 
       await scheduler.start();
-      await vi.waitFor(() => {
-        expect(jobIngestor.processIngest).toHaveBeenCalledWith(
-          JobSource.BROWSER_AUTO,
-          JobStage.PARTIAL_PARSED,
-          '',
-          'job-fail-2',
-        );
-      }, { interval: 50, timeout: 3000 });
+      await vi.waitFor(
+        () => {
+          expect(jobIngestor.processIngest).toHaveBeenCalledWith(
+            JobSource.BROWSER_AUTO,
+            JobStage.PARTIAL_PARSED,
+            '',
+            'job-fail-2'
+          );
+        },
+        { interval: 50, timeout: 3000 }
+      );
     });
   });
 });

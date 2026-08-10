@@ -72,13 +72,15 @@ export class KeyboardHandler {
   async waitForAction(timeoutMs?: number): Promise<KeyAction> {
     return new Promise((resolve) => {
       let resolved = false;
-      const timeout = timeoutMs ? setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          unsubscribe();
-          resolve(KeyAction.NONE);
-        }
-      }, timeoutMs) : null;
+      const timeout = timeoutMs
+        ? setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              unsubscribe();
+              resolve(KeyAction.NONE);
+            }
+          }, timeoutMs)
+        : null;
 
       const unsubscribe = () => {
         const idx = this.listeners.indexOf(listener);
@@ -140,16 +142,26 @@ export class KeyboardHandler {
 
     const char = String.fromCharCode(input[0]).toLowerCase();
     switch (char) {
-      case 'j': return KeyAction.QUEUE;
-      case 'd': return KeyAction.TRASH;
-      case 'p': return KeyAction.PREVIEW;
-      case 'i': return KeyAction.INGEST;
-      case 'c': return KeyAction.WEBHOOK_STAGE2_PARSE;
-      case 'o': return KeyAction.OPEN;
-      case 'b': return KeyAction.TOGGLE_QUEUE;
-      case '?': return KeyAction.HELP;
-      case 'q': return KeyAction.QUIT;
-      default: return KeyAction.NONE;
+      case 'j':
+        return KeyAction.QUEUE;
+      case 'd':
+        return KeyAction.TRASH;
+      case 'p':
+        return KeyAction.PREVIEW;
+      case 'i':
+        return KeyAction.INGEST;
+      case 'c':
+        return KeyAction.WEBHOOK_STAGE2_PARSE;
+      case 'o':
+        return KeyAction.OPEN;
+      case 'b':
+        return KeyAction.TOGGLE_QUEUE;
+      case '?':
+        return KeyAction.HELP;
+      case 'q':
+        return KeyAction.QUIT;
+      default:
+        return KeyAction.NONE;
     }
   }
 

@@ -52,7 +52,7 @@ export const profileSource: ProfileSource = {
       backendCapability.message_queue_processing,
       backendCapability.concurrent_processing,
     ],
-    
+
     architecture: [
       architectureCapability.service_decomposition,
       architectureCapability.dependency_inversion,
@@ -92,7 +92,7 @@ export const profileSource: ProfileSource = {
       infrastructureCapability.configuration_management,
       infrastructureCapability.environment_management,
     ],
-    
+
     communication: [
       communicationCapability.event_based_communication,
       communicationCapability.streaming_communication,
@@ -139,7 +139,7 @@ export const profileSource: ProfileSource = {
     ],
   },
   tech: {
-    protocol:[
+    protocol: [
       protocolTech.websocket,
       protocolTech.restful_api,
       protocolTech.graphql,
@@ -162,10 +162,7 @@ export const profileSource: ProfileSource = {
       languageTech.php,
       languageTech.bash,
     ],
-    observability: [
-      observabilityTech.pino,
-      observabilityTech.opentelemetry
-    ],
+    observability: [observabilityTech.pino, observabilityTech.opentelemetry],
     backend_framework: [
       backendFrameworkTech.nodejs,
       backendFrameworkTech.expressjs,
@@ -295,7 +292,7 @@ export const profileSource: ProfileSource = {
         },
 
         tech: {
-          protocol:[
+          protocol: [
             protocolTech.pubsub,
             protocolTech.webhooks,
             protocolTech.unix_domain_socket,
@@ -304,10 +301,7 @@ export const profileSource: ProfileSource = {
           ],
           language: [languageTech.typescript, languageTech.bash],
           backend_framework: [backendFrameworkTech.nodejs, backendFrameworkTech.expressjs],
-          infrastructure: [
-            infrastructureTech.ubuntu,
-            infrastructureTech.git,
-          ],
+          infrastructure: [infrastructureTech.ubuntu, infrastructureTech.git],
           database: [databaseTech.mongodb],
           third_party: ['Gmail API'],
           testing: [testingTech.vitest, testingTech.jest, testingTech.playwright],
@@ -341,10 +335,8 @@ export const profileSource: ProfileSource = {
       ],
       status: 'Functional (active development and operational refinement)',
       evidences: {
-        github: [
-          'jobs-watcher-repository:https://github.com/MinhNguyenKha02/jobs-watcher'
-        ]
-      }
+        github: ['jobs-watcher-repository:https://github.com/MinhNguyenKha02/jobs-watcher'],
+      },
     },
     {
       name: 'Speaking Evaluation Service',
@@ -357,13 +349,27 @@ export const profileSource: ProfileSource = {
           `,
       anchors: {
         cap: {
-          backend: [
-            backendCapability.service_integration,
+          backend: [backendCapability.service_integration],
+          communication: [
+            communicationCapability.streaming_communication,
+            communicationCapability.request_response_communication,
+            communicationCapability.event_based_communication,
           ],
-          communication: [communicationCapability.streaming_communication, communicationCapability.request_response_communication, communicationCapability.event_based_communication],
-          infrastructure: [infrastructureCapability.containerized_deployment, infrastructureCapability.configuration_management, infrastructureCapability.environment_management],
+          infrastructure: [
+            infrastructureCapability.containerized_deployment,
+            infrastructureCapability.configuration_management,
+            infrastructureCapability.environment_management,
+          ],
           testing: [testingCapability.unit_testing, testingCapability.integration_testing],
-          architecture: [architectureCapability.service_decomposition, architectureCapability.integration_design, architectureCapability.data_flow_design, architectureCapability.boundary_definition, architectureCapability.module_design, architectureCapability.integration_design, architectureCapability.architectural_documentation],
+          architecture: [
+            architectureCapability.service_decomposition,
+            architectureCapability.integration_design,
+            architectureCapability.data_flow_design,
+            architectureCapability.boundary_definition,
+            architectureCapability.module_design,
+            architectureCapability.integration_design,
+            architectureCapability.architectural_documentation,
+          ],
           foundation: [
             foundationCapability.data_structures,
             foundationCapability.algorithms,
@@ -411,8 +417,8 @@ export const profileSource: ProfileSource = {
       status: 'Prototype (local environment; under active development)',
       evidences: {
         github: [
-          'speaking-evaluation-service-repository:https://github.com/MinhNguyenKha02/speaking-evaluation-service'
-        ]
+          'speaking-evaluation-service-repository:https://github.com/MinhNguyenKha02/speaking-evaluation-service',
+        ],
       },
     },
     {
@@ -434,12 +440,16 @@ export const profileSource: ProfileSource = {
       outcomes: ['Demonstrated zero-copy packet capture and processing via mmap-based pipeline.'],
       anchors: {
         cap: {
-          backend: [
-            backendCapability.service_integration,
-            backendCapability.event_processing,
+          backend: [backendCapability.service_integration, backendCapability.event_processing],
+          communication: [
+            communicationCapability.request_response_communication,
+            communicationCapability.streaming_communication,
           ],
-          communication: [communicationCapability.request_response_communication, communicationCapability.streaming_communication],
-          infrastructure: [infrastructureCapability.containerized_deployment, infrastructureCapability.configuration_management, infrastructureCapability.environment_management],
+          infrastructure: [
+            infrastructureCapability.containerized_deployment,
+            infrastructureCapability.configuration_management,
+            infrastructureCapability.environment_management,
+          ],
           foundation: [
             foundationCapability.data_structures,
             foundationCapability.algorithms,
@@ -447,10 +457,7 @@ export const profileSource: ProfileSource = {
             foundationCapability.oop,
             foundationCapability.sdlc,
           ],
-          testing: [
-            testingCapability.unit_testing,
-            testingCapability.integration_testing,
-          ],
+          testing: [testingCapability.unit_testing, testingCapability.integration_testing],
           architecture: [architectureCapability.service_decomposition],
           security: [securityCapability.input_validation],
         },
@@ -483,7 +490,7 @@ export const profileSource: ProfileSource = {
         github: [
           'capture-repository:https://github.com/MinhNguyenKha02/capture-core',
           'agent-repository:https://github.com/MinhNguyenKha02/agent-core',
-        ]
+        ],
       },
     },
     {
@@ -512,7 +519,10 @@ export const profileSource: ProfileSource = {
             backendCapability.api_design,
             backendCapability.service_integration,
           ],
-          communication: [communicationCapability.request_response_communication, communicationCapability.streaming_communication],
+          communication: [
+            communicationCapability.request_response_communication,
+            communicationCapability.streaming_communication,
+          ],
           security: [
             securityCapability.authentication_implementation,
             securityCapability.authorization_control,
@@ -557,8 +567,8 @@ export const profileSource: ProfileSource = {
       evidences: {
         github: [
           'frontend-repository:https://github.com/MinhNguyenKha02/logistic_app_frontend',
-          'backend-repository:https://github.com/MinhNguyenKha02/logistic_app_backend'
-        ]
+          'backend-repository:https://github.com/MinhNguyenKha02/logistic_app_backend',
+        ],
       },
     },
   ],
@@ -682,7 +692,7 @@ export const profileSource: ProfileSource = {
       degree: 'Bachelor of Information Technology',
       startDate: '2021',
       endDate: '2025',
-      grade: 'good'
+      grade: 'good',
     },
   ],
   links: {

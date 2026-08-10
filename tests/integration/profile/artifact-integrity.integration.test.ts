@@ -1,15 +1,23 @@
 import { describe, it, expect } from 'vitest';
-import { EvidenceAttachmentValidator } from '../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js' ;
-import { ExpansionResolver } from '../../../src/domain/profile/retrieval/expansion-resolver.js' ;
-import { makeSignal, buildHydratedArtifactBundle } from '../../helpers/profile/integration-fixtures.js';
-import { RetrievalLogger } from '../../../src/domain/profile/retrieval/logging/retrieval-logger.js' ;
+import { EvidenceAttachmentValidator } from '../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js';
+import { ExpansionResolver } from '../../../src/domain/profile/retrieval/expansion-resolver.js';
+import {
+  makeSignal,
+  buildHydratedArtifactBundle,
+} from '../../helpers/profile/integration-fixtures.js';
+import { RetrievalLogger } from '../../../src/domain/profile/retrieval/logging/retrieval-logger.js';
 
 describe('Artifact Integrity Integration', () => {
   describe('INT-014: propagation to non-existent anchor is skipped', () => {
     it('should not propagate to an anchor without a direct match', () => {
       const bundle = buildHydratedArtifactBundle({
         anchors: {
-          skillA: { id: 'cap.skill-a' as any, kind: 'cap' as any, category: 'tech', key: 'skill-a' },
+          skillA: {
+            id: 'cap.skill-a' as any,
+            kind: 'cap' as any,
+            category: 'tech',
+            key: 'skill-a',
+          },
           export: { id: 'cap.export' as any, kind: 'cap' as any, category: 'tech', key: 'export' },
         },
         surfaces: [
@@ -36,12 +44,19 @@ describe('Artifact Integrity Integration', () => {
     it('should reject signal when anchorToEvidence maps to non-existent evidence', () => {
       const bundle = buildHydratedArtifactBundle({
         anchors: {
-          skillA: { id: 'cap.skill-a' as any, kind: 'cap' as any, category: 'tech', key: 'skill-a' },
+          skillA: {
+            id: 'cap.skill-a' as any,
+            kind: 'cap' as any,
+            category: 'tech',
+            key: 'skill-a',
+          },
         },
-        surfaces: [{ anchorId: 'cap.skill-a' as any, pattern: 'skill a', source: 'canonical', weight: 1.0 }],
+        surfaces: [
+          { anchorId: 'cap.skill-a' as any, pattern: 'skill a', source: 'canonical', weight: 1.0 },
+        ],
         evidenceList: [],
         anchorToEvidence: [
-          ['cap.skill-a' as any, ['ev.nonexistent' as any]],  // points to evidence that doesn't exist
+          ['cap.skill-a' as any, ['ev.nonexistent' as any]], // points to evidence that doesn't exist
         ],
       });
 

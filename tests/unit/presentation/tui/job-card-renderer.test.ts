@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { JobCardRenderer } = await import('../../../../src/presentation/tui/components/JobCardRenderer.js' );
+const { JobCardRenderer } =
+  await import('../../../../src/presentation/tui/components/JobCardRenderer.js');
 
 describe('JobCardRenderer', () => {
   let renderer: JobCardRenderer;
@@ -140,10 +141,14 @@ describe('JobCardRenderer', () => {
   describe('renderCard with action in progress', () => {
     it('shows action status when actionInProgress is set', () => {
       const job = { _id: 'job-3', company: 'ActCo', role: 'Dev' };
-      const output = renderer.renderCard(job as any, {
-        sseConnected: true,
-        udsReady: true,
-      }, 'queuing');
+      const output = renderer.renderCard(
+        job as any,
+        {
+          sseConnected: true,
+          udsReady: true,
+        },
+        'queuing'
+      );
       expect(output).toContain('queuing');
     });
   });

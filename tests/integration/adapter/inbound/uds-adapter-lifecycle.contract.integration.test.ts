@@ -58,7 +58,7 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
 
     const res = await postJsonOverUds(
       { socketPath, path: '/internal/action', timeoutMs: 5000 },
-      { action: 'queue', jobLifecycleId: 'test-job-1' },
+      { action: 'queue', jobLifecycleId: 'test-job-1' }
     );
     expect(res.statusCode).toBe(200);
     expect(ingestorMock.processResolution).toHaveBeenCalledWith('test-job-1', 'queue');
@@ -70,7 +70,7 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
 
     const res = await postJsonOverUds(
       { socketPath, path: '/internal/action', timeoutMs: 5000 },
-      { action: 'trash', jobLifecycleId: 'test-job-2' },
+      { action: 'trash', jobLifecycleId: 'test-job-2' }
     );
     expect(res.statusCode).toBe(200);
     expect(ingestorMock.processResolution).toHaveBeenCalledWith('test-job-2', 'trash');
@@ -82,7 +82,7 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
 
     const res = await postJsonOverUds(
       { socketPath, path: '/internal/action', timeoutMs: 5000 },
-      {},
+      {}
     );
     expect(res.statusCode).toBe(400);
   });
@@ -94,14 +94,14 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     const html = '<div>test payload</div>';
     const res = await postJsonOverUds(
       { socketPath, path: '/internal/ingest', timeoutMs: 5000 },
-      { html },
+      { html }
     );
     expect(res.statusCode).toBe(200);
     expect(ingestorMock.processIngest).toHaveBeenCalledWith(
       'manual',
       'full_parsed',
       html,
-      undefined,
+      undefined
     );
   });
 
@@ -112,14 +112,14 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     const html = '<div>webhook payload</div>';
     const res = await postJsonOverUds(
       { socketPath, path: '/internal/ingest?webhook=true', timeoutMs: 5000 },
-      { html, jobLifecycleId: 'webhook-job-1' },
+      { html, jobLifecycleId: 'webhook-job-1' }
     );
     expect(res.statusCode).toBe(200);
     expect(ingestorMock.processIngest).toHaveBeenCalledWith(
       'manual',
       'full_parsed',
       html,
-      'webhook-job-1',
+      'webhook-job-1'
     );
   });
 
@@ -129,7 +129,7 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
 
     const res = await postJsonOverUds(
       { socketPath, path: '/internal/ingest', timeoutMs: 5000 },
-      { html: '' },
+      { html: '' }
     );
     expect(res.statusCode).toBe(400);
   });
@@ -138,10 +138,7 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     adapter = new UdsAdapter(ingestorMock, { socketPath });
     await adapter.start();
 
-    const res = await postJsonOverUds(
-      { socketPath, path: '/unknown/path', timeoutMs: 5000 },
-      {},
-    );
+    const res = await postJsonOverUds({ socketPath, path: '/unknown/path', timeoutMs: 5000 }, {});
     expect(res.statusCode).toBe(404);
   });
 
@@ -150,8 +147,13 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     await adapter.start();
 
     const res = await postJsonOverUds(
-      { socketPath, path: '/internal/action', headers: { 'x-internal-token': 'secret-123' }, timeoutMs: 5000 },
-      { action: 'queue', jobLifecycleId: 'auth-test' },
+      {
+        socketPath,
+        path: '/internal/action',
+        headers: { 'x-internal-token': 'secret-123' },
+        timeoutMs: 5000,
+      },
+      { action: 'queue', jobLifecycleId: 'auth-test' }
     );
     expect(res.statusCode).toBe(200);
     expect(ingestorMock.processResolution).toHaveBeenCalledWith('auth-test', 'queue');
@@ -162,8 +164,13 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
     await adapter.start();
 
     const res = await postJsonOverUds(
-      { socketPath, path: '/internal/action', headers: { 'x-internal-token': 'wrong-token' }, timeoutMs: 5000 },
-      { action: 'queue', jobLifecycleId: 'auth-fail' },
+      {
+        socketPath,
+        path: '/internal/action',
+        headers: { 'x-internal-token': 'wrong-token' },
+        timeoutMs: 5000,
+      },
+      { action: 'queue', jobLifecycleId: 'auth-fail' }
     );
     expect(res.statusCode).toBe(401);
   });
@@ -181,7 +188,7 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
 
     const res = await postJsonOverUds(
       { socketPath, path: '/internal/action', timeoutMs: 5000 },
-      { action: 'queue', jobLifecycleId: 'restart-test' },
+      { action: 'queue', jobLifecycleId: 'restart-test' }
     );
     expect(res.statusCode).toBe(200);
   });

@@ -2,9 +2,20 @@ import { describe, it, expect } from 'vitest';
 import { extractAllJobs } from '../../../../src/domain/services/parsing/job-extraction.js';
 import { topCVEmailAlert, indeedEmailAlert } from '../../../__fixtures__/emails.js';
 
-function makeTopCvEmailHtml(...jobs: Array<{ role: string; company: string; location: string; salary: string; url: string; daysLeft?: number }>) {
-  const items = jobs.map((j) =>
-    `<a class="job-item-link" href="${j.url}">
+function makeTopCvEmailHtml(
+  ...jobs: Array<{
+    role: string;
+    company: string;
+    location: string;
+    salary: string;
+    url: string;
+    daysLeft?: number;
+  }>
+) {
+  const items = jobs
+    .map(
+      (j) =>
+        `<a class="job-item-link" href="${j.url}">
       <div class="job-item">
         <div class="avatar"><span class="company-logo"><img src="https://via.placeholder.com/67" alt=""/></span></div>
         <div class="body">
@@ -18,7 +29,8 @@ function makeTopCvEmailHtml(...jobs: Array<{ role: string; company: string; loca
         </div>
       </div>
     </a>`
-  ).join('\n');
+    )
+    .join('\n');
   return `<html><head></head><body>
     <h1>TopCV Job Alert</h1>
     <p>Xin chào, việc làm mới phù hợp với bạn:</p>
@@ -26,11 +38,23 @@ function makeTopCvEmailHtml(...jobs: Array<{ role: string; company: string; loca
   </body></html>`;
 }
 
-function makeIndeedEmailHtml(jobs: Array<{ role: string; company: string; location: string; salary: string; description?: string; daysAgo?: string; easyApply?: boolean; jk?: string }>) {
-  const items = jobs.map((j) => {
-    const jk = j.jk ?? 'test';
-    const easyApplyBadge = j.easyApply ? '<span>Easily apply</span>' : '';
-    return `<td align="left" valign="top" class="pb-24" style="padding:0 0 32px">
+function makeIndeedEmailHtml(
+  jobs: Array<{
+    role: string;
+    company: string;
+    location: string;
+    salary: string;
+    description?: string;
+    daysAgo?: string;
+    easyApply?: boolean;
+    jk?: string;
+  }>
+) {
+  const items = jobs
+    .map((j) => {
+      const jk = j.jk ?? 'test';
+      const easyApplyBadge = j.easyApply ? '<span>Easily apply</span>' : '';
+      return `<td align="left" valign="top" class="pb-24" style="padding:0 0 32px">
   <a href="https://vn.indeed.com/viewjob?jk=${jk}" style="display:block;text-decoration:none">
     <table cellPadding="0" cellSpacing="0" border="0" align="left" width="100%" role="presentation">
       <tr><td align="left" valign="top">
@@ -45,7 +69,8 @@ function makeIndeedEmailHtml(jobs: Array<{ role: string; company: string; locati
     </table>
   </a>
 </td>`;
-  }).join('\n');
+    })
+    .join('\n');
   return `<html><body>
     <table width="100%" cellpadding="0" cellspacing="0" border="0">
     <tr><td><p>Indeed Job Alert - new jobs found</p><p>indeed.com</p></td></tr>
@@ -59,9 +84,18 @@ describe('JobExtractionService', () => {
     it('extracts all jobs from fixture', () => {
       const jobs = extractAllJobs(topCVEmailAlert);
       expect(jobs).toHaveLength(3);
-      expect(jobs[0]).toMatchObject({ role: 'Software Developer For Broadband Devices', company: 'MARUSYS VINA CO.,LTD' });
-      expect(jobs[1]).toMatchObject({ role: 'Front-End Developer', company: 'TEQNOLOGICAL ASIA Co., Ltd' });
-      expect(jobs[2]).toMatchObject({ role: '(Senior) Software Engineer, ReactJS', company: 'Zalo' });
+      expect(jobs[0]).toMatchObject({
+        role: 'Software Developer For Broadband Devices',
+        company: 'MARUSYS VINA CO.,LTD',
+      });
+      expect(jobs[1]).toMatchObject({
+        role: 'Front-End Developer',
+        company: 'TEQNOLOGICAL ASIA Co., Ltd',
+      });
+      expect(jobs[2]).toMatchObject({
+        role: '(Senior) Software Engineer, ReactJS',
+        company: 'Zalo',
+      });
     });
 
     it('extracts salary from fixture', () => {
@@ -90,8 +124,20 @@ describe('JobExtractionService', () => {
   describe('extractAllJobs — TopCV inline factory', () => {
     it('extracts multiple jobs', () => {
       const html = makeTopCvEmailHtml(
-        { role: 'Software Developer', company: 'ABC Corp', location: 'Hà Nội', salary: 'Từ 10 triệu', url: 'https://www.topcv.vn/viec-lam/sw-dev/1' },
-        { role: 'Frontend Engineer', company: 'XYZ Ltd', location: 'Hồ Chí Minh', salary: 'Thỏa thuận', url: 'https://www.topcv.vn/viec-lam/fe/2' },
+        {
+          role: 'Software Developer',
+          company: 'ABC Corp',
+          location: 'Hà Nội',
+          salary: 'Từ 10 triệu',
+          url: 'https://www.topcv.vn/viec-lam/sw-dev/1',
+        },
+        {
+          role: 'Frontend Engineer',
+          company: 'XYZ Ltd',
+          location: 'Hồ Chí Minh',
+          salary: 'Thỏa thuận',
+          url: 'https://www.topcv.vn/viec-lam/fe/2',
+        }
       );
       const jobs = extractAllJobs(html);
       expect(jobs).toHaveLength(2);
@@ -100,18 +146,27 @@ describe('JobExtractionService', () => {
     });
 
     it('extracts single job', () => {
-      const html = makeTopCvEmailHtml(
-        { role: 'Backend Developer', company: 'Tech Inc', location: 'Đà Nẵng', salary: 'Từ 15 triệu', url: 'https://www.topcv.vn/viec-lam/be/3' },
-      );
+      const html = makeTopCvEmailHtml({
+        role: 'Backend Developer',
+        company: 'Tech Inc',
+        location: 'Đà Nẵng',
+        salary: 'Từ 15 triệu',
+        url: 'https://www.topcv.vn/viec-lam/be/3',
+      });
       const jobs = extractAllJobs(html);
       expect(jobs).toHaveLength(1);
       expect(jobs[0].role).toBe('Backend Developer');
     });
 
     it('extracts deadline', () => {
-      const html = makeTopCvEmailHtml(
-        { role: 'DevOps Engineer', company: 'Cloud Co', location: 'Hồ Chí Minh', salary: 'Từ 20 triệu', url: 'https://www.topcv.vn/viec-lam/devops/4', daysLeft: 15 },
-      );
+      const html = makeTopCvEmailHtml({
+        role: 'DevOps Engineer',
+        company: 'Cloud Co',
+        location: 'Hồ Chí Minh',
+        salary: 'Từ 20 triệu',
+        url: 'https://www.topcv.vn/viec-lam/devops/4',
+        daysLeft: 15,
+      });
       const jobs = extractAllJobs(html);
       expect(jobs).toHaveLength(1);
       expect(jobs[0].deadline).toContain('15 ngày');
@@ -123,7 +178,10 @@ describe('JobExtractionService', () => {
       const jobs = extractAllJobs(indeedEmailAlert);
       expect(jobs).toHaveLength(2);
       expect(jobs[0]).toMatchObject({ role: 'Senior Frontend Developer', company: 'Zalo' });
-      expect(jobs[1]).toMatchObject({ role: 'Senior Front-End Developer', company: 'AdStart Media Pte. Ltd' });
+      expect(jobs[1]).toMatchObject({
+        role: 'Senior Front-End Developer',
+        company: 'AdStart Media Pte. Ltd',
+      });
     });
 
     it('extracts salary from fixture', () => {
@@ -146,7 +204,13 @@ describe('JobExtractionService', () => {
   describe('extractAllJobs — Indeed inline factory', () => {
     it('extracts a single Indeed job', () => {
       const html = makeIndeedEmailHtml([
-        { role: 'Senior Frontend Developer', company: 'Zalo', location: 'Ho Chi Minh City', salary: '15,000,000 VNĐ', description: 'Frontend role' },
+        {
+          role: 'Senior Frontend Developer',
+          company: 'Zalo',
+          location: 'Ho Chi Minh City',
+          salary: '15,000,000 VNĐ',
+          description: 'Frontend role',
+        },
       ]);
       const jobs = extractAllJobs(html);
       expect(jobs).toHaveLength(1);
@@ -155,7 +219,14 @@ describe('JobExtractionService', () => {
 
     it('extracts company, salary and deadline', () => {
       const html = makeIndeedEmailHtml([
-        { role: 'Backend Developer', company: 'SHB', location: 'Ha Noi', salary: '18,000,000 VNĐ', description: 'Backend role', daysAgo: '5 days ago' },
+        {
+          role: 'Backend Developer',
+          company: 'SHB',
+          location: 'Ha Noi',
+          salary: '18,000,000 VNĐ',
+          description: 'Backend role',
+          daysAgo: '5 days ago',
+        },
       ]);
       const jobs = extractAllJobs(html);
       expect(jobs[0].role).toBe('Backend Developer');
@@ -166,7 +237,13 @@ describe('JobExtractionService', () => {
 
     it('detects easyApply', () => {
       const html = makeIndeedEmailHtml([
-        { role: 'Frontend Developer', company: 'ABC', location: 'Hanoi', salary: '10,000,000 VNĐ', easyApply: true },
+        {
+          role: 'Frontend Developer',
+          company: 'ABC',
+          location: 'Hanoi',
+          salary: '10,000,000 VNĐ',
+          easyApply: true,
+        },
       ]);
       const jobs = extractAllJobs(html);
       expect(jobs).toHaveLength(1);

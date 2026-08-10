@@ -12,11 +12,13 @@ import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures
 
 function fetchText(port: number, path: string): Promise<{ status: number; body: string }> {
   return new Promise((resolve, reject) => {
-    http.get({ host: '127.0.0.1', port, path }, (res) => {
-      let raw = '';
-      res.on('data', (c) => (raw += c));
-      res.on('end', () => resolve({ status: res.statusCode ?? 0, body: raw }));
-    }).on('error', reject);
+    http
+      .get({ host: '127.0.0.1', port, path }, (res) => {
+        let raw = '';
+        res.on('data', (c) => (raw += c));
+        res.on('end', () => resolve({ status: res.statusCode ?? 0, body: raw }));
+      })
+      .on('error', reject);
   });
 }
 
@@ -53,15 +55,22 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
 
   beforeEach(async () => {
     await storage.clearDb();
-    ingestor = new JobIngestor(adapter, {
-      emitGenerated: vi.fn(() => Promise.resolve()),
-      emitCompleted: vi.fn(() => Promise.resolve()),
-      emitFailed: vi.fn(() => Promise.resolve()),
-    }, {
-      emitJobQueued: vi.fn(() => Promise.resolve()),
-      emitJobTrashed: vi.fn(() => Promise.resolve()),
-      emitRouteFailed: vi.fn(() => Promise.resolve()),
-    }, undefined as any, undefined as any, metrics);
+    ingestor = new JobIngestor(
+      adapter,
+      {
+        emitGenerated: vi.fn(() => Promise.resolve()),
+        emitCompleted: vi.fn(() => Promise.resolve()),
+        emitFailed: vi.fn(() => Promise.resolve()),
+      },
+      {
+        emitJobQueued: vi.fn(() => Promise.resolve()),
+        emitJobTrashed: vi.fn(() => Promise.resolve()),
+        emitRouteFailed: vi.fn(() => Promise.resolve()),
+      },
+      undefined as any,
+      undefined as any,
+      metrics
+    );
   });
 
   afterAll(async () => {
@@ -74,14 +83,26 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
   }, 15000);
 
   it('prometheus /metrics endpoint exposes jobs_brokered_total after an ingest', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'MetricCo1' }]), undefined, { messageId: 'metric-1' });
+    await ingestor.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.PARTIAL_PARSED,
+      topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'MetricCo1' }]),
+      undefined,
+      { messageId: 'metric-1' }
+    );
     const res = await fetchText(healthPort, '/metrics');
     expect(res.status).toBe(200);
     expect(res.body).toContain('jobs_brokered_total');
   }, 15000);
 
   it('jobs_brokered_total increments per source (browser-auto)', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Backend Developer', company: 'MetricCo2' }]), undefined, { messageId: 'metric-2' });
+    await ingestor.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.PARTIAL_PARSED,
+      topcvEmailHtmlMany([{ role: 'Backend Developer', company: 'MetricCo2' }]),
+      undefined,
+      { messageId: 'metric-2' }
+    );
     const text = await registry.metrics();
     expect(text).toContain('jobs_brokered_total');
     const m = registry.getSingleMetric('jobs_brokered_total');
@@ -91,7 +112,13 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
   }, 15000);
 
   it('job_stage_total tracks s1 enriching after PARTIAL_PARSED ingest', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Data Engineer', company: 'MetricCo3' }]), undefined, { messageId: 'metric-3' });
+    await ingestor.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.PARTIAL_PARSED,
+      topcvEmailHtmlMany([{ role: 'Data Engineer', company: 'MetricCo3' }]),
+      undefined,
+      { messageId: 'metric-3' }
+    );
     const m = registry.getSingleMetric('job_stage_total');
     const values = m ? await m.get() : null;
     const s1 = values?.values.find((v: any) => v.labels.stage === 's1');
@@ -99,9 +126,20 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
   }, 15000);
 
   it('job_stage_total tracks s2 enriched after FULL_PARSED merge', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'MetricCo4' }]), undefined, { messageId: 'metric-4' });
+    await ingestor.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.PARTIAL_PARSED,
+      topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'MetricCo4' }]),
+      undefined,
+      { messageId: 'metric-4' }
+    );
     const id = 'metric-4-job-0';
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'MetricCo4'), id);
+    await ingestor.processIngest(
+      JobSource.MANUAL,
+      JobStage.FULL_PARSED,
+      topcvDetailHtml('Software Engineer', 'MetricCo4'),
+      id
+    );
     const m = registry.getSingleMetric('job_stage_total');
     const values = m ? await m.get() : null;
     const s2 = values?.values.find((v: any) => v.labels.stage === 's2');
@@ -109,9 +147,20 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
   }, 15000);
 
   it('job_stage_total tracks s3 queued after queue resolution', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Full Stack Developer', company: 'MetricCo5' }]), undefined, { messageId: 'metric-5' });
+    await ingestor.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.PARTIAL_PARSED,
+      topcvEmailHtmlMany([{ role: 'Full Stack Developer', company: 'MetricCo5' }]),
+      undefined,
+      { messageId: 'metric-5' }
+    );
     const id = 'metric-5-job-0';
-    await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Full Stack Developer', 'MetricCo5'), id);
+    await ingestor.processIngest(
+      JobSource.MANUAL,
+      JobStage.FULL_PARSED,
+      topcvDetailHtml('Full Stack Developer', 'MetricCo5'),
+      id
+    );
     await ingestor.processResolution(id, 'queue');
     const m = registry.getSingleMetric('job_stage_total');
     const values = m ? await m.get() : null;
@@ -128,7 +177,13 @@ describe('PRC-009 — Metrics + health readiness on real flows', () => {
   }, 15000);
 
   it('jobs_in_flight gauge returns to zero after processed job (no leak)', async () => {
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Web Developer', company: 'MetricCo6' }]), undefined, { messageId: 'metric-6' });
+    await ingestor.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.PARTIAL_PARSED,
+      topcvEmailHtmlMany([{ role: 'Web Developer', company: 'MetricCo6' }]),
+      undefined,
+      { messageId: 'metric-6' }
+    );
     const m = registry.getSingleMetric('jobs_in_flight');
     const values = m ? await m.get() : null;
     const inFlight = values?.values.find((v: any) => v.labels.stage === 's1');

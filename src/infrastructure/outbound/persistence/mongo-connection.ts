@@ -1,4 +1,4 @@
-import { MongoClient} from 'mongodb';
+import { MongoClient } from 'mongodb';
 import { createLogger } from '../logging/logger.js';
 
 const logger = createLogger('MongoConnector');

@@ -117,12 +117,19 @@ export const vendorTemplates: Record<Lang, Record<TemplateKind, string[]>> = {
     preference: ['exposure to {retrieval_association}', 'prior work with {retrieval_association}'],
   },
   vi: {
-    responsibility: ['tích hợp với {retrieval_association}', 'vận hành với {retrieval_association}', 'hỗ trợ luồng {retrieval_association}'],
+    responsibility: [
+      'tích hợp với {retrieval_association}',
+      'vận hành với {retrieval_association}',
+      'hỗ trợ luồng {retrieval_association}',
+    ],
     requirement: [
       'có kinh nghiệm với {retrieval_association}',
       'có hiểu biết về {retrieval_association}',
       'có khả năng tích hợp {retrieval_association}',
     ],
-    preference: ['đã từng tiếp xúc với {retrieval_association}', 'đã từng làm việc với {retrieval_association}'],
+    preference: [
+      'đã từng tiếp xúc với {retrieval_association}',
+      'đã từng làm việc với {retrieval_association}',
+    ],
   },
 };

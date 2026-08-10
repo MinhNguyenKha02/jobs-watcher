@@ -16,7 +16,7 @@ describe('Execution mode detection', () => {
   });
 
   async function getModules() {
-    const mod = await import('../../../src/application/execution-mode.js' );
+    const mod = await import('../../../src/application/execution-mode.js');
     mod._resetModeContext();
     return {
       detectExecutionMode: mod.detectExecutionMode,
@@ -120,16 +120,24 @@ describe('Execution mode detection', () => {
 
     process.env.NODE_ENV = 'test';
     const testCtx = detectExecutionMode();
-    const truthyCount = [testCtx.isProduction, testCtx.isTest, testCtx.isFixture, testCtx.isHeadless]
-      .filter(Boolean).length;
+    const truthyCount = [
+      testCtx.isProduction,
+      testCtx.isTest,
+      testCtx.isFixture,
+      testCtx.isHeadless,
+    ].filter(Boolean).length;
     expect(truthyCount).toBe(1);
 
     process.env.HEADLESS = '1';
     delete process.env.TEST_RUNNER;
     process.env.NODE_ENV = 'development';
     const headlessCtx = detectExecutionMode();
-    const headlessTruthy = [headlessCtx.isProduction, headlessCtx.isTest, headlessCtx.isFixture, headlessCtx.isHeadless]
-      .filter(Boolean).length;
+    const headlessTruthy = [
+      headlessCtx.isProduction,
+      headlessCtx.isTest,
+      headlessCtx.isFixture,
+      headlessCtx.isHeadless,
+    ].filter(Boolean).length;
     expect(headlessTruthy).toBe(1);
   });
 });

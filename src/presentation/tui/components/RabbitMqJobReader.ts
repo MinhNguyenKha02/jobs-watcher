@@ -56,7 +56,7 @@ export class RabbitMqJobReader {
 
   constructor(
     private baseUrl: string,
-    options: RabbitMqJobReaderOptions = {},
+    options: RabbitMqJobReaderOptions = {}
   ) {
     this.exchange = options.exchange ?? EXCHANGE;
     this.s1Queue = options.s1Queue ?? S1_QUEUE;
@@ -190,7 +190,7 @@ export class RabbitMqJobReader {
       } else if (this.currentJobId === id) {
         setCurrentJob(id, { ...getCurrentJob().job, ...payload } as any, JobStage.FULL_PARSED);
         logger.info('job.parse.completed — IPC enriched displayed job', { id });
-      } else if (this.getQueueMode()===false) {
+      } else if (this.getQueueMode() === false) {
         if (this.currentJobId !== null) {
           this.ackAllForJob(this.currentJobId);
         }
@@ -219,7 +219,7 @@ export class RabbitMqJobReader {
   private onMessageS3S4(msg: ConsumeMessage): void {
     try {
       const payload = JSON.parse(msg.content.toString()) as string;
-      const id = payload
+      const id = payload;
       if (!id) {
         this.s34channel!.ack(msg);
         return;
@@ -271,7 +271,7 @@ export class RabbitMqJobReader {
   }
 
   private autoAdvance(): void {
-    if (this.getQueueMode()===false) return;
+    if (this.getQueueMode() === false) return;
     if (this.currentJobId !== null) return;
     if (this.pendingJobs.length === 0) return;
     const next = this.pendingJobs.shift()!;

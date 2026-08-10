@@ -2,11 +2,17 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import http from 'http';
 import { PlaywrightBrowserAdapter } from '../../../../src/infrastructure/outbound/browser/browser-adapter.js';
 
-function startHtmlServer(): Promise<{ server: http.Server; url: string; close: () => Promise<void> }> {
+function startHtmlServer(): Promise<{
+  server: http.Server;
+  url: string;
+  close: () => Promise<void>;
+}> {
   return new Promise((resolve) => {
     const server = http.createServer((_req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end('<html><body><h1>Job Detail</h1><div class="job-detail__info--title">Software Engineer</div></body></html>');
+      res.end(
+        '<html><body><h1>Job Detail</h1><div class="job-detail__info--title">Software Engineer</div></body></html>'
+      );
     });
     server.listen(0, '127.0.0.1', () => {
       const addr = server.address() as any;

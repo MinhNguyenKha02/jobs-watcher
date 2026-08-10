@@ -2,7 +2,7 @@ import type { Job } from './job.js';
 
 export enum JobStage {
   PARTIAL_PARSED = 'partial_parsed',
-  FULL_PARSED = 'full_parsed'
+  FULL_PARSED = 'full_parsed',
 }
 
 export enum JobStatus {
@@ -10,12 +10,12 @@ export enum JobStatus {
   ENRICHED = 'enriched',
   QUEUED = 'queued',
   TRASHED = 'trashed',
-  FAILED = 'failed'
+  FAILED = 'failed',
 }
 
 export enum JobSource {
   BROWSER_AUTO = 'browser-auto',
-  MANUAL = 'manual'
+  MANUAL = 'manual',
 }
 
 export interface JobLifecycleDocument extends Job {

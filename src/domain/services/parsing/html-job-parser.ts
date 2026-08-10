@@ -17,13 +17,17 @@ type TopCvSection = {
 };
 
 function extractMetaUrl($: CheerioAPI): string {
-  return $('meta[property="og:url"]').attr('content') || $('link[rel="canonical"]').attr('href') || '';
+  return (
+    $('meta[property="og:url"]').attr('content') || $('link[rel="canonical"]').attr('href') || ''
+  );
 }
 
 function extractSectionByHeading($: CheerioAPI, patterns: string[]): string {
   for (const pattern of patterns) {
     const regex = new RegExp(pattern, 'i');
-    const heading = $('h2, h3').filter((_, el) => regex.test($(el).text())).first();
+    const heading = $('h2, h3')
+      .filter((_, el) => regex.test($(el).text()))
+      .first();
     if (!heading.length) continue;
     const texts: string[] = [];
     heading.nextUntil('h2, h3').each((_, el) => {
@@ -38,9 +42,16 @@ function extractSectionByHeading($: CheerioAPI, patterns: string[]): string {
 function extractSectionByInlineLabel($: CheerioAPI, patterns: string[]): string {
   for (const pattern of patterns) {
     const regex = new RegExp(pattern, 'i');
-    const label = $('p strong, p b, div strong, div b').filter((_, el) => {
-      return regex.test($(el).text().replace(/[:：]\s*$/, '').trim());
-    }).first();
+    const label = $('p strong, p b, div strong, div b')
+      .filter((_, el) => {
+        return regex.test(
+          $(el)
+            .text()
+            .replace(/[:：]\s*$/, '')
+            .trim()
+        );
+      })
+      .first();
     if (!label.length) continue;
 
     const parent = label.parent();
@@ -76,7 +87,8 @@ function extractInlineStrongSections($: CheerioAPI): TopCvSection[] {
     const $parent = $(el).parent();
     const hasBreak = $parent.find('br').length > 0;
     const endsWithColon = /[:：]$/.test(raw);
-    const isStandalone = $parent.is('p, div') && $parent.children('strong, b').length === $parent.children().length;
+    const isStandalone =
+      $parent.is('p, div') && $parent.children('strong, b').length === $parent.children().length;
 
     if (hasBreak || endsWithColon || isStandalone) {
       candidates.push({ el, title });
@@ -112,10 +124,12 @@ function extractHeadingSections($: CheerioAPI): TopCvSection[] {
     const title = cleanText($(el).text());
     if (!title) return;
     const texts: string[] = [];
-    $(el).nextUntil('h2, h3').each((_, sib) => {
-      const t = $(sib).text().trim();
-      if (t) texts.push(t);
-    });
+    $(el)
+      .nextUntil('h2, h3')
+      .each((_, sib) => {
+        const t = $(sib).text().trim();
+        if (t) texts.push(t);
+      });
     const content = cleanText(texts.join(' '));
     if (content) sections.push({ title, content });
   });
@@ -124,20 +138,24 @@ function extractHeadingSections($: CheerioAPI): TopCvSection[] {
 
 function extractHeadingSectionsByClass($: CheerioAPI, classPattern: string): TopCvSection[] {
   const sections: TopCvSection[] = [];
-  $('h2, h3').filter((_, el) => {
-    const cls = $(el).attr('class') || '';
-    return cls.includes(classPattern);
-  }).each((_, el) => {
-    const title = cleanText($(el).text());
-    if (!title) return;
-    const texts: string[] = [];
-    $(el).nextUntil('h2, h3').each((_, sib) => {
-      const t = $(sib).text().trim();
-      if (t) texts.push(t);
+  $('h2, h3')
+    .filter((_, el) => {
+      const cls = $(el).attr('class') || '';
+      return cls.includes(classPattern);
+    })
+    .each((_, el) => {
+      const title = cleanText($(el).text());
+      if (!title) return;
+      const texts: string[] = [];
+      $(el)
+        .nextUntil('h2, h3')
+        .each((_, sib) => {
+          const t = $(sib).text().trim();
+          if (t) texts.push(t);
+        });
+      const content = cleanText(texts.join(' '));
+      if (content) sections.push({ title, content });
     });
-    const content = cleanText(texts.join(' '));
-    if (content) sections.push({ title, content });
-  });
   return sections;
 }
 
@@ -166,7 +184,11 @@ function extractTopCvJobTags($: CheerioAPI): Record<string, string> {
   $('.job-tags__group').each((_, group) => {
     const name = cleanText($(group).find('.job-tags__group-name').text()).replace(/:$/, '');
     if (!name) return;
-    const tags = $(group).find('[class*="item"]').map((_, item) => cleanText($(item).text())).get().filter(Boolean);
+    const tags = $(group)
+      .find('[class*="item"]')
+      .map((_, item) => cleanText($(item).text()))
+      .get()
+      .filter(Boolean);
     if (tags.length) results[name] = tags.join(', ');
   });
   return results;
@@ -188,7 +210,9 @@ function extractTopCvCompanyInfo($: CheerioAPI): string {
   const parts: string[] = [];
   const scale = cleanText($('[class*="company-scale"]').find('[class*="company-value"]').text());
   const field = cleanText($('[class*="company-field"]').find('[class*="company-value"]').text());
-  const address = cleanText($('[class*="company-address"]').find('[class*="company-value"]').text());
+  const address = cleanText(
+    $('[class*="company-address"]').find('[class*="company-value"]').text()
+  );
   if (scale) parts.push(`Quy mô: ${scale}`);
   if (field) parts.push(`Lĩnh vực: ${field}`);
   if (address) parts.push(`Địa điểm: ${address}`);
@@ -209,7 +233,10 @@ function isVietnameseCity(text: string): boolean {
   return /Thành phố|Hà Nội|Hồ Chí Minh|Đà Nẵng/.test(text);
 }
 
-function mergeDescription(base: string, sections: Array<{ label: string; value?: string }>): string {
+function mergeDescription(
+  base: string,
+  sections: Array<{ label: string; value?: string }>
+): string {
   const parts: string[] = [];
   const initial = base?.trim();
   if (initial) parts.push(initial);
@@ -323,42 +350,61 @@ export class HtmlJobParser {
     role = cleanText($titleBase.text());
 
     if (!role) {
-      const $titleEl = $('[class*="title"]').filter((_, el) => {
-        return $(el).is('div') && $(el).find('> span').length > 0;
-      }).first();
+      const $titleEl = $('[class*="title"]')
+        .filter((_, el) => {
+          return $(el).is('div') && $(el).find('> span').length > 0;
+        })
+        .first();
       role = cleanText($titleEl.find('> span').text());
     }
 
     if (!role) {
-      const $altTitle = $('[class*="job-item__title"], [class*="job-item-title"], [class*="job-title"]').first();
+      const $altTitle = $(
+        '[class*="job-item__title"], [class*="job-item-title"], [class*="job-title"]'
+      ).first();
       role = cleanText($altTitle.text());
     }
 
     company = cleanText($('.company-name-label .name').first().text());
     if (!company) company = cleanText($('[class*="company-name"]').first().text());
-    if (!company) company = cleanText($('.job-detail__company--information-item.company-name .name').first().text());
-    if (!company) company = cleanText($('.job-detail__company--information-item.company-name span').first().text());
+    if (!company)
+      company = cleanText(
+        $('.job-detail__company--information-item.company-name .name').first().text()
+      );
+    if (!company)
+      company = cleanText(
+        $('.job-detail__company--information-item.company-name span').first().text()
+      );
 
     if (!company) {
-      const $companyDiv = $('div[class*="company"]').filter((_, el) => $(el).find('> span').length > 0).first();
+      const $companyDiv = $('div[class*="company"]')
+        .filter((_, el) => $(el).find('> span').length > 0)
+        .first();
       company = cleanText($companyDiv.find('> span').text());
     }
 
     if (!company) {
-      const $altCompany = $('[class*="job-item__company"], [class*="company-name"], [class*="employer-name"]').first();
+      const $altCompany = $(
+        '[class*="job-item__company"], [class*="company-name"], [class*="employer-name"]'
+      ).first();
       company = cleanText($altCompany.text());
     }
 
     const $locationBlock = $('.section-location .job-detail__info--section-content-value').first();
     if ($locationBlock.length) {
-      location = cleanText($locationBlock.text()).replace(/\s*\(mới\)\s*/g, '').trim();
+      location = cleanText($locationBlock.text())
+        .replace(/\s*\(mới\)\s*/g, '')
+        .trim();
     }
 
     if (!location) {
       const html = $.root().text();
       const locMatch = html.match(/(?:Hà Nội|Hồ Chí Minh|Đà Nẵng|TP\.HCM)[^<\n]*/);
       if (locMatch) {
-        location = locMatch[0].replace(/\s*\(mới\)\s*/g, '').replace(/[\s\n]+/g, ' ').trim();
+        location = locMatch[0]
+          .replace(/\s*\(mới\)\s*/g, '')
+          .replace(/[\s\n]+/g, ' ')
+          .trim();
       }
     }
 
@@ -366,7 +412,9 @@ export class HtmlJobParser {
     if ($salaryBlock.length) salary = cleanText($salaryBlock.text());
 
     if (!salary) {
-      const $salaryEl = $('[class*="text-primary"]').filter((_, el) => $(el).find('> b').length > 0).first();
+      const $salaryEl = $('[class*="text-primary"]')
+        .filter((_, el) => $(el).find('> b').length > 0)
+        .first();
       salary = cleanText($salaryEl.find('> b').text());
     }
 
@@ -385,7 +433,9 @@ export class HtmlJobParser {
 
     let description = '';
 
-    const $directDesc = $('h3').filter((_, el) => /Mô tả công việc/i.test($(el).text())).first();
+    const $directDesc = $('h3')
+      .filter((_, el) => /Mô tả công việc/i.test($(el).text()))
+      .first();
     if ($directDesc.length) {
       const $content = $directDesc.nextAll('.job-description__item--content').first();
       if ($content.length) description = cleanText($content.text());
@@ -407,7 +457,9 @@ export class HtmlJobParser {
     const $descContent = $('.job-description__item--content').first();
     if ($descContent.length) {
       const $d = cheerio.load(`<div>${$descContent.html() || ''}</div>`);
-      const $req = $d('strong').filter((_, el) => /^Requirements?:?$/i.test($(el).text().trim())).first();
+      const $req = $d('strong')
+        .filter((_, el) => /^Requirements?:?$/i.test($(el).text().trim()))
+        .first();
       if ($req.length) {
         const texts: string[] = [];
         $req.nextUntil('strong').each((_, el) => {
@@ -417,7 +469,9 @@ export class HtmlJobParser {
         requirements = cleanText(texts.join(' '));
       }
 
-      const $ben = $d('strong').filter((_, el) => /^Benefits?:?$/i.test($(el).text().trim())).first();
+      const $ben = $d('strong')
+        .filter((_, el) => /^Benefits?:?$/i.test($(el).text().trim()))
+        .first();
       if ($ben.length) {
         const texts: string[] = [];
         $ben.nextUntil('strong').each((_, el) => {
@@ -430,9 +484,17 @@ export class HtmlJobParser {
 
     if (!requirements) {
       requirements =
-        extractSectionByHeading($, ['Yêu cầu ứng viên', 'Yêu cầu công việc', 'Requirements', 'Kinh nghiệm']) ||
+        extractSectionByHeading($, [
+          'Yêu cầu ứng viên',
+          'Yêu cầu công việc',
+          'Requirements',
+          'Kinh nghiệm',
+        ]) ||
         sectionByTitle(
-          (title) => title.includes('yêu cầu') || title.includes('requirements') || title.includes('kinh nghiệm')
+          (title) =>
+            title.includes('yêu cầu') ||
+            title.includes('requirements') ||
+            title.includes('kinh nghiệm')
         );
     }
 
@@ -443,13 +505,19 @@ export class HtmlJobParser {
     }
 
     const applicationProcess =
-      extractSectionByHeading($, ['Cách thức ứng tuyển', 'Cách ứng tuyển', 'Application Process']) ||
-      sectionByTitle((title) => title.includes('ứng tuyển') || title.includes('apply'));
+      extractSectionByHeading($, [
+        'Cách thức ứng tuyển',
+        'Cách ứng tuyển',
+        'Application Process',
+      ]) || sectionByTitle((title) => title.includes('ứng tuyển') || title.includes('apply'));
 
     let companyInfo =
       extractSectionByHeading($, ['Thông tin công ty', 'Giới thiệu công ty', 'About Company']) ||
       sectionByTitle(
-        (title) => title.includes('thông tin công ty') || title.includes('giới thiệu') || title.includes('about company')
+        (title) =>
+          title.includes('thông tin công ty') ||
+          title.includes('giới thiệu') ||
+          title.includes('about company')
       );
 
     const contact =
@@ -467,14 +535,16 @@ export class HtmlJobParser {
     const companyInfoBlock = extractTopCvCompanyInfo($);
 
     if (!companyInfo) companyInfo = companyInfoBlock;
-    if (!companyInfo) companyInfo = extractTopCvInfoPairs($, 'job-detail__company--information-item');
+    if (!companyInfo)
+      companyInfo = extractTopCvInfoPairs($, 'job-detail__company--information-item');
 
     if (generalInfo) {
       companyInfo = companyInfo ? `${companyInfo} | ${generalInfo}` : generalInfo;
     }
 
     let contactResolved = contact;
-    if (!contactResolved) contactResolved = extractTopCvInfoPairs($, 'job-detail__company--contact-item');
+    if (!contactResolved)
+      contactResolved = extractTopCvInfoPairs($, 'job-detail__company--contact-item');
 
     const customFormSections = extractTopCvCustomFormSections($);
     const customBenefitsText = customFormSections
@@ -532,7 +602,10 @@ export class HtmlJobParser {
     let description = '';
 
     const $titleSpan = $('[data-testid*="JobInfoHeader-title"]').find('span').first();
-    if ($titleSpan.length) role = cleanText($titleSpan.text()).replace(/\s*-\s*job post\s*$/i, '').trim();
+    if ($titleSpan.length)
+      role = cleanText($titleSpan.text())
+        .replace(/\s*-\s*job post\s*$/i, '')
+        .trim();
 
     if (!role) {
       const $h2a = $('h2 > a').first();
@@ -544,7 +617,10 @@ export class HtmlJobParser {
 
     if (!role) {
       const $alertTitle = $('[class*="job-item"]').find('h2').first();
-      if ($alertTitle.length) role = cleanText($alertTitle.text()).replace(/\s*-\s*job post\s*$/i, '').trim();
+      if ($alertTitle.length)
+        role = cleanText($alertTitle.text())
+          .replace(/\s*-\s*job post\s*$/i, '')
+          .trim();
     }
 
     if (!role) return null;
@@ -574,14 +650,18 @@ export class HtmlJobParser {
     if ($salarySpan.length) salary = cleanText($salarySpan.text());
 
     const $descEl = $('#jobDescriptionText');
-    const descHtmlRaw = $descEl.length ? ($descEl.html() || '') : '';
+    const descHtmlRaw = $descEl.length ? $descEl.html() || '' : '';
     if (descHtmlRaw) {
       const $d = cheerio.load(descHtmlRaw);
       description = cleanText($d.root().text());
     }
 
-    const descriptionSections = descHtmlRaw ? extractHeadingSectionsByClass(cheerio.load(descHtmlRaw), 'jobSectionHeader') : [];
-    const strongSections = descHtmlRaw ? extractInlineStrongSections(cheerio.load(descHtmlRaw)) : [];
+    const descriptionSections = descHtmlRaw
+      ? extractHeadingSectionsByClass(cheerio.load(descHtmlRaw), 'jobSectionHeader')
+      : [];
+    const strongSections = descHtmlRaw
+      ? extractInlineStrongSections(cheerio.load(descHtmlRaw))
+      : [];
     const sectionByTitle = (matcher: (title: string) => boolean): string => {
       const found = descriptionSections.find((section) => matcher(section.title.toLowerCase()));
       return found?.content || '';
@@ -605,7 +685,9 @@ export class HtmlJobParser {
 
     if (descHtmlRaw) {
       const $d = cheerio.load(descHtmlRaw);
-      const $req = $d('h2').filter((_, el) => /^Required Qualifications$/i.test($(el).text().trim())).first();
+      const $req = $d('h2')
+        .filter((_, el) => /^Required Qualifications$/i.test($(el).text().trim()))
+        .first();
       if ($req.length) {
         const texts: string[] = [];
         $req.nextUntil('h2').each((_, el) => {
@@ -615,7 +697,9 @@ export class HtmlJobParser {
         requirements = cleanText(texts.join(' '));
       }
 
-      const $ben = $d('h2').filter((_, el) => /^Benefits$/i.test($(el).text().trim())).first();
+      const $ben = $d('h2')
+        .filter((_, el) => /^Benefits$/i.test($(el).text().trim()))
+        .first();
       if ($ben.length) {
         const texts: string[] = [];
         $ben.nextUntil('h2').each((_, el) => {
@@ -650,11 +734,18 @@ export class HtmlJobParser {
     }
 
     const applicationProcess = sectionByTitle(
-      (title) => title.includes('application process') || title.includes('how to apply') || title.includes('recruitment process')
+      (title) =>
+        title.includes('application process') ||
+        title.includes('how to apply') ||
+        title.includes('recruitment process')
     );
 
-    const companyHeading = sectionByTitle((title) => title.includes('about') || title.includes('company'));
-    const contactHeading = sectionByTitle((title) => title.includes('contact') || title.includes('hiring team'));
+    const companyHeading = sectionByTitle(
+      (title) => title.includes('about') || title.includes('company')
+    );
+    const contactHeading = sectionByTitle(
+      (title) => title.includes('contact') || title.includes('hiring team')
+    );
 
     const strongResponsibilities = strongByTitle(
       (title) =>
@@ -687,22 +778,42 @@ export class HtmlJobParser {
     );
 
     const inlineResponsibilities = descHtmlRaw
-      ? extractSectionByInlineLabel(cheerio.load(descHtmlRaw), ['Responsibilities', 'Công việc', 'Nhiệm vụ'])
+      ? extractSectionByInlineLabel(cheerio.load(descHtmlRaw), [
+          'Responsibilities',
+          'Công việc',
+          'Nhiệm vụ',
+        ])
       : '';
 
     const inlineRequirements = descHtmlRaw
-      ? extractSectionByInlineLabel(cheerio.load(descHtmlRaw), ['Requirements', 'Yêu cầu', "What you'll bring", 'What you will bring'])
+      ? extractSectionByInlineLabel(cheerio.load(descHtmlRaw), [
+          'Requirements',
+          'Yêu cầu',
+          "What you'll bring",
+          'What you will bring',
+        ])
       : '';
 
     const inlineBenefits = descHtmlRaw
       ? extractSectionByInlineLabel(cheerio.load(descHtmlRaw), [
-          'Benefits', 'Quyền lợi', 'Phúc lợi', 'Lương', 'Salary', 'How we look after you',
-          'Working environment', 'Working Environment',
+          'Benefits',
+          'Quyền lợi',
+          'Phúc lợi',
+          'Lương',
+          'Salary',
+          'How we look after you',
+          'Working environment',
+          'Working Environment',
         ])
       : '';
 
     const inlineCompanyInfo = descHtmlRaw
-      ? extractSectionByInlineLabel(cheerio.load(descHtmlRaw), ['Our Company', 'About us', 'About Us', 'The team'])
+      ? extractSectionByInlineLabel(cheerio.load(descHtmlRaw), [
+          'Our Company',
+          'About us',
+          'About Us',
+          'The team',
+        ])
       : '';
 
     const detailsSections = extractHeadingSectionsByClass($, 'js-match-insights-provider-1xuczfq');
@@ -714,31 +825,61 @@ export class HtmlJobParser {
       (title) => title.includes('pay') || title.includes('salary') || title.includes('compensation')
     );
     const jobType = detailsByTitle(
-      (title) => title.includes('job type') || title.includes('employment type') || title.includes('loại hình')
+      (title) =>
+        title.includes('job type') ||
+        title.includes('employment type') ||
+        title.includes('loại hình')
     );
 
-    const responsibilitiesResolved = responsibilities || inlineResponsibilities || strongResponsibilities ||
+    const responsibilitiesResolved =
+      responsibilities ||
+      inlineResponsibilities ||
+      strongResponsibilities ||
       sectionByTitle(
         (title) =>
-          title.includes('responsibilities') || title.includes('key contributions') || title.includes('job description')
+          title.includes('responsibilities') ||
+          title.includes('key contributions') ||
+          title.includes('job description')
       );
 
-    const requirementsResolved = requirements || inlineRequirements || strongRequirements ||
+    const requirementsResolved =
+      requirements ||
+      inlineRequirements ||
+      strongRequirements ||
       sectionByTitle(
-        (title) => title.includes('requirements') || title.includes("you'll bring") || title.includes('skills')
+        (title) =>
+          title.includes('requirements') ||
+          title.includes("you'll bring") ||
+          title.includes('skills')
       );
 
-    const benefitsResolved = benefits || inlineBenefits || strongBenefits ||
+    const benefitsResolved =
+      benefits ||
+      inlineBenefits ||
+      strongBenefits ||
       sectionByTitle(
-        (title) => title.includes('benefits') || title.includes("why you'll love") || title.includes('reasons to join')
+        (title) =>
+          title.includes('benefits') ||
+          title.includes("why you'll love") ||
+          title.includes('reasons to join')
       );
 
-    const companyInfoResolved = companyHeading || inlineCompanyInfo || strongCompanyInfo ||
+    const companyInfoResolved =
+      companyHeading ||
+      inlineCompanyInfo ||
+      strongCompanyInfo ||
       sectionByTitle((title) => title.includes('about'));
 
     const extraSections: Record<string, string> = {};
     const skipContent = new Set(
-      [responsibilitiesResolved, requirementsResolved, benefitsResolved, companyInfoResolved, contactHeading, applicationProcess].filter(Boolean)
+      [
+        responsibilitiesResolved,
+        requirementsResolved,
+        benefitsResolved,
+        companyInfoResolved,
+        contactHeading,
+        applicationProcess,
+      ].filter(Boolean)
     );
 
     const addExtraSection = (title: string, content: string): void => {
@@ -781,7 +922,9 @@ export class HtmlJobParser {
     }
 
     if (!url) {
-      const $viewJob = $('a[href*="indeed.com/viewjob?"], a[href*="indeed.com/rc/clk/dl?"]').first();
+      const $viewJob = $(
+        'a[href*="indeed.com/viewjob?"], a[href*="indeed.com/rc/clk/dl?"]'
+      ).first();
       url = $viewJob.attr('href') || '';
     }
 
@@ -791,17 +934,19 @@ export class HtmlJobParser {
     }
 
     if (!company || !location) {
-      $('td').filter((_, el) => {
-        const style = $(el).attr('style') || '';
-        return style.includes('color:#2d2d2d');
-      }).each((_, el) => {
-        const text = $(el).text().trim();
-        if (!company && text.length > 0 && !isVietnameseCity(text)) {
-          company = text;
-        } else if (!location && isVietnameseCity(text)) {
-          location = text;
-        }
-      });
+      $('td')
+        .filter((_, el) => {
+          const style = $(el).attr('style') || '';
+          return style.includes('color:#2d2d2d');
+        })
+        .each((_, el) => {
+          const text = $(el).text().trim();
+          if (!company && text.length > 0 && !isVietnameseCity(text)) {
+            company = text;
+          } else if (!location && isVietnameseCity(text)) {
+            location = text;
+          }
+        });
     }
 
     if (!salary) {
@@ -810,10 +955,12 @@ export class HtmlJobParser {
     }
 
     if (!description) {
-      const $descTd = $('td').filter((_, el) => {
-        const style = $(el).attr('style') || '';
-        return style.includes('color:#767676');
-      }).first();
+      const $descTd = $('td')
+        .filter((_, el) => {
+          const style = $(el).attr('style') || '';
+          return style.includes('color:#767676');
+        })
+        .first();
       if ($descTd.length) {
         const text = $descTd.text().trim();
         if (text.length >= 20 && text.length <= 300) description = text;
@@ -857,27 +1004,38 @@ export class HtmlJobParser {
     }
 
     if (!role) {
-      const $stickyTitle = $('.job-details-jobs-unified-top-card__title-container').find('h2').first();
+      const $stickyTitle = $('.job-details-jobs-unified-top-card__title-container')
+        .find('h2')
+        .first();
       if ($stickyTitle.length) role = cleanText($stickyTitle.text());
     }
 
     if (!role) {
-      role = cleanText($('meta[property="og:title"]').attr('content') || '').replace(/\s*\|\s*LinkedIn\s*$/i, '').trim();
+      role = cleanText($('meta[property="og:title"]').attr('content') || '')
+        .replace(/\s*\|\s*LinkedIn\s*$/i, '')
+        .trim();
     }
 
     if (!role) {
-      role = cleanText($('title').text()).replace(/\s*\|\s*LinkedIn\s*$/i, '').trim();
+      role = cleanText($('title').text())
+        .replace(/\s*\|\s*LinkedIn\s*$/i, '')
+        .trim();
     }
 
     company = cleanText($('.job-details-jobs-unified-top-card__company-name a').first().text());
-    if (!company) company = cleanText($('.job-details-jobs-unified-top-card__company-name span').first().text());
+    if (!company)
+      company = cleanText(
+        $('.job-details-jobs-unified-top-card__company-name span').first().text()
+      );
 
     const $tertiaryDesc = $('.job-details-jobs-unified-top-card__tertiary-description-container');
     const $locSpan = $tertiaryDesc.find('.tvm__text--low-emphasis').first();
     if ($locSpan.length) location = cleanText($locSpan.text());
 
     if (!location) {
-      const $stickyMeta = $('.job-details-jobs-unified-top-card__title-container').find('.t-14.truncate').first();
+      const $stickyMeta = $('.job-details-jobs-unified-top-card__title-container')
+        .find('.t-14.truncate')
+        .first();
       if ($stickyMeta.length) {
         const metaText = cleanText($stickyMeta.text());
         const parts = metaText.split('·').map((part) => part.trim());
@@ -888,18 +1046,26 @@ export class HtmlJobParser {
     if (!location) {
       const ogDesc = $('meta[property="og:description"]').attr('content') || '';
       const descParts = ogDesc.split('·').map((part) => part.trim());
-      const possibleLoc = descParts.find((part) => /city|vietnam|remote|hà nội|ho chi minh|đà nẵng/i.test(part));
+      const possibleLoc = descParts.find((part) =>
+        /city|vietnam|remote|hà nội|ho chi minh|đà nẵng/i.test(part)
+      );
       if (possibleLoc) location = possibleLoc;
     }
 
-    const $descEl = $('#job-details').length ? $('#job-details') : $('.jobs-description__content').first();
-    const descHtmlRaw = $descEl.length ? ($descEl.html() || '') : '';
+    const $descEl = $('#job-details').length
+      ? $('#job-details')
+      : $('.jobs-description__content').first();
+    const descHtmlRaw = $descEl.length ? $descEl.html() || '' : '';
     if (descHtmlRaw) {
       description = cleanText($descEl.text());
     }
 
-    const linkedInSections = descHtmlRaw ? extractHeadingSectionsByClass(cheerio.load(descHtmlRaw), 'text-heading-large') : [];
-    const strongSections = descHtmlRaw ? extractInlineStrongSections(cheerio.load(descHtmlRaw)) : [];
+    const linkedInSections = descHtmlRaw
+      ? extractHeadingSectionsByClass(cheerio.load(descHtmlRaw), 'text-heading-large')
+      : [];
+    const strongSections = descHtmlRaw
+      ? extractInlineStrongSections(cheerio.load(descHtmlRaw))
+      : [];
     const sectionByTitle = (matcher: (title: string) => boolean): string => {
       const found = linkedInSections.find((section) => matcher(section.title.toLowerCase()));
       return found?.content || '';
@@ -910,17 +1076,35 @@ export class HtmlJobParser {
     };
 
     const $ld = descHtmlRaw ? cheerio.load(descHtmlRaw) : null;
-    const inlineResponsibilities = $ld ? extractSectionByInlineLabel($ld, ['What You Will Be Doing', 'What you will be doing', 'What you will do']) : '';
-    const inlineRequirements = $ld ? extractSectionByInlineLabel($ld, ['What We Need from You', 'What we need from you', 'Requirements', 'Qualifications']) : '';
-    const inlineBenefits = $ld ? extractSectionByInlineLabel($ld, ['Benefits', 'What We Offer', 'Perks']) : '';
+    const inlineResponsibilities = $ld
+      ? extractSectionByInlineLabel($ld, [
+          'What You Will Be Doing',
+          'What you will be doing',
+          'What you will do',
+        ])
+      : '';
+    const inlineRequirements = $ld
+      ? extractSectionByInlineLabel($ld, [
+          'What We Need from You',
+          'What we need from you',
+          'Requirements',
+          'Qualifications',
+        ])
+      : '';
+    const inlineBenefits = $ld
+      ? extractSectionByInlineLabel($ld, ['Benefits', 'What We Offer', 'Perks'])
+      : '';
 
     const strongResponsibilities = strongByTitle(
       (title) => title.includes('responsibilities') || title.includes('key responsibilities')
     );
     const strongRequirements = strongByTitle(
       (title) =>
-        title.includes('requirements') || title.includes('qualifications') || title.includes('education') ||
-        title.includes('technical skills') || title.includes('soft skills')
+        title.includes('requirements') ||
+        title.includes('qualifications') ||
+        title.includes('education') ||
+        title.includes('technical skills') ||
+        title.includes('soft skills')
     );
     const strongBenefits = strongByTitle(
       (title) => title.includes('benefits') || title.includes('additional information')
@@ -941,19 +1125,28 @@ export class HtmlJobParser {
     }
     const $allJobTypes = $('.job-details-fit-level-preferences button strong');
     if ($allJobTypes.length > 1) {
-      jobType = $allJobTypes.map((_, el) => cleanText($(el).text())).get().join(', ');
+      jobType = $allJobTypes
+        .map((_, el) => cleanText($(el).text()))
+        .get()
+        .join(', ');
     }
 
-    const responsibilitiesResolved = inlineResponsibilities || strongResponsibilities ||
+    const responsibilitiesResolved =
+      inlineResponsibilities ||
+      strongResponsibilities ||
       sectionByTitle((title) => title.includes('responsibilities'));
-    const requirementsResolved = inlineRequirements || strongRequirements ||
+    const requirementsResolved =
+      inlineRequirements ||
+      strongRequirements ||
       sectionByTitle((title) => title.includes('requirements') || title.includes('qualifications'));
-    const benefitsResolved = inlineBenefits || strongBenefits ||
-      sectionByTitle((title) => title.includes('benefits'));
+    const benefitsResolved =
+      inlineBenefits || strongBenefits || sectionByTitle((title) => title.includes('benefits'));
 
     const extraSections: Record<string, string> = {};
     const skipContent = new Set(
-      [responsibilitiesResolved, requirementsResolved, benefitsResolved, companyInfo].filter(Boolean)
+      [responsibilitiesResolved, requirementsResolved, benefitsResolved, companyInfo].filter(
+        Boolean
+      )
     );
     const addExtraSection = (title: string, content: string): void => {
       if (!title || !content) return;
@@ -1014,7 +1207,8 @@ export class HtmlJobParser {
       company = cleanText($companyAnchor.text());
     }
 
-    const timePattern = /\b(\d+\s+(day|days|week|weeks|month|months|year|years|hour|hours|minute|minutes)\s+ago|just\s+posted|reposted|active\s+\d+\s+day)/i;
+    const timePattern =
+      /\b(\d+\s+(day|days|week|weeks|month|months|year|years|hour|hours|minute|minutes)\s+ago|just\s+posted|reposted|active\s+\d+\s+day)/i;
     const separatorPattern = /^[·•\s]*$/;
     $('span').each((_, el) => {
       const text = cleanText($(el).text());
@@ -1038,10 +1232,12 @@ export class HtmlJobParser {
       }
     });
     if (!jobTypes.length) {
-      $('a').filter((_, el) => $(el).find('svg#check-small').length > 0).each((_, el) => {
-        const typeText = cleanText($(el).find('span').text());
-        if (typeText) jobTypes.push(typeText);
-      });
+      $('a')
+        .filter((_, el) => $(el).find('svg#check-small').length > 0)
+        .each((_, el) => {
+          const typeText = cleanText($(el).find('span').text());
+          if (typeText) jobTypes.push(typeText);
+        });
     }
 
     const $aboutJobTextBox = $aboutJob.find('[data-testid="expandable-text-box"]').first();
@@ -1057,10 +1253,16 @@ export class HtmlJobParser {
       }
     }
 
-    const salaryPattern = /(\$[\d,]+(?:\.\d{2})?(?:\s*-\s*\$?[\d,]+(?:\.\d{2})?)?(?:\s*(?:a|per)\s*(?:month|year|hour|day|week))?|[\d,]+(?:\.\d{2})?\s*(?:triệu|vnđ|vnd|usd|đ)\s*(?:\s*-\s*[\d,]+(?:\.\d{2})?\s*(?:triệu|vnđ|vnd|usd|đ)?)?)/i;
+    const salaryPattern =
+      /(\$[\d,]+(?:\.\d{2})?(?:\s*-\s*\$?[\d,]+(?:\.\d{2})?)?(?:\s*(?:a|per)\s*(?:month|year|hour|day|week))?|[\d,]+(?:\.\d{2})?\s*(?:triệu|vnđ|vnd|usd|đ)\s*(?:\s*-\s*[\d,]+(?:\.\d{2})?\s*(?:triệu|vnđ|vnd|usd|đ)?)?)/i;
     $('span, div, p').each((_, el) => {
       const text = cleanText($(el).text());
-      if (!salary && salaryPattern.test(text) && text.length < 100 && !text.toLowerCase().includes('about the job')) {
+      if (
+        !salary &&
+        salaryPattern.test(text) &&
+        text.length < 100 &&
+        !text.toLowerCase().includes('about the job')
+      ) {
         salary = text;
       }
     });
@@ -1091,11 +1293,21 @@ export class HtmlJobParser {
           const content = section.texts.join(' ');
           if (!content) continue;
           const lower = section.title.toLowerCase();
-          if (/^responsibilit|what you('ll| will) be doing|key responsibility|job description/i.test(lower)) {
+          if (
+            /^responsibilit|what you('ll| will) be doing|key responsibility|job description/i.test(
+              lower
+            )
+          ) {
             if (!responsibilities) responsibilities = content;
-          } else if (/^requirement|^qualification|what you('ll| will) need|education|skill|experience|nice to have/i.test(lower)) {
+          } else if (
+            /^requirement|^qualification|what you('ll| will) need|education|skill|experience|nice to have/i.test(
+              lower
+            )
+          ) {
             if (!requirements) requirements = content;
-          } else if (/^benefit|perk|what we offer|compensation|additional information/i.test(lower)) {
+          } else if (
+            /^benefit|perk|what we offer|compensation|additional information/i.test(lower)
+          ) {
             if (!benefits) benefits = content;
           } else {
             if (!extraSections[section.title]) extraSections[section.title] = content;
@@ -1110,7 +1322,7 @@ export class HtmlJobParser {
       const $comp = $h2.closest('[componentkey]');
       if ($comp.length) {
         const key = $comp.attr('componentkey') || '';
-        if (knownComponentKeys.some(k => key.includes(k))) return;
+        if (knownComponentKeys.some((k) => key.includes(k))) return;
       }
       const title = cleanText($h2.text());
       if (!title) return;

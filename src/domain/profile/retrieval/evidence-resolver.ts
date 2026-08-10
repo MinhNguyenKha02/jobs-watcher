@@ -8,95 +8,42 @@ import {
   MatchSignal,
 } from '../types/retrieval.types.js';
 
-import {
-  RetrievalEvidenceScore,
-} from '../artifacts/types/artifact.types.js';
+import { RetrievalEvidenceScore } from '../artifacts/types/artifact.types.js';
 
 export class EvidenceResolver {
-
   constructor(
-    private readonly evidences:
-      Map<
-        EvidenceId,
-        EvidenceNode
-      >,
+    private readonly evidences: Map<EvidenceId, EvidenceNode>,
 
-    private readonly anchorToEvidence:
-      AnchorToEvidenceMap,
+    private readonly anchorToEvidence: AnchorToEvidenceMap
   ) {}
 
-  resolve(
-    signals:
-      Map<
-        AnchorId,
-        MatchSignal
-      >,
-  ) {
+  resolve(signals: Map<AnchorId, MatchSignal>) {
+    const scored = new Map<EvidenceId, RetrievalEvidenceScore>();
 
-    const scored =
-      new Map<
-        EvidenceId,
-        RetrievalEvidenceScore
-      >();
+    for (const signal of signals.values()) {
+      const evidenceIds = this.anchorToEvidence.get(signal.anchorId) ?? new Set();
 
-    for (
-      const signal
-      of signals.values()
-    ) {
+      signal.evidenceIds = evidenceIds;
 
-      const evidenceIds =
-        this.anchorToEvidence.get(
-          signal.anchorId,
-        ) ?? new Set();
-
-      signal.evidenceIds =
-        evidenceIds;
-
-      for (
-        const evidenceId
-        of evidenceIds
-      ) {
-
-        const evidence =
-          this.evidences.get(
-            evidenceId,
-          );
+      for (const evidenceId of evidenceIds) {
+        const evidence = this.evidences.get(evidenceId);
 
         if (!evidence) {
           continue;
         }
 
-        const current =
-          scored.get(
-            evidenceId,
-          );
+        const current = scored.get(evidenceId);
 
-        const nextScore =
-          (
-            current?.score ?? 0
-          ) +
-          signal.score;
+        const nextScore = (current?.score ?? 0) + signal.score;
 
-        scored.set(
-          evidenceId,
-          {
-            score:
-              nextScore,
+        scored.set(evidenceId, {
+          score: nextScore,
 
-            evidence,
-          },
-        );
+          evidence,
+        });
       }
     }
 
-    return [
-      ...scored.values(),
-    ].sort(
-      (
-        a,
-        b,
-      ) =>
-        b.score - a.score,
-    );
+    return [...scored.values()].sort((a, b) => b.score - a.score);
   }
 }

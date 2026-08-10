@@ -41,10 +41,7 @@ describe('PlaywrightBrowserAdapter — integration', { timeout: 30000 }, () => {
   });
 
   it('multiple extractions return consistent content', async () => {
-    const [r1, r2] = await Promise.all([
-      adapter.extract(serverUrl),
-      adapter.extract(serverUrl),
-    ]);
+    const [r1, r2] = await Promise.all([adapter.extract(serverUrl), adapter.extract(serverUrl)]);
     expect(r1.html).toContain('Integration Test');
     expect(r2.html).toContain('Integration Test');
   });

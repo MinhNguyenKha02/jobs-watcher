@@ -5,14 +5,21 @@
  * Logs lexical hits, propagation traces, acceptance decisions, and ATS exposure.
  */
 
-import { ResolutionStrength } from "../../types/retrieval.types.js";
+import { ResolutionStrength } from '../../types/retrieval.types.js';
 
 export interface RetrievalLogEntry {
-   timestamp: string;
-   jobId: string;
-   type: 'lexical-hit' | 'propagation' | 'acceptance' | 'ats-exposure' | 'evidence-attachment-missing' | 'resolution-classified' | 'evidence-ranked';
-   data: Record<string, any>;
- }
+  timestamp: string;
+  jobId: string;
+  type:
+    | 'lexical-hit'
+    | 'propagation'
+    | 'acceptance'
+    | 'ats-exposure'
+    | 'evidence-attachment-missing'
+    | 'resolution-classified'
+    | 'evidence-ranked';
+  data: Record<string, any>;
+}
 
 export class RetrievalLogger {
   private static instance: RetrievalLogger;
@@ -51,8 +58,8 @@ export class RetrievalLogger {
         pattern,
         source,
         weight,
-        score
-      }
+        score,
+      },
     };
     this.addLog(entry);
   }
@@ -77,8 +84,8 @@ export class RetrievalLogger {
         toAnchorId,
         edgeWeight,
         decayFactor,
-        propagatedScore
-      }
+        propagatedScore,
+      },
     };
     this.addLog(entry);
   }
@@ -103,98 +110,91 @@ export class RetrievalLogger {
         accepted,
         reason,
         score,
-        confidence
-      }
+        confidence,
+      },
     };
     this.addLog(entry);
   }
 
-   /**
-    * Log an ATS exposure decision
-    */
-   public logAtsExposure(
-     jobId: string,
-     anchorId: string,
-     anchorKind: string,
-     skillName: string,
-     visibility: 'primary' | 'secondary' | 'hidden',
-     shown: boolean
-   ): void {
-     const entry: RetrievalLogEntry = {
-       timestamp: new Date().toISOString(),
-       jobId,
-       type: 'ats-exposure',
-       data: {
-         anchorId,
-         anchorKind,
-         skillName,
-         visibility,
-         shown
-       }
-     };
-     this.addLog(entry);
-   }
+  /**
+   * Log an ATS exposure decision
+   */
+  public logAtsExposure(
+    jobId: string,
+    anchorId: string,
+    anchorKind: string,
+    skillName: string,
+    visibility: 'primary' | 'secondary' | 'hidden',
+    shown: boolean
+  ): void {
+    const entry: RetrievalLogEntry = {
+      timestamp: new Date().toISOString(),
+      jobId,
+      type: 'ats-exposure',
+      data: {
+        anchorId,
+        anchorKind,
+        skillName,
+        visibility,
+        shown,
+      },
+    };
+    this.addLog(entry);
+  }
 
-   /**
-    * Log an evidence attachment missing event
-    */
-   public logEvidenceAttachmentMissing(
-     jobId: string,
-     anchorId: string
-   ): void {
-     const entry: RetrievalLogEntry = {
-       timestamp: new Date().toISOString(),
-       jobId,
-       type: 'evidence-attachment-missing',
-       data: {
-         anchorId,
-         jobId
-       }
-     };
-     this.addLog(entry);
-   }
+  /**
+   * Log an evidence attachment missing event
+   */
+  public logEvidenceAttachmentMissing(jobId: string, anchorId: string): void {
+    const entry: RetrievalLogEntry = {
+      timestamp: new Date().toISOString(),
+      jobId,
+      type: 'evidence-attachment-missing',
+      data: {
+        anchorId,
+        jobId,
+      },
+    };
+    this.addLog(entry);
+  }
 
-   /**
-    * Log a resolution classification event
-    */
-   public logResolutionClassified(
-     jobId: string,
-     anchorId: string,
-     finalScore: number,
-     strength: ResolutionStrength
-   ): void {
-     const entry: RetrievalLogEntry = {
-       timestamp: new Date().toISOString(),
-       jobId,
-       type: 'resolution-classified',
-       data: {
-         anchorId,
-         finalScore,
-         strength
-       }
-     };
-     this.addLog(entry);
-   }
+  /**
+   * Log a resolution classification event
+   */
+  public logResolutionClassified(
+    jobId: string,
+    anchorId: string,
+    finalScore: number,
+    strength: ResolutionStrength
+  ): void {
+    const entry: RetrievalLogEntry = {
+      timestamp: new Date().toISOString(),
+      jobId,
+      type: 'resolution-classified',
+      data: {
+        anchorId,
+        finalScore,
+        strength,
+      },
+    };
+    this.addLog(entry);
+  }
 
-   /**
-    * Log an evidence ranked event
-    */
-   public logEvidenceRanked(
-     jobId: string,
-     evidenceId: string,
-     score: number
-   ): void {
-     const entry: RetrievalLogEntry = {
-       timestamp: new Date().toISOString(),
-       jobId,
-       type: 'evidence-ranked',
-       data: {
-         evidenceId,
-         score
-       }
-     };
-     this.addLog(entry);
-   }
+  /**
+   * Log an evidence ranked event
+   */
+  public logEvidenceRanked(jobId: string, evidenceId: string, score: number): void {
+    const entry: RetrievalLogEntry = {
+      timestamp: new Date().toISOString(),
+      jobId,
+      type: 'evidence-ranked',
+      data: {
+        evidenceId,
+        score,
+      },
+    };
+    this.addLog(entry);
+  }
 
   /**
    * Get recent logs for debugging/calibration
@@ -207,14 +207,14 @@ export class RetrievalLogger {
    * Get logs by type for analysis
    */
   public getLogsByType(type: RetrievalLogEntry['type']): RetrievalLogEntry[] {
-    return this.logs.filter(log => log.type === type);
+    return this.logs.filter((log) => log.type === type);
   }
 
   /**
    * Get logs for a specific job
    */
   public getLogsByJobId(jobId: string): RetrievalLogEntry[] {
-    return this.logs.filter(log => log.jobId === jobId);
+    return this.logs.filter((log) => log.jobId === jobId);
   }
 
   /**

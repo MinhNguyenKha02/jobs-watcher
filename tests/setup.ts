@@ -3,13 +3,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Ensure test directories exist
-const testDirs = [
-  path.join(__dirname, '../test-output'),
-  path.join(__dirname, '../test-logs'),
-];
+const testDirs = [path.join(__dirname, '../test-output'), path.join(__dirname, '../test-logs')];
 
 beforeAll(() => {
-  testDirs.forEach(dir => {
+  testDirs.forEach((dir) => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
@@ -18,7 +15,7 @@ beforeAll(() => {
 
 // Clean up test output after all tests
 afterAll(() => {
-  testDirs.forEach(dir => {
+  testDirs.forEach((dir) => {
     if (fs.existsSync(dir)) {
       fs.rmSync(dir, { recursive: true, force: true });
     }

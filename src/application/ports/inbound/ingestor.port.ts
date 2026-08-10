@@ -15,11 +15,8 @@ export interface IngestorPort {
     rawPayload: string,
     jobLifecycleId?: string,
     metadata?: IngestMetadata,
-    receivedAt?: Date,
+    receivedAt?: Date
   ): Promise<void>;
 
-  processResolution(
-    jobLifecycleId: string,
-    action: 'queue' | 'trash',
-  ): Promise<void>;
+  processResolution(jobLifecycleId: string, action: 'queue' | 'trash'): Promise<void>;
 }

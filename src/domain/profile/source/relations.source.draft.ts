@@ -55,23 +55,12 @@ const r = (
 });
 export const relationsSource: RelationsSource = {
   cap: {
-    foundation: {
-
-    },
-    backend: {
-
-    },
-    architecture: {
-
-    },
-    testing: {
-    },
-    database: {
-
-    },
-    observability: {
-
-    }
+    foundation: {},
+    backend: {},
+    architecture: {},
+    testing: {},
+    database: {},
+    observability: {},
     // ... from profile.source.ts and profile.source.types.ts
   },
   comp: {

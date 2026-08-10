@@ -8,7 +8,12 @@ import os from 'node:os';
 
 const TOKEN = 'secret-123';
 
-function postJson(socketPath: string, url: string, data: unknown, token?: string): Promise<http.IncomingMessage> {
+function postJson(
+  socketPath: string,
+  url: string,
+  data: unknown,
+  token?: string
+): Promise<http.IncomingMessage> {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify(data);
     const options: http.RequestOptions = {
@@ -21,14 +26,22 @@ function postJson(socketPath: string, url: string, data: unknown, token?: string
         ...(token !== undefined ? { 'x-internal-token': token } : {}),
       },
     };
-    const req = http.request(options, (res) => { resolve(res); });
+    const req = http.request(options, (res) => {
+      resolve(res);
+    });
     req.on('error', reject);
     req.write(body);
     req.end();
   });
 }
 
-function sendRaw(socketPath: string, url: string, method: string, body: string, headers?: Record<string, string>): Promise<http.IncomingMessage> {
+function sendRaw(
+  socketPath: string,
+  url: string,
+  method: string,
+  body: string,
+  headers?: Record<string, string>
+): Promise<http.IncomingMessage> {
   return new Promise((resolve, reject) => {
     const options: http.RequestOptions = {
       socketPath,
@@ -56,11 +69,16 @@ async function collectBody(res: http.IncomingMessage): Promise<string> {
 describe('UDS Server Integration', () => {
   let socketPath: string;
   let adapter: UdsAdapter;
-  let ingestorMock: { processIngest: ReturnType<typeof vi.fn>; processResolution: ReturnType<typeof vi.fn> };
+  let ingestorMock: {
+    processIngest: ReturnType<typeof vi.fn>;
+    processResolution: ReturnType<typeof vi.fn>;
+  };
 
   beforeAll(async () => {
     socketPath = path.join(os.tmpdir(), `uds-test-${Date.now()}.sock`);
-    try { if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath); } catch {}
+    try {
+      if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath);
+    } catch {}
 
     ingestorMock = {
       processIngest: vi.fn().mockResolvedValue(undefined),
@@ -73,12 +91,19 @@ describe('UDS Server Integration', () => {
 
   afterAll(async () => {
     await adapter.stop();
-    try { if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath); } catch {}
+    try {
+      if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath);
+    } catch {}
   });
 
   describe('POST /internal/ingest', () => {
     it('accepts valid ingest request and forwards to ingestor', async () => {
-      const res = await postJson(socketPath, '/internal/ingest', { html: '<html><body>job content</body></html>' }, TOKEN);
+      const res = await postJson(
+        socketPath,
+        '/internal/ingest',
+        { html: '<html><body>job content</body></html>' },
+        TOKEN
+      );
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(await collectBody(res));
       expect(body.status).toBe('ok');
@@ -86,7 +111,12 @@ describe('UDS Server Integration', () => {
     });
 
     it('accepts webhook ingest with html', async () => {
-      const res = await postJson(socketPath, '/internal/ingest?webhook=true', { html: '<html><body>job</body></html>' }, TOKEN);
+      const res = await postJson(
+        socketPath,
+        '/internal/ingest?webhook=true',
+        { html: '<html><body>job</body></html>' },
+        TOKEN
+      );
       expect(res.statusCode).toBe(200);
     });
 
@@ -98,14 +128,24 @@ describe('UDS Server Integration', () => {
     });
 
     it('accepts ingest with jobLifecycleId', async () => {
-      const res = await postJson(socketPath, '/internal/ingest', { html: '<html/>', jobLifecycleId: 'existing-job-1' }, TOKEN);
+      const res = await postJson(
+        socketPath,
+        '/internal/ingest',
+        { html: '<html/>', jobLifecycleId: 'existing-job-1' },
+        TOKEN
+      );
       expect(res.statusCode).toBe(200);
     });
   });
 
   describe('POST /internal/action', () => {
     it('accepts queue action', async () => {
-      const res = await postJson(socketPath, '/internal/action', { jobLifecycleId: 'job-1', action: 'queue' }, TOKEN);
+      const res = await postJson(
+        socketPath,
+        '/internal/action',
+        { jobLifecycleId: 'job-1', action: 'queue' },
+        TOKEN
+      );
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(await collectBody(res));
       expect(body.status).toBe('ok');
@@ -113,16 +153,26 @@ describe('UDS Server Integration', () => {
     });
 
     it('accepts trash action', async () => {
-      const res = await postJson(socketPath, '/internal/action', { jobLifecycleId: 'job-2', action: 'trash' }, TOKEN);
+      const res = await postJson(
+        socketPath,
+        '/internal/action',
+        { jobLifecycleId: 'job-2', action: 'trash' },
+        TOKEN
+      );
       expect(res.statusCode).toBe(200);
     });
 
     it('accepts action with editedKVs', async () => {
-      const res = await postJson(socketPath, '/internal/action', {
-        jobLifecycleId: 'job-3',
-        action: 'queue',
-        editedKVs: { role: 'Updated Role', salary: '$2000' },
-      }, TOKEN);
+      const res = await postJson(
+        socketPath,
+        '/internal/action',
+        {
+          jobLifecycleId: 'job-3',
+          action: 'queue',
+          editedKVs: { role: 'Updated Role', salary: '$2000' },
+        },
+        TOKEN
+      );
       expect(res.statusCode).toBe(200);
       expect(ingestorMock.processResolution).toHaveBeenCalledWith('job-3', 'queue');
     });
@@ -149,7 +199,12 @@ describe('UDS Server Integration', () => {
     });
 
     it('rejects requests with wrong token', async () => {
-      const res = await postJson(socketPath, '/internal/ingest', { html: '<html/>' }, 'wrong-token');
+      const res = await postJson(
+        socketPath,
+        '/internal/ingest',
+        { html: '<html/>' },
+        'wrong-token'
+      );
       expect(res.statusCode).toBe(401);
     });
   });
@@ -168,12 +223,16 @@ describe('UDS Server Integration', () => {
     });
 
     it('handles invalid JSON body gracefully', async () => {
-      const res = await sendRaw(socketPath, '/internal/ingest', 'POST', 'not-json', { 'x-internal-token': TOKEN });
+      const res = await sendRaw(socketPath, '/internal/ingest', 'POST', 'not-json', {
+        'x-internal-token': TOKEN,
+      });
       expect(res.statusCode).toBe(500);
     });
 
     it('handles GET request to /internal/ingest (wrong method)', async () => {
-      const res = await sendRaw(socketPath, '/internal/ingest', 'GET', '', { 'x-internal-token': TOKEN });
+      const res = await sendRaw(socketPath, '/internal/ingest', 'GET', '', {
+        'x-internal-token': TOKEN,
+      });
       expect(res.statusCode).toBe(404);
     });
 
@@ -183,8 +242,10 @@ describe('UDS Server Integration', () => {
         { html: '<html>job2</html>', jobLifecycleId: 'concurrent-2' },
         { html: '<html>job3</html>', jobLifecycleId: 'concurrent-3' },
       ];
-      const results = await Promise.all(payloads.map(p => postJson(socketPath, '/internal/ingest', p, TOKEN)));
-      results.forEach(res => expect(res.statusCode).toBe(200));
+      const results = await Promise.all(
+        payloads.map((p) => postJson(socketPath, '/internal/ingest', p, TOKEN))
+      );
+      results.forEach((res) => expect(res.statusCode).toBe(200));
     });
 
     it('handles chunked body via multiple data events', async () => {

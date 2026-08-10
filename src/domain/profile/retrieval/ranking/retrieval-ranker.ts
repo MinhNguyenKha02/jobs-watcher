@@ -27,19 +27,29 @@ export class RetrievalRanker {
 
   /**
    * Ranks a match signal by computing a final score and determining resolution strength.
-   * 
+   *
    * @param signal The match signal to rank.
    * @param directSignals Map of direct (lexical) signals for reference.
    * @param expandedSignals Map of expanded (after propagation) signals for reference.
    * @param evidences Map of evidence ID to evidence node for computing evidence score.
    * @returns The ranked signal with final score and resolution strength.
    */
-  rank(signal: MatchSignal, directSignals: Map<string, MatchSignal>, expandedSignals: Map<string, MatchSignal>, evidences: Map<string, EvidenceNode>): RankedSignal {
+  rank(
+    signal: MatchSignal,
+    directSignals: Map<string, MatchSignal>,
+    expandedSignals: Map<string, MatchSignal>,
+    evidences: Map<string, EvidenceNode>
+  ): RankedSignal {
     // Extract features from the signal using the direct and expanded signals and evidences.
-    const features = RankingFeaturesExtractor.extract(signal, directSignals, expandedSignals, evidences);
+    const features = RankingFeaturesExtractor.extract(
+      signal,
+      directSignals,
+      expandedSignals,
+      evidences
+    );
 
     // Compute the weighted sum.
-    let finalScore = 
+    let finalScore =
       features.lexicalScore * this.rankingPolicy.lexicalWeight +
       features.propagationScore * this.rankingPolicy.propagationWeight +
       features.evidenceScore * this.rankingPolicy.evidenceWeight +
@@ -52,13 +62,13 @@ export class RetrievalRanker {
     // We'll just make sure it doesn't go below 0.
     finalScore = Math.max(0, finalScore);
 
-     // Classify resolution strength using the retrieval policy thresholds.
-     const resolutionStrength = classifyResolutionStrength(finalScore, signal, this.retrievalPolicy);
+    // Classify resolution strength using the retrieval policy thresholds.
+    const resolutionStrength = classifyResolutionStrength(finalScore, signal, this.retrievalPolicy);
 
     return {
       signal,
       finalScore,
-      resolutionStrength
+      resolutionStrength,
     };
   }
 }

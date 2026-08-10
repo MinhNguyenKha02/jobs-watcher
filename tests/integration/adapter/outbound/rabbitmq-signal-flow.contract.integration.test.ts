@@ -29,22 +29,36 @@ async function purgeQueues(ch: Channel): Promise<void> {
     await ch.purgeQueue(S1_QUEUE);
     await ch.purgeQueue(S2_QUEUE);
     await ch.purgeQueue(S3S4_QUEUE);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Consume a message whose parsed body matches `predicate`, with a bounded wait. */
-function consumeMatching(ch: Channel, queue: string, predicate: (body: any) => boolean, timeoutMs = 15000): Promise<any> {
+function consumeMatching(
+  ch: Channel,
+  queue: string,
+  predicate: (body: any) => boolean,
+  timeoutMs = 15000
+): Promise<any> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Timeout waiting for matching message on ${queue}`)), timeoutMs);
-    ch.consume(queue, (m) => {
-      if (!m) return;
-      const body = JSON.parse(m.content.toString());
-      if (predicate(body)) {
-        clearTimeout(timer);
-        ch.ack(m);
-        resolve(body);
-      }
-    }, { noAck: false });
+    const timer = setTimeout(
+      () => reject(new Error(`Timeout waiting for matching message on ${queue}`)),
+      timeoutMs
+    );
+    ch.consume(
+      queue,
+      (m) => {
+        if (!m) return;
+        const body = JSON.parse(m.content.toString());
+        if (predicate(body)) {
+          clearTimeout(timer);
+          ch.ack(m);
+          resolve(body);
+        }
+      },
+      { noAck: false }
+    );
   });
 }
 
@@ -87,9 +101,15 @@ describe('RMQ Signal Flow Integration', { timeout: 30000 }, () => {
 
   it('publishes generated event → consumed on s1 queue', async () => {
     const msg = { jobLifecycleId: 'rmq-test-1', role: 'Software Engineer', company: 'Test Co' };
-    const consumed = consumeMatching(conChannel, S1_QUEUE, (b) => b.jobLifecycleId === 'rmq-test-1');
+    const consumed = consumeMatching(
+      conChannel,
+      S1_QUEUE,
+      (b) => b.jobLifecycleId === 'rmq-test-1'
+    );
 
-    pubChannel.publish(EXCHANGE, ActionEvent.GENERATED, Buffer.from(JSON.stringify(msg)), { persistent: true });
+    pubChannel.publish(EXCHANGE, ActionEvent.GENERATED, Buffer.from(JSON.stringify(msg)), {
+      persistent: true,
+    });
 
     const result = await consumed;
     expect(result.jobLifecycleId).toBe('rmq-test-1');
@@ -99,13 +119,25 @@ describe('RMQ Signal Flow Integration', { timeout: 30000 }, () => {
   it('full signal flow: generated → parse_completed → queued', async () => {
     const generated = { jobLifecycleId: 'rmq-flow-1', role: 'Backend Engineer' };
     const completed = { jobLifecycleId: 'rmq-flow-1', job: generated };
-    const s1Consumed = consumeMatching(conChannel, S1_QUEUE, (b) => b.jobLifecycleId === 'rmq-flow-1');
-    pubChannel.publish(EXCHANGE, ActionEvent.GENERATED, Buffer.from(JSON.stringify(generated)), { persistent: true });
+    const s1Consumed = consumeMatching(
+      conChannel,
+      S1_QUEUE,
+      (b) => b.jobLifecycleId === 'rmq-flow-1'
+    );
+    pubChannel.publish(EXCHANGE, ActionEvent.GENERATED, Buffer.from(JSON.stringify(generated)), {
+      persistent: true,
+    });
     const s1Result = await s1Consumed;
     expect(s1Result.jobLifecycleId).toBe('rmq-flow-1');
 
-    const s3Consumed = consumeMatching(conChannel, S3S4_QUEUE, (b) => b.jobLifecycleId === 'rmq-flow-1');
-    pubChannel.publish(EXCHANGE, ActionEvent.QUEUED, Buffer.from(JSON.stringify(completed)), { persistent: true });
+    const s3Consumed = consumeMatching(
+      conChannel,
+      S3S4_QUEUE,
+      (b) => b.jobLifecycleId === 'rmq-flow-1'
+    );
+    pubChannel.publish(EXCHANGE, ActionEvent.QUEUED, Buffer.from(JSON.stringify(completed)), {
+      persistent: true,
+    });
     const s3Result = await s3Consumed;
     expect(s3Result.job).toBeDefined();
     expect(s3Result.job.jobLifecycleId).toBe('rmq-flow-1');
@@ -115,19 +147,27 @@ describe('RMQ Signal Flow Integration', { timeout: 30000 }, () => {
     const received: string[] = [];
     const allReceived = new Promise<void>((resolve) => {
       conChannel.prefetch(5);
-      conChannel.consume(S1_QUEUE, (m) => {
-        if (m) {
-          const id = JSON.parse(m.content.toString()).jobLifecycleId;
-          if (typeof id === 'string' && id.startsWith('rmq-burst-')) received.push(id);
-          conChannel.ack(m);
-          if (received.length === 12) resolve();
-        }
-      }, { noAck: false });
+      conChannel.consume(
+        S1_QUEUE,
+        (m) => {
+          if (m) {
+            const id = JSON.parse(m.content.toString()).jobLifecycleId;
+            if (typeof id === 'string' && id.startsWith('rmq-burst-')) received.push(id);
+            conChannel.ack(m);
+            if (received.length === 12) resolve();
+          }
+        },
+        { noAck: false }
+      );
     });
 
     for (let i = 0; i < 12; i++) {
-      pubChannel.publish(EXCHANGE, ActionEvent.GENERATED,
-        Buffer.from(JSON.stringify({ jobLifecycleId: `rmq-burst-${i}` })), { persistent: true });
+      pubChannel.publish(
+        EXCHANGE,
+        ActionEvent.GENERATED,
+        Buffer.from(JSON.stringify({ jobLifecycleId: `rmq-burst-${i}` })),
+        { persistent: true }
+      );
     }
 
     await allReceived;
@@ -140,24 +180,46 @@ describe('RMQ Signal Flow Integration', { timeout: 30000 }, () => {
   it('F3: S2 before S1 — DeferredS2Buffer path (S1 arrival triggers merge)', async () => {
     const completedPayload = { jobLifecycleId: 'rmq-defer-1', role: 'Frontend Engineer' };
 
-    const s2Delivered = consumeMatching(conChannel, S2_QUEUE, (b) => b.jobLifecycleId === 'rmq-defer-1');
+    const s2Delivered = consumeMatching(
+      conChannel,
+      S2_QUEUE,
+      (b) => b.jobLifecycleId === 'rmq-defer-1'
+    );
 
-    pubChannel.publish(EXCHANGE, ActionEvent.PARSE_COMPLETED,
-      Buffer.from(JSON.stringify({ jobLifecycleId: 'rmq-defer-1', job: completedPayload })), { persistent: true });
+    pubChannel.publish(
+      EXCHANGE,
+      ActionEvent.PARSE_COMPLETED,
+      Buffer.from(JSON.stringify({ jobLifecycleId: 'rmq-defer-1', job: completedPayload })),
+      { persistent: true }
+    );
     await expect(s2Delivered).resolves.toBeDefined();
 
-    const s1Delivered = consumeMatching(conChannel, S1_QUEUE, (b) => b.jobLifecycleId === 'rmq-defer-1');
+    const s1Delivered = consumeMatching(
+      conChannel,
+      S1_QUEUE,
+      (b) => b.jobLifecycleId === 'rmq-defer-1'
+    );
 
-    pubChannel.publish(EXCHANGE, ActionEvent.GENERATED,
-      Buffer.from(JSON.stringify(completedPayload)), { persistent: true });
+    pubChannel.publish(
+      EXCHANGE,
+      ActionEvent.GENERATED,
+      Buffer.from(JSON.stringify(completedPayload)),
+      { persistent: true }
+    );
     await expect(s1Delivered).resolves.toBeDefined();
   });
 
   it('publishes trash event → consumed on s3s4 queue', async () => {
     const trashed = { jobLifecycleId: 'rmq-trash-1', reason: 'not interested' };
-    const consumed = consumeMatching(conChannel, S3S4_QUEUE, (b) => b.jobLifecycleId === 'rmq-trash-1');
+    const consumed = consumeMatching(
+      conChannel,
+      S3S4_QUEUE,
+      (b) => b.jobLifecycleId === 'rmq-trash-1'
+    );
 
-    pubChannel.publish(EXCHANGE, ActionEvent.TRASHED, Buffer.from(JSON.stringify(trashed)), { persistent: true });
+    pubChannel.publish(EXCHANGE, ActionEvent.TRASHED, Buffer.from(JSON.stringify(trashed)), {
+      persistent: true,
+    });
 
     const result = await consumed;
     expect(result.jobLifecycleId).toBe('rmq-trash-1');
@@ -166,9 +228,15 @@ describe('RMQ Signal Flow Integration', { timeout: 30000 }, () => {
 
   it('publishes route failed event → consumed on s3s4 queue', async () => {
     const failed = { jobLifecycleId: 'rmq-fail-1', reason: 'extraction error' };
-    const consumed = consumeMatching(conChannel, S3S4_QUEUE, (b) => b.jobLifecycleId === 'rmq-fail-1');
+    const consumed = consumeMatching(
+      conChannel,
+      S3S4_QUEUE,
+      (b) => b.jobLifecycleId === 'rmq-fail-1'
+    );
 
-    pubChannel.publish(EXCHANGE, ActionEvent.ROUTE_FAILED, Buffer.from(JSON.stringify(failed)), { persistent: true });
+    pubChannel.publish(EXCHANGE, ActionEvent.ROUTE_FAILED, Buffer.from(JSON.stringify(failed)), {
+      persistent: true,
+    });
 
     const result = await consumed;
     expect(result.jobLifecycleId).toBe('rmq-fail-1');

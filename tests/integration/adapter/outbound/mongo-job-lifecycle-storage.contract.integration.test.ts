@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
-import type { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js' ;
-import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js' ;
-import type { JobLifecycleDocument } from '../../../../src/domain/types/job-lifecycle.js' ;
+import type { MongoJobLifecycleAdapter } from '../../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
+import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
+import type { JobLifecycleDocument } from '../../../../src/domain/types/job-lifecycle.js';
 
 const now = new Date();
 
@@ -49,10 +49,24 @@ describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
   });
 
   it('upsert replaces the existing document (same _id) — prior payload is fully overwritten', async () => {
-    const doc1 = makeDoc({ _id: 'it-upsert-1', company: 'UpsertCorp', role: 'Engineer', source: JobSource.MANUAL, stage: JobStage.PARTIAL_PARSED, raw: 'v1' });
+    const doc1 = makeDoc({
+      _id: 'it-upsert-1',
+      company: 'UpsertCorp',
+      role: 'Engineer',
+      source: JobSource.MANUAL,
+      stage: JobStage.PARTIAL_PARSED,
+      raw: 'v1',
+    });
     await adapter!.upsert(doc1);
 
-    const doc2 = makeDoc({ _id: 'it-upsert-1', company: 'UpsertCorp', role: 'Engineer', source: JobSource.MANUAL, stage: JobStage.FULL_PARSED, raw: 'v2' });
+    const doc2 = makeDoc({
+      _id: 'it-upsert-1',
+      company: 'UpsertCorp',
+      role: 'Engineer',
+      source: JobSource.MANUAL,
+      stage: JobStage.FULL_PARSED,
+      raw: 'v2',
+    });
     await adapter!.upsert(doc2);
 
     const all = await collection.find({ _id: 'it-upsert-1' }).toArray();
@@ -62,7 +76,13 @@ describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
   });
 
   it('updates job status', async () => {
-    const doc = makeDoc({ _id: 'it-status-1', company: 'StatusCorp', role: 'Dev', stage: JobStage.FULL_PARSED, status: JobStatus.ENRICHING });
+    const doc = makeDoc({
+      _id: 'it-status-1',
+      company: 'StatusCorp',
+      role: 'Dev',
+      stage: JobStage.FULL_PARSED,
+      status: JobStatus.ENRICHING,
+    });
     await adapter!.upsert(doc);
 
     await adapter!.updateStage('it-status-1', JobStage.FULL_PARSED, JobStatus.QUEUED);

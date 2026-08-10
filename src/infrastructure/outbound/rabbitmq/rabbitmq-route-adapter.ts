@@ -12,27 +12,42 @@ export class RabbitMqRoutingAdapter implements RoutePort {
   async emitJobQueued(jobLifecycleId: string, context?: unknown): Promise<void> {
     const channel = this.rmq.getChannel();
     const headers = this.traceCtx ? traceContextToHeaders(this.traceCtx) : {};
-    channel.publish(this.rmq.getExchange(), ActionEvent.QUEUED, Buffer.from(JSON.stringify({ jobLifecycleId, context })), {
-      headers,
-      persistent: true,
-    });
+    channel.publish(
+      this.rmq.getExchange(),
+      ActionEvent.QUEUED,
+      Buffer.from(JSON.stringify({ jobLifecycleId, context })),
+      {
+        headers,
+        persistent: true,
+      }
+    );
   }
 
   async emitJobTrashed(jobLifecycleId: string, reason: string, context?: unknown): Promise<void> {
     const channel = this.rmq.getChannel();
     const headers = this.traceCtx ? traceContextToHeaders(this.traceCtx) : {};
-    channel.publish(this.rmq.getExchange(), ActionEvent.TRASHED, Buffer.from(JSON.stringify({ jobLifecycleId, reason, context })), {
-      headers,
-      persistent: true,
-    });
+    channel.publish(
+      this.rmq.getExchange(),
+      ActionEvent.TRASHED,
+      Buffer.from(JSON.stringify({ jobLifecycleId, reason, context })),
+      {
+        headers,
+        persistent: true,
+      }
+    );
   }
 
   async emitRouteFailed(jobLifecycleId: string, reason: string, context?: unknown): Promise<void> {
     const channel = this.rmq.getChannel();
     const headers = this.traceCtx ? traceContextToHeaders(this.traceCtx) : {};
-    channel.publish(this.rmq.getExchange(), ActionEvent.ROUTE_FAILED, Buffer.from(JSON.stringify({ jobLifecycleId, reason, context })), {
-      headers,
-      persistent: true,
-    });
+    channel.publish(
+      this.rmq.getExchange(),
+      ActionEvent.ROUTE_FAILED,
+      Buffer.from(JSON.stringify({ jobLifecycleId, reason, context })),
+      {
+        headers,
+        persistent: true,
+      }
+    );
   }
 }

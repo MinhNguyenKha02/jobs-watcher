@@ -10,10 +10,18 @@ import type { ExtractionQueuePort } from '../../../../src/application/ports/extr
 import type { AssetProducingPort } from '../../../../src/application/ports/asset-producing.port.js';
 
 function topcvHtml(role: string, company: string, langContent: string): string {
-  return '<div class="job-detail__info--title"><h1>' + role + '</h1></div>'
-    + '<div class="company-name-label"><a class="name">' + company + '</a></div>'
-    + '<h3>Mô tả công việc</h3>'
-    + '<div class="job-description__item--content">' + langContent + '</div>';
+  return (
+    '<div class="job-detail__info--title"><h1>' +
+    role +
+    '</h1></div>' +
+    '<div class="company-name-label"><a class="name">' +
+    company +
+    '</a></div>' +
+    '<h3>Mô tả công việc</h3>' +
+    '<div class="job-description__item--content">' +
+    langContent +
+    '</div>'
+  );
 }
 
 describe('Webhook-to-completion saga (S1->S2->S3->S4)', () => {
@@ -28,15 +36,22 @@ describe('Webhook-to-completion saga (S1->S2->S3->S4)', () => {
     adapter = new MongoJobLifecycleAdapter(storage.client.db(storage.dbName));
     parseEventPort = createParseEventPort();
     routingPort = createRoutingPort();
-    const extractionQueue: ExtractionQueuePort = { enqueue: vi.fn(), dequeue: vi.fn(), size: vi.fn(), onEnqueue: vi.fn() };
-    const assetProducing: AssetProducingPort = { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) };
+    const extractionQueue: ExtractionQueuePort = {
+      enqueue: vi.fn(),
+      dequeue: vi.fn(),
+      size: vi.fn(),
+      onEnqueue: vi.fn(),
+    };
+    const assetProducing: AssetProducingPort = {
+      toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }),
+    };
     ingestor = new JobIngestor(
       adapter,
       parseEventPort,
       routingPort,
       extractionQueue,
       assetProducing,
-      new MetricsRegistry(new Registry()),
+      new MetricsRegistry(new Registry())
     );
   }, 120000);
 
@@ -45,11 +60,12 @@ describe('Webhook-to-completion saga (S1->S2->S3->S4)', () => {
   });
 
   it('processIngest with PARTIAL_PARSED creates job and transitions S1->S2', async () => {
-    const html = '<div data-source="topcv">'
-      + '<a class="job-item-link" href="/viec-lam/software-engineer">'
-      + '<div class="title"><span>Software Engineer</span></div>'
-      + '<div class="company"><span>TestCo</span></div>'
-      + '</a></div>';
+    const html =
+      '<div data-source="topcv">' +
+      '<a class="job-item-link" href="/viec-lam/software-engineer">' +
+      '<div class="title"><span>Software Engineer</span></div>' +
+      '<div class="company"><span>TestCo</span></div>' +
+      '</a></div>';
 
     await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, html);
 
@@ -73,32 +89,36 @@ describe('Webhook-to-completion saga (S1->S2->S3->S4)', () => {
 
     expect(routingPort.emitJobQueued).toHaveBeenCalledWith(
       'saga-3-id',
-      expect.objectContaining({ source: JobSource.MANUAL }),
+      expect.objectContaining({ source: JobSource.MANUAL })
     );
   });
 
   it('processResolution with trash action transitions S3->S4 with discard', async () => {
     const html = topcvHtml('Backend Developer', 'TrashCo', 'Golang developer for API');
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, html, 'trash-test-id');
+    await ingestor.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.FULL_PARSED,
+      html,
+      'trash-test-id'
+    );
     await ingestor.processResolution('trash-test-id', 'trash');
 
     expect(routingPort.emitJobTrashed).toHaveBeenCalled();
   });
 
   it('full saga with metadata flows end-to-end', async () => {
-    const html = '<div data-source="topcv">'
-      + '<a class="job-item-link" href="/viec-lam/data-engineer">'
-      + '<div class="title"><span>Data Engineer</span></div>'
-      + '<div class="company"><span>DataCo</span></div>'
-      + '</a></div>';
+    const html =
+      '<div data-source="topcv">' +
+      '<a class="job-item-link" href="/viec-lam/data-engineer">' +
+      '<div class="title"><span>Data Engineer</span></div>' +
+      '<div class="company"><span>DataCo</span></div>' +
+      '</a></div>';
 
-    await ingestor.processIngest(
-      JobSource.BROWSER_AUTO,
-      JobStage.PARTIAL_PARSED,
-      html,
-      undefined,
-      { subject: 'Job Alert: Data Engineer', from: 'jobs@example.com', messageId: 'msg-1' },
-    );
+    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, html, undefined, {
+      subject: 'Job Alert: Data Engineer',
+      from: 'jobs@example.com',
+      messageId: 'msg-1',
+    });
 
     expect(parseEventPort.emitGenerated).toHaveBeenCalled();
   });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ProfileRetrievalEngine } from '../../../src/domain/profile/retrieval/profile-retrieval-engine.js' ;
+import { ProfileRetrievalEngine } from '../../../src/domain/profile/retrieval/profile-retrieval-engine.js';
 import { buildHydratedArtifactBundle } from '../../helpers/profile/integration-fixtures.js';
 
 describe('Retrieval Pipeline Integration', () => {
@@ -9,7 +9,9 @@ describe('Retrieval Pipeline Integration', () => {
         anchors: {
           nodejs: { id: 'cap.nodejs' as any, kind: 'cap', category: 'language', key: 'nodejs' },
         },
-        surfaces: [{ anchorId: 'cap.nodejs' as any, pattern: 'nodejs', source: 'canonical', weight: 1.0 }],
+        surfaces: [
+          { anchorId: 'cap.nodejs' as any, pattern: 'nodejs', source: 'canonical', weight: 1.0 },
+        ],
         anchorToEvidence: [],
       });
       const engine = new ProfileRetrievalEngine(bundle);
@@ -28,11 +30,21 @@ describe('Retrieval Pipeline Integration', () => {
       const bundle = buildHydratedArtifactBundle({
         anchors: {
           nodejs: { id: 'cap.nodejs' as any, kind: 'cap', category: 'language', key: 'nodejs' },
-          typescript: { id: 'cap.typescript' as any, kind: 'cap', category: 'language', key: 'typescript' },
+          typescript: {
+            id: 'cap.typescript' as any,
+            kind: 'cap',
+            category: 'language',
+            key: 'typescript',
+          },
         },
         surfaces: [
           { anchorId: 'cap.nodejs' as any, pattern: 'nodejs', source: 'canonical', weight: 1.0 },
-          { anchorId: 'cap.typescript' as any, pattern: 'typescript', source: 'canonical', weight: 1.0 },
+          {
+            anchorId: 'cap.typescript' as any,
+            pattern: 'typescript',
+            source: 'canonical',
+            weight: 1.0,
+          },
         ],
         adjacency: [{ from: 'cap.nodejs' as any, to: 'cap.typescript' as any, weight: 0.5 }],
         anchorToEvidence: [],
@@ -54,7 +66,7 @@ describe('Retrieval Pipeline Integration', () => {
       // typescript expanded score = same as direct (shared object)
       // The propagation trace should be present on nodejs's signal trace
       const nodejsSignal = result.direct.get('cap.nodejs' as any)!;
-      const hasPropTrace = nodejsSignal.trace.some(t => t.type === 'propagation');
+      const hasPropTrace = nodejsSignal.trace.some((t) => t.type === 'propagation');
       expect(hasPropTrace).toBe(true);
 
       expect(typescriptExpanded.score).toBeGreaterThan(0);
@@ -66,11 +78,21 @@ describe('Retrieval Pipeline Integration', () => {
       const bundle = buildHydratedArtifactBundle({
         anchors: {
           nodejs: { id: 'cap.nodejs' as any, kind: 'cap', category: 'language', key: 'nodejs' },
-          typescript: { id: 'cap.typescript' as any, kind: 'cap', category: 'language', key: 'typescript' },
+          typescript: {
+            id: 'cap.typescript' as any,
+            kind: 'cap',
+            category: 'language',
+            key: 'typescript',
+          },
         },
         surfaces: [
           { anchorId: 'cap.nodejs' as any, pattern: 'nodejs', source: 'canonical', weight: 1.0 },
-          { anchorId: 'cap.typescript' as any, pattern: 'typescript', source: 'canonical', weight: 1.0 },
+          {
+            anchorId: 'cap.typescript' as any,
+            pattern: 'typescript',
+            source: 'canonical',
+            weight: 1.0,
+          },
         ],
         adjacency: [{ from: 'cap.nodejs' as any, to: 'cap.typescript' as any, weight: 0.5 }],
         anchorToEvidence: [],
@@ -85,7 +107,7 @@ describe('Retrieval Pipeline Integration', () => {
       // The nodejs signal should have a propagation trace
       // (due to appendPropagation adding weight to source signal)
       const nodejsSignal = result.expanded.get('cap.nodejs' as any)!;
-      const propTrace = nodejsSignal.trace.find(t => t.type === 'propagation');
+      const propTrace = nodejsSignal.trace.find((t) => t.type === 'propagation');
       expect(propTrace).toBeDefined();
       expect(propTrace!.scoreDelta).toBeGreaterThan(0);
 

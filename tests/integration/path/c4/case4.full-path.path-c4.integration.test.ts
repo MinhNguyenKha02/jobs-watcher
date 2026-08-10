@@ -5,7 +5,11 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
 import { udsHelpers } from '../../../helpers/e2e-harness.js';
-import { linkedinSduiDetailHtml, topcvDetailHtml, nonJobHtml } from '../../../helpers/html-fixtures.js';
+import {
+  linkedinSduiDetailHtml,
+  topcvDetailHtml,
+  nonJobHtml,
+} from '../../../helpers/html-fixtures.js';
 import type { RealDipBus } from '../../../helpers/real-dip-bus.js';
 import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
 
@@ -120,7 +124,11 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
 
     it('uds.action(clip, queue) routes the clipboard job to QUEUED', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Socket Queue Role', 'UdsQueueCo'));
-      const queue = await realBus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
+      const queue = await realBus.setup([
+        ActionEvent.QUEUED,
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+      ]);
       const res = await uds.action(id, 'queue');
       expect(res.statusCode).toBe(200);
       const queueMsg = await queue.msg();
@@ -132,7 +140,11 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
 
     it('uds.action(clip, trash) routes the clipboard job to TRASHED', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Socket Trash Role', 'UdsTrashCo'));
-      const trash = await realBus.setup([ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED, ActionEvent.PARSE_FAILED]);
+      const trash = await realBus.setup([
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+        ActionEvent.PARSE_FAILED,
+      ]);
       const res = await uds.action(id, 'trash');
       expect(res.statusCode).toBe(200);
       const trashMsg = await trash.msg();
@@ -147,7 +159,11 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
   describe('direct lifecycle completion ([i] to [j] / [d]) — Case 4', () => {
     it('signal2bManual queue resolution: full clipboard-to-queued flow', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Clipboard Queue Role', 'ClipQueueCorp'));
-      const queue = await realBus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
+      const queue = await realBus.setup([
+        ActionEvent.QUEUED,
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+      ]);
       await tc.ingestor.processResolution(id, 'queue');
       const queueMsg = await queue.msg();
       expect(queueMsg.jobLifecycleId).toBe(id);
@@ -158,7 +174,11 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
 
     it('signal2bManual trash resolution: full clipboard-to-trashed flow', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Clipboard Trash Role', 'ClipTrashCorp'));
-      const trash = await realBus.setup([ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED, ActionEvent.PARSE_FAILED]);
+      const trash = await realBus.setup([
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+        ActionEvent.PARSE_FAILED,
+      ]);
       await tc.ingestor.processResolution(id, 'trash');
       const trashMsg = await trash.msg();
       expect(trashMsg.jobLifecycleId).toBe(id);
@@ -184,7 +204,11 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
         updatedAt: new Date(),
         stageTimestamp: new Date(),
       });
-      const queue = await realBus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
+      const queue = await realBus.setup([
+        ActionEvent.QUEUED,
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+      ]);
       await tc.ingestor.processResolution(guardId, 'queue');
       let noQueue = false;
       try {
@@ -200,7 +224,11 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
 
     it('a QUEUED job rejects a later trash action (terminal-state protection)', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Guard Trash Role', 'GuardTrashCo'));
-      const queue = await realBus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
+      const queue = await realBus.setup([
+        ActionEvent.QUEUED,
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+      ]);
       await tc.ingestor.processResolution(id, 'queue');
       const queueMsg = await queue.msg();
       expect(queueMsg.jobLifecycleId).toBe(id);
@@ -267,7 +295,9 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
     it('stage update failure emits route.failed, doc stays ENRICHED, mocks restored', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Route Fail Role', 'RouteFailCo'));
       const fail = await realBus.setup([ActionEvent.ROUTE_FAILED]);
-      vi.spyOn(tc.mongoJobLifecycleAdapter, 'updateStage').mockRejectedValueOnce(new Error('DB timeout'));
+      vi.spyOn(tc.mongoJobLifecycleAdapter, 'updateStage').mockRejectedValueOnce(
+        new Error('DB timeout')
+      );
       await tc.ingestor.processResolution(id, 'queue');
       const failMsg = await fail.msg();
       expect(failMsg.jobLifecycleId).toBe(id);
@@ -288,7 +318,8 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
           async (roleSeed, companySeed) => {
             const suffix = Math.random().toString(36).slice(2, 8);
             const role = `${roleSeed.replace(/[^a-zA-Z0-9 ]/g, '').trim()}-${suffix}` || 'Engineer';
-            const company = `${companySeed.replace(/[^a-zA-Z0-9 ]/g, '').trim()}-Prop-${suffix}` || 'Factory';
+            const company =
+              `${companySeed.replace(/[^a-zA-Z0-9 ]/g, '').trim()}-Prop-${suffix}` || 'Factory';
             const html = linkedinSduiDetailHtml(role, company);
             const before = await jobCol().countDocuments({});
             await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
@@ -302,9 +333,9 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
             const afterDuplicate = await jobCol().countDocuments({});
             expect(afterDuplicate).toBe(afterCreate);
             return true;
-          },
+          }
         ),
-        { numRuns: 15 },
+        { numRuns: 15 }
       );
     });
   });

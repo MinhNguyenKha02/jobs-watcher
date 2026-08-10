@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { AnchorEvidenceProducer } from '../../../../../src/domain/profile/artifacts/producers/anchor-evidence.producer.js' ;
-import type { EvidenceId, EvidenceNode } from '../../../../../src/domain/profile/types/retrieval.types.js' ;
+import { AnchorEvidenceProducer } from '../../../../../src/domain/profile/artifacts/producers/anchor-evidence.producer.js';
+import type {
+  EvidenceId,
+  EvidenceNode,
+} from '../../../../../src/domain/profile/types/retrieval.types.js';
 
 describe('AnchorEvidenceProducer', () => {
   const producer = new AnchorEvidenceProducer();
@@ -35,9 +38,7 @@ describe('AnchorEvidenceProducer', () => {
   });
 
   it('handles evidence with no anchors', () => {
-    const evidences = new Map([
-      makeEvidence('ev.project.0', []),
-    ]);
+    const evidences = new Map([makeEvidence('ev.project.0', [])]);
 
     const result = producer.produce({ evidences });
     expect(result.size).toBe(0);
@@ -51,6 +52,8 @@ describe('AnchorEvidenceProducer', () => {
     ]);
 
     const result = producer.produce({ evidences });
-    expect(result.get('cap.language.Go' as any)).toEqual(new Set(['ev.project.0', 'ev.project.1', 'ev.exp.2']));
+    expect(result.get('cap.language.Go' as any)).toEqual(
+      new Set(['ev.project.0', 'ev.project.1', 'ev.exp.2'])
+    );
   });
 });

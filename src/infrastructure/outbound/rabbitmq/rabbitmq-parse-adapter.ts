@@ -13,27 +13,42 @@ export class RabbitMqParseAdapter implements ParsePort {
   async emitGenerated(job: Partial<JobLifecycleDocument>, _context: unknown): Promise<void> {
     const channel = this.rmq.getChannel();
     const headers = this.traceCtx ? traceContextToHeaders(this.traceCtx) : {};
-    channel.publish(this.rmq.getExchange(), ActionEvent.GENERATED, Buffer.from(JSON.stringify(job)), {
-      headers,
-      persistent: true,
-    });
+    channel.publish(
+      this.rmq.getExchange(),
+      ActionEvent.GENERATED,
+      Buffer.from(JSON.stringify(job)),
+      {
+        headers,
+        persistent: true,
+      }
+    );
   }
 
   async emitCompleted(job: Partial<JobLifecycleDocument>, _context: unknown): Promise<void> {
     const channel = this.rmq.getChannel();
     const headers = this.traceCtx ? traceContextToHeaders(this.traceCtx) : {};
-    channel.publish(this.rmq.getExchange(), ActionEvent.PARSE_COMPLETED, Buffer.from(JSON.stringify({ job })), {
-      headers,
-      persistent: true,
-    });
+    channel.publish(
+      this.rmq.getExchange(),
+      ActionEvent.PARSE_COMPLETED,
+      Buffer.from(JSON.stringify({ job })),
+      {
+        headers,
+        persistent: true,
+      }
+    );
   }
 
   async emitFailed(jobLifecycleId: string, _context: unknown): Promise<void> {
     const channel = this.rmq.getChannel();
     const headers = this.traceCtx ? traceContextToHeaders(this.traceCtx) : {};
-    channel.publish(this.rmq.getExchange(), ActionEvent.PARSE_FAILED, Buffer.from(JSON.stringify({ jobLifecycleId })), {
-      headers,
-      persistent: true,
-    });
+    channel.publish(
+      this.rmq.getExchange(),
+      ActionEvent.PARSE_FAILED,
+      Buffer.from(JSON.stringify({ jobLifecycleId })),
+      {
+        headers,
+        persistent: true,
+      }
+    );
   }
 }

@@ -9,7 +9,7 @@ import { AnchorNode } from '../../types/retrieval.types.js';
 export class AtsSkillGroupMapper {
   /**
    * Maps an anchor category to a group label.
-   * 
+   *
    * @param category The category of the anchor (e.g., 'backend', 'database')
    * @returns The group label (e.g., 'Backend', 'Databases')
    */
@@ -43,7 +43,7 @@ export class AtsSkillGroupMapper {
 
   /**
    * Determines whether a given anchor kind should be in the primary or secondary section.
-   * 
+   *
    * @param kind The kind of the anchor (cap, comp, beh, tech)
    * @returns 'primary' or 'secondary'
    */

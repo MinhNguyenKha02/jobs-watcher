@@ -5,7 +5,13 @@ import { RabbitMqJobReader } from './components/RabbitMqJobReader.js';
 import { JobCardRenderer, type CardStatus } from './components/JobCardRenderer.js';
 import { AnsiTerminal } from './components/AnsiTerminal.js';
 import { renderPreviewViewerModal } from './components/PreviewViewerModal.js';
-import { clearCurrentJob, setCurrentJob, getCurrentJob, getQueueMode, resetState } from './shared-tui-state.js';
+import {
+  clearCurrentJob,
+  setCurrentJob,
+  getCurrentJob,
+  getQueueMode,
+  resetState,
+} from './shared-tui-state.js';
 import type { CurrentJobState } from './shared-tui-state.js';
 
 const logger = createLogger('TUI');

@@ -44,7 +44,9 @@ export class PlaywrightBrowserAdapter implements BrowserPort {
       } catch (closeErr) {
         logger.warn('page.close failed, recreating context', { error: String(closeErr) });
         if (this.browser) {
-          try { await this.context?.close(); } catch (ctxCloseErr) {
+          try {
+            await this.context?.close();
+          } catch (ctxCloseErr) {
             logger.warn('context.close failed');
           }
           this.context = await this.browser.newContext();

@@ -4,12 +4,16 @@ import {
   deserializeMap,
   serializeNestedSetMap,
   deserializeNestedSetMap,
-} from '../../../../../src/domain/profile/artifacts/serializers/map.serializer.js' ;
+} from '../../../../../src/domain/profile/artifacts/serializers/map.serializer.js';
 
 describe('map.serializer', () => {
   describe('serializeMap / deserializeMap', () => {
     it('round-trips a Map<string, number>', () => {
-      const original = new Map([['a', 1], ['b', 2], ['c', 3]]);
+      const original = new Map([
+        ['a', 1],
+        ['b', 2],
+        ['c', 3],
+      ]);
       const serialized = serializeMap(original);
       const deserialized = deserializeMap(serialized);
       expect(deserialized).toEqual(original);

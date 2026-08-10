@@ -59,7 +59,12 @@ export class WebhookAdapter {
         const raw = req.body as Record<string, unknown>;
         let gmailMessageId = '';
 
-        if (raw && typeof raw === 'object' && 'message' in raw && typeof (raw as PubSubPushPayload).message?.data === 'string') {
+        if (
+          raw &&
+          typeof raw === 'object' &&
+          'message' in raw &&
+          typeof (raw as PubSubPushPayload).message?.data === 'string'
+        ) {
           const pubsub = raw as PubSubPushPayload;
           const decoded = decodeBase64Json(pubsub.message!.data!);
           const historyId = String(decoded.historyId || '');
@@ -67,7 +72,11 @@ export class WebhookAdapter {
             const ids = await this.gmail.getMessagesSinceHistory(historyId);
             gmailMessageId = ids[0] || '';
           }
-          logger.info('PubSub push', { historyId, emailAddress: decoded.emailAddress, gmailMessageId });
+          logger.info('PubSub push', {
+            historyId,
+            emailAddress: decoded.emailAddress,
+            gmailMessageId,
+          });
         } else if (raw && typeof raw === 'object' && typeof raw.messageId === 'string') {
           gmailMessageId = raw.messageId as string;
           logger.info('Simulated push', { gmailMessageId });
@@ -102,11 +111,13 @@ export class WebhookAdapter {
             from,
             to,
             subject,
-          },
+          }
         );
         res.status(202).json({ status: 'accepted', messageId: gmailMessageId });
       } catch (err) {
-        logger.error('Processing failed', { error: err instanceof Error ? err.message : String(err) });
+        logger.error('Processing failed', {
+          error: err instanceof Error ? err.message : String(err),
+        });
         res.status(500).json({ status: 'error', error: 'Internal server error' });
       }
     });

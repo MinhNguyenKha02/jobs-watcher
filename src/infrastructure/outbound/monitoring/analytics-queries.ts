@@ -37,8 +37,9 @@ export class AnalyticsQueries {
   async avgJobFit(): Promise<number> {
     // Hook: Average job fit score
     const cursor = this.collection.find({ jobFitScore: { $exists: true } });
-    let total = 0, count = 0;
-    await cursor.forEach(doc => {
+    let total = 0,
+      count = 0;
+    await cursor.forEach((doc) => {
       if (typeof doc.jobFitScore === 'number') {
         total += doc.jobFitScore;
         count++;
@@ -56,6 +57,6 @@ export class AnalyticsQueries {
       { $limit: limit },
     ];
     const result = await this.collection.aggregate(pipeline).toArray();
-    return result.map(r => ({ gap: r._id, count: r.count }));
+    return result.map((r) => ({ gap: r._id, count: r.count }));
   }
 }

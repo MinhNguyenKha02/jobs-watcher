@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { EvidenceProducer } from '../../../../../src/domain/profile/artifacts/producers/evidence.producer.js' ;
-import type { ProfileSource, ProjectSource, ExperienceSource } from '../../../../../src/domain/profile/source/source.types.js' ;
+import { EvidenceProducer } from '../../../../../src/domain/profile/artifacts/producers/evidence.producer.js';
+import type {
+  ProfileSource,
+  ProjectSource,
+  ExperienceSource,
+} from '../../../../../src/domain/profile/source/source.types.js';
 
 describe('EvidenceProducer', () => {
   const producer = new EvidenceProducer();
@@ -45,7 +49,10 @@ describe('EvidenceProducer', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
-      experiences: [makeExperience({ company: 'Company A' }), makeExperience({ company: 'Company B' })],
+      experiences: [
+        makeExperience({ company: 'Company A' }),
+        makeExperience({ company: 'Company B' }),
+      ],
     };
 
     const evidences = producer.produce(profile);
@@ -72,12 +79,14 @@ describe('EvidenceProducer', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
-      projects: [makeProject({
-        name: 'My App',
-        anchors: { tech: { language: ['TypeScript'] } },
-        key_contributions: ['Built API', 'Wrote tests'],
-        outcomes: ['Users loved it'],
-      })],
+      projects: [
+        makeProject({
+          name: 'My App',
+          anchors: { tech: { language: ['TypeScript'] } },
+          key_contributions: ['Built API', 'Wrote tests'],
+          outcomes: ['Users loved it'],
+        }),
+      ],
     };
 
     const evidences = producer.produce(profile);
@@ -97,10 +106,12 @@ describe('EvidenceProducer', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
-      projects: [makeProject({
-        key_contributions: ['Task'],
-        outcomes: ['Result'],
-      })],
+      projects: [
+        makeProject({
+          key_contributions: ['Task'],
+          outcomes: ['Result'],
+        }),
+      ],
     };
 
     const evidences = producer.produce(profile);
@@ -113,9 +124,11 @@ describe('EvidenceProducer', () => {
     const profile: ProfileSource = {
       name: 'Test',
       email: 'test@test.com',
-      projects: [makeProject({
-        anchors: { tech: { language: ['TypeScript'], framework: ['React'] } },
-      })],
+      projects: [
+        makeProject({
+          anchors: { tech: { language: ['TypeScript'], framework: ['React'] } },
+        }),
+      ],
     };
 
     const evidences = producer.produce(profile);

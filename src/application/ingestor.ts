@@ -10,7 +10,12 @@ import type { JobLifecyclePort } from './ports/job-lifecycle.port.js';
 import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
 import type { AssetProducingPort } from './ports/asset-producing.port.js';
 import type { IngestorPort, IngestMetadata } from './ports/inbound/ingestor.port.js';
-import { JobStage, JobStatus, JobSource, type JobLifecycleDocument } from '../domain/types/job-lifecycle.js';
+import {
+  JobStage,
+  JobStatus,
+  JobSource,
+  type JobLifecycleDocument,
+} from '../domain/types/job-lifecycle.js';
 import type { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
 
 const logger = createLogger('Ingestor');
@@ -28,7 +33,7 @@ export class JobIngestor implements IngestorPort {
     private routePublishingPort: RoutePort,
     private extractionQueueColPort: ExtractionQueuePort,
     private assetProducingPort: AssetProducingPort,
-    private metricsRegistry: MetricsRegistry,
+    private metricsRegistry: MetricsRegistry
   ) {}
 
   async processIngest(
@@ -37,7 +42,7 @@ export class JobIngestor implements IngestorPort {
     rawPayload: string,
     jobLifecycleId?: string,
     metadata?: IngestMetadata,
-    _receivedAt?: Date,
+    _receivedAt?: Date
   ): Promise<void> {
     if (stage === JobStage.PARTIAL_PARSED) {
       if (rawPayload && rawPayload.trim().length > 0) {
@@ -60,12 +65,20 @@ export class JobIngestor implements IngestorPort {
     if (!jobLifecycleId || !action) return;
 
     try {
-      
       const existing = await this.queryWithRetry(jobLifecycleId);
       if (!existing) {
-        logger.warn('Resolution action failed — no existing job lifecycle found', { jobLifecycleId, action });
-        this.metricsRegistry?.jobErrors.inc({ stage: '2', error_type: 'missing_job during routing' });
-        await this.routePublishingPort.emitRouteFailed(jobLifecycleId, 'No existing job lifecycle found');
+        logger.warn('Resolution action failed — no existing job lifecycle found', {
+          jobLifecycleId,
+          action,
+        });
+        this.metricsRegistry?.jobErrors.inc({
+          stage: '2',
+          error_type: 'missing_job during routing',
+        });
+        await this.routePublishingPort.emitRouteFailed(
+          jobLifecycleId,
+          'No existing job lifecycle found'
+        );
         return;
       }
       if (action === 'queue') {
@@ -76,7 +89,11 @@ export class JobIngestor implements IngestorPort {
           });
           return;
         }
-        await this.jobLifecycleColPort.updateStage(existing._id, JobStage.FULL_PARSED, JobStatus.QUEUED);
+        await this.jobLifecycleColPort.updateStage(
+          existing._id,
+          JobStage.FULL_PARSED,
+          JobStatus.QUEUED
+        );
         this.metricsRegistry?.jobStageTotal.inc({ stage: 's3', status: 'queued' });
         if (existing?.stageTimestamp) {
           const durationSec = (Date.now() - new Date(existing.stageTimestamp).getTime()) / 1000;
@@ -90,18 +107,28 @@ export class JobIngestor implements IngestorPort {
           const retrieval = retriever.retrieve(flattened);
           const resolved = retriever.resolve(retrieval);
           this.assetProducingPort.toAsset(resolved).catch((err: unknown) => {
-            logger.warn('Asset generation failed', { jobLifecycleId: existing._id, error: err instanceof Error ? err.message : String(err) });
+            logger.warn('Asset generation failed', {
+              jobLifecycleId: existing._id,
+              error: err instanceof Error ? err.message : String(err),
+            });
           });
         }
       } else if (action === 'trash') {
-        if (existing && (existing.status === JobStatus.QUEUED || existing.status === JobStatus.TRASHED)) {
+        if (
+          existing &&
+          (existing.status === JobStatus.QUEUED || existing.status === JobStatus.TRASHED)
+        ) {
           logger.warn('[d] guard: rejecting trash action — job already routed (terminal state)', {
             jobLifecycleId: existing._id,
             status: existing.status,
           });
           return;
         }
-        await this.jobLifecycleColPort.updateStage(existing._id, JobStage.FULL_PARSED, JobStatus.TRASHED);
+        await this.jobLifecycleColPort.updateStage(
+          existing._id,
+          JobStage.FULL_PARSED,
+          JobStatus.TRASHED
+        );
         this.metricsRegistry?.jobStageTotal.inc({ stage: 's3', status: 'trashed' });
         await this.routePublishingPort.emitJobTrashed(existing._id, 'operator:trash');
       }
@@ -133,7 +160,9 @@ export class JobIngestor implements IngestorPort {
     }
 
     if (extractedJobs.length === 0) {
-      logger.warn('No jobs extracted from payload', { messageId: metadata?.messageId || 'unknown' });
+      logger.warn('No jobs extracted from payload', {
+        messageId: metadata?.messageId || 'unknown',
+      });
       this.metricsRegistry?.jobErrors.inc({ stage: 's1', error_type: 'no_jobs_extracted' });
       return;
     }
@@ -150,15 +179,17 @@ export class JobIngestor implements IngestorPort {
 
       const doc: Partial<JobLifecycleDocument> = {
         _id: jobLifeCycleId,
-        raw: "",
-        gmailMeta: metadata ? {
-          messageId: metadata.messageId || `msg-${Date.now()}`,
-          body: rawPayload,
-          threadId: metadata.threadId,
-          from: metadata.from,
-          to: metadata.to,
-          subject: metadata.subject,
-        } : undefined,
+        raw: '',
+        gmailMeta: metadata
+          ? {
+              messageId: metadata.messageId || `msg-${Date.now()}`,
+              body: rawPayload,
+              threadId: metadata.threadId,
+              from: metadata.from,
+              to: metadata.to,
+              subject: metadata.subject,
+            }
+          : undefined,
         company,
         role,
         description: this.getStringField(extracted.description) || '',
@@ -177,8 +208,16 @@ export class JobIngestor implements IngestorPort {
 
       const filterResult = hybridJobFilter(doc);
       if (!filterResult.passed) {
-        logger.info('Filter rejected job', { jobLifeCycleId, role, company, reasons: filterResult.reasons });
-        await this.routePublishingPort.emitJobTrashed(jobLifeCycleId, `Filter rejected: ${filterResult.reasons.join('; ')}`);
+        logger.info('Filter rejected job', {
+          jobLifeCycleId,
+          role,
+          company,
+          reasons: filterResult.reasons,
+        });
+        await this.routePublishingPort.emitJobTrashed(
+          jobLifeCycleId,
+          `Filter rejected: ${filterResult.reasons.join('; ')}`
+        );
         continue;
       }
 
@@ -187,7 +226,10 @@ export class JobIngestor implements IngestorPort {
       } catch (e: any) {
         if (e?.code === 11000) {
           logger.info('Duplicate role+company — skipping', { jobLifeCycleId, role, company });
-          await this.routePublishingPort.emitJobTrashed(jobLifeCycleId, `Duplicate: ${role}/${company}`);
+          await this.routePublishingPort.emitJobTrashed(
+            jobLifeCycleId,
+            `Duplicate: ${role}/${company}`
+          );
           continue;
         }
         throw e;
@@ -197,7 +239,12 @@ export class JobIngestor implements IngestorPort {
       this.metricsRegistry?.jobStageTotal.inc({ stage: 's1', status: 'enriching' });
 
       if (hasUrl && this.extractionQueueColPort) {
-        logger.info('Job has url — enqueuing to extraction queue', { jobLifeCycleId, role, company, url });
+        logger.info('Job has url — enqueuing to extraction queue', {
+          jobLifeCycleId,
+          role,
+          company,
+          url,
+        });
         await this.extractionQueueColPort.enqueue(jobLifeCycleId);
       } else {
         logger.info('Job has no url — emitting generated only', { jobLifeCycleId, role, company });
@@ -212,7 +259,9 @@ export class JobIngestor implements IngestorPort {
   private async signal1BrowserAutoFallback(jobLifecycleId: string): Promise<void> {
     const existing = await this.queryWithRetry(jobLifecycleId);
     if (!existing) {
-      logger.error('signal1BrowserAutoFallback — no existing job lifecycle found', { jobLifecycleId });
+      logger.error('signal1BrowserAutoFallback — no existing job lifecycle found', {
+        jobLifecycleId,
+      });
       this.metricsRegistry?.jobErrors.inc({ stage: 's1', error_type: 'missing_job' });
       return;
     }
@@ -251,9 +300,15 @@ export class JobIngestor implements IngestorPort {
     }
 
     const stage1Partial = await this.queryWithRetry(jobLifecycleId);
-    if (stage1Partial && (stage1Partial.status === JobStatus.QUEUED || stage1Partial.status === JobStatus.TRASHED || stage1Partial.status === JobStatus.ENRICHED)) {
+    if (
+      stage1Partial &&
+      (stage1Partial.status === JobStatus.QUEUED ||
+        stage1Partial.status === JobStatus.TRASHED ||
+        stage1Partial.status === JobStatus.ENRICHED)
+    ) {
       logger.warn('S2 enrichment skipped — job already routed or fully parsed', {
-        jobLifecycleId, status: stage1Partial.status,
+        jobLifecycleId,
+        status: stage1Partial.status,
       });
       return;
     }
@@ -347,9 +402,13 @@ export class JobIngestor implements IngestorPort {
   private async signal2cBrowserAuto(rawPayload: string, jobLifecycleId?: string): Promise<void> {
     const stage1Partial = jobLifecycleId ? await this.queryWithRetry(jobLifecycleId) : null;
 
-    if (stage1Partial && (stage1Partial.status === JobStatus.QUEUED || stage1Partial.status === JobStatus.TRASHED)) {
+    if (
+      stage1Partial &&
+      (stage1Partial.status === JobStatus.QUEUED || stage1Partial.status === JobStatus.TRASHED)
+    ) {
       logger.warn('signal2cBrowserAuto skipped — job already routed', {
-        jobLifecycleId, status: stage1Partial.status,
+        jobLifecycleId,
+        status: stage1Partial.status,
       });
       return;
     }
@@ -358,7 +417,7 @@ export class JobIngestor implements IngestorPort {
       ...stage1Partial,
       updatedAt: new Date(),
       stageTimestamp: new Date(),
-    }
+    };
 
     await this.parsePublishingPort.emitGenerated(s1Doc, {
       stage: JobStage.PARTIAL_PARSED,
@@ -397,13 +456,15 @@ export class JobIngestor implements IngestorPort {
       createdAt: stage1Partial?.createdAt || new Date(),
     };
 
+    const passed = hybridJobFilter(doc, { sinceTier: 2 });
 
-    const passed = hybridJobFilter(doc, {sinceTier: 2});
-    
     if (!passed.passed) {
       logger.info('Filter rejected job at stage 2', { jobLifecycleId, reasons: passed.reasons });
       this.metricsRegistry?.jobErrors.inc({ stage: 's2', error_type: 'filter_rejected' });
-      await this.routePublishingPort.emitJobTrashed(jobLifecycleId || s1Doc._id!, `Filter rejected at stage 2: ${passed.reasons.join('; ')}`);
+      await this.routePublishingPort.emitJobTrashed(
+        jobLifecycleId || s1Doc._id!,
+        `Filter rejected at stage 2: ${passed.reasons.join('; ')}`
+      );
       return;
     }
 
@@ -437,7 +498,9 @@ export class JobIngestor implements IngestorPort {
         logger.warn('job_lifecycle query failed', { jobLifecycleId, attempt, error: e });
       }
       if (attempt < config.maxRetries - 1) {
-        await this.sleep(Math.min(config.initialBackoffMs * Math.pow(2, attempt), config.maxBackoffMs));
+        await this.sleep(
+          Math.min(config.initialBackoffMs * Math.pow(2, attempt), config.maxBackoffMs)
+        );
       }
     }
     return null;

@@ -1,4 +1,7 @@
-import { clipboardGetter, clipboardSetter } from '../../../../../src/presentation/tui/services/clipboard-getter.js' ;
+import {
+  clipboardGetter,
+  clipboardSetter,
+} from '../../../../../src/presentation/tui/services/clipboard-getter.js';
 import * as fixtures from '../../../../__fixtures__/emails.js';
 
 describe('clipboard getter/setter service', () => {

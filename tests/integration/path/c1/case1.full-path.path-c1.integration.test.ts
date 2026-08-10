@@ -5,7 +5,12 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
 import { udsHelpers } from '../../../helpers/e2e-harness.js';
-import { topcvEmailHtmlMany, topcvDetailHtml, nonJobHtml, linkedinSduiDetailHtml } from '../../../helpers/html-fixtures.js';
+import {
+  topcvEmailHtmlMany,
+  topcvDetailHtml,
+  nonJobHtml,
+  linkedinSduiDetailHtml,
+} from '../../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../../helpers/test-builders.js';
 import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
 
@@ -46,7 +51,13 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
     it('T1a: S1 partial → [c] webhook ingest → [j] queue — canonical Case 1', async () => {
       const messageId = 'c1-msg-1';
       const gen = await tc.bus.setup([ActionEvent.GENERATED]);
-      await tc.ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_EMAIL_HTML, undefined, { messageId, subject: 'Backend Developer' });
+      await tc.ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.PARTIAL_PARSED,
+        TOPCV_EMAIL_HTML,
+        undefined,
+        { messageId, subject: 'Backend Developer' }
+      );
       const genMsg = await gen.msg();
       const jobLifecycleId: string = genMsg._id;
       expect(jobLifecycleId).toMatch(/-job-0$/);
@@ -66,7 +77,11 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(enrichedDoc!.salary).toBe('15,000,000 VNĐ');
       expect(enrichedDoc!.location).toBe('Ho Chi Minh');
 
-      const queue = await tc.bus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
+      const queue = await tc.bus.setup([
+        ActionEvent.QUEUED,
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+      ]);
       const action = await uds.action(jobLifecycleId, 'queue');
       expect(action.statusCode).toBe(200);
       const queueMsg = await queue.msg();
@@ -80,14 +95,24 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
     it('T1c: S1 → [c] paste → [d] trash via UDS', async () => {
       const messageId = 'c1-msg-trash';
       const gen = await tc.bus.setup([ActionEvent.GENERATED]);
-      await tc.ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_EMAIL_HTML, undefined, { messageId, subject: 'Backend Developer' });
+      await tc.ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.PARTIAL_PARSED,
+        TOPCV_EMAIL_HTML,
+        undefined,
+        { messageId, subject: 'Backend Developer' }
+      );
       const genMsg = await gen.msg();
       const jobLifecycleId: string = genMsg._id;
 
       const ingest = await uds.ingest(CLIPBOARD_HTML, jobLifecycleId);
       expect(ingest.statusCode).toBe(200);
 
-      const trash = await tc.bus.setup([ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED, ActionEvent.PARSE_FAILED]);
+      const trash = await tc.bus.setup([
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+        ActionEvent.PARSE_FAILED,
+      ]);
       const action = await uds.action(jobLifecycleId, 'trash');
       expect(action.statusCode).toBe(200);
       const trashMsg = await trash.msg();
@@ -101,7 +126,13 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
 
     it('T1b: [j] before S2 arrives is guarded (deferred enrichment) — no state change', async () => {
       const messageId = 'c1-msg-defer';
-      await tc.ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, TOPCV_EMAIL_HTML, undefined, { messageId, subject: 'Backend Developer' });
+      await tc.ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.PARTIAL_PARSED,
+        TOPCV_EMAIL_HTML,
+        undefined,
+        { messageId, subject: 'Backend Developer' }
+      );
 
       const docs = await tc.db.collection('job_lifecycle').find({}).toArray();
       const jobLifecycleId: string = String(docs[0]._id);
@@ -119,10 +150,19 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
 
   describe('signal2aManual ([c]) upgrade + S4 failure paths', () => {
     it('[c] upgrades PARTIAL_PARSED to FULL_PARSED with merged fields — real-DIP', async () => {
-      const jobLifecycleId = await seedPartial({ _id: 'c1-2a-valid', company: 'OldCo', role: 'Software Engineer' });
+      const jobLifecycleId = await seedPartial({
+        _id: 'c1-2a-valid',
+        company: 'OldCo',
+        role: 'Software Engineer',
+      });
 
       const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'NewCo'), jobLifecycleId);
+      await tc.ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        topcvDetailHtml('Software Engineer', 'NewCo'),
+        jobLifecycleId
+      );
       const compMsg = await comp.msg();
       expect(compMsg.job).toBeDefined();
       expect(compMsg.job._id).toBe(jobLifecycleId);
@@ -139,7 +179,12 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       const jobLifecycleId = await seedPartial({ _id: 'c1-2a-empty' });
 
       const fail = await tc.bus.setup([ActionEvent.PARSE_FAILED]);
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '   ', jobLifecycleId);
+      await tc.ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        '   ',
+        jobLifecycleId
+      );
       const failMsg = await fail.msg();
       expect(failMsg.jobLifecycleId).toBe(jobLifecycleId);
 
@@ -153,7 +198,12 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       const jobLifecycleId = await seedPartial({ _id: 'c1-2a-noparse' });
 
       const fail = await tc.bus.setup([ActionEvent.PARSE_FAILED]);
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, nonJobHtml(), jobLifecycleId);
+      await tc.ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        nonJobHtml(),
+        jobLifecycleId
+      );
       const failMsg = await fail.msg();
       expect(failMsg.jobLifecycleId).toBe(jobLifecycleId);
 
@@ -164,7 +214,12 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
 
     it('[c] with missing stage1Partial builds FULL_PARSED from parsed HTML alone', async () => {
       const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'NoPartialCo'), 'c1-missing-partial');
+      await tc.ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        topcvDetailHtml('Software Engineer', 'NoPartialCo'),
+        'c1-missing-partial'
+      );
       const compMsg = await comp.msg();
       expect(compMsg.job).toBeDefined();
       expect(compMsg.job._id).toBe('c1-missing-partial');
@@ -178,12 +233,22 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
 
     it('[c] on an already FULL_PARSED job is a no-op (B2 guard)', async () => {
       const jobLifecycleId = await seedPartial({ _id: 'c1-already-full', company: 'AlreadyCo' });
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML, jobLifecycleId);
+      await tc.ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        CLIPBOARD_HTML,
+        jobLifecycleId
+      );
 
       const firstDoc = await tc.mongoJobLifecycleAdapter.findById(jobLifecycleId);
       expect(firstDoc!.stage).toBe(JobStage.FULL_PARSED);
 
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, CLIPBOARD_HTML, jobLifecycleId);
+      await tc.ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        CLIPBOARD_HTML,
+        jobLifecycleId
+      );
 
       const secondDoc = await tc.mongoJobLifecycleAdapter.findById(jobLifecycleId);
       expect(secondDoc!.stage).toBe(JobStage.FULL_PARSED);
@@ -212,10 +277,19 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       const jobLifecycleId = await seedPartial({ _id: 'c1-2a-queue' });
 
       const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'QueueTestCo'), jobLifecycleId);
+      await tc.ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        topcvDetailHtml('Software Engineer', 'QueueTestCo'),
+        jobLifecycleId
+      );
       await comp.msg();
 
-      const queue = await tc.bus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
+      const queue = await tc.bus.setup([
+        ActionEvent.QUEUED,
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+      ]);
       const action = await uds.action(jobLifecycleId, 'queue');
       expect(action.statusCode).toBe(200);
       const queueMsg = await queue.msg();
@@ -230,10 +304,19 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       const jobLifecycleId = await seedPartial({ _id: 'c1-2a-trash' });
 
       const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'TrashTestCo'), jobLifecycleId);
+      await tc.ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        topcvDetailHtml('Software Engineer', 'TrashTestCo'),
+        jobLifecycleId
+      );
       await comp.msg();
 
-      const trash = await tc.bus.setup([ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED, ActionEvent.PARSE_FAILED]);
+      const trash = await tc.bus.setup([
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+        ActionEvent.PARSE_FAILED,
+      ]);
       const action = await uds.action(jobLifecycleId, 'trash');
       expect(action.statusCode).toBe(200);
       const trashMsg = await trash.msg();
@@ -253,21 +336,37 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(failMsg.jobLifecycleId).toBe(failedId);
 
       const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetailHtml('Software Engineer', 'RecoveryCo'));
+      await tc.ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        topcvDetailHtml('Software Engineer', 'RecoveryCo')
+      );
       const compMsg = await comp.msg();
       expect(compMsg.job).toBeDefined();
       expect(compMsg.job.company).toBe('RecoveryCo');
 
-      const recoveryDoc = await tc.db.collection('job_lifecycle').findOne({ company: 'RecoveryCo' });
+      const recoveryDoc = await tc.db
+        .collection('job_lifecycle')
+        .findOne({ company: 'RecoveryCo' });
       expect(recoveryDoc).not.toBeNull();
       expect(recoveryDoc!.status).toBe(JobStatus.ENRICHED);
     });
 
     it('route failure (S4) emits route.failed then next S1 recovers — real-DIP', async () => {
-      const routeFailId = await seedPartial({ _id: 'c1-s4b-fail', stage: JobStage.FULL_PARSED, status: JobStatus.ENRICHED });
+      const routeFailId = await seedPartial({
+        _id: 'c1-s4b-fail',
+        stage: JobStage.FULL_PARSED,
+        status: JobStatus.ENRICHED,
+      });
 
-      vi.spyOn(tc.mongoJobLifecycleAdapter, 'updateStage').mockRejectedValueOnce(new Error('DB write conflict'));
-      const fail = await tc.bus.setup([ActionEvent.QUEUED, ActionEvent.TRASHED, ActionEvent.ROUTE_FAILED]);
+      vi.spyOn(tc.mongoJobLifecycleAdapter, 'updateStage').mockRejectedValueOnce(
+        new Error('DB write conflict')
+      );
+      const fail = await tc.bus.setup([
+        ActionEvent.QUEUED,
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+      ]);
       await tc.ingestor.processResolution(routeFailId, 'queue');
       const failMsg = await fail.msg();
       expect(failMsg.jobLifecycleId).toBe(routeFailId);
@@ -275,7 +374,13 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       vi.restoreAllMocks();
 
       const gen = await tc.bus.setup([ActionEvent.GENERATED]);
-      await tc.ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'NextAfterRouteFail' }]), undefined, { messageId: 'c1-next-after-route-fail' });
+      await tc.ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.PARTIAL_PARSED,
+        topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'NextAfterRouteFail' }]),
+        undefined,
+        { messageId: 'c1-next-after-route-fail' }
+      );
       const genMsg = await gen.msg();
       expect(genMsg.company).toBe('NextAfterRouteFail');
     });
@@ -300,7 +405,14 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       await tc.mongoJobLifecycleAdapter.upsert(partialDoc as any);
 
       const comp = await tc.bus.setup([ActionEvent.PARSE_COMPLETED]);
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, DM_HTML, jobLifecycleId, undefined, new Date());
+      await tc.ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        DM_HTML,
+        jobLifecycleId,
+        undefined,
+        new Date()
+      );
       const compMsg = await comp.msg();
       expect(compMsg.job).toBeDefined();
       expect(compMsg.job._id).toBe(jobLifecycleId);
@@ -331,7 +443,14 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       await tc.mongoJobLifecycleAdapter.upsert(partialDoc as any);
 
       const fail = await tc.bus.setup([ActionEvent.PARSE_FAILED]);
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', jobLifecycleId, undefined, new Date());
+      await tc.ingestor.processIngest(
+        JobSource.MANUAL,
+        JobStage.FULL_PARSED,
+        '',
+        jobLifecycleId,
+        undefined,
+        new Date()
+      );
       const failMsg = await fail.msg();
       expect(failMsg.jobLifecycleId).toBe(jobLifecycleId);
 
@@ -342,7 +461,12 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
   });
 
   describe('fast-check saga property invariants', () => {
-    const ROLES = ['Software Engineer', 'Backend Developer', 'Full Stack Developer', 'Data Engineer'];
+    const ROLES = [
+      'Software Engineer',
+      'Backend Developer',
+      'Full Stack Developer',
+      'Data Engineer',
+    ];
 
     it('property: random role/company pairs never crash the saga and converge to valid states', async () => {
       await fc.assert(
@@ -357,34 +481,45 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
               JobStage.PARTIAL_PARSED,
               topcvEmailHtmlMany([{ role, company: `${safeCompany}${workerIdx}` }]),
               undefined,
-              { messageId: `c1-prop-${workerIdx}-${role.replace(/\s+/g, '')}` },
+              { messageId: `c1-prop-${workerIdx}-${role.replace(/\s+/g, '')}` }
             );
-            const doc = await tc.mongoJobLifecycleAdapter.findById(`c1-prop-${workerIdx}-${role.replace(/\s+/g, '')}-job-0`);
+            const doc = await tc.mongoJobLifecycleAdapter.findById(
+              `c1-prop-${workerIdx}-${role.replace(/\s+/g, '')}-job-0`
+            );
             if (doc) {
               expect([JobStatus.ENRICHING, JobStatus.ENRICHED]).toContain(doc.status);
             }
             return true;
-          },
+          }
         ),
-        { numRuns: 30 },
+        { numRuns: 30 }
       );
     });
 
     it('property: repeated identical S1 ingests are idempotent (dedupe on role+company)', async () => {
       await fc.assert(
-        fc.asyncProperty(
-          fc.constantFrom(...ROLES),
-          async (role) => {
-            const company = `C1DedupePropCo-${Math.random().toString(36).slice(2, 8)}`;
-            const messageId = `c1-prop-dedupe-${Math.random().toString(36).slice(2, 8)}`;
-            await tc.ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role, company }]), undefined, { messageId });
-            await tc.ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, topcvEmailHtmlMany([{ role, company }]), undefined, { messageId });
-            const docs = await tc.db.collection('job_lifecycle').find({ role, company }).toArray();
-            expect(docs.length).toBeLessThanOrEqual(1);
-            return true;
-          },
-        ),
-        { numRuns: 15 },
+        fc.asyncProperty(fc.constantFrom(...ROLES), async (role) => {
+          const company = `C1DedupePropCo-${Math.random().toString(36).slice(2, 8)}`;
+          const messageId = `c1-prop-dedupe-${Math.random().toString(36).slice(2, 8)}`;
+          await tc.ingestor.processIngest(
+            JobSource.BROWSER_AUTO,
+            JobStage.PARTIAL_PARSED,
+            topcvEmailHtmlMany([{ role, company }]),
+            undefined,
+            { messageId }
+          );
+          await tc.ingestor.processIngest(
+            JobSource.BROWSER_AUTO,
+            JobStage.PARTIAL_PARSED,
+            topcvEmailHtmlMany([{ role, company }]),
+            undefined,
+            { messageId }
+          );
+          const docs = await tc.db.collection('job_lifecycle').find({ role, company }).toArray();
+          expect(docs.length).toBeLessThanOrEqual(1);
+          return true;
+        }),
+        { numRuns: 15 }
       );
     });
   });

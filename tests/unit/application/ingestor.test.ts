@@ -45,35 +45,41 @@ function mockRoutingPort() {
 
 /** TopCV email-alert — no url → emitGenerated */
 function makeTopCvEmailHtml(): string {
-  return '<div class="topcv-job-list">'
-    + '<a class="job-item-link" href="">'
-    + '<div class="job-item"><div class="body">'
-    + '<div class="title"><span>Junior Software Engineer</span></div>'
-    + '<div class="company"><span>Junior Co</span></div>'
-    + '<div class="meta-job"><div class="item text-primary"><b>$100k</b></div></div>'
-    + '</div></div>'
-    + '</a></div>';
+  return (
+    '<div class="topcv-job-list">' +
+    '<a class="job-item-link" href="">' +
+    '<div class="job-item"><div class="body">' +
+    '<div class="title"><span>Junior Software Engineer</span></div>' +
+    '<div class="company"><span>Junior Co</span></div>' +
+    '<div class="meta-job"><div class="item text-primary"><b>$100k</b></div></div>' +
+    '</div></div>' +
+    '</a></div>'
+  );
 }
 
 /** Indeed email-alert — has applystart url → enqueue */
 function makeIndeedEmailHtml(): string {
-  return '<html><body>Indeed Job Alert'
-    + '<table><tr><td class="pb-24">'
-    + '<h2><a href="https://vn.indeed.com/applystart?jk=abc123">Senior Backend Engineer</a></h2>'
-    + '<div style="color:#2d2d2d">Senior Co</div>'
-    + '</td></tr></table>'
-    + '</body></html>';
+  return (
+    '<html><body>Indeed Job Alert' +
+    '<table><tr><td class="pb-24">' +
+    '<h2><a href="https://vn.indeed.com/applystart?jk=abc123">Senior Backend Engineer</a></h2>' +
+    '<div style="color:#2d2d2d">Senior Co</div>' +
+    '</td></tr></table>' +
+    '</body></html>'
+  );
 }
 
 /** TopCV email-alert — non-software role → filter rejects */
 function makeNonSoftwareEmailHtml(): string {
-  return '<div class="topcv-job-list">'
-    + '<a class="job-item-link" href="">'
-    + '<div class="job-item"><div class="body">'
-    + '<div class="title"><span>Marketing Manager</span></div>'
-    + '<div class="company"><span>ACME Corp</span></div>'
-    + '</div></div>'
-    + '</a></div>';
+  return (
+    '<div class="topcv-job-list">' +
+    '<a class="job-item-link" href="">' +
+    '<div class="job-item"><div class="body">' +
+    '<div class="title"><span>Marketing Manager</span></div>' +
+    '<div class="company"><span>ACME Corp</span></div>' +
+    '</div></div>' +
+    '</a></div>'
+  );
 }
 
 /**
@@ -82,9 +88,11 @@ function makeNonSoftwareEmailHtml(): string {
  */
 
 function makeTopCvDetailHtml(): string {
-  return '<div class="job-detail__info--title"><h1>Junior Software Engineer</h1></div>'
-    + '<div class="company-name-label"><a class="name">Junior Co</a></div>'
-    + '<div class="section-salary"><div class="job-detail__info--section-content-value">$100k</div></div>';
+  return (
+    '<div class="job-detail__info--title"><h1>Junior Software Engineer</h1></div>' +
+    '<div class="company-name-label"><a class="name">Junior Co</a></div>' +
+    '<div class="section-salary"><div class="job-detail__info--section-content-value">$100k</div></div>'
+  );
 }
 
 describe('JobIngestor', () => {
@@ -99,7 +107,14 @@ describe('JobIngestor', () => {
     queue = mockQueue();
     parsePort = mockParsePort();
     routingPort = mockRoutingPort();
-    ingestor = new JobIngestor(storage, parsePort, routingPort, queue, { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) }, new MetricsRegistry(new Registry()));
+    ingestor = new JobIngestor(
+      storage,
+      parsePort,
+      routingPort,
+      queue,
+      { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) },
+      new MetricsRegistry(new Registry())
+    );
   });
 
   describe('processIngest — BROWSER_AUTO PARTIAL_PARSED', () => {
@@ -109,7 +124,7 @@ describe('JobIngestor', () => {
         JobStage.PARTIAL_PARSED,
         makeTopCvEmailHtml(),
         undefined,
-        { messageId: 'msg-001' },
+        { messageId: 'msg-001' }
       );
       expect(storage.upsert).toHaveBeenCalled();
       expect(parsePort.emitGenerated).toHaveBeenCalled();
@@ -122,7 +137,7 @@ describe('JobIngestor', () => {
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
         '',
-        'existing-id',
+        'existing-id'
       );
       expect(storage.findById).toHaveBeenCalledWith('existing-id');
       expect(parsePort.emitGenerated).toHaveBeenCalled();
@@ -136,7 +151,7 @@ describe('JobIngestor', () => {
         JobStage.PARTIAL_PARSED,
         makeIndeedEmailHtml(),
         undefined,
-        { messageId: 'url-msg' },
+        { messageId: 'url-msg' }
       );
       expect(storage.upsert).toHaveBeenCalled();
       expect(queue.enqueue).toHaveBeenCalled();
@@ -151,7 +166,7 @@ describe('JobIngestor', () => {
         JobStage.PARTIAL_PARSED,
         makeTopCvEmailHtml(),
         undefined,
-        { messageId: 'nourl-msg' },
+        { messageId: 'nourl-msg' }
       );
       expect(storage.upsert).toHaveBeenCalled();
       expect(parsePort.emitGenerated).toHaveBeenCalled();
@@ -166,7 +181,7 @@ describe('JobIngestor', () => {
         JobStage.PARTIAL_PARSED,
         makeNonSoftwareEmailHtml(),
         undefined,
-        { messageId: 'nonjob-msg' },
+        { messageId: 'nonjob-msg' }
       );
       expect(routingPort.emitJobTrashed).toHaveBeenCalled();
       expect(storage.upsert).not.toHaveBeenCalled();
@@ -180,7 +195,7 @@ describe('JobIngestor', () => {
         JobSource.BROWSER_AUTO,
         JobStage.FULL_PARSED,
         makeTopCvDetailHtml(),
-        'browser-job',
+        'browser-job'
       );
       expect(storage.findById).toHaveBeenCalledWith('browser-job');
       expect(storage.upsert).toHaveBeenCalled();
@@ -195,7 +210,7 @@ describe('JobIngestor', () => {
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
         makeTopCvDetailHtml(),
-        'manual-job',
+        'manual-job'
       );
       expect(storage.findById).toHaveBeenCalledWith('manual-job');
       expect(storage.upsert).toHaveBeenCalled();
@@ -203,11 +218,7 @@ describe('JobIngestor', () => {
     });
 
     it('signal2bManual without jobLifecycleId treats as clipboard ingest', async () => {
-      await ingestor.processIngest(
-        JobSource.MANUAL,
-        JobStage.FULL_PARSED,
-        makeTopCvDetailHtml(),
-      );
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, makeTopCvDetailHtml());
       expect(storage.upsert).toHaveBeenCalled();
       expect(parsePort.emitCompleted).toHaveBeenCalled();
     });
@@ -215,31 +226,28 @@ describe('JobIngestor', () => {
 
   describe('processResolution — [j] guard', () => {
     it('rejects queue when status !== ENRICHED', async () => {
-      storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'guard-job', status: JobStatus.ENRICHING }));
-      await ingestor.processResolution(
-        'guard-job',
-        'queue',
+      storage.findById.mockResolvedValue(
+        makeStage1Partial({ _id: 'guard-job', status: JobStatus.ENRICHING })
       );
+      await ingestor.processResolution('guard-job', 'queue');
       expect(storage.updateStage).not.toHaveBeenCalled();
       expect(routingPort.emitJobQueued).not.toHaveBeenCalled();
     });
 
     it('accepts queue when status === ENRICHED', async () => {
-      storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'enriched-job', status: JobStatus.ENRICHED }));
-      await ingestor.processResolution(
-        'enriched-job',
-        'queue',
+      storage.findById.mockResolvedValue(
+        makeStage1Partial({ _id: 'enriched-job', status: JobStatus.ENRICHED })
       );
+      await ingestor.processResolution('enriched-job', 'queue');
       expect(storage.updateStage).toHaveBeenCalled();
       expect(routingPort.emitJobQueued).toHaveBeenCalled();
     });
 
     it('trash passes through regardless of status', async () => {
-      storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'trash-job', status: JobStatus.ENRICHING }));
-      await ingestor.processResolution(
-        'trash-job',
-        'trash',
+      storage.findById.mockResolvedValue(
+        makeStage1Partial({ _id: 'trash-job', status: JobStatus.ENRICHING })
       );
+      await ingestor.processResolution('trash-job', 'trash');
       expect(storage.updateStage).toHaveBeenCalled();
       expect(routingPort.emitJobTrashed).toHaveBeenCalled();
     });
@@ -253,22 +261,20 @@ describe('JobIngestor', () => {
         JobStage.PARTIAL_PARSED,
         makeTopCvEmailHtml(),
         undefined,
-        { messageId: 'dedup-msg' },
+        { messageId: 'dedup-msg' }
       );
       expect(routingPort.emitJobTrashed).toHaveBeenCalled();
     });
 
     it('propagates non-11000 upsert errors instead of swallowing them', async () => {
-      storage.upsert.mockRejectedValueOnce(
-        Object.assign(new Error('Disk full'), { code: 9000 }),
-      );
+      storage.upsert.mockRejectedValueOnce(Object.assign(new Error('Disk full'), { code: 9000 }));
       await expect(
         ingestor.processIngest(
           JobSource.MANUAL,
           JobStage.FULL_PARSED,
           makeTopCvDetailHtml(),
-          undefined,
-        ),
+          undefined
+        )
       ).rejects.toThrow('Disk full');
     });
   });
@@ -279,17 +285,29 @@ describe('JobIngestor', () => {
       await ingestor.processResolution('missing-job', 'queue');
 
       expect(storage.findById).toHaveBeenCalledTimes(5);
-      expect(routingPort.emitRouteFailed).toHaveBeenCalledWith('missing-job', 'No existing job lifecycle found');
+      expect(routingPort.emitRouteFailed).toHaveBeenCalledWith(
+        'missing-job',
+        'No existing job lifecycle found'
+      );
       expect(routingPort.emitJobQueued).not.toHaveBeenCalled();
     });
 
     it('cause: resolve an existing ENRICHED job → effect: single findById, updateStage to QUEUED, QUEUED emitted', async () => {
-      storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'job-ok', status: JobStatus.ENRICHED }));
+      storage.findById.mockResolvedValue(
+        makeStage1Partial({ _id: 'job-ok', status: JobStatus.ENRICHED })
+      );
       await ingestor.processResolution('job-ok', 'queue');
 
       expect(storage.findById).toHaveBeenCalledTimes(1);
-      expect(storage.updateStage).toHaveBeenCalledWith('job-ok', JobStage.FULL_PARSED, JobStatus.QUEUED);
-      expect(routingPort.emitJobQueued).toHaveBeenCalledWith('job-ok', expect.objectContaining({ source: JobSource.MANUAL }));
+      expect(storage.updateStage).toHaveBeenCalledWith(
+        'job-ok',
+        JobStage.FULL_PARSED,
+        JobStatus.QUEUED
+      );
+      expect(routingPort.emitJobQueued).toHaveBeenCalledWith(
+        'job-ok',
+        expect.objectContaining({ source: JobSource.MANUAL })
+      );
       expect(routingPort.emitRouteFailed).not.toHaveBeenCalled();
     });
   });

@@ -29,7 +29,7 @@ describe('Container conformance — IoC composition root', () => {
         health: { port: 0 },
         asset: { outputDir: assetDir },
       },
-      {},
+      {}
     );
   }, 120000);
 

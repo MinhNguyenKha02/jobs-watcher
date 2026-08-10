@@ -76,19 +76,64 @@ describe('hybridJobFilter - decision table by filter logic analysis', () => {
   const noLang = 'Manage office operations. Fresh graduates welcome.';
   const seniorExp = 'TypeScript, Python required. 5+ years of experience required.';
 
-  type Row = { role: string; desc: string; details?: Record<string, string>; tier: 1 | 2; expectPass: boolean; label: string };
+  type Row = {
+    role: string;
+    desc: string;
+    details?: Record<string, string>;
+    tier: 1 | 2;
+    expectPass: boolean;
+    label: string;
+  };
 
   // Actual filter logic (src/domain/filter/job-filter.ts):
   //   Tier 1: only checks matchesRole(role) → 2 paths (SW pass / non-SW fail)
   //   Tier 2: checks matchesLang(details,desc) then matchesExperience(details,desc) → 4 paths
   //   Total unique paths: 6
   const table: Row[] = [
-    { role: swRole, desc: noLang, tier: 1, expectPass: true, label: 'T1 SW role passes (lang/exp irrelevant)' },
-    { role: nonSwRole, desc: withLang, tier: 1, expectPass: false, label: 'T1 non-SW fails (lang/exp irrelevant)' },
-    { role: swRole, desc: withLang, details: { requirements: 'TypeScript, Python' }, tier: 2, expectPass: true, label: 'T2 lang+exp both pass' },
-    { role: swRole, desc: noLang, tier: 2, expectPass: false, label: 'T2 no lang fails (short-circuit)' },
-    { role: swRole, desc: seniorExp, details: { requirements: 'TypeScript, Python' }, tier: 2, expectPass: false, label: 'T2 lang ok but senior exp fails' },
-    { role: nonSwRole, desc: seniorExp, tier: 2, expectPass: false, label: 'T2 no lang + senior exp fails' },
+    {
+      role: swRole,
+      desc: noLang,
+      tier: 1,
+      expectPass: true,
+      label: 'T1 SW role passes (lang/exp irrelevant)',
+    },
+    {
+      role: nonSwRole,
+      desc: withLang,
+      tier: 1,
+      expectPass: false,
+      label: 'T1 non-SW fails (lang/exp irrelevant)',
+    },
+    {
+      role: swRole,
+      desc: withLang,
+      details: { requirements: 'TypeScript, Python' },
+      tier: 2,
+      expectPass: true,
+      label: 'T2 lang+exp both pass',
+    },
+    {
+      role: swRole,
+      desc: noLang,
+      tier: 2,
+      expectPass: false,
+      label: 'T2 no lang fails (short-circuit)',
+    },
+    {
+      role: swRole,
+      desc: seniorExp,
+      details: { requirements: 'TypeScript, Python' },
+      tier: 2,
+      expectPass: false,
+      label: 'T2 lang ok but senior exp fails',
+    },
+    {
+      role: nonSwRole,
+      desc: seniorExp,
+      tier: 2,
+      expectPass: false,
+      label: 'T2 no lang + senior exp fails',
+    },
   ];
 
   for (const row of table) {

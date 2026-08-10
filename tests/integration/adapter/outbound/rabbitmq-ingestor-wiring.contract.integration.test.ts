@@ -41,19 +41,28 @@ async function purgeQueues(ch: Channel): Promise<void> {
     await ch.purgeQueue(S1_QUEUE);
     await ch.purgeQueue(S2_QUEUE);
     await ch.purgeQueue(S3S4_QUEUE);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 function consumeOne(ch: Channel, queue: string): Promise<any> {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Timeout waiting for message on ${queue}`)), 8000);
-    ch.consume(queue, (msg) => {
-      if (msg) {
-        clearTimeout(timeout);
-        ch.ack(msg);
-        resolve(JSON.parse(msg.content.toString()));
-      }
-    }, { noAck: false });
+    const timeout = setTimeout(
+      () => reject(new Error(`Timeout waiting for message on ${queue}`)),
+      8000
+    );
+    ch.consume(
+      queue,
+      (msg) => {
+        if (msg) {
+          clearTimeout(timeout);
+          ch.ack(msg);
+          resolve(JSON.parse(msg.content.toString()));
+        }
+      },
+      { noAck: false }
+    );
   });
 }
 
@@ -95,7 +104,7 @@ describe('RMQ + Ingestor wiring', { timeout: 30000 }, () => {
       routePort,
       extractionQueue,
       assetProducing,
-      metrics,
+      metrics
     );
   });
 
@@ -135,9 +144,15 @@ describe('RMQ + Ingestor wiring', { timeout: 30000 }, () => {
     const partialHtml = topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'S2 Co' }]);
     const genPromise = consumeOne(conCh, S1_QUEUE);
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, partialHtml, undefined, {
-      messageId: 's2-msg',
-    });
+    await ingestor.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.PARTIAL_PARSED,
+      partialHtml,
+      undefined,
+      {
+        messageId: 's2-msg',
+      }
+    );
     const genMsg = await genPromise;
     const jobLifecycleId = genMsg._id;
 
@@ -158,9 +173,15 @@ describe('RMQ + Ingestor wiring', { timeout: 30000 }, () => {
     const partialHtml = topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'Queue Co' }]);
     const genPromise = consumeOne(conCh, S1_QUEUE);
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, partialHtml, undefined, {
-      messageId: 'queue-msg',
-    });
+    await ingestor.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.PARTIAL_PARSED,
+      partialHtml,
+      undefined,
+      {
+        messageId: 'queue-msg',
+      }
+    );
     const genMsg = await genPromise;
     const jobLifecycleId = genMsg._id;
 
@@ -181,9 +202,15 @@ describe('RMQ + Ingestor wiring', { timeout: 30000 }, () => {
     const partialHtml = topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'Trash Co' }]);
     const genPromise = consumeOne(conCh, S1_QUEUE);
 
-    await ingestor.processIngest(JobSource.BROWSER_AUTO, JobStage.PARTIAL_PARSED, partialHtml, undefined, {
-      messageId: 'trash-msg',
-    });
+    await ingestor.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.PARTIAL_PARSED,
+      partialHtml,
+      undefined,
+      {
+        messageId: 'trash-msg',
+      }
+    );
     const genMsg = await genPromise;
     const jobLifecycleId = genMsg._id;
 

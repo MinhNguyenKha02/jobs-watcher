@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { matchesRole, matchesLang, matchesExperience } from '../../../../src/domain/filter/constraints.js' ;
+import {
+  matchesRole,
+  matchesLang,
+  matchesExperience,
+} from '../../../../src/domain/filter/constraints.js';
 
 describe('matchesRole', () => {
   it('matches software engineer', () => {
@@ -40,7 +44,6 @@ describe('matchesRole', () => {
   it('rejects single-char non-software role (BVA boundary)', () => {
     expect(matchesRole('X')).toEqual({ passed: false, reasons: ['non-software role'] });
   });
-
 
   it('matches via description when input is object', () => {
     const result = matchesRole({ responsibilities: 'Build software' }, 'Senior Software Developer');
@@ -96,19 +99,31 @@ describe('matchesExperience', () => {
   });
 
   it('rejects lead roles', () => {
-    expect(matchesExperience('Tech Lead')).toEqual({ passed: false, reasons: ['Not matching experience level'] });
+    expect(matchesExperience('Tech Lead')).toEqual({
+      passed: false,
+      reasons: ['Not matching experience level'],
+    });
   });
 
   it('rejects 3+ years experience', () => {
-    expect(matchesExperience('3+ years experience')).toEqual({ passed: false, reasons: ['Not matching experience level'] });
+    expect(matchesExperience('3+ years experience')).toEqual({
+      passed: false,
+      reasons: ['Not matching experience level'],
+    });
   });
 
   it('rejects seniority range', () => {
-    expect(matchesExperience('3 to 5 years')).toEqual({ passed: false, reasons: ['Not matching experience level'] });
+    expect(matchesExperience('3 to 5 years')).toEqual({
+      passed: false,
+      reasons: ['Not matching experience level'],
+    });
   });
 
   it('rejects Vietnamese experience patterns', () => {
-    expect(matchesExperience('kinh nghiem tu 3 nam')).toEqual({ passed: false, reasons: ['Not matching experience level'] });
+    expect(matchesExperience('kinh nghiem tu 3 nam')).toEqual({
+      passed: false,
+      reasons: ['Not matching experience level'],
+    });
   });
 
   it('passes junior roles', () => {
@@ -120,15 +135,24 @@ describe('matchesExperience', () => {
   });
 
   it('rejects empty input', () => {
-    expect(matchesExperience('')).toEqual({ passed: false, reasons: ['No experience information'] });
+    expect(matchesExperience('')).toEqual({
+      passed: false,
+      reasons: ['No experience information'],
+    });
   });
 
   it('rejects null input (BVA boundary)', () => {
-    expect(matchesExperience(null)).toEqual({ passed: false, reasons: ['No experience information'] });
+    expect(matchesExperience(null)).toEqual({
+      passed: false,
+      reasons: ['No experience information'],
+    });
   });
 
   it('rejects undefined input (BVA boundary)', () => {
-    expect(matchesExperience(undefined)).toEqual({ passed: false, reasons: ['No experience information'] });
+    expect(matchesExperience(undefined)).toEqual({
+      passed: false,
+      reasons: ['No experience information'],
+    });
   });
 
   it('passes 0 years experience (BVA — only 3+ is rejected)', () => {
@@ -144,15 +168,24 @@ describe('matchesExperience', () => {
   });
 
   it('rejects 3 years experience (BVA boundary at rejection threshold)', () => {
-    expect(matchesExperience('3+ years experience')).toEqual({ passed: false, reasons: ['Not matching experience level'] });
+    expect(matchesExperience('3+ years experience')).toEqual({
+      passed: false,
+      reasons: ['Not matching experience level'],
+    });
   });
 
   it('rejects 4 years experience (BVA boundary above threshold)', () => {
-    expect(matchesExperience('4 years of experience')).toEqual({ passed: false, reasons: ['Not matching experience level'] });
+    expect(matchesExperience('4 years of experience')).toEqual({
+      passed: false,
+      reasons: ['Not matching experience level'],
+    });
   });
 
   it('rejects senior software engineer pattern', () => {
-    expect(matchesExperience('Senior Software Engineer')).toEqual({ passed: false, reasons: ['Not matching experience level'] });
+    expect(matchesExperience('Senior Software Engineer')).toEqual({
+      passed: false,
+      reasons: ['Not matching experience level'],
+    });
   });
 
   it.each([
@@ -163,26 +196,31 @@ describe('matchesExperience', () => {
     ['3 to 5 years experience', '3 to 5 years experience'],
     ['4-6 years experience', '4-6 years experience'],
     ['5-7 years experience', '5-7 years experience'],
-  ])('cause: role/copy states %s → effect: matchesExperience rejects with reason', (_label, input) => {
-    const result = matchesExperience(input);
-    expect(result.passed).toBe(false);
-    expect(result.reasons).toEqual(['Not matching experience level']);
-  });
+  ])(
+    'cause: role/copy states %s → effect: matchesExperience rejects with reason',
+    (_label, input) => {
+      const result = matchesExperience(input);
+      expect(result.passed).toBe(false);
+      expect(result.reasons).toEqual(['Not matching experience level']);
+    }
+  );
 
   it.each([
     ['10', '10 years experience'],
     ['10+', '10+ years experience'],
     ['99', '99 years experience'],
     ['7', '7 years experience'],
-  ])('cause: 2-digit experience %s years → effect: matchesExperience rejects with reason', (_label, input) => {
-    const result = matchesExperience(input);
-    expect(result.passed).toBe(false);
-    expect(result.reasons).toEqual(['Not matching experience level']);
-  });
+  ])(
+    'cause: 2-digit experience %s years → effect: matchesExperience rejects with reason',
+    (_label, input) => {
+      const result = matchesExperience(input);
+      expect(result.passed).toBe(false);
+      expect(result.reasons).toEqual(['Not matching experience level']);
+    }
+  );
 
   it('cause: 100 years experience (numeric carve-out, out of scope) → effect: not rejected by numeric patterns', () => {
     const result = matchesExperience('100 years experience');
     expect(result.reasons).toEqual([]);
   });
 });
-

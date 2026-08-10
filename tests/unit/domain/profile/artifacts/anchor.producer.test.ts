@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { AnchorProducer } from '../../../../../src/domain/profile/artifacts/producers/anchor.producer.js' ;
-import type { ProfileSource } from '../../../../../src/domain/profile/source/source.types.js' ;
+import { AnchorProducer } from '../../../../../src/domain/profile/artifacts/producers/anchor.producer.js';
+import type { ProfileSource } from '../../../../../src/domain/profile/source/source.types.js';
 
 describe('AnchorProducer', () => {
   const producer = new AnchorProducer();

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ANSI, MODAL_THEME } from '../../../../src/presentation/tui/components/AnsiStyles.js' ;
+import { ANSI, MODAL_THEME } from '../../../../src/presentation/tui/components/AnsiStyles.js';
 
 describe('ANSI constants', () => {
   it('has foreground colors', () => {

@@ -47,9 +47,7 @@ describe('Gmail message parsing (pure)', () => {
         parts: [
           {
             mimeType: 'multipart/alternative',
-            parts: [
-              { mimeType: 'text/plain', body: { data: nested } },
-            ],
+            parts: [{ mimeType: 'text/plain', body: { data: nested } }],
           },
         ],
       },

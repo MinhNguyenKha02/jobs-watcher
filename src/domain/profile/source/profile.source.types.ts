@@ -1,6 +1,6 @@
 // profile.source.types.ts
 export enum backendCapability {
-  api_development = 'api-development',  
+  api_development = 'api-development',
   api_design = 'api-design',
   service_integration = 'service-integration',
   background_job_processing = 'background-job-processing',
@@ -10,23 +10,23 @@ export enum backendCapability {
   workflow_orchestration = 'workflow-orchestration',
   // caching = 'caching',
 }
-  
+
 export enum architectureCapability {
   // clean_architecture = 'clean-architecture',
   // hexagonal_architecture = 'hexagonal-architecture',
   // event_driven_architecture = 'event-driven-architecture',
   // microservices_architecture = 'microservices architecture',
   // modular_monolith = 'modular-monolith',
-  
-  service_decomposition= 'service-decomposition',
-  dependency_inversion= 'dependency-inversion',
-  domain_modeling= 'domain-modeling',
-  interface_abstraction= 'interface-abstraction',
-  data_flow_design= 'data-flow-design',
-  boundary_definition= 'boundary-definition',
-  module_design= 'module-design',
+
+  service_decomposition = 'service-decomposition',
+  dependency_inversion = 'dependency-inversion',
+  domain_modeling = 'domain-modeling',
+  interface_abstraction = 'interface-abstraction',
+  data_flow_design = 'data-flow-design',
+  boundary_definition = 'boundary-definition',
+  module_design = 'module-design',
   integration_design = 'integration-design',
-  architectural_documentation= 'architectural-documentation',
+  architectural_documentation = 'architectural-documentation',
 }
 
 export enum testingCapability {
@@ -51,7 +51,7 @@ export enum databaseCapability {
 export enum observabilityCapability {
   structured_logging = 'structured-logging',
   monitoring = 'monitoring',
-  distributed_tracing= 'distributed-tracing',
+  distributed_tracing = 'distributed-tracing',
 }
 
 export enum infrastructureCapability {
@@ -60,12 +60,12 @@ export enum infrastructureCapability {
   development_workflow_automation = 'development-workflow-automation',
   cloud_deployment = 'cloud-deployment',
   ci_cd_automation = 'ci_cd_automation',
-  configuration_management='configuration_management',
-  environment_management='environment_management',
+  configuration_management = 'configuration_management',
+  environment_management = 'environment_management',
 }
 
 export enum communicationCapability {
-  request_response_communication= 'request_response_communication',
+  request_response_communication = 'request_response_communication',
   streaming_communication = 'streaming_communication',
   event_based_communication = 'event_based_communication',
 }
@@ -82,7 +82,7 @@ export enum engineeringCompetency {
   maintainable_system_design = 'maintainable-system-design',
   testing_discipline = 'testing-discipline',
   production_operations = 'production-operations',
-  service_operations= 'service-operations',
+  service_operations = 'service-operations',
   service_reliability = 'service-reliability',
 }
 
@@ -109,18 +109,18 @@ export enum engineeringBehavior {
   structured_debugging = 'structured-debugging',
   iterative_refinement = 'iterative-refinement',
   engineering_discipline = 'engineering-discipline',
-} 
+}
 // enums for technologies
 export enum protocolTech {
   websocket = 'websocket',
   restful_api = 'restful-api',
-  graphql='graphql',
-  pubsub='pubsub',
-  webhooks='webhooks',
+  graphql = 'graphql',
+  pubsub = 'pubsub',
+  webhooks = 'webhooks',
   unix_domain_socket = 'unix-domain-socket',
   grpc = 'grpc',
-  rpc='rpc',
-  abi_interface='abi interface',
+  rpc = 'rpc',
+  abi_interface = 'abi interface',
   rabbitmq = 'rabbitmq',
 }
 
@@ -160,7 +160,7 @@ export enum infrastructureTech {
   github_actions = 'github-actions',
   git = 'git',
 }
-  
+
 export enum databaseTech {
   postgresql = 'postgresql',
   mongodb = 'mongodb',

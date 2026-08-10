@@ -34,8 +34,8 @@ export async function buildArtifacts(): Promise<void> {
     evidences,
   });
 
-  const enSurfaces = surfaces.filter(s => s.language === 'en');
-  const viSurfaces = surfaces.filter(s => s.language === 'vi');
+  const enSurfaces = surfaces.filter((s) => s.language === 'en');
+  const viSurfaces = surfaces.filter((s) => s.language === 'vi');
 
   await Promise.all([
     writeArtifactFile('anchors.json', serializeMap(anchors)),
@@ -62,11 +62,11 @@ export async function buildArtifacts(): Promise<void> {
 
 // Run directly when invoked as CLI script
 const __filename = new URL(import.meta.url).pathname;
-const isMainModule = process.argv[1] && (
-  process.argv[1] === __filename ||
-  process.argv[1].endsWith('/artifact.builder.ts') ||
-  process.argv[1].endsWith('/artifact.builder.js')
-);
+const isMainModule =
+  process.argv[1] &&
+  (process.argv[1] === __filename ||
+    process.argv[1].endsWith('/artifact.builder.ts') ||
+    process.argv[1].endsWith('/artifact.builder.js'));
 if (isMainModule) {
   buildArtifacts().catch((error) => {
     createLogger('ArtifactBuilder').error('Build failed', { error: String(error) });

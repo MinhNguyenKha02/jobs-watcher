@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { SkillKeyNormalizer } from '../../../../src/domain/profile/resume/normalization/skill-key-normalizer.js' ;
+import { SkillKeyNormalizer } from '../../../../src/domain/profile/resume/normalization/skill-key-normalizer.js';
 
 describe('SkillKeyNormalizer', () => {
   describe('Norm-001: kebab-case to title case', () => {
     it('should replace hyphens with spaces and capitalize each word', () => {
-      expect(SkillKeyNormalizer.normalizeSkillName('event-driven-processing')).toBe('Event Driven Processing');
+      expect(SkillKeyNormalizer.normalizeSkillName('event-driven-processing')).toBe(
+        'Event Driven Processing'
+      );
     });
   });
 

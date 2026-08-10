@@ -1,14 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { classifyResolutionStrength, isSignalViable, getResolutionStrengthDescription } from '../../../../src/domain/profile/retrieval/resolution/resolution-strength.js' ;
-import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js' ;
+import {
+  classifyResolutionStrength,
+  isSignalViable,
+  getResolutionStrengthDescription,
+} from '../../../../src/domain/profile/retrieval/resolution/resolution-strength.js';
+import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js';
 
 const defaultPolicy = {
   resolution: {
     strongThreshold: 0.7,
     partialThreshold: 0.4,
     weakThreshold: 0.2,
-    missingThreshold: 0
-  }
+    missingThreshold: 0,
+  },
 };
 
 function makeSignal(overrides: Partial<MatchSignal> = {}): MatchSignal {
@@ -23,7 +27,7 @@ function makeSignal(overrides: Partial<MatchSignal> = {}): MatchSignal {
     occurrencesDetail: [],
     sources: new Set(['canonical']),
     trace: [],
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -82,10 +86,18 @@ describe('ResolutionStrength', () => {
 
   describe('Res-007: getResolutionStrengthDescription', () => {
     it('should return human-readable descriptions', () => {
-      expect(getResolutionStrengthDescription('strong')).toBe('Direct evidence with high confidence score');
-      expect(getResolutionStrengthDescription('partial')).toBe('Good lexical match with limited direct evidence');
-      expect(getResolutionStrengthDescription('weak')).toBe('Propagation-derived or vendor-only match');
-      expect(getResolutionStrengthDescription('missing')).toBe('Required signal not found in retrieval');
+      expect(getResolutionStrengthDescription('strong')).toBe(
+        'Direct evidence with high confidence score'
+      );
+      expect(getResolutionStrengthDescription('partial')).toBe(
+        'Good lexical match with limited direct evidence'
+      );
+      expect(getResolutionStrengthDescription('weak')).toBe(
+        'Propagation-derived or vendor-only match'
+      );
+      expect(getResolutionStrengthDescription('missing')).toBe(
+        'Required signal not found in retrieval'
+      );
     });
   });
 });

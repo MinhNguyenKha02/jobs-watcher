@@ -66,7 +66,7 @@ export interface AppContainer {
 
 export function buildSystemContainer(
   cfg: SystemContainerConfig,
-  overrides: SystemContainerOverrides = {},
+  overrides: SystemContainerOverrides = {}
 ): AppContainer {
   const mongodb = { ...cfg.mongodb, ...overrides.mongodb };
   const rabbitmq = { ...cfg.rabbitmq, ...overrides.rabbitmq };
@@ -75,10 +75,7 @@ export function buildSystemContainer(
   const asset = { ...cfg.asset, ...overrides.asset };
 
   const mongoConnector = new MongoConnector(mongodb.uri);
-  const mongoInitializer = new MongoInitializer(
-    mongoConnector.clientInstance,
-    mongodb.dbName,
-  );
+  const mongoInitializer = new MongoInitializer(mongoConnector.clientInstance, mongodb.dbName);
 
   const metricsRegistry = new MetricsRegistry();
   const systemMonitor = new SystemMonitor();
@@ -94,7 +91,7 @@ export function buildSystemContainer(
   const mongoJobLifecycleAdapter = new MongoJobLifecycleAdapter(mongoInitializer.dbInstance);
   const extractionQueueAdapter = new MongoExtractionQueueAdapter(
     metricsRegistry,
-    mongoInitializer.dbInstance,
+    mongoInitializer.dbInstance
   );
 
   const ingestor = new JobIngestor(
@@ -103,7 +100,7 @@ export function buildSystemContainer(
     routeAdapter,
     extractionQueueAdapter,
     assetProducingAdapter,
-    metricsRegistry,
+    metricsRegistry
   );
 
   const browserAdapter = new PlaywrightBrowserAdapter(overrides.browser);
@@ -113,7 +110,7 @@ export function buildSystemContainer(
     browserAdapter,
     mongoJobLifecycleAdapter,
     ingestor,
-    metricsRegistry,
+    metricsRegistry
   );
 
   const udsAdapter = new UdsAdapter(ingestor, {
@@ -141,10 +138,26 @@ export function buildSystemContainer(
 
   async function stop(): Promise<void> {
     if (!started) return;
-    try { await udsAdapter.stop(); } catch (e) { /* best-effort */ }
-    try { await extractionScheduler.stop(); } catch (e) { /* best-effort */ }
-    try { await rmq.disconnect(); } catch (e) { /* best-effort */ }
-    try { await mongoConnector.disconnect(); } catch (e) { /* best-effort */ }
+    try {
+      await udsAdapter.stop();
+    } catch (e) {
+      /* best-effort */
+    }
+    try {
+      await extractionScheduler.stop();
+    } catch (e) {
+      /* best-effort */
+    }
+    try {
+      await rmq.disconnect();
+    } catch (e) {
+      /* best-effort */
+    }
+    try {
+      await mongoConnector.disconnect();
+    } catch (e) {
+      /* best-effort */
+    }
     started = false;
     logger.info('System container stopped');
   }

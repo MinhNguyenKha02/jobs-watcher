@@ -7,20 +7,32 @@ import { postJsonOverUds } from '../../src/infrastructure/utils/uds-http.js';
 export const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 
 /** Fresh exclusive queue bound to the desired routing keys at consume-time. */
-export async function setupConsumer(ch: Channel, exchange: string, routingKeys: string[]): Promise<{ consume: Promise<any> }> {
+export async function setupConsumer(
+  ch: Channel,
+  exchange: string,
+  routingKeys: string[]
+): Promise<{ consume: Promise<any> }> {
   const { queue } = await ch.assertQueue('', { exclusive: true });
   for (const key of routingKeys) {
     await ch.bindQueue(queue, exchange, key);
   }
   const consume = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Timeout waiting for message on ${exchange}:${routingKeys.join('|')}`)), 10000);
-    ch.consume(queue, (msg) => {
-      if (msg) {
-        clearTimeout(timeout);
-        ch.ack(msg);
-        resolve(JSON.parse(msg.content.toString()));
-      }
-    }, { noAck: false });
+    const timeout = setTimeout(
+      () =>
+        reject(new Error(`Timeout waiting for message on ${exchange}:${routingKeys.join('|')}`)),
+      10000
+    );
+    ch.consume(
+      queue,
+      (msg) => {
+        if (msg) {
+          clearTimeout(timeout);
+          ch.ack(msg);
+          resolve(JSON.parse(msg.content.toString()));
+        }
+      },
+      { noAck: false }
+    );
   });
   return { consume };
 }
@@ -55,26 +67,40 @@ export function udsHelpers(socketPath: string, token: string) {
   return {
     ingest: (html: string, jobLifecycleId?: string) =>
       postJsonOverUds(
-        { socketPath, path: `/internal/ingest${jobLifecycleId ? '?webhook=true' : ''}`, headers: { 'x-internal-token': token } },
-        { html, jobLifecycleId },
+        {
+          socketPath,
+          path: `/internal/ingest${jobLifecycleId ? '?webhook=true' : ''}`,
+          headers: { 'x-internal-token': token },
+        },
+        { html, jobLifecycleId }
       ),
     action: (jobLifecycleId: string, action: string) =>
       postJsonOverUds(
         { socketPath, path: '/internal/action', headers: { 'x-internal-token': token } },
-        { jobLifecycleId, action },
+        { jobLifecycleId, action }
       ),
   };
 }
 
-export function postJson(port: number, pathName: string, body: unknown): Promise<{ status: number }> {
+export function postJson(
+  port: number,
+  pathName: string,
+  body: unknown
+): Promise<{ status: number }> {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body);
     const req = http.request(
-      { host: '127.0.0.1', port, path: pathName, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } },
+      {
+        host: '127.0.0.1',
+        port,
+        path: pathName,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) },
+      },
       (res) => {
         res.resume();
         res.on('end', () => resolve({ status: res.statusCode ?? 0 }));
-      },
+      }
     );
     req.on('error', reject);
     req.write(data);

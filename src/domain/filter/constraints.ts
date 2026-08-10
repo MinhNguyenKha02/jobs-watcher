@@ -12,7 +12,8 @@ export interface JobFilterResult {
 }
 
 function removeDiacritics(s: string): string {
-  return s.normalize('NFD')
+  return s
+    .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/đ/g, 'd')
     .replace(/Đ/g, 'D');
@@ -57,31 +58,29 @@ const LANG_PATTERNS: RegExp[] = [
   /\bjavascript\b/,
   /\btypescript\b/,
   /\bnode(?:\.js|js)?\b/,
-  
+
   // Python
   /\bpython(?:3)?\b/,
 
   // Go
   /\b(?:go|golang)\b/,
-
 ];
 
 // --- Tier 1: Role patterns (EN + VI) ---
 const ROLE_PATTERNS: RegExp[] = [
-// Software
+  // Software
   /\bsoftware(?:\s+application)?\s+(?:engineer|developer)\b/,
   /\b(?:ky su|lap trinh vien)\s+phan mem\b/,
 
-    // Backend
+  // Backend
   /\bbackend(?:\s+software)?\s+(?:engineer|developer)\b/,
   /\b(?:ky su|lap trinh vien)\s+backend\b/,
-
 
   // Full Stack
   /\bfull[- ]?stack(?:\s+software)?\s+(?:engineer|developer)\b/,
   /\b(?:ky su|lap trinh vien)\s+full[- ]?stack\b/,
 
-    // Web
+  // Web
   /\bweb\s+developer\b/,
   /\blap trinh vien\s+web\b/,
 
@@ -96,7 +95,6 @@ const ROLE_PATTERNS: RegExp[] = [
   // ERP
   /\berp\s+(?:engineer|developer)\b/,
   /\blap trinh vien\s+erp\b/,
-
 ];
 
 export function matchesRole(
@@ -104,7 +102,7 @@ export function matchesRole(
   description?: string
 ): JobFilterResult {
   if (!input) return { passed: false, reasons: ['No role information'] };
-  const text = normalizeText(input, description)
+  const text = normalizeText(input, description);
 
   for (const pattern of ROLE_PATTERNS) {
     if (pattern.test(text)) return { passed: true, reasons: [] };
@@ -112,11 +110,13 @@ export function matchesRole(
   return { passed: false, reasons: ['non-software role'] };
 }
 
-export function matchesLang(input: string | DetailsObject | undefined | null, description?: string): JobFilterResult {
-  
+export function matchesLang(
+  input: string | DetailsObject | undefined | null,
+  description?: string
+): JobFilterResult {
   if (!input) return { passed: false, reasons: ['No language information'] };
   const text = normalizeText(input, description);
-  
+
   for (const pattern of LANG_PATTERNS) {
     if (pattern.test(text)) return { passed: true, reasons: [] };
   }
@@ -169,11 +169,15 @@ const EXPERIENCE_REJECT_PATTERNS = [
   /\btruong nhom\b/,
 ];
 
-export function matchesExperience(input: string | DetailsObject | undefined | null, description?: string): JobFilterResult {
-  if (!input) return { passed: false, reasons: ['No experience information']};
+export function matchesExperience(
+  input: string | DetailsObject | undefined | null,
+  description?: string
+): JobFilterResult {
+  if (!input) return { passed: false, reasons: ['No experience information'] };
   const text = normalizeText(input, description);
   for (const rejectPattern of EXPERIENCE_REJECT_PATTERNS) {
-    if (rejectPattern.test(text)) return { passed: false, reasons: ['Not matching experience level'] };
+    if (rejectPattern.test(text))
+      return { passed: false, reasons: ['Not matching experience level'] };
   }
   return { passed: true, reasons: [] };
 }

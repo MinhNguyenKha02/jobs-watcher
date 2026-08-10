@@ -1,7 +1,4 @@
-import {
-  AnchorId,
-  LexicalSurface,
-} from '../../types/retrieval.types.js';
+import { AnchorId, LexicalSurface } from '../../types/retrieval.types.js';
 
 import {
   englishTemplates,
@@ -9,55 +6,18 @@ import {
   vendorTemplates,
 } from '../../source/templates.source.js';
 
-import {
-  RelationNode,
-  RelationsSource,
-} from '../../source/source.types.js';
+import { RelationNode, RelationsSource } from '../../source/source.types.js';
 
 const TEMPLATE_KINDS = ['responsibility', 'requirement', 'preference'] as const;
 
 export class LexicalSurfaceProducer {
+  produce(relations: RelationsSource) {
+    const generated: LexicalSurface[] = [];
 
-  produce(
-    relations: RelationsSource,
-  ) {
-
-    const generated:
-      LexicalSurface[] =
-        [];
-
-    for (
-      const [
-        kind,
-        categories,
-      ]
-      of Object.entries(
-        relations,
-      )
-    ) {
-
-      for (
-        const [
-          category,
-          entries,
-        ]
-        of Object.entries(
-          categories as object,
-        )
-      ) {
-
-        for (
-          const [
-            anchor,
-            config,
-          ]
-          of Object.entries(
-            entries as object,
-          )
-        ) {
-
-          const anchorId =
-            `${kind}.${category}.${anchor}` as AnchorId;
+    for (const [kind, categories] of Object.entries(relations)) {
+      for (const [category, entries] of Object.entries(categories as object)) {
+        for (const [anchor, config] of Object.entries(entries as object)) {
+          const anchorId = `${kind}.${category}.${anchor}` as AnchorId;
 
           generated.push(
             ...this.canonicalSurfaces({
@@ -80,70 +40,43 @@ export class LexicalSurfaceProducer {
             ...this.vendorSurfaces({
               anchorId,
               config: config as RelationNode,
-            }),
+            })
           );
         }
       }
     }
 
-    return this.dedupe(
-      generated,
-    );
+    return this.dedupe(generated);
   }
 
-  private canonicalSurfaces({
-    anchorId,
-    config,
-  }: {
-    anchorId: AnchorId;
-    config: RelationNode;
-  }) {
+  private canonicalSurfaces({ anchorId, config }: { anchorId: AnchorId; config: RelationNode }) {
+    const generated: LexicalSurface[] = [];
 
-    const generated:
-      LexicalSurface[] =
-        [];
-
-    for (
-      const surface
-      of config.recruiter_surfaces.en
-    ) {
-
+    for (const surface of config.recruiter_surfaces.en) {
       generated.push({
-        pattern:
-          surface,
+        pattern: surface,
 
         anchorId,
 
-        source:
-          'canonical',
+        source: 'canonical',
 
-        language:
-          'en',
+        language: 'en',
 
-        weight:
-          1,
+        weight: 1,
       });
     }
 
-    for (
-      const surface
-      of config.recruiter_surfaces.vi
-    ) {
-
+    for (const surface of config.recruiter_surfaces.vi) {
       generated.push({
-        pattern:
-          surface,
+        pattern: surface,
 
         anchorId,
 
-        source:
-          'canonical',
+        source: 'canonical',
 
-        language:
-          'vi',
+        language: 'vi',
 
-        weight:
-          1,
+        weight: 1,
       });
     }
 
@@ -159,52 +92,26 @@ export class LexicalSurfaceProducer {
     config: RelationNode;
     language: 'en' | 'vi';
   }) {
-
     const surfaces =
-      language === 'en'
-        ? config.recruiter_surfaces.en
-        : config.recruiter_surfaces.vi;
+      language === 'en' ? config.recruiter_surfaces.en : config.recruiter_surfaces.vi;
 
-    const templateMap =
-      language === 'en'
-        ? englishTemplates
-        : vietnameseTemplates;
+    const templateMap = language === 'en' ? englishTemplates : vietnameseTemplates;
 
-    const generated:
-      LexicalSurface[] =
-        [];
+    const generated: LexicalSurface[] = [];
 
-    for (
-      const templates
-      of Object.values(templateMap)
-    ) {
-
-      for (
-        const surface
-        of surfaces
-      ) {
-
-        for (
-          const template
-          of templates
-        ) {
-
+    for (const templates of Object.values(templateMap)) {
+      for (const surface of surfaces) {
+        for (const template of templates) {
           generated.push({
-            pattern:
-              template.replace(
-                '{surface}',
-                surface,
-              ),
+            pattern: template.replace('{surface}', surface),
 
             anchorId,
 
-            source:
-              'template',
+            source: 'template',
 
             language,
 
-            weight:
-              0.8,
+            weight: 0.8,
           });
         }
       }
@@ -213,23 +120,10 @@ export class LexicalSurfaceProducer {
     return generated;
   }
 
-  private vendorSurfaces({
-    anchorId,
-    config,
-  }: {
-    anchorId: AnchorId;
-    config: RelationNode;
-  }) {
+  private vendorSurfaces({ anchorId, config }: { anchorId: AnchorId; config: RelationNode }) {
+    const generated: LexicalSurface[] = [];
 
-    const generated:
-      LexicalSurface[] =
-        [];
-
-    for (
-      const vendor
-      of config.retrieval_associations
-    ) {
-
+    for (const vendor of config.retrieval_associations) {
       generated.push(
         {
           pattern: vendor,
@@ -244,24 +138,13 @@ export class LexicalSurfaceProducer {
           source: 'vendor',
           language: 'vi',
           weight: 0.35,
-        },
+        }
       );
 
-      for (
-        const kind of TEMPLATE_KINDS
-      ) {
-
-        for (
-          const template
-          of vendorTemplates.en[kind]
-        ) {
-
+      for (const kind of TEMPLATE_KINDS) {
+        for (const template of vendorTemplates.en[kind]) {
           generated.push({
-            pattern:
-              template.replace(
-                '{retrieval_association}',
-                vendor,
-              ),
+            pattern: template.replace('{retrieval_association}', vendor),
             anchorId,
             source: 'vendor',
             language: 'en',
@@ -270,21 +153,10 @@ export class LexicalSurfaceProducer {
         }
       }
 
-      for (
-        const kind of TEMPLATE_KINDS
-      ) {
-
-        for (
-          const template
-          of vendorTemplates.vi[kind]
-        ) {
-
+      for (const kind of TEMPLATE_KINDS) {
+        for (const template of vendorTemplates.vi[kind]) {
           generated.push({
-            pattern:
-              template.replace(
-                '{retrieval_association}',
-                vendor,
-              ),
+            pattern: template.replace('{retrieval_association}', vendor),
             anchorId,
             source: 'vendor',
             language: 'vi',
@@ -297,43 +169,22 @@ export class LexicalSurfaceProducer {
     return generated;
   }
 
-  private dedupe(
-    items:
-      LexicalSurface[],
-  ) {
+  private dedupe(items: LexicalSurface[]) {
+    const map = new Map<string, LexicalSurface>();
 
-    const map =
-      new Map<
-        string,
-        LexicalSurface
-      >();
-
-    for (
-      const item
-      of items
-    ) {
-
-      const key =
-        [
-          item.anchorId,
-          item.pattern
-            .trim()
-            .toLowerCase(),
-          item.language,
-          item.source,
-        ].join('::');
+    for (const item of items) {
+      const key = [
+        item.anchorId,
+        item.pattern.trim().toLowerCase(),
+        item.language,
+        item.source,
+      ].join('::');
 
       if (!map.has(key)) {
-
-        map.set(
-          key,
-          item,
-        );
+        map.set(key, item);
       }
     }
 
-    return [
-      ...map.values(),
-    ];
+    return [...map.values()];
   }
 }

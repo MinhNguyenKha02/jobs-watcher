@@ -9,7 +9,7 @@ import {
   indeedPlatformPageHtml2,
   linkedinPlatformPageHtml1,
   linkedinPlatformPageHtml2,
-linkedinSduiHtml1,
+  linkedinSduiHtml1,
   linkedinSduiHtml2,
   linkedinSduiHtml3,
 } from '../../../__fixtures__/emails.js';
@@ -384,8 +384,14 @@ describe('HtmlJobParser', () => {
 
   describe('Property-based (fast-check)', () => {
     const normalizeWs = (s: string) => s.trim().replace(/[\s\n]+/g, ' ');
-    const nonEmptyString = fc.string({ minLength: 1, maxLength: 100 }).map(normalizeWs).filter(s => s.length > 0 && !s.includes('<') && !s.includes('&') && !s.includes('>'));
-    const nonEmptyString80 = fc.string({ minLength: 1, maxLength: 80 }).map(normalizeWs).filter(s => s.length > 0 && !s.includes('<') && !s.includes('&') && !s.includes('>'));
+    const nonEmptyString = fc
+      .string({ minLength: 1, maxLength: 100 })
+      .map(normalizeWs)
+      .filter((s) => s.length > 0 && !s.includes('<') && !s.includes('&') && !s.includes('>'));
+    const nonEmptyString80 = fc
+      .string({ minLength: 1, maxLength: 80 })
+      .map(normalizeWs)
+      .filter((s) => s.length > 0 && !s.includes('<') && !s.includes('&') && !s.includes('>'));
 
     it('extracts role from TopCV format for any non-empty title', () => {
       fc.assert(
@@ -400,7 +406,7 @@ describe('HtmlJobParser', () => {
           expect(result).not.toBeNull();
           expect(result?.role).toBe(role);
         }),
-        { numRuns: 50 },
+        { numRuns: 50 }
       );
     });
 
@@ -417,30 +423,26 @@ describe('HtmlJobParser', () => {
           expect(result).not.toBeNull();
           expect(result?.company).toBe(company);
         }),
-        { numRuns: 50 },
+        { numRuns: 50 }
       );
     });
 
     it('extracts salary from TopCV format when present', () => {
       fc.assert(
-        fc.property(
-          nonEmptyString,
-          nonEmptyString80,
-          (role, salary) => {
-            const html = `
+        fc.property(nonEmptyString, nonEmptyString80, (role, salary) => {
+          const html = `
               <html>
                 <h1 class="job-detail__info--title">${role}</h1>
                 <div class="company-name-label"><a class="name">Corp</a></div>
                 <div class="section-salary"><div class="job-detail__info--section-content-value">${salary}</div></div>
               </html>
             `;
-            const result = parser.parseJobFromHtml(html);
-            expect(result).not.toBeNull();
-            expect(result?.role).toBe(role);
-            expect(result?.salary).toBe(salary);
-          },
-        ),
-        { numRuns: 50 },
+          const result = parser.parseJobFromHtml(html);
+          expect(result).not.toBeNull();
+          expect(result?.role).toBe(role);
+          expect(result?.salary).toBe(salary);
+        }),
+        { numRuns: 50 }
       );
     });
   });

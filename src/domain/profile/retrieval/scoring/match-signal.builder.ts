@@ -32,19 +32,12 @@ export class MatchSignalBuilder {
       trace: [],
     };
   }
-  finalize(
-  signal: MatchSignal,
-) {
-  signal.confidence =
-    Math.min(
+  finalize(signal: MatchSignal) {
+    signal.confidence = Math.min(
       1,
-      (
-        signal.score * 0.6 +
-        signal.occurrences * 0.15 +
-        signal.sources.size * 0.25
-      ) / 5,
+      (signal.score * 0.6 + signal.occurrences * 0.15 + signal.sources.size * 0.25) / 5
     );
-}
+  }
   appendLexicalHit({
     signal,
     pattern,

@@ -17,7 +17,9 @@ interface PublishResult {
 
 function runWorker(role: string, company: string): Promise<PublishResult> {
   return new Promise((resolve) => {
-    const sharedModulePath = fileURLToPath(new URL('../../../../src/presentation/tui/shared-tui-state.ts', import.meta.url));
+    const sharedModulePath = fileURLToPath(
+      new URL('../../../../src/presentation/tui/shared-tui-state.ts', import.meta.url)
+    );
     const script = `
       import { setCurrentJob } from ${JSON.stringify(sharedModulePath)};
       for (let i = 0; i < 20; i++) {
@@ -41,7 +43,16 @@ function runWorker(role: string, company: string): Promise<PublishResult> {
 
 describe('PRC-005 — TUI shared state cross-process integrity', () => {
   beforeAll(() => {
-    fs.writeFileSync(statePath, JSON.stringify({ version: 2, queueMode: true, updatedAt: null, queue: { jobLifecycleId: null, job: null, stage: null, editedFields: null, modal: null }, direct: { jobLifecycleId: null, job: null, stage: null, editedFields: null, modal: null } }));
+    fs.writeFileSync(
+      statePath,
+      JSON.stringify({
+        version: 2,
+        queueMode: true,
+        updatedAt: null,
+        queue: { jobLifecycleId: null, job: null, stage: null, editedFields: null, modal: null },
+        direct: { jobLifecycleId: null, job: null, stage: null, editedFields: null, modal: null },
+      })
+    );
   });
 
   afterAll(() => {

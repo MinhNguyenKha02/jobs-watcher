@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MatchSignalBuilder } from '../../../../src/domain/profile/retrieval/scoring/match-signal.builder.js' ;
-import { MatchSource } from '../../../../src/domain/profile/types/retrieval.types.js' ;
+import { MatchSignalBuilder } from '../../../../src/domain/profile/retrieval/scoring/match-signal.builder.js';
+import { MatchSource } from '../../../../src/domain/profile/types/retrieval.types.js';
 
 describe('MatchSignalBuilder', () => {
   let builder: MatchSignalBuilder;
@@ -13,13 +13,13 @@ describe('MatchSignalBuilder', () => {
           canonical: 1.0,
           adjacent: 0.8,
           vendor: 0.6,
-          template: 0.4
+          template: 0.4,
         },
         stageWeights: {
-          lexical: 1.0
+          lexical: 1.0,
         },
-        occurrenceSaturation: 10
-      }
+        occurrenceSaturation: 10,
+      },
     };
 
     builder = new MatchSignalBuilder(policy);
@@ -71,12 +71,12 @@ describe('MatchSignalBuilder', () => {
       // Assert: The increments should diminish due to saturation
       const increments: number[] = [];
       for (let i = 1; i < scoresAfterEachHit.length; i++) {
-        increments.push(scoresAfterEachHit[i] - scoresAfterEachHit[i-1]);
+        increments.push(scoresAfterEachHit[i] - scoresAfterEachHit[i - 1]);
       }
 
       // Each increment should be less than or equal to the previous one (diminishing returns)
       for (let i = 1; i < increments.length; i++) {
-        expect(increments[i]).toBeLessThanOrEqual(increments[i-1]);
+        expect(increments[i]).toBeLessThanOrEqual(increments[i - 1]);
       }
 
       // The first increment should be the highest
@@ -109,7 +109,7 @@ describe('MatchSignalBuilder', () => {
         from: fromAnchorId,
         to: signal.anchorId,
         scoreDelta: weight,
-        reason: `Propagated from ${fromAnchorId}`
+        reason: `Propagated from ${fromAnchorId}`,
       });
     });
   });
@@ -126,7 +126,7 @@ describe('MatchSignalBuilder', () => {
         source: 'canonical',
         weight: 2.0,
         start: 0,
-        end: 4
+        end: 4,
       });
       builder.appendLexicalHit({
         signal,
@@ -134,12 +134,12 @@ describe('MatchSignalBuilder', () => {
         source: 'adjacent',
         weight: 1.5,
         start: 5,
-        end: 9
+        end: 9,
       });
       builder.appendPropagation({
         signal,
         from: 'comp.test',
-        weight: 1.0
+        weight: 1.0,
       });
 
       // Act: Finalize the signal

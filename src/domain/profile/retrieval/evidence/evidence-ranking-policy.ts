@@ -18,5 +18,5 @@ export const evidenceRankingPolicy: EvidenceRankingPolicy = {
   operationalWeight: 0.3,
   architectureWeight: 0.3,
   ownershipWeight: 0.2,
-  quantifiedWeight: 0.2
+  quantifiedWeight: 0.2,
 };

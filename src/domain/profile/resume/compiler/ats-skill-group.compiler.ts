@@ -28,7 +28,7 @@ export class AtsSkillGroupCompiler {
   ): AtsSkillSection {
     const result: AtsSkillSection = {
       primary: [],
-      secondary: []
+      secondary: [],
     };
 
     // Use ordered arrays per group: matched first, then unmatched
@@ -44,10 +44,12 @@ export class AtsSkillGroupCompiler {
         const canonicalSkillName = this.clusterResolver.resolve({
           kind: anchorNode.kind,
           category: anchorNode.category,
-          key: normalizedSkillName
+          key: normalizedSkillName,
         } as AnchorNode);
 
-        const sectionKind = AtsSkillGroupMapper.getSectionKind(anchorNode.kind as 'cap' | 'comp' | 'beh' | 'tech');
+        const sectionKind = AtsSkillGroupMapper.getSectionKind(
+          anchorNode.kind as 'cap' | 'comp' | 'beh' | 'tech'
+        );
 
         if (anchorNode.kind === 'beh') {
           continue;
@@ -78,7 +80,7 @@ export class AtsSkillGroupCompiler {
     result.primary = Array.from(primaryGroups.entries())
       .map(([label, { matched, unmatched }]) => ({
         label,
-        skills: [...matched, ...unmatched]
+        skills: [...matched, ...unmatched],
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
 

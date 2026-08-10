@@ -1,14 +1,17 @@
 import fs from 'node:fs';
-import { flattenJob } from '../../../../src/domain/services/flatten-job.js' ;
-import { bootstrapRetrieval } from '../../../../src/domain/profile/retrieval/retrieval-engine.js' ;
-import { ResumeResolver } from '../../../../src/domain/profile/resume/resolve/resume-resolver.js' ;
-import { ArtifactRegistry } from '../../../../src/domain/profile/artifacts/loaders/artifact-cache.js' ;
-import { buildArtifacts } from '../../../../src/domain/profile/artifacts/builders/artifact.builder.js' ;
-import { ARTIFACT_OUTPUT_DIR } from '../../../../src/domain/profile/artifacts/constants/artifact.constants.js' ;
-import type { ProfileRetrievalEngine } from '../../../../src/domain/profile/retrieval/profile-retrieval-engine.js' ;
-import type { HydratedArtifactBundle } from '../../../../src/domain/profile/artifacts/types/artifact.types.js' ;
-import type { RetrievalOutput } from '../../../../src/domain/profile/retrieval/contracts/retrieval.types.js' ;
-import { captureDebug, type DebugSnapshot } from '../../../../src/domain/profile/retrieval/retrieval-debugger.js' ;
+import { flattenJob } from '../../../../src/domain/services/flatten-job.js';
+import { bootstrapRetrieval } from '../../../../src/domain/profile/retrieval/retrieval-engine.js';
+import { ResumeResolver } from '../../../../src/domain/profile/resume/resolve/resume-resolver.js';
+import { ArtifactRegistry } from '../../../../src/domain/profile/artifacts/loaders/artifact-cache.js';
+import { buildArtifacts } from '../../../../src/domain/profile/artifacts/builders/artifact.builder.js';
+import { ARTIFACT_OUTPUT_DIR } from '../../../../src/domain/profile/artifacts/constants/artifact.constants.js';
+import type { ProfileRetrievalEngine } from '../../../../src/domain/profile/retrieval/profile-retrieval-engine.js';
+import type { HydratedArtifactBundle } from '../../../../src/domain/profile/artifacts/types/artifact.types.js';
+import type { RetrievalOutput } from '../../../../src/domain/profile/retrieval/contracts/retrieval.types.js';
+import {
+  captureDebug,
+  type DebugSnapshot,
+} from '../../../../src/domain/profile/retrieval/retrieval-debugger.js';
 import type { ResolveOutput } from '../../../../src/domain/profile/types/resolve.types.js';
 
 export interface CorpusEntry {
@@ -42,7 +45,7 @@ export async function createPipeline(): Promise<PipelineComponents> {
 
 export function runSingle(
   { engine, artifacts, resolver }: PipelineComponents,
-  entry: CorpusEntry,
+  entry: CorpusEntry
 ): ResolveOutput {
   const jobText = flattenJob(entry);
   const retrieval = engine.retrieve(jobText);
@@ -52,7 +55,7 @@ export function runSingle(
 
 export function runWithDebug(
   { engine, artifacts, resolver }: PipelineComponents,
-  entry: CorpusEntry,
+  entry: CorpusEntry
 ): { result: ResolveOutput; retrieval: RetrievalOutput; debug: DebugSnapshot } {
   const jobText = flattenJob(entry);
   const retrieval = engine.retrieve(jobText);
@@ -60,9 +63,11 @@ export function runWithDebug(
   return { result, retrieval, debug: captureDebug(retrieval, result) };
 }
 
-export function flattenSkills(result: { skills: { primary: { skills: string[] }[]; secondary?: { skills: string[] }[] } }): string[] {
+export function flattenSkills(result: {
+  skills: { primary: { skills: string[] }[]; secondary?: { skills: string[] }[] };
+}): string[] {
   return [
-    ...result.skills.primary.flatMap(g => g.skills),
-    ...(result.skills.secondary?.flatMap(g => g.skills) ?? []),
+    ...result.skills.primary.flatMap((g) => g.skills),
+    ...(result.skills.secondary?.flatMap((g) => g.skills) ?? []),
   ];
 }

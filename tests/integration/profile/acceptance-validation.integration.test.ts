@@ -1,16 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { RetrievalAcceptanceResolver } from '../../../src/domain/profile/retrieval/resolver/retrieval-acceptance.resolver.js' ;
-import { retrievalPolicy } from '../../../src/domain/profile/retrieval/policies/retrieval.policy.js' ;
+import { RetrievalAcceptanceResolver } from '../../../src/domain/profile/retrieval/resolver/retrieval-acceptance.resolver.js';
+import { retrievalPolicy } from '../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
 import { makeSignal } from '../../helpers/profile/integration-fixtures.js';
-import { MatchSignal } from '../../../src/domain/profile/types/retrieval.types.js' ;
+import { MatchSignal } from '../../../src/domain/profile/types/retrieval.types.js';
 
 describe('Acceptance Validation Integration', () => {
   const resolver = new RetrievalAcceptanceResolver(retrievalPolicy);
 
   describe('INT-004: ranking threshold enforced', () => {
     it('should reject signals below minAcceptedScore and accept those above', () => {
-      const lowSignal = makeSignal('cap.test' as any, { score: 0.1, evidenceIds: new Set(['ev.1' as any]) });
-      const highSignal = makeSignal('cap.test' as any, { score: 0.6, evidenceIds: new Set(['ev.1' as any]) });
+      const lowSignal = makeSignal('cap.test' as any, {
+        score: 0.1,
+        evidenceIds: new Set(['ev.1' as any]),
+      });
+      const highSignal = makeSignal('cap.test' as any, {
+        score: 0.6,
+        evidenceIds: new Set(['ev.1' as any]),
+      });
 
       const lowResult = resolver.accept(lowSignal);
       const highResult = resolver.accept(highSignal);

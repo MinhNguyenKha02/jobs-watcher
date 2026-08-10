@@ -11,7 +11,10 @@ export interface HealthOptions {
   systemMonitor?: SystemMonitor;
 }
 
-function startSystemMetricsCollection(systemMonitor: SystemMonitor, registry: MetricsRegistry): void {
+function startSystemMetricsCollection(
+  systemMonitor: SystemMonitor,
+  registry: MetricsRegistry
+): void {
   setInterval(() => {
     systemMonitor.measureEventLoopLag();
     const snap = systemMonitor.snapshot();
@@ -48,7 +51,9 @@ export function startHealthServer(opts: HealthOptions): void {
       res.set('Content-Type', 'text/plain; charset=utf-8');
       res.send(metrics);
     } catch (err) {
-      logger.error('Failed to serve metrics', { error: err instanceof Error ? err.message : String(err) });
+      logger.error('Failed to serve metrics', {
+        error: err instanceof Error ? err.message : String(err),
+      });
       res.status(500).send('Internal Server Error');
     }
   });
@@ -56,7 +61,7 @@ export function startHealthServer(opts: HealthOptions): void {
   app.get('/health/observability', async (_req: Request, res: Response) => {
     try {
       const metrics = await opts.metricsRegistry.metrics();
-      const lines = metrics.split('\n').filter(l => l && !l.startsWith('#'));
+      const lines = metrics.split('\n').filter((l) => l && !l.startsWith('#'));
       const parsed: Record<string, number> = {};
       for (const line of lines) {
         const [name, value] = line.split(' ');
@@ -67,7 +72,9 @@ export function startHealthServer(opts: HealthOptions): void {
       }
       res.json(parsed);
     } catch (err) {
-      logger.error('Failed to serve /health/observability', { error: err instanceof Error ? err.message : String(err) });
+      logger.error('Failed to serve /health/observability', {
+        error: err instanceof Error ? err.message : String(err),
+      });
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });

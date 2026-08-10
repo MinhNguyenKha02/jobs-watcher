@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import pLimit from '../../../src/infrastructure/utils/p-limit.js' ;
+import pLimit from '../../../src/infrastructure/utils/p-limit.js';
 
 describe('pLimit', () => {
   it('limits concurrency to 1', async () => {
@@ -11,10 +11,10 @@ describe('pLimit', () => {
       limit(async () => {
         running++;
         maxRunning = Math.max(maxRunning, running);
-        await new Promise(r => setTimeout(r, 10));
+        await new Promise((r) => setTimeout(r, 10));
         running--;
         return i;
-      }),
+      })
     );
 
     const results = await Promise.all(tasks);
@@ -31,9 +31,9 @@ describe('pLimit', () => {
       limit(async () => {
         running++;
         maxRunning = Math.max(maxRunning, running);
-        await new Promise(r => setTimeout(r, 10));
+        await new Promise((r) => setTimeout(r, 10));
         running--;
-      }),
+      })
     );
 
     await Promise.all(tasks);
@@ -48,7 +48,9 @@ describe('pLimit', () => {
   it('handles errors without blocking queue', async () => {
     const limit = pLimit(1);
 
-    const errorTask = limit(async () => { throw new Error('fail'); });
+    const errorTask = limit(async () => {
+      throw new Error('fail');
+    });
     const successTask = limit(async () => 'ok');
 
     await expect(errorTask).rejects.toThrow('fail');
@@ -59,9 +61,19 @@ describe('pLimit', () => {
     const limit = pLimit(1);
     const order: number[] = [];
 
-    const task1 = limit(async () => { order.push(1); await new Promise(r => setTimeout(r, 5)); return 1; });
-    const task2 = limit(async () => { order.push(2); return 2; });
-    const task3 = limit(async () => { order.push(3); return 3; });
+    const task1 = limit(async () => {
+      order.push(1);
+      await new Promise((r) => setTimeout(r, 5));
+      return 1;
+    });
+    const task2 = limit(async () => {
+      order.push(2);
+      return 2;
+    });
+    const task3 = limit(async () => {
+      order.push(3);
+      return 3;
+    });
 
     await task1;
     await task2;
@@ -89,9 +101,9 @@ describe('pLimit', () => {
       limit(async () => {
         running++;
         maxRunning = Math.max(maxRunning, running);
-        await new Promise(r => setTimeout(r, 5));
+        await new Promise((r) => setTimeout(r, 5));
         running--;
-      }),
+      })
     );
 
     await Promise.all(tasks);

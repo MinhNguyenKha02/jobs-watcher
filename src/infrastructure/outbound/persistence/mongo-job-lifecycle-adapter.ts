@@ -9,7 +9,7 @@ export class MongoJobLifecycleAdapter implements JobLifecyclePort {
 
   constructor(private db: Db) {
     this.collection = this.db.collection<JobLifecycleDocument>(COLLECTIONS.JOB_LIFECYCLE);
-    logger.info('MongoJobLifecycleAdapter initialized', { collection: COLLECTIONS.JOB_LIFECYCLE }); 
+    logger.info('MongoJobLifecycleAdapter initialized', { collection: COLLECTIONS.JOB_LIFECYCLE });
   }
 
   async upsert(doc: Partial<JobLifecycleDocument>): Promise<void> {
@@ -27,7 +27,14 @@ export class MongoJobLifecycleAdapter implements JobLifecyclePort {
     if (!this.collection) throw new Error('MongoJobLifecycleAdapter not connected');
     await this.collection.updateOne(
       { _id: jobLifecycleId },
-      { $set: { stage: stage as any, status: status as any, updatedAt: new Date(), stageTimestamp: new Date() } }
+      {
+        $set: {
+          stage: stage as any,
+          status: status as any,
+          updatedAt: new Date(),
+          stageTimestamp: new Date(),
+        },
+      }
     );
   }
 

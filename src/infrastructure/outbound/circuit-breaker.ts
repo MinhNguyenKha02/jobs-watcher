@@ -11,7 +11,7 @@ export class CircuitBreaker {
   constructor(
     readonly failureThreshold = 5,
     readonly successThreshold = 3,
-    readonly resetTimeMs = 60000,
+    readonly resetTimeMs = 60000
   ) {}
 
   async execute<T>(fn: () => Promise<T>, operationName: string): Promise<T | null> {
@@ -50,7 +50,9 @@ export class CircuitBreaker {
     return {
       isOpen: this.isOpen,
       consecutiveFailures: this.failureCount,
-      openUntil: this.isOpen ? new Date(this.lastFailureTime + this.resetTimeMs).toISOString() : null,
+      openUntil: this.isOpen
+        ? new Date(this.lastFailureTime + this.resetTimeMs).toISOString()
+        : null,
     };
   }
 }

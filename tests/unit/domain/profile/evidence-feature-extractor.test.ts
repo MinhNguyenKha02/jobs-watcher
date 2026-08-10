@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { EvidenceFeaturesExtractor } from '../../../../src/domain/profile/retrieval/evidence/evidence-feature-extractor.js' ;
-import { EvidenceNode } from '../../../../src/domain/profile/types/retrieval.types.js' ;
+import { EvidenceFeaturesExtractor } from '../../../../src/domain/profile/retrieval/evidence/evidence-feature-extractor.js';
+import { EvidenceNode } from '../../../../src/domain/profile/types/retrieval.types.js';
 
 describe('EvidenceFeaturesExtractor', () => {
   describe('Feature-001: Operational keywords', () => {
@@ -14,9 +14,9 @@ describe('EvidenceFeaturesExtractor', () => {
         summary: 'I worked in production environment managing deployment and monitoring systems.',
         bullets: [
           { text: 'Deployed applications to runtime environment', kind: 'responsibility' },
-          { text: 'Monitored system observability and alerting', kind: 'outcome' }
+          { text: 'Monitored system observability and alerting', kind: 'outcome' },
         ],
-        technologies: ['Docker', 'Kubernetes']
+        technologies: ['Docker', 'Kubernetes'],
       };
 
       // Act
@@ -26,7 +26,7 @@ describe('EvidenceFeaturesExtractor', () => {
       expect(features.operationalScore).toBeGreaterThan(0);
       // We should have matches for: production, runtime, deployment, monitoring, observability, alerting, workflow
       // That's 7 out of 9 keywords = 0.777...
-      expect(features.operationalScore).toBeCloseTo(7/9, 0.01);
+      expect(features.operationalScore).toBeCloseTo(7 / 9, 0.01);
     });
   });
 
@@ -41,9 +41,9 @@ describe('EvidenceFeaturesExtractor', () => {
         summary: 'Designed event-driven microservices with orchestration patterns.',
         bullets: [
           { text: 'Implemented distributed system architecture', kind: 'responsibility' },
-          { text: 'Used hexagonal architecture principles', kind: 'responsibility' }
+          { text: 'Used hexagonal architecture principles', kind: 'responsibility' },
         ],
-        technologies: ['Node.js', 'PostgreSQL']
+        technologies: ['Node.js', 'PostgreSQL'],
       };
 
       // Act
@@ -53,7 +53,7 @@ describe('EvidenceFeaturesExtractor', () => {
       expect(features.architectureScore).toBeGreaterThan(0);
       // We should have matches for: event-driven, orchestration, distributed, hexagonal
       // That's 4 out of 5 keywords = 0.8
-      expect(features.architectureScore).toBeCloseTo(4/5, 0.01);
+      expect(features.architectureScore).toBeCloseTo(4 / 5, 0.01);
     });
   });
 
@@ -69,9 +69,9 @@ describe('EvidenceFeaturesExtractor', () => {
         summary: 'Built and developed scalable web applications.',
         bullets: [
           { text: 'Designed API architecture from scratch', kind: 'responsibility' },
-          { text: 'Led team of 5 engineers', kind: 'responsibility' }
+          { text: 'Led team of 5 engineers', kind: 'responsibility' },
         ],
-        technologies: ['React', 'MongoDB']
+        technologies: ['React', 'MongoDB'],
       };
 
       // Act
@@ -96,9 +96,9 @@ describe('EvidenceFeaturesExtractor', () => {
         summary: 'Improved system performance by 40% and reduced latency by 200ms.',
         bullets: [
           { text: 'Handled 10k requests per second', kind: 'responsibility' },
-          { text: 'Supported 5m active users', kind: 'outcome' }
+          { text: 'Supported 5m active users', kind: 'outcome' },
         ],
-        technologies: ['AWS', 'PostgreSQL']
+        technologies: ['AWS', 'PostgreSQL'],
       };
 
       // Act
@@ -122,10 +122,8 @@ describe('EvidenceFeaturesExtractor', () => {
         type: 'project',
         title: 'Test Project',
         summary: 'Numbers: 10 20 30 40 50 60 70 80 90 100',
-        bullets: [
-          { text: 'More numbers: 1 2 3 4 5', kind: 'responsibility' }
-        ],
-        technologies: ['Java']
+        bullets: [{ text: 'More numbers: 1 2 3 4 5', kind: 'responsibility' }],
+        technologies: ['Java'],
       };
 
       // Act
@@ -152,9 +150,9 @@ describe('EvidenceFeaturesExtractor', () => {
         summary: 'Worked on various tasks as part of the group.',
         bullets: [
           { text: 'Attended meetings and updated documentation', kind: 'responsibility' },
-          { text: 'Learned new technologies and shared information', kind: 'outcome' }
+          { text: 'Learned new technologies and shared information', kind: 'outcome' },
         ],
-        technologies: ['HTML', 'CSS']
+        technologies: ['HTML', 'CSS'],
       };
 
       // Act

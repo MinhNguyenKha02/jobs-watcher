@@ -1,17 +1,8 @@
-import {
-  AdjacencyMap,
-  AnchorId,
-  MatchSignal,
-} from '../../types/retrieval.types.js';
+import { AdjacencyMap, AnchorId, MatchSignal } from '../../types/retrieval.types.js';
 
-import {
-  RetrievalPolicy,
-  retrievalPolicy
-} from '../policies/retrieval.policy.js';
+import { RetrievalPolicy, retrievalPolicy } from '../policies/retrieval.policy.js';
 
-import {
-  MatchSignalBuilder,
-} from '../scoring/match-signal.builder.js';
+import { MatchSignalBuilder } from '../scoring/match-signal.builder.js';
 
 interface PropagationWalkState {
   origin: AnchorId;
@@ -28,40 +19,18 @@ interface PropagationWalkState {
 }
 
 export class PropagationEngine {
-
   constructor(
-    private readonly policy:
-      RetrievalPolicy,
+    private readonly policy: RetrievalPolicy,
 
-    private readonly adjacency:
-      AdjacencyMap,
+    private readonly adjacency: AdjacencyMap,
 
-    private readonly builder =
-      new MatchSignalBuilder(retrievalPolicy),
+    private readonly builder = new MatchSignalBuilder(retrievalPolicy)
   ) {}
 
-  propagate(
-    direct:
-      Map<
-        AnchorId,
-        MatchSignal
-      >,
-  ) {
+  propagate(direct: Map<AnchorId, MatchSignal>) {
+    const expanded = new Map<AnchorId, MatchSignal>(direct);
 
-    const expanded =
-      new Map<
-        AnchorId,
-        MatchSignal
-      >(direct);
-
-    for (
-      const [
-        anchorId,
-        signal,
-      ]
-      of direct
-    ) {
-
+    for (const [anchorId, signal] of direct) {
       this.walk({
         origin: anchorId,
 
@@ -79,35 +48,15 @@ export class PropagationEngine {
     return expanded;
   }
 
-  private walk({
-    origin,
-    current,
-    depth,
-    score,
-    expanded,
-    visited,
-  }: PropagationWalkState) {
-
-    if (
-      depth >=
-      this.policy.propagation.maxDepth
-    ) {
-
+  private walk({ origin, current, depth, score, expanded, visited }: PropagationWalkState) {
+    if (depth >= this.policy.propagation.maxDepth) {
       return;
     }
 
-    const edges =
-      this.adjacency.get(
-        current,
-      ) ?? [];
+    const edges = this.adjacency.get(current) ?? [];
 
-    for (
-      const edge
-      of edges
-    ) {
-      
-      const key =
-      `${origin}:${edge.to}:${depth}`;
+    for (const edge of edges) {
+      const key = `${origin}:${edge.to}:${depth}`;
 
       if (visited.has(key)) {
         continue;
@@ -115,59 +64,32 @@ export class PropagationEngine {
 
       visited.add(key);
 
-      const kind =
-      edge.to.split('.')[0];
+      const kind = edge.to.split('.')[0];
 
-      if (
-        this.policy.propagation.blockedKinds.includes(kind)
-      ) {
+      if (this.policy.propagation.blockedKinds.includes(kind)) {
         continue;
       }
 
-      if (
-        expanded.size >=
-        this.policy.propagation.maxExpandedAnchors
-      ) {
+      if (expanded.size >= this.policy.propagation.maxExpandedAnchors) {
         return;
       }
 
-      if (
-        edge.weight <
-        this.policy.propagation.minEdgeWeight
-      ) {
-
+      if (edge.weight < this.policy.propagation.minEdgeWeight) {
         continue;
       }
 
-      const propagated =
-        score *
-        edge.weight *
-        this.policy.propagation.decayFactor;
+      const propagated = score * edge.weight * this.policy.propagation.decayFactor;
 
-      if (
-        propagated <
-        this.policy.direct.minScore
-      ) {
-
+      if (propagated < this.policy.direct.minScore) {
         continue;
       }
 
-      let signal =
-        expanded.get(
-          edge.to,
-        );
+      let signal = expanded.get(edge.to);
 
       if (!signal) {
+        signal = this.builder.create(edge.to);
 
-        signal =
-          this.builder.create(
-            edge.to,
-          );
-
-        expanded.set(
-          edge.to,
-          signal,
-        );
+        expanded.set(edge.to, signal);
       }
 
       this.builder.appendPropagation({

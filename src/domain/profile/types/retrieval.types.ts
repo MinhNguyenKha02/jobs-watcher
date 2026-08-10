@@ -1,28 +1,15 @@
-export type AnchorKind =
-  | 'cap'
-  | 'comp'
-  | 'beh'
-  | 'tech';
+export type AnchorKind = 'cap' | 'comp' | 'beh' | 'tech';
 
 /**
  * Enum representing the resolution strength of a signal.
  * Used for gap analysis, recruiter fit scoring, and automatic refinement.
-*/
+ */
 
-export type ResolutionStrength =
-  | 'strong'
-  | 'partial'
-  | 'weak'
-  | 'missing';
+export type ResolutionStrength = 'strong' | 'partial' | 'weak' | 'missing';
 
-export type AnchorId =
-  | `cap.${string}`
-  | `comp.${string}`
-  | `beh.${string}`
-  | `tech.${string}`;
+export type AnchorId = `cap.${string}` | `comp.${string}` | `beh.${string}` | `tech.${string}`;
 
-export type EvidenceId =
-  | `ev.${string}`;
+export type EvidenceId = `ev.${string}`;
 
 /* =========================
  * Anchor
@@ -47,9 +34,7 @@ export interface EvidenceNode {
 
   anchorIds: AnchorId[];
 
-  type:
-    | 'project'
-    | 'experience';
+  type: 'project' | 'experience';
 
   title?: string;
 
@@ -70,17 +55,14 @@ export interface EvidenceNode {
 export interface EvidenceBullet {
   text: string;
 
-  kind:
-    | 'responsibility'
-    | 'outcome';
+  kind: 'responsibility' | 'outcome';
 
   weight?: number;
 }
 /**
  * Backward-compatible alias
  */
-export type Evidence =
-  EvidenceNode;
+export type Evidence = EvidenceNode;
 
 /* =========================
  * Lexical
@@ -91,15 +73,9 @@ export interface LexicalSurface {
 
   anchorId: AnchorId;
 
-  language:
-    | 'en'
-    | 'vi';
+  language: 'en' | 'vi';
 
-  source:
-    | 'canonical'
-    | 'adjacent'
-    | 'vendor'
-    | 'template';
+  source: 'canonical' | 'adjacent' | 'vendor' | 'template';
 
   weight: number;
 }
@@ -116,53 +92,32 @@ export interface AdjacencyEdge {
   weight: number;
 }
 
-export type AdjacencyMap =
-  Map<
-    AnchorId,
-    AdjacencyEdge[]
-  >;
+export type AdjacencyMap = Map<AnchorId, AdjacencyEdge[]>;
 
 /* =========================
  * Evidence Linking
  * ========================= */
 
-export type AnchorToEvidenceMap =
-  Map<
-    AnchorId,
-    Set<EvidenceId>
-  >;
+export type AnchorToEvidenceMap = Map<AnchorId, Set<EvidenceId>>;
 
 /* =========================
  * Retrieval Artifact Bundle
  * ========================= */
 
 export interface RetrievalArtifacts {
-  anchors: Map<
-    AnchorId,
-    AnchorNode
-  >;
+  anchors: Map<AnchorId, AnchorNode>;
 
-  evidences: Map<
-    EvidenceId,
-    EvidenceNode
-  >;
+  evidences: Map<EvidenceId, EvidenceNode>;
 
   surfaces: LexicalSurface[];
 
   adjacency: AdjacencyMap;
 
-  anchorToEvidence:
-    AnchorToEvidenceMap;
+  anchorToEvidence: AnchorToEvidenceMap;
 }
-export type MatchSource =
-  | 'canonical'
-  | 'adjacent'
-  | 'vendor'
-  | 'template';
+export type MatchSource = 'canonical' | 'adjacent' | 'vendor' | 'template';
 
-export type RetrievalStage =
-  | 'lexical'
-  | 'propagation';
+export type RetrievalStage = 'lexical' | 'propagation';
 
 export interface MatchOccurrence {
   pattern: string;
@@ -177,11 +132,7 @@ export interface MatchOccurrence {
 }
 
 export interface MatchTrace {
-  type:
-    | 'lexical-hit'
-    | 'propagation'
-    | 'resolver-accepted'
-    | 'resolver-rejected';
+  type: 'lexical-hit' | 'propagation' | 'resolver-accepted' | 'resolver-rejected';
 
   from?: AnchorId;
   to?: AnchorId;
@@ -206,20 +157,15 @@ export interface MatchSignal {
 
   occurrences: number;
 
-  stages:
-    Set<RetrievalStage>;
+  stages: Set<RetrievalStage>;
 
-  evidenceIds:
-    Set<EvidenceId>;
+  evidenceIds: Set<EvidenceId>;
 
-  matchedPatterns:
-    string[];
+  matchedPatterns: string[];
 
-  occurrencesDetail:
-    MatchOccurrence[];
+  occurrencesDetail: MatchOccurrence[];
 
-  sources:
-    Set<MatchSource>;
+  sources: Set<MatchSource>;
 
   trace: MatchTrace[];
 }

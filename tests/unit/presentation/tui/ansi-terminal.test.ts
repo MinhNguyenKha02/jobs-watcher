@@ -7,7 +7,8 @@ vi.mock('../../../../src/services/logger.js', () => ({
   getLogger: () => ({ error: vi.fn() }),
 }));
 
-const { AnsiTerminal, terminal } = await import('../../../../src/presentation/tui/components/AnsiTerminal.js' );
+const { AnsiTerminal, terminal } =
+  await import('../../../../src/presentation/tui/components/AnsiTerminal.js');
 
 describe('AnsiTerminal', () => {
   let t: AnsiTerminal;

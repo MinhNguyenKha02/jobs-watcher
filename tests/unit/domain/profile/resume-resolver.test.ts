@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ResumeResolver } from '../../../../src/domain/profile/resume/resolve/resume-resolver.js' ;
-import { RetrievalOutput } from '../../../../src/domain/profile/retrieval/contracts/retrieval.types.js' ;
-import { HydratedArtifactBundle } from '../../../../src/domain/profile/artifacts/types/artifact.types.js' ;
-import { MatchSignal, AnchorNode } from '../../../../src/domain/profile/types/retrieval.types.js' ;
-import { RankedSignal } from '../../../../src/domain/profile/retrieval/ranking/retrieval-ranker.js' ;
-import { RetrievalEvidenceScore } from '../../../../src/domain/profile/artifacts/types/artifact.types.js' ;
-import { retrievalPolicy } from '../../../../src/domain/profile/retrieval/policies/retrieval.policy.js' ;
-import { RetrievalLogger } from '../../../../src/domain/profile/retrieval/logging/retrieval-logger.js' ;
-import { AtsSkillSection } from '../../../../src/domain/profile/resume/compiler/ats-skill-group.compiler.js' ;
-import { RetrievalAcceptanceResolver } from '../../../../src/domain/profile/retrieval/resolver/retrieval-acceptance.resolver.js' ;
-import { AtsSkillGroupCompiler } from '../../../../src/domain/profile/resume/compiler/ats-skill-group.compiler.js' ;
-import { RetrievalRanker } from '../../../../src/domain/profile/retrieval/ranking/retrieval-ranker.js' ;
-import { EvidenceAttachmentValidator } from '../../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js' ;
-import { SkillKeyNormalizer } from '../../../../src/domain/profile/resume/normalization/skill-key-normalizer.js' ;
+import { ResumeResolver } from '../../../../src/domain/profile/resume/resolve/resume-resolver.js';
+import { RetrievalOutput } from '../../../../src/domain/profile/retrieval/contracts/retrieval.types.js';
+import { HydratedArtifactBundle } from '../../../../src/domain/profile/artifacts/types/artifact.types.js';
+import { MatchSignal, AnchorNode } from '../../../../src/domain/profile/types/retrieval.types.js';
+import { RankedSignal } from '../../../../src/domain/profile/retrieval/ranking/retrieval-ranker.js';
+import { RetrievalEvidenceScore } from '../../../../src/domain/profile/artifacts/types/artifact.types.js';
+import { retrievalPolicy } from '../../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
+import { RetrievalLogger } from '../../../../src/domain/profile/retrieval/logging/retrieval-logger.js';
+import { AtsSkillSection } from '../../../../src/domain/profile/resume/compiler/ats-skill-group.compiler.js';
+import { RetrievalAcceptanceResolver } from '../../../../src/domain/profile/retrieval/resolver/retrieval-acceptance.resolver.js';
+import { AtsSkillGroupCompiler } from '../../../../src/domain/profile/resume/compiler/ats-skill-group.compiler.js';
+import { RetrievalRanker } from '../../../../src/domain/profile/retrieval/ranking/retrieval-ranker.js';
+import { EvidenceAttachmentValidator } from '../../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js';
+import { SkillKeyNormalizer } from '../../../../src/domain/profile/resume/normalization/skill-key-normalizer.js';
 
 vi.mock('../../../../src/domain/profile/retrieval/resolver/retrieval-acceptance.resolver.js');
 vi.mock('../../../../src/domain/profile/resume/compiler/ats-skill-group.compiler.js');
@@ -48,28 +48,40 @@ describe('ResumeResolver', () => {
     mockLogAccept = vi.fn();
     mockLogExposure = vi.fn();
 
-    vi.mocked(RetrievalAcceptanceResolver).mockImplementation(() => ({
-      accept: mockAcceptance
-    } as any));
+    vi.mocked(RetrievalAcceptanceResolver).mockImplementation(
+      () =>
+        ({
+          accept: mockAcceptance,
+        }) as any
+    );
 
-    vi.mocked(AtsSkillGroupCompiler).mockImplementation(() => ({
-      compile: mockCompile
-    } as any));
+    vi.mocked(AtsSkillGroupCompiler).mockImplementation(
+      () =>
+        ({
+          compile: mockCompile,
+        }) as any
+    );
 
-    vi.mocked(RetrievalRanker).mockImplementation(() => ({
-      rank: mockRank
-    } as any));
+    vi.mocked(RetrievalRanker).mockImplementation(
+      () =>
+        ({
+          rank: mockRank,
+        }) as any
+    );
 
-    vi.mocked(EvidenceAttachmentValidator).mockImplementation(() => ({
-      validate: mockValidate
-    } as any));
+    vi.mocked(EvidenceAttachmentValidator).mockImplementation(
+      () =>
+        ({
+          validate: mockValidate,
+        }) as any
+    );
 
     vi.mocked(SkillKeyNormalizer.normalizeSkillName).mockImplementation(mockNormalize);
 
     vi.mocked(RetrievalLogger.getInstance).mockReturnValue({
       logEvidenceAttachmentMissing: mockLogMissing,
       logAcceptance: mockLogAccept,
-      logAtsExposure: mockLogExposure
+      logAtsExposure: mockLogExposure,
     } as any);
 
     retrievalPolicy.resolver.maxExperience = 2;
@@ -92,19 +104,19 @@ describe('ResumeResolver', () => {
         matchedPatterns: ['test pattern'],
         occurrencesDetail: [],
         sources: new Set(['canonical']),
-        trace: []
+        trace: [],
       };
       const rankedSignal: RankedSignal = { signal, finalScore: 0.5, resolutionStrength: 'strong' };
       const retrieval: RetrievalOutput = {
         direct: new Map(),
         expanded: new Map([['cap.test', signal]]),
-        evidences: []
+        evidences: [],
       };
       const artifacts: HydratedArtifactBundle = {
         anchors: new Map([['cap.test', { kind: 'skill', name: 'test' } as AnchorNode]]),
         evidences: new Map(),
         surfaces: [],
-        adjacency: new Map()
+        adjacency: new Map(),
       };
 
       mockRank.mockReturnValue(rankedSignal);
@@ -134,19 +146,19 @@ describe('ResumeResolver', () => {
         matchedPatterns: ['test pattern'],
         occurrencesDetail: [],
         sources: new Set(['canonical']),
-        trace: []
+        trace: [],
       };
       const rankedSignal: RankedSignal = { signal, finalScore: 0.5, resolutionStrength: 'strong' };
       const retrieval: RetrievalOutput = {
         direct: new Map(),
         expanded: new Map([['cap.test', signal]]),
-        evidences: []
+        evidences: [],
       };
       const artifacts: HydratedArtifactBundle = {
         anchors: new Map([['cap.test', { kind: 'skill', name: 'test' } as AnchorNode]]),
         evidences: new Map(),
         surfaces: [],
-        adjacency: new Map()
+        adjacency: new Map(),
       };
 
       mockRank.mockReturnValue(rankedSignal);
@@ -172,19 +184,19 @@ describe('ResumeResolver', () => {
         matchedPatterns: ['test pattern'],
         occurrencesDetail: [],
         sources: new Set(['canonical']),
-        trace: []
+        trace: [],
       };
       const rankedSignal: RankedSignal = { signal, finalScore: 0.5, resolutionStrength: 'strong' };
       const retrieval: RetrievalOutput = {
         direct: new Map(),
         expanded: new Map([['cap.test', signal]]),
-        evidences: []
+        evidences: [],
       };
       const artifacts: HydratedArtifactBundle = {
         anchors: new Map([['cap.test', { kind: 'skill', name: 'test' } as AnchorNode]]),
         evidences: new Map(),
         surfaces: [],
-        adjacency: new Map()
+        adjacency: new Map(),
       };
 
       mockRank.mockReturnValue(rankedSignal);
@@ -207,14 +219,14 @@ describe('ResumeResolver', () => {
         evidences: [
           { evidence: { type: 'experience', id: 'exp1' }, score: 0.5 } as RetrievalEvidenceScore,
           { evidence: { type: 'experience', id: 'exp2' }, score: 0.8 } as RetrievalEvidenceScore,
-          { evidence: { type: 'experience', id: 'exp3' }, score: 0.3 } as RetrievalEvidenceScore
-        ]
+          { evidence: { type: 'experience', id: 'exp3' }, score: 0.3 } as RetrievalEvidenceScore,
+        ],
       };
       const artifacts: HydratedArtifactBundle = {
         anchors: new Map(),
         evidences: new Map(),
         surfaces: [],
-        adjacency: new Map()
+        adjacency: new Map(),
       };
 
       mockRank.mockReturnValue([]);
@@ -240,14 +252,14 @@ describe('ResumeResolver', () => {
           { evidence: { type: 'experience', id: 'exp1' }, score: 0.5 } as RetrievalEvidenceScore,
           { evidence: { type: 'experience', id: 'exp2' }, score: 0.8 } as RetrievalEvidenceScore,
           { evidence: { type: 'experience', id: 'exp3' }, score: 0.3 } as RetrievalEvidenceScore,
-          { evidence: { type: 'experience', id: 'exp4' }, score: 0.6 } as RetrievalEvidenceScore
-        ]
+          { evidence: { type: 'experience', id: 'exp4' }, score: 0.6 } as RetrievalEvidenceScore,
+        ],
       };
       const artifacts: HydratedArtifactBundle = {
         anchors: new Map(),
         evidences: new Map(),
         surfaces: [],
-        adjacency: new Map()
+        adjacency: new Map(),
       };
 
       mockRank.mockReturnValue([]);
@@ -272,14 +284,14 @@ describe('ResumeResolver', () => {
         evidences: [
           { evidence: { type: 'project', id: 'proj1' }, score: 0.5 } as RetrievalEvidenceScore,
           { evidence: { type: 'project', id: 'proj2' }, score: 0.8 } as RetrievalEvidenceScore,
-          { evidence: { type: 'project', id: 'proj3' }, score: 0.3 } as RetrievalEvidenceScore
-        ]
+          { evidence: { type: 'project', id: 'proj3' }, score: 0.3 } as RetrievalEvidenceScore,
+        ],
       };
       const artifacts: HydratedArtifactBundle = {
         anchors: new Map(),
         evidences: new Map(),
         surfaces: [],
-        adjacency: new Map()
+        adjacency: new Map(),
       };
 
       mockRank.mockReturnValue([]);
@@ -306,19 +318,19 @@ describe('ResumeResolver', () => {
         matchedPatterns: ['test pattern'],
         occurrencesDetail: [],
         sources: new Set(['canonical']),
-        trace: [{ type: 'lexical-hit', scoreDelta: 0.3, reason: 'test reason' }]
+        trace: [{ type: 'lexical-hit', scoreDelta: 0.3, reason: 'test reason' }],
       };
       const rankedSignal: RankedSignal = { signal, finalScore: 0.5, resolutionStrength: 'strong' };
       const retrieval: RetrievalOutput = {
         direct: new Map(),
         expanded: new Map([['cap.test', signal]]),
-        evidences: []
+        evidences: [],
       };
       const artifacts: HydratedArtifactBundle = {
         anchors: new Map([['cap.test', { kind: 'skill', name: 'test' } as AnchorNode]]),
         evidences: new Map(),
         surfaces: [],
-        adjacency: new Map()
+        adjacency: new Map(),
       };
 
       mockRank.mockReturnValue(rankedSignal);
@@ -331,7 +343,7 @@ describe('ResumeResolver', () => {
       expect(result.traces.length).toBe(1);
       expect(result.traces[0].trace[0]).toMatchObject({
         type: 'lexical-hit',
-        resolutionStrength: 'strong'
+        resolutionStrength: 'strong',
       });
     });
   });

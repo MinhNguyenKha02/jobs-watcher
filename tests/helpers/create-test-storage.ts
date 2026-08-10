@@ -37,7 +37,9 @@ export async function createTestStorage(): Promise<{
     };
     process.on('unhandledRejection', onUnhandled);
     try {
-      try { await client.close(); } catch (e) {}
+      try {
+        await client.close();
+      } catch (e) {}
     } finally {
       process.off('unhandledRejection', onUnhandled);
     }

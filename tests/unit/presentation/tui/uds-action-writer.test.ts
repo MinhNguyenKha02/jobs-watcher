@@ -12,7 +12,8 @@ vi.mock('../../../../src/infrastructure/utils/uds-http.js', () => ({
   postJsonOverUds: mockPostJsonOverUds,
 }));
 
-const { UdsActionWriter } = await import('../../../../src/presentation/tui/components/UdsActionWriter.js' );
+const { UdsActionWriter } =
+  await import('../../../../src/presentation/tui/components/UdsActionWriter.js');
 
 describe('UdsActionWriter reliability', () => {
   let tmpDir: string;
@@ -31,7 +32,9 @@ describe('UdsActionWriter reliability', () => {
   });
 
   afterEach(() => {
-    try { unlinkSync(validSocketPath); } catch {}
+    try {
+      unlinkSync(validSocketPath);
+    } catch {}
   });
 
   describe('sendAction socket existence check', () => {

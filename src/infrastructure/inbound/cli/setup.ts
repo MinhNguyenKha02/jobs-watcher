@@ -1,11 +1,11 @@
 /**
  * Gmail Setup CLI
- * 
+ *
  * Configures Gmail label watch and Pub/Sub webhook:
  * 1. Checks/creates "Job Alerts" label
  * 2. Verifies Pub/Sub topic exists
  * 3. Sets up webhook listener for job emails
- * 
+ *
  * Usage: npm run setup
  * Requires: GMAIL_TOPIC_NAME in .env
  */
@@ -36,7 +36,7 @@ async function setup() {
 
     // Check label
     console.log(`📧 Checking for label: "${config.gmail.labelName}"`);
-    
+
     let labelId: string;
     try {
       labelId = await gmailService.getLabelId(config.gmail.labelName);
@@ -49,16 +49,18 @@ async function setup() {
 
     // Set up Gmail watch
     console.log('🔔 Setting up Gmail push notifications...');
-    
+
     if (!config.gmail.topicName) {
       console.log('\n⚠️  GMAIL_TOPIC_NAME not set in .env file!');
       console.log('\nYou need to:');
       console.log('1. Create a Pub/Sub topic in Google Cloud Console');
       console.log('2. Grant gmail-api-push@system.gserviceaccount.com publish permissions');
-      console.log('3. Set GMAIL_TOPIC_NAME in .env (format: projects/YOUR_PROJECT/topics/gmail-job-alerts)');
-      console.log('\nFor now, the service will work but won\'t receive push notifications.');
+      console.log(
+        '3. Set GMAIL_TOPIC_NAME in .env (format: projects/YOUR_PROJECT/topics/gmail-job-alerts)'
+      );
+      console.log("\nFor now, the service will work but won't receive push notifications.");
       console.log('You can manually check for new emails by restarting the service.\n');
-      
+
       const proceed = await question('Continue without push notifications? (y/n): ');
       if (proceed.toLowerCase() !== 'y') {
         process.exit(0);

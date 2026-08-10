@@ -50,11 +50,7 @@ const GWT_GUARDED = [
   'tests/integration/adapter/outbound/pdf-renderer.contract.integration.test.ts',
   'tests/integration/adapter/outbound/asset-pipeline.contract.integration.test.ts',
 ];
-const roots = paths.length
-  ? paths
-  : CHECK || SPLIT || COLLAPSE
-    ? GWT_GUARDED
-    : DEFAULT_ROOTS;
+const roots = paths.length ? paths : CHECK || SPLIT || COLLAPSE ? GWT_GUARDED : DEFAULT_ROOTS;
 const FILES = collectFiles(roots);
 
 const CHECKPOINTS: Record<string, string> = {
@@ -126,7 +122,8 @@ function getTitleText(arg: ts.Expression): { text: string; raw: string } | null 
     let raw = arg.head.getText();
     for (const span of arg.templateSpans) {
       text += `<expr${span.expression.getStart()}:${span.expression.getEnd()}>`;
-      raw += span.literal.getStart() <= span.literal.getEnd() ? span.literal.getText().slice(1) : '';
+      raw +=
+        span.literal.getStart() <= span.literal.getEnd() ? span.literal.getText().slice(1) : '';
     }
     return { text, raw };
   }
@@ -134,7 +131,10 @@ function getTitleText(arg: ts.Expression): { text: string; raw: string } | null 
 }
 
 /** Extract (describeTitle[], itTitle) pairs, tracking nesting. */
-function analyzeFile(file: string): { titles: TitleNode[]; bodies: { raw: string; line: number }[] } {
+function analyzeFile(file: string): {
+  titles: TitleNode[];
+  bodies: { raw: string; line: number }[];
+} {
   const src = fs.readFileSync(file, 'utf8');
   const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const titles: TitleNode[] = [];
@@ -197,14 +197,17 @@ function classify(node: TitleNode, file: string): Classified {
 
   const arrow = ARROW.test(text);
   const gwt = GWT_KEYWORDS.test(text);
-  const pathTag = PATH_TAG.test(text) ? (text.match(/\bpath (c[1-4])\b/i)?.[1].toLowerCase() ?? '') : '';
+  const pathTag = PATH_TAG.test(text)
+    ? (text.match(/\bpath (c[1-4])\b/i)?.[1].toLowerCase() ?? '')
+    : '';
 
   const normalized =
     arrow || checkpoints.size || actions.length
       ? text
       : `${text}  <-- no checkpoint (S1..S4 / [x] tag / stage-status) and no cause→effect arrow`;
   if (!arrow) issues.push('missing cause→effect arrow (→)');
-  if (checkpoints.size === 0 && actions.length === 0) issues.push('missing checkpoint (S1..S4 / [x] tag / stage-status)');
+  if (checkpoints.size === 0 && actions.length === 0)
+    issues.push('missing checkpoint (S1..S4 / [x] tag / stage-status)');
 
   return {
     node: { ...node },
@@ -219,7 +222,8 @@ function classify(node: TitleNode, file: string): Classified {
 }
 
 function isResolved(c: Classified, kind: 'it' | 'describe'): boolean {
-  if (kind === 'describe') return c.arrow || c.gwt || c.actions.length > 0 || c.checkpoints.length > 0;
+  if (kind === 'describe')
+    return c.arrow || c.gwt || c.actions.length > 0 || c.checkpoints.length > 0;
   // fast-check property invariants are logic proofs, not scenario GWT rows — carve-out.
   if (/^property\b/i.test(c.node.text)) return true;
   // an `it` is resolved when it maps to >=1 checkpoint (via state token, action tag, or S1..S4),
@@ -235,7 +239,9 @@ function isResolved(c: Classified, kind: 'it' | 'describe'): boolean {
 
 function printVerbose(c: Classified, file: string): void {
   const rel = path.relative(process.cwd(), file);
-  console.log(`  L${String(c.node.line).padStart(3)}  ${c.node.kind.padEnd(8)} ck=[${c.checkpoints.join(',') || '-'}]  ${c.node.text}`);
+  console.log(
+    `  L${String(c.node.line).padStart(3)}  ${c.node.kind.padEnd(8)} ck=[${c.checkpoints.join(',') || '-'}]  ${c.node.text}`
+  );
   if (c.issues.length) console.log(`       ⚠ ${c.issues.join('; ')}`);
 }
 
@@ -256,7 +262,8 @@ for (const file of FILES) {
     const ok = node.kind === 'it' ? isResolved(c, 'it') : isResolved(c, 'describe');
     if (!ok) {
       violations++;
-      if (!VERBOSE) console.log(`  ✗ L${node.line} ${node.kind}: ${node.text}  ${c.issues.join('; ')}`);
+      if (!VERBOSE)
+        console.log(`  ✗ L${node.line} ${node.kind}: ${node.text}  ${c.issues.join('; ')}`);
     } else {
       resolved++;
     }
@@ -276,10 +283,14 @@ for (const file of FILES) {
 }
 
 if (CHECK && violations > 0) {
-  console.log(`\nGWT-CHECK FAILED: ${violations}/${total} titles unresolved (resolved ${resolved}).`);
+  console.log(
+    `\nGWT-CHECK FAILED: ${violations}/${total} titles unresolved (resolved ${resolved}).`
+  );
   process.exit(1);
 }
 
-console.log(`\nGWT summary: ${FILES.length} files, ${total} titles, ${resolved} resolved, ${violations} unresolved (${CHECK ? 'check mode — exit ' + (violations ? 1 : 0) : 'report mode'}).`);
+console.log(
+  `\nGWT summary: ${FILES.length} files, ${total} titles, ${resolved} resolved, ${violations} unresolved (${CHECK ? 'check mode — exit ' + (violations ? 1 : 0) : 'report mode'}).`
+);
 if (CHECK) process.exit(violations ? 1 : 0);
 process.exit(0);

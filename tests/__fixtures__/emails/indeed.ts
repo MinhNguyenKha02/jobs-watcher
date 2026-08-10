@@ -194,7 +194,7 @@ export const indeedPlatformPageHtml2 = `
     </div>
   </section>
 `;
-const _rawLinkedinPlatformHtml1=`
+const _rawLinkedinPlatformHtml1 = `
 <div class="jobs-search__job-details--wrapper">
       <div></div>
         
@@ -1087,9 +1087,9 @@ const _rawLinkedinPlatformHtml1=`
 
       <!---->
     </div>
-`
+`;
 
-const _rawIndeedPlatformHtml2=`
+const _rawIndeedPlatformHtml2 = `
 <div id="vjs-container" class="jobsearch-ViewJobContainer jobsearch-ViewJobContainer-a11yFix jobsearch-ViewJobContainer-withBorder" role="region" aria-labelledby="job-full-details-title" tabindex="-1" style="height: 938px;"><div id="viewJobSSRRoot" style="height: 100%;"><div class="css-yl2akf"><div id="mosaic-aboveViewjobNav" class="mosaic mosaic-empty-zone"></div><div class="fastviewjob jobsearch-ViewJobLayout--embedded css-1hce1u2 eu4oa1w0 hydrated"><div class="css-1hi21kg e37uo190"></div><div class="jobsearch-JobComponent css-14r6nc8 eu4oa1w0" style="height: 244px;"><style>
                             @keyframes fadeOutAnimationKeyframes {
                                 from {
@@ -1236,6 +1236,6 @@ const _rawIndeedPlatformHtml2=`
   </div>
  </div>
 </div></div><div role="separator" aria-orientation="horizontal" class="css-1f63e20 e15p7aqh1"><span class="css-8u2krs esbq1260"><span>&amp;nbsp;</span></span></div></div><div id="mosaic-belowFullJobDescription" class="mosaic mosaic-empty-zone"></div><div class="jobsearch-JobMetadataFooter css-1l93qfl eu4oa1w0"><div class="css-16spgjx e37uo190"><div class="css-10ft6qd eu4oa1w0"><div id="mosaic-provider-reportcontent" class="mosaic mosaic-provider-reportcontent" style="--mosaic-placeholder-width: 142.53125px; --mosaic-placeholder-height: 44px;"><div class="mosaic-provider-reportcontent-yl2akf"><div class="mosaic-reportcontent-wrapper button"><button class="mosaic-reportcontent-button desktop mosaic-provider-reportcontent-1hfwffs e8ju0x50"><span class="mosaic-reportcontent-button-icon"></span>Report job</button><!--$--><!--/$--><div class="mosaic-reportcontent-content"></div></div></div></div></div></div></div></div></div></div></div></div></div></div>
-`
+`;
 
 // *LinkedIn SDUi format (full detail page, component-based architecture)
