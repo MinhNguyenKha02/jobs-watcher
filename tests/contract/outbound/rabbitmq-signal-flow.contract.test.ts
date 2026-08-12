@@ -1,8 +1,9 @@
 import 'dotenv/config';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
-import { ActionEvent } from '../../../../src/domain/types/action-event.js';
-import { JobStage, JobSource } from '../../../../src/domain/types/job-lifecycle.js';
+
+import { ActionEvent } from '../../../src/domain/types/action-event.js';
+import { JobStage, JobSource } from '../../../src/domain/types/job-lifecycle.js';
+import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
 
 /**
  * Labeled transport probe: the real outbound Parse/Route adapters resolved from
@@ -17,7 +18,7 @@ describe(
     let tc: TestContainer;
 
     beforeAll(async () => {
-      tc = await createTestContainer({ ns: 'rmq-signal-flow' });
+      tc = await buildTestContainer({ ns: 'rmq-signal-flow' });
       await tc.container.rmq.connect();
     }, 120000);
 

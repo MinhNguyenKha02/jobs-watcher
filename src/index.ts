@@ -1,6 +1,6 @@
+import { buildDaemonContainer } from './application/container.js';
 import { config } from './config.js';
 import { initLogger, createLogger } from './infrastructure/outbound/logging/logger.js';
-import { buildSystemContainer } from './application/container.js';
 
 initLogger();
 const logger = createLogger('Boot');
@@ -8,7 +8,7 @@ const logger = createLogger('Boot');
 async function main(): Promise<void> {
   logger.info('Starting jobs-watcher', { env: config.nodeEnv });
 
-  const app = buildSystemContainer(
+  const app = buildDaemonContainer(
     {
       nodeEnv: config.nodeEnv,
       mongodb: config.mongodb,

@@ -1,11 +1,11 @@
 // src/services/profile/retrieval/ranking/retrieval-ranker.ts
 
-import { MatchSignal, EvidenceNode } from '../../types/retrieval.types.js';
+import { MatchSignal, EvidenceNode, ResolutionStrength } from '../../types/retrieval.types.js';
+import { retrievalPolicy } from '../policies/retrieval.policy.js';
+import { classifyResolutionStrength } from '../resolution/resolution-strength.js';
+
 import { RankingFeatures, RankingFeaturesExtractor } from './ranking-features.js';
 import { rankingPolicy } from './ranking-policy.js';
-import { classifyResolutionStrength } from '../resolution/resolution-strength.js';
-import { ResolutionStrength } from '../../types/retrieval.types.js';
-import { retrievalPolicy } from '../policies/retrieval.policy.js';
 
 /**
  * Represents a signal after ranking, with a final score and resolution strength.

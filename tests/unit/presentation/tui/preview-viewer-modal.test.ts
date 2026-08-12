@@ -1,18 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { JobStage } from '../../../../src/domain/types/job-lifecycle.js';
+import { describe, it, expect } from 'vitest';
 
 const { renderPreviewViewerModal } =
   await import('../../../../src/presentation/tui/components/PreviewViewerModal.js');
 
 describe('PreviewViewerModal', () => {
   const sampleLines = Array.from({ length: 50 }, (_, i) => `Line ${i + 1}: test content here`);
-
-  const baseState: any = {
-    jobLifecycleId: 'job-1',
-    job: { _id: 'job-1', company: 'Co' },
-    stage: JobStage.FULL_PARSED,
-    modal: null,
-  };
 
   it('GIVEN PreviewViewerModal WHEN exercised THEN renders modal with content', () => {
     const modal: any = {
@@ -23,7 +15,7 @@ describe('PreviewViewerModal', () => {
       maxPages: 3,
     };
 
-    const output = renderPreviewViewerModal(modal, baseState);
+    const output = renderPreviewViewerModal(modal);
     expect(output).toContain('Line 1');
     expect(output).toContain('Line 20');
     expect(output).not.toContain('Line 21');
@@ -38,7 +30,7 @@ describe('PreviewViewerModal', () => {
       maxPages: 3,
     };
 
-    const output = renderPreviewViewerModal(modal, baseState);
+    const output = renderPreviewViewerModal(modal);
     expect(output).toContain('Line 21');
     expect(output).toContain('Line 40');
     expect(output).not.toContain('Line 1');
@@ -53,7 +45,7 @@ describe('PreviewViewerModal', () => {
       maxPages: 3,
     };
 
-    const output = renderPreviewViewerModal(modal, baseState);
+    const output = renderPreviewViewerModal(modal);
     expect(output).toContain('1/3');
   });
 
@@ -66,7 +58,7 @@ describe('PreviewViewerModal', () => {
       maxPages: 1,
     };
 
-    const output = renderPreviewViewerModal(modal, baseState);
+    const output = renderPreviewViewerModal(modal);
     expect(output).toContain('1/1');
   });
 
@@ -80,7 +72,7 @@ describe('PreviewViewerModal', () => {
       maxPages: 1,
     };
 
-    const output = renderPreviewViewerModal(modal, baseState);
+    const output = renderPreviewViewerModal(modal);
     expect(output).toContain('...');
   });
 
@@ -94,7 +86,7 @@ describe('PreviewViewerModal', () => {
       maxPages: 1,
     };
 
-    const output = renderPreviewViewerModal(modal, baseState);
+    const output = renderPreviewViewerModal(modal);
     expect(output).toBeTruthy();
   });
 });

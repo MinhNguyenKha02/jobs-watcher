@@ -1,13 +1,15 @@
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import http from 'http';
-import { createTestStorage } from '../../helpers/create-test-storage.js';
-import { MongoJobLifecycleAdapter } from '../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
-import { MongoInitializer } from '../../../src/infrastructure/outbound/persistence/mongo-init.js';
+
+import { Registry } from 'prom-client';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+
 import { JobIngestor } from '../../../src/application/ingestor.js';
 import { JobStage, JobSource } from '../../../src/domain/types/job-lifecycle.js';
-import { MetricsRegistry } from '../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
-import { Registry } from 'prom-client';
 import { startHealthServer } from '../../../src/infrastructure/inbound/health/health-adapter.js';
+import { MetricsRegistry } from '../../../src/infrastructure/outbound/monitoring/metrics-registry.js';
+import { MongoInitializer } from '../../../src/infrastructure/outbound/persistence/mongo-init.js';
+import { MongoJobLifecycleAdapter } from '../../../src/infrastructure/outbound/persistence/mongo-job-lifecycle-adapter.js';
+import { createTestStorage } from '../../helpers/create-test-storage.js';
 import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
 
 function fetchText(port: number, path: string): Promise<{ status: number; body: string }> {

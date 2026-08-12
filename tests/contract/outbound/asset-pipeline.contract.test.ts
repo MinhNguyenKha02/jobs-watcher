@@ -1,11 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { existsSync } from 'node:fs';
-import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
-import { flattenJob } from '../../../../src/domain/services/flatten-job.js';
-import { ProfileInfoRetriever } from '../../../../src/domain/profile/index.js';
-import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
-import { ActionEvent } from '../../../../src/domain/types/action-event.js';
-import { topcvEmailHtmlMany, topcvDetailHtml } from '../../../helpers/html-fixtures.js';
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+
+import { ProfileInfoRetriever } from '../../../src/domain/profile/index.js';
+import { flattenJob } from '../../../src/domain/services/flatten-job.js';
+import { ActionEvent } from '../../../src/domain/types/action-event.js';
+import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
+import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
+import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
 
 describe('PRC-010 — Asset pipeline: s3-queued → profile IR → asset via container adapters', () => {
   let tc: TestContainer;
@@ -13,7 +15,7 @@ describe('PRC-010 — Asset pipeline: s3-queued → profile IR → asset via con
   let retriever: ProfileInfoRetriever;
 
   beforeAll(async () => {
-    tc = await createTestContainer({ ns: 'asset-pipeline' });
+    tc = await buildTestContainer({ ns: 'asset-pipeline' });
     await tc.start();
     dbCollection = tc.db.collection('job_lifecycle');
     retriever = new ProfileInfoRetriever();
@@ -103,7 +105,7 @@ describe('PRC-010 — Asset pipeline resilience (non-fatal toAsset failure)', ()
   let tc: TestContainer;
 
   beforeAll(async () => {
-    tc = await createTestContainer({
+    tc = await buildTestContainer({
       ns: 'asset-pipeline-failure',
       ports: {
         // Scripted asset seam: toAsset rejects — the saga must still emit QUEUED

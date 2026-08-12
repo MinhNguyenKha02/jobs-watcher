@@ -3,17 +3,52 @@
  * GIVEN an Indeed webhook msg with URL WHEN scheduler+Playwright S2c runs + [j]/[d] UDS action
  * THEN S3 QUEUED + real PDF, or S4 TRASHED, and the next pick still completes.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'node:http';
-import { createE2eApp, ActionEvent, type E2eApp } from '../helpers/e2e-app.js';
-import { indeedDetailHtml } from '../helpers/html-fixtures.js';
+
+import amqplib from 'amqplib';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+
 import { JobStage, JobStatus } from '../../src/domain/types/job-lifecycle.js';
+import { getCurrentJob } from '../../src/presentation/tui/shared-tui-state.js';
+import { createE2eApp, ActionEvent, type E2eApp } from '../helpers/e2e-app.js';
+import { indeedDetailHtml, topcvDetailHtml } from '../helpers/html-fixtures.js';
+import { buildTuiTestContainer } from '../helpers/test-container.js';
+
+const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
+
+async function waitFor(check: () => boolean, timeoutMs = 15000, intervalMs = 50): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (check()) return;
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  throw new Error(`waitFor timed out after ${timeoutMs}ms`);
+}
+
+async function purgeTuiQueues(ns: string): Promise<void> {
+  const conn = await amqplib.connect(RMQ_URL);
+  const ch = await conn.createChannel();
+  for (const suffix of ['s1', 's2', 's3s4']) {
+    try {
+      await ch.assertQueue(`tui.${ns}.${suffix}`);
+      await ch.purgeQueue(`tui.${ns}.${suffix}`);
+    } catch {
+      /* best-effort — a missing/closed queue is treated as empty */
+    }
+  }
+  try {
+    await ch.close();
+  } catch {
+    /* channel may already be closed by the server */
+  }
+  await conn.close();
+}
 
 const CASES = {
-  'c2-auto': { role: 'Backend Developer', company: 'C2AutoCo' },
-  'c2-data': { role: 'Data Engineer', company: 'C2DataCo' },
-  'c2-trash': { role: 'Full Stack Developer', company: 'C2TrashCo' },
-  'c2-qa': { role: 'Full-stack Developer', company: 'C2QaCo' },
+  c2Auto: { role: 'Backend Developer', company: 'C2AutoCo' },
+  c2Data: { role: 'Data Engineer', company: 'C2DataCo' },
+  c2Trash: { role: 'Full Stack Developer', company: 'C2TrashCo' },
+  c2Qa: { role: 'Full-stack Developer', company: 'C2QaCo' },
 } as const;
 
 const KEY_BY_JOB: Record<string, string> = Object.fromEntries(
@@ -21,10 +56,10 @@ const KEY_BY_JOB: Record<string, string> = Object.fromEntries(
 );
 
 function jobForMessage(messageId: string): { role: string; company: string } {
-  if (messageId.includes('trash-msg-2')) return CASES['c2-qa'];
-  if (messageId.includes('trash')) return CASES['c2-trash'];
-  if (messageId.includes('-2')) return CASES['c2-data'];
-  return CASES['c2-auto'];
+  if (messageId.includes('trash-msg-2')) return CASES['c2Qa'];
+  if (messageId.includes('trash')) return CASES['c2Trash'];
+  if (messageId.includes('-2')) return CASES['c2Data'];
+  return CASES['c2Auto'];
 }
 
 /**
@@ -42,7 +77,7 @@ function startDetailServer(): Promise<{
       const parsed = new URL(req.url || '/', 'http://127.0.0.1');
       const src = parsed.searchParams.get('src') || '';
       const job =
-        (CASES as Record<string, { role: string; company: string }>)[src] ?? CASES['c2-auto'];
+        (CASES as Record<string, { role: string; company: string }>)[src] ?? CASES['c2Auto'];
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(
         indeedDetailHtml(
@@ -56,7 +91,7 @@ function startDetailServer(): Promise<{
       const addr = server.address() as any;
       resolve({
         srcUrl: (role, company) => {
-          const key = KEY_BY_JOB[`${role}|${company}`] ?? 'c2-auto';
+          const key = KEY_BY_JOB[`${role}|${company}`] ?? 'c2Auto';
           return `http://127.0.0.1:${addr.port}/indeed.com/viewjob?src=${key}`;
         },
         close: () => new Promise<void>((r) => server.close(() => r())),
@@ -161,5 +196,49 @@ describe('C2 browser-auto e2e — webhook Indeed s1(url) → scheduler + Playwri
     expect(comp2Msg.job.role).toBe('Full-stack Developer');
     expect(comp2Msg.job.company).toBe('C2QaCo');
     expect(comp2Msg.job.status).toBe(JobStatus.ENRICHED);
+  }, 90000);
+
+  it('GIVEN the tui-ioc precondition WHEN the daemon webhook+paste publishes S1+S2 over RMQ and the tui sends [j] over UDS THEN the reader mirrors then clears the job on the ipc seam (tui↔daemon real RMQ+UDS) · e2e c2', async () => {
+    await purgeTuiQueues('c2-browser-auto');
+    const tui = await buildTuiTestContainer({ ns: 'c2-browser-auto' });
+    try {
+      await waitFor(() => tui.rmqReader.isConnected());
+      await app.resetDb();
+
+      const gen = await app.events.on([ActionEvent.GENERATED]);
+      const res = await app.webhook.post('c2-boundary-msg');
+      expect(res.status).toBe(202);
+
+      const genMsg = await gen.msg();
+      const jobId: string = genMsg._id;
+      expect(genMsg.company).toBe('C2AutoCo');
+      await waitFor(() => getCurrentJob().jobLifecycleId === jobId);
+      expect(getCurrentJob().stage).toBe(JobStage.PARTIAL_PARSED);
+
+      const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
+      const cRes = await app.uds.ingest(topcvDetailHtml('Backend Developer', 'C2AutoCo'), jobId);
+      expect(cRes.statusCode).toBe(200);
+
+      const compMsg = await comp.msg();
+      expect(compMsg.job._id).toBe(jobId);
+      await waitFor(
+        () =>
+          getCurrentJob().jobLifecycleId === jobId && getCurrentJob().stage === JobStage.FULL_PARSED
+      );
+
+      const queue = await app.events.on([
+        ActionEvent.QUEUED,
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+      ]);
+      await tui.udsWriter.queue(jobId);
+
+      const queueMsg = await queue.msg();
+      expect(queueMsg.jobLifecycleId).toBe(jobId);
+      await waitFor(() => getCurrentJob().jobLifecycleId === null);
+      expect(getCurrentJob().job).toBeNull();
+    } finally {
+      await tui.stop();
+    }
   }, 90000);
 });

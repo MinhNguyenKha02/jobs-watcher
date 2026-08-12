@@ -1,22 +1,24 @@
-import { createLogger } from '../infrastructure/outbound/logging/logger.js';
-import { HtmlJobParser } from '../domain/services/parsing/html-job-parser.js';
-import { JobExtractionService } from '../domain/services/parsing/job-extraction.js';
 import { hybridJobFilter } from '../domain/filter/job-filter.js';
 import { ProfileInfoRetriever } from '../domain/profile/index.js';
 import { flattenJob } from '../domain/services/flatten-job.js';
-import type { ParsePort } from './ports/parse.port.js';
-import type { RoutePort } from './ports/route.port.js';
-import type { JobLifecyclePort } from './ports/job-lifecycle.port.js';
-import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
-import type { AssetProducingPort } from './ports/asset-producing.port.js';
-import type { IngestorPort, IngestMetadata } from './ports/inbound/ingestor.port.js';
+import { HtmlJobParser } from '../domain/services/parsing/html-job-parser.js';
+import { JobExtractionService } from '../domain/services/parsing/job-extraction.js';
 import {
   JobStage,
   JobStatus,
   JobSource,
   type JobLifecycleDocument,
 } from '../domain/types/job-lifecycle.js';
+import type { Job } from '../domain/types/job.js';
+import { createLogger } from '../infrastructure/outbound/logging/logger.js';
 import type { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
+
+import type { AssetProducingPort } from './ports/asset-producing.port.js';
+import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
+import type { IngestorPort, IngestMetadata } from './ports/inbound/ingestor.port.js';
+import type { JobLifecyclePort } from './ports/job-lifecycle.port.js';
+import type { ParsePort } from './ports/parse.port.js';
+import type { RoutePort } from './ports/route.port.js';
 
 const logger = createLogger('Ingestor');
 
@@ -145,7 +147,7 @@ export class JobIngestor implements IngestorPort {
     metadata?: IngestMetadata
   ): Promise<void> {
     const jobExtractor = new JobExtractionService();
-    let extractedJobs: any[] = [];
+    let extractedJobs: Partial<Job>[] = [];
     try {
       extractedJobs = jobExtractor.extractAllJobs(rawPayload);
     } catch (e) {
@@ -223,8 +225,8 @@ export class JobIngestor implements IngestorPort {
 
       try {
         await this.jobLifecycleColPort.upsert(doc);
-      } catch (e: any) {
-        if (e?.code === 11000) {
+      } catch (e: unknown) {
+        if ((e as { code?: unknown })?.code === 11000) {
           logger.info('Duplicate role+company — skipping', { jobLifeCycleId, role, company });
           await this.routePublishingPort.emitJobTrashed(
             jobLifeCycleId,
@@ -380,8 +382,8 @@ export class JobIngestor implements IngestorPort {
 
     try {
       await this.jobLifecycleColPort.upsert(doc);
-    } catch (e: any) {
-      if (e?.code === 11000) {
+    } catch (e: unknown) {
+      if ((e as { code?: unknown })?.code === 11000) {
         logger.warn('Duplicate role+company — skipping', {
           role: doc.role,
           company: doc.company,

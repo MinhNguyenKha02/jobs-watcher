@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
+
 import Handlebars from 'handlebars';
 import { chromium } from 'playwright';
-import type { PdfAsset } from '../../../../domain/types/asset.js';
+
 import { config } from '../../../../config.js';
+import type { PdfAsset } from '../../../../domain/types/asset.js';
 
 Handlebars.registerHelper('join', (arr: unknown, sep: string) => {
   if (!Array.isArray(arr)) return '';

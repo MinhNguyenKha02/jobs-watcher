@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { extractAllJobs } from '../../../../src/domain/services/parsing/job-extraction.js';
 import { topCVEmailAlert, indeedEmailAlert } from '../../../__fixtures__/emails.js';
 

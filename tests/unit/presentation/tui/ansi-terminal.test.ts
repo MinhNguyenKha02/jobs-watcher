@@ -11,7 +11,7 @@ const { AnsiTerminal, terminal } =
   await import('../../../../src/presentation/tui/components/AnsiTerminal.js');
 
 describe('AnsiTerminal', () => {
-  let t: AnsiTerminal;
+  let t: InstanceType<typeof AnsiTerminal>;
 
   beforeEach(() => {
     vi.clearAllMocks();

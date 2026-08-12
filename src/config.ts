@@ -3,10 +3,11 @@
  * All environment variables and paths are centralized here
  */
 
-import { z } from 'zod';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+import dotenv from 'dotenv';
+import { z } from 'zod';
 
 dotenv.config();
 
@@ -19,7 +20,7 @@ function getProjectRoot(): string {
   }
   try {
     // eslint-disable-next-line no-eval
-    const importMeta = eval('import.meta');
+    const importMeta = eval('import.meta') as { url: string };
     const filePath = fileURLToPath(importMeta.url);
     return path.resolve(path.dirname(filePath), '..');
   } catch {
@@ -30,7 +31,7 @@ function getProjectRoot(): string {
 /**
  * Configuration schema with validation
  */
-const ConfigSchema = z.object({
+const configSchema = z.object({
   // Environment
   nodeEnv: z.enum(['development', 'production', 'test']).default('development'),
   isDev: z.boolean(),
@@ -72,7 +73,7 @@ const ConfigSchema = z.object({
   }),
 });
 
-export type Config = z.infer<typeof ConfigSchema>;
+export type Config = z.infer<typeof configSchema>;
 
 /**
  * Load and validate configuration
@@ -119,7 +120,7 @@ export function loadConfig(): Config {
   };
 
   try {
-    return ConfigSchema.parse(rawConfig);
+    return configSchema.parse(rawConfig);
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('❌ Configuration validation failed:');

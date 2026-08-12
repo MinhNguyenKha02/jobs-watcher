@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
-import { buildSystemContainer } from '../../../../src/application/container.js';
-import type { IngestorPort } from '../../../../src/application/ports/inbound/ingestor.port.js';
-import type { UdsAdapter } from '../../../../src/infrastructure/inbound/uds/uds-adapter.js';
-import { postJsonOverUds } from '../../../../src/infrastructure/utils/uds-http.js';
+import path from 'node:path';
+
+import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
+
+import { buildDaemonContainer } from '../../../src/application/container.js';
+import type { IngestorPort } from '../../../src/application/ports/inbound/ingestor.port.js';
+import type { UdsAdapter } from '../../../src/infrastructure/inbound/uds/uds-adapter.js';
+import { postJsonOverUds } from '../../../src/infrastructure/utils/uds-http.js';
 
 describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
   let socketDir: string;
@@ -32,7 +34,7 @@ describe('UdsAdapter — lifecycle integration', { timeout: 15000 }, () => {
 
   /** Resolve the real UdsAdapter through the production composition root (port-seam). */
   function boot(socket: string, token?: string): UdsAdapter {
-    const container = buildSystemContainer(
+    const container = buildDaemonContainer(
       {
         nodeEnv: 'test',
         mongodb: { uri: 'mongodb://localhost/jw-uds', dbName: 'unit' },

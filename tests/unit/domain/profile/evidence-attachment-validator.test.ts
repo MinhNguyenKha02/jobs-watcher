@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EvidenceAttachmentValidator } from '../../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js';
-import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js';
+
 import { HydratedArtifactBundle } from '../../../../src/domain/profile/artifacts/types/artifact.types.js';
 import { RetrievalLogger } from '../../../../src/domain/profile/retrieval/logging/retrieval-logger.js';
+import { EvidenceAttachmentValidator } from '../../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js';
+import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js';
 
 describe('EvidenceAttachmentValidator', () => {
   let validator: EvidenceAttachmentValidator;

@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { ProfileRetrievalEngine } from '../../../src/domain/profile/retrieval/profile-retrieval-engine.js';
+
 import { ResumeResolver } from '../../../src/domain/profile/resume/resolve/resume-resolver.js';
-import { EvidenceAttachmentValidator } from '../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js';
-import { retrievalPolicy } from '../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
-import { buildHydratedArtifactBundle } from '../../helpers/profile/integration-fixtures.js';
 import { RetrievalLogger } from '../../../src/domain/profile/retrieval/logging/retrieval-logger.js';
-import { retrievalPolicy as originalPolicy } from '../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
+import {
+  retrievalPolicy,
+  retrievalPolicy as originalPolicy,
+} from '../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
+import { ProfileRetrievalEngine } from '../../../src/domain/profile/retrieval/profile-retrieval-engine.js';
+import { EvidenceAttachmentValidator } from '../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js';
+import { buildHydratedArtifactBundle } from '../../helpers/profile/integration-fixtures.js';
 
 describe('Resume Resolution Integration', () => {
   function buildFullBundle() {

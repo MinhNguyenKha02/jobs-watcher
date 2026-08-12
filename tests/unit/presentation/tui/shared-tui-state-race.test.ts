@@ -1,5 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { unlinkSync, existsSync } from 'node:fs';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import { JobStage } from '../../../../src/domain/types/job-lifecycle.js';
 
 const TEST_STATE_PATH = '/tmp/test-tui-state-race.json';
@@ -23,7 +25,7 @@ function cleanState() {
   } catch {}
 }
 
-const { setCurrentJob, getCurrentJob, getQueueMode, setQueueMode, clearCurrentJob, resetState } =
+const { setCurrentJob, getCurrentJob, setQueueMode, clearCurrentJob, resetState } =
   await import('../../../../src/presentation/tui/shared-tui-state.js');
 
 describe('T3: Shared state file race condition', () => {

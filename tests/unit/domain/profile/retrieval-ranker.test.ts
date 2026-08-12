@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { RetrievalRanker } from '../../../../src/domain/profile/retrieval/ranking/retrieval-ranker.js';
 
+import { retrievalPolicy } from '../../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
 import { RankingFeaturesExtractor } from '../../../../src/domain/profile/retrieval/ranking/ranking-features.js';
 import { rankingPolicy } from '../../../../src/domain/profile/retrieval/ranking/ranking-policy.js';
-import { retrievalPolicy } from '../../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
+import { RetrievalRanker } from '../../../../src/domain/profile/retrieval/ranking/retrieval-ranker.js';
 import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js';
 
 describe('RetrievalRanker', () => {

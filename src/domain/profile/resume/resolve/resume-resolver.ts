@@ -1,30 +1,25 @@
 import {
+  RetrievalEvidenceScore,
+  HydratedArtifactBundle,
+} from '../../artifacts/types/artifact.types.js';
+import { RetrievalOutput } from '../../retrieval/contracts/retrieval.types.js';
+import { EvidenceRanker } from '../../retrieval/evidence/evidence-ranker.js';
+import { RetrievalLogger } from '../../retrieval/logging/retrieval-logger.js';
+import { retrievalPolicy } from '../../retrieval/policies/retrieval.policy.js';
+import { RetrievalRanker, RankedSignal } from '../../retrieval/ranking/retrieval-ranker.js';
+import { classifyResolutionStrength } from '../../retrieval/resolution/resolution-strength.js';
+import { RetrievalAcceptanceResolver } from '../../retrieval/resolver/retrieval-acceptance.resolver.js';
+import { EvidenceAttachmentValidator } from '../../retrieval/validation/evidence-attachment.validator.js';
+import { ResolveOutput } from '../../types/resolve.types.js';
+import {
   MatchSignal,
   AnchorNode,
   AnchorId,
   ResolutionStrength,
 } from '../../types/retrieval.types.js';
-
-import { RetrievalAcceptanceResolver } from '../../retrieval/resolver/retrieval-acceptance.resolver.js';
-
-import { retrievalPolicy } from '../../retrieval/policies/retrieval.policy.js';
-
-import { RetrievalOutput } from '../../retrieval/contracts/retrieval.types.js';
-
-import {
-  RetrievalEvidenceScore,
-  HydratedArtifactBundle,
-} from '../../artifacts/types/artifact.types.js';
-
-import { SkillKeyNormalizer } from '../normalization/skill-key-normalizer.js';
-import { RetrievalLogger } from '../../retrieval/logging/retrieval-logger.js';
-import { classifyResolutionStrength } from '../../retrieval/resolution/resolution-strength.js';
-import { RetrievalRanker, RankedSignal } from '../../retrieval/ranking/retrieval-ranker.js';
-import { EvidenceRanker } from '../../retrieval/evidence/evidence-ranker.js';
 import { AtsSkillGroupCompiler } from '../compiler/ats-skill-group.compiler.js';
 import type { AtsSkillSection } from '../compiler/ats-skill-group.compiler.js';
-import { EvidenceAttachmentValidator } from '../../retrieval/validation/evidence-attachment.validator.js';
-import { ResolveOutput } from '../../types/resolve.types.js';
+import { SkillKeyNormalizer } from '../normalization/skill-key-normalizer.js';
 
 export class ResumeResolver {
   private readonly acceptance = new RetrievalAcceptanceResolver(retrievalPolicy);

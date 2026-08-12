@@ -11,19 +11,55 @@
 import fs from 'node:fs';
 import http from 'node:http';
 
+import amqplib from 'amqplib';
 import fc from 'fast-check';
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
-import { ActionEvent } from '../../../../src/domain/types/action-event.js';
-import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
-import type { JobLifecyclePort } from '../../../../src/application/ports/job-lifecycle.port.js';
-import type { ExtractionQueuePort } from '../../../../src/application/ports/extraction-queue.port.js';
-import { udsHelpers } from '../../../helpers/e2e-harness.js';
-import { indeedEmailHtmlMany, indeedDetailHtml } from '../../../helpers/html-fixtures.js';
-import { makeStage1Partial } from '../../../helpers/test-builders.js';
-import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
+import type { ExtractionQueuePort } from '../../../src/application/ports/extraction-queue.port.js';
+import type { JobLifecyclePort } from '../../../src/application/ports/job-lifecycle.port.js';
+import { ActionEvent } from '../../../src/domain/types/action-event.js';
+import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
+import { getCurrentJob } from '../../../src/presentation/tui/shared-tui-state.js';
+import { udsHelpers } from '../../helpers/e2e-harness.js';
+import { indeedEmailHtmlMany, indeedDetailHtml } from '../../helpers/html-fixtures.js';
+import { makeStage1Partial } from '../../helpers/test-builders.js';
+import {
+  buildTestContainer,
+  buildTuiTestContainer,
+  type TestContainer,
+} from '../../helpers/test-container.js';
 
 const UDS_TOKEN = 'e2e-internal-token';
+
+const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
+
+async function waitFor(check: () => boolean, timeoutMs = 15000, intervalMs = 50): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (check()) return;
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  throw new Error(`waitFor timed out after ${timeoutMs}ms`);
+}
+
+async function purgeTuiQueues(ns: string): Promise<void> {
+  const conn = await amqplib.connect(RMQ_URL);
+  const ch = await conn.createChannel();
+  for (const suffix of ['s1', 's2', 's3s4']) {
+    try {
+      await ch.assertQueue(`tui.${ns}.${suffix}`);
+      await ch.purgeQueue(`tui.${ns}.${suffix}`);
+    } catch {
+      /* best-effort — a missing/closed queue is treated as empty */
+    }
+  }
+  try {
+    await ch.close();
+  } catch {
+    /* channel may already be closed by the server */
+  }
+  await conn.close();
+}
 
 const FULL_PARSED_HTML = indeedDetailHtml(
   'Backend Developer',
@@ -140,7 +176,7 @@ describe('c2 browser extraction + resolution cycle', () => {
   let uds: ReturnType<typeof udsHelpers>;
 
   beforeAll(async () => {
-    tc = await createTestContainer({ ns: 'c2-full-path', startScheduler: true });
+    tc = await buildTestContainer({ ns: 'c2-full-path', startScheduler: true });
     await tc.start();
     adapter = tc.mongoJobLifecycleAdapter;
     eqAdapter = tc.extractionQueueAdapter;
@@ -270,7 +306,7 @@ describe('c2 browser extraction + resolution cycle', () => {
     let udsB: ReturnType<typeof udsHelpers>;
 
     beforeAll(async () => {
-      tcB = await createTestContainer({ ns: 'c2-merge-def' });
+      tcB = await buildTestContainer({ ns: 'c2-merge-def' });
       await tcB.start();
       adapterB = tcB.mongoJobLifecycleAdapter;
       eqB = tcB.extractionQueueAdapter;
@@ -728,4 +764,55 @@ describe('c2 browser extraction + resolution cycle', () => {
       );
     }, 120000);
   });
+
+  it('GIVEN the tui-ioc precondition WHEN the daemon publishes S1+S2 over RMQ and the tui sends [d] over UDS THEN the tui reader mirrors then clears the job on the ipc seam (tui↔daemon over real RMQ+UDS) · path c2', async () => {
+    await purgeTuiQueues('c2-full-path');
+    const tui = await buildTuiTestContainer({ ns: 'c2-full-path' });
+    try {
+      await waitFor(() => tui.rmqReader.isConnected());
+      const jobId = 'c2-tui-boundary-1';
+
+      await tc.container.parseAdapter.emitGenerated(
+        {
+          _id: jobId,
+          role: 'Backend Developer',
+          company: 'BoundaryCo2',
+          stage: JobStage.PARTIAL_PARSED,
+        },
+        { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+      );
+      await waitFor(() => getCurrentJob().jobLifecycleId === jobId);
+      expect(getCurrentJob().stage).toBe(JobStage.PARTIAL_PARSED);
+
+      await tc.container.parseAdapter.emitCompleted(
+        {
+          _id: jobId,
+          role: 'Backend Developer',
+          company: 'BoundaryCo2',
+          description: 'boundary desc c2',
+          stage: JobStage.FULL_PARSED,
+          status: JobStatus.ENRICHED,
+        },
+        { stage: JobStage.FULL_PARSED, source: JobSource.MANUAL }
+      );
+      await waitFor(() => getCurrentJob().job?.description === 'boundary desc c2');
+      expect(getCurrentJob().stage).toBe(JobStage.FULL_PARSED);
+
+      await tc.mongoJobLifecycleAdapter.upsert({
+        _id: jobId,
+        company: 'BoundaryCo2',
+        role: 'Backend Developer',
+        description: 'boundary desc c2',
+        stage: JobStage.FULL_PARSED,
+        status: JobStatus.ENRICHED,
+        source: JobSource.MANUAL,
+      });
+
+      await tui.udsWriter.trash(jobId);
+      await waitFor(() => getCurrentJob().jobLifecycleId === null);
+      expect(getCurrentJob().job).toBeNull();
+    } finally {
+      await tui.stop();
+    }
+  }, 60000);
 });

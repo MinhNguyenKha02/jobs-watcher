@@ -1,11 +1,13 @@
 import 'dotenv/config';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import http from 'node:http';
 import fs from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
+
 import amqplib, { type Channel, type ChannelModel } from 'amqplib';
-import { UdsActionWriter } from '../../../../src/presentation/tui/components/UdsActionWriter.js';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+
+import { UdsActionWriter } from '../../../src/presentation/tui/components/UdsActionWriter.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 

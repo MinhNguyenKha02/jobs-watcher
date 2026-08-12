@@ -4,6 +4,7 @@
  */
 
 import { MongoClient, Collection } from 'mongodb';
+
 import type { ApplicationMetric } from './metrics-recorder.js';
 
 export class AnalyticsQueries {
@@ -56,7 +57,10 @@ export class AnalyticsQueries {
       { $sort: { count: -1 } },
       { $limit: limit },
     ];
-    const result = await this.collection.aggregate(pipeline).toArray();
+    const result = (await this.collection.aggregate(pipeline).toArray()) as Array<{
+      _id: string;
+      count: number;
+    }>;
     return result.map((r) => ({ gap: r._id, count: r.count }));
   }
 }

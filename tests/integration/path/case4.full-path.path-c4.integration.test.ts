@@ -1,22 +1,59 @@
 /* Path cell (c4): direct full-path clipboard 2b -> clip-* FULL_PARSED doc -> queue/trash resolution over UDS and the real-DIP bus (see plans/tests-path-matrix.md)
  * GWT cause-effect (path c4, no S1): GIVEN a clipboard [i] direct ingest WHEN [j]/[d] UDS resolution is applied
  *   THEN S3 QUEUED / S3 TRASHED (+ PDF asset) clip-* doc, duplicates dedupe (11000), latest-wins stays current. */
-import fc from 'fast-check';
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { readdirSync } from 'node:fs';
 
-import { ActionEvent } from '../../../../src/domain/types/action-event.js';
-import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
-import { udsHelpers } from '../../../helpers/e2e-harness.js';
+import amqplib from 'amqplib';
+import fc from 'fast-check';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+
+import { ActionEvent } from '../../../src/domain/types/action-event.js';
+import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
+import { getCurrentJob } from '../../../src/presentation/tui/shared-tui-state.js';
+import { udsHelpers } from '../../helpers/e2e-harness.js';
 import {
   linkedinSduiDetailHtml,
   topcvDetailHtml,
   nonJobHtml,
-} from '../../../helpers/html-fixtures.js';
-import type { RealDipBus } from '../../../helpers/real-dip-bus.js';
-import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
+} from '../../helpers/html-fixtures.js';
+import type { RealDipBus } from '../../helpers/real-dip-bus.js';
+import {
+  buildTestContainer,
+  buildTuiTestContainer,
+  type TestContainer,
+} from '../../helpers/test-container.js';
 
 const DIRECT_HTML = linkedinSduiDetailHtml('Backend Developer', 'CopyJuniorCompany');
+
+const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
+
+async function waitFor(check: () => boolean, timeoutMs = 15000, intervalMs = 50): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (check()) return;
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  throw new Error(`waitFor timed out after ${timeoutMs}ms`);
+}
+
+async function purgeTuiQueues(ns: string): Promise<void> {
+  const conn = await amqplib.connect(RMQ_URL);
+  const ch = await conn.createChannel();
+  for (const suffix of ['s1', 's2', 's3s4']) {
+    try {
+      await ch.assertQueue(`tui.${ns}.${suffix}`);
+      await ch.purgeQueue(`tui.${ns}.${suffix}`);
+    } catch {
+      /* best-effort — a missing/closed queue is treated as empty */
+    }
+  }
+  try {
+    await ch.close();
+  } catch {
+    /* channel may already be closed by the server */
+  }
+  await conn.close();
+}
 
 describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, dedupe and failure edges', () => {
   let tc: TestContainer;
@@ -24,7 +61,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
   let uds: ReturnType<typeof udsHelpers>;
 
   beforeAll(async () => {
-    tc = await createTestContainer({ ns: 'c4-full-path' });
+    tc = await buildTestContainer({ ns: 'c4-full-path' });
     await tc.start();
     realBus = tc.bus;
     uds = udsHelpers(tc.socket, 'e2e-internal-token');
@@ -362,4 +399,55 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       );
     });
   });
+
+  it('GIVEN the tui-ioc precondition WHEN the daemon publishes S1+S2 over RMQ and the tui sends [j] over UDS THEN the tui reader mirrors then clears the job on the ipc seam (tui↔daemon over real RMQ+UDS) · path c4', async () => {
+    await purgeTuiQueues('c4-full-path');
+    const tui = await buildTuiTestContainer({ ns: 'c4-full-path' });
+    try {
+      await waitFor(() => tui.rmqReader.isConnected());
+      const jobId = 'c4-tui-boundary-1';
+
+      await tc.container.parseAdapter.emitGenerated(
+        {
+          _id: jobId,
+          role: 'Backend Developer',
+          company: 'BoundaryCo4',
+          stage: JobStage.PARTIAL_PARSED,
+        },
+        { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+      );
+      await waitFor(() => getCurrentJob().jobLifecycleId === jobId);
+      expect(getCurrentJob().stage).toBe(JobStage.PARTIAL_PARSED);
+
+      await tc.container.parseAdapter.emitCompleted(
+        {
+          _id: jobId,
+          role: 'Backend Developer',
+          company: 'BoundaryCo4',
+          description: 'boundary desc c4',
+          stage: JobStage.FULL_PARSED,
+          status: JobStatus.ENRICHED,
+        },
+        { stage: JobStage.FULL_PARSED, source: JobSource.MANUAL }
+      );
+      await waitFor(() => getCurrentJob().job?.description === 'boundary desc c4');
+      expect(getCurrentJob().stage).toBe(JobStage.FULL_PARSED);
+
+      await tc.mongoJobLifecycleAdapter.upsert({
+        _id: jobId,
+        company: 'BoundaryCo4',
+        role: 'Backend Developer',
+        description: 'boundary desc c4',
+        stage: JobStage.FULL_PARSED,
+        status: JobStatus.ENRICHED,
+        source: JobSource.MANUAL,
+      });
+
+      await tui.udsWriter.queue(jobId);
+      await waitFor(() => getCurrentJob().jobLifecycleId === null);
+      expect(getCurrentJob().job).toBeNull();
+    } finally {
+      await tui.stop();
+    }
+  }, 60000);
 });

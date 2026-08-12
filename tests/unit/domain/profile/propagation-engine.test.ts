@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PropagationEngine } from '../../../../src/domain/profile/retrieval/propagation/propagation-engine.js';
+
 import { RetrievalPolicy } from '../../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
+import { PropagationEngine } from '../../../../src/domain/profile/retrieval/propagation/propagation-engine.js';
 import { MatchSignalBuilder } from '../../../../src/domain/profile/retrieval/scoring/match-signal.builder.js';
 import {
   AnchorId,

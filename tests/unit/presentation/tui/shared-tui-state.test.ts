@@ -1,14 +1,7 @@
+import { writeFileSync, readFileSync, unlinkSync, existsSync, openSync, closeSync } from 'node:fs';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  mkdirSync,
-  writeFileSync,
-  readFileSync,
-  unlinkSync,
-  existsSync,
-  renameSync,
-  openSync,
-  closeSync,
-} from 'node:fs';
+
 import { JobStage } from '../../../../src/domain/types/job-lifecycle.js';
 
 const TEST_STATE_PATH = '/tmp/test-tui-state.json';
@@ -32,7 +25,6 @@ const {
   resetState,
   setPreviewViewerModal,
   clearModal,
-  updatePreviewPage,
 } = await import('../../../../src/presentation/tui/shared-tui-state.js');
 
 function cleanState() {
@@ -74,12 +66,12 @@ describe('shared-tui-state', () => {
       const job = { _id: 'job-1', company: 'Acme', role: 'Junior Engineer' } as any;
       setCurrentJob('job-1', job, JobStage.PARTIAL_PARSED);
 
-      const enriched = { ...job, matchScore: 85 };
+      const enriched = { ...job, description: 'enriched full description' };
       setCurrentJob('job-1', enriched, JobStage.FULL_PARSED);
 
       const state = getCurrentJob();
       expect(state.stage).toBe(JobStage.FULL_PARSED);
-      expect(state.job?.matchScore).toBe(85);
+      expect(state.job?.description).toBe('enriched full description');
     });
 
     it('GIVEN shared WHEN exercised THEN rejects overwrite for different job ID in queue mode (S2+S1)', () => {

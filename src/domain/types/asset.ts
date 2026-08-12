@@ -1,9 +1,4 @@
-import { AtsSkillSection } from '../profile/resume/compiler/ats-skill-group.compiler.js';
-import {
-  EducationSource,
-  ExperienceSource,
-  ProjectSource,
-} from '../profile/source/source.types.js';
+import { EducationSource } from '../profile/source/source.types.js';
 
 export interface PdfAsset {
   name: string;

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { flattenJob, flattenJobDetails } from '../../../../src/domain/services/flatten-job.js';
 
 describe('flattenJob', () => {
@@ -76,14 +77,14 @@ describe('flattenJobDetails', () => {
     const result = flattenJobDetails({
       responsibilities: 'Main task',
       extraSections: {
-        Certifications: 'AWS Certified',
-        Languages: 'English, Vietnamese',
+        certifications: 'AWS Certified',
+        languages: 'English, Vietnamese',
       },
     });
 
-    expect(result).toContain('Certifications:');
+    expect(result).toContain('certifications:');
     expect(result).toContain('AWS Certified');
-    expect(result).toContain('Languages:');
+    expect(result).toContain('languages:');
   });
 
   it('GIVEN flattenJobDetails input "undefined" WHEN flattenJobDetails evaluates THEN returns empty string for undefined details', () => {

@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import { buildSystemContainer } from '../../../../src/application/container.js';
-import type { IngestorPort } from '../../../../src/application/ports/inbound/ingestor.port.js';
-import type { UdsAdapter } from '../../../../src/infrastructure/inbound/uds/uds-adapter.js';
-import http from 'node:http';
-import path from 'node:path';
 import fs from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
+import path from 'node:path';
+
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+
+import { buildDaemonContainer } from '../../../src/application/container.js';
+import type { IngestorPort } from '../../../src/application/ports/inbound/ingestor.port.js';
+import type { UdsAdapter } from '../../../src/infrastructure/inbound/uds/uds-adapter.js';
 
 const TOKEN = 'boundary-secret';
 
@@ -56,7 +58,7 @@ describe('Boundary failures at adapter boundaries', () => {
       processResolution: vi.fn().mockResolvedValue(undefined),
     };
 
-    adapter = buildSystemContainer(
+    adapter = buildDaemonContainer(
       {
         nodeEnv: 'test',
         mongodb: { uri: 'mongodb://localhost/jw-uds', dbName: 'unit' },

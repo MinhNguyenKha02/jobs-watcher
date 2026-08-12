@@ -1,5 +1,7 @@
-import { MongoClient, type Db, Collection } from 'mongodb';
+import { MongoClient, type Db } from 'mongodb';
+
 import { createLogger } from '../logging/logger.js';
+
 import { COLLECTIONS, INDEXES, ExtractionQueueDocument, JobLifecycleDocument } from './schemas.js';
 
 const logger = createLogger('MongoIntializer');

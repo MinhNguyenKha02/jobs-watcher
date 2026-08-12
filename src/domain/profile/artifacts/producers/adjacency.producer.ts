@@ -1,6 +1,5 @@
-import { AdjacencyEdge, AnchorId } from '../../types/retrieval.types.js';
-
 import { RelationNode, RelationsSource } from '../../source/source.types.js';
+import { AdjacencyEdge, AnchorId } from '../../types/retrieval.types.js';
 
 export class AdjacencyProducer {
   constructor(private readonly validAnchors: Set<AnchorId>) {}

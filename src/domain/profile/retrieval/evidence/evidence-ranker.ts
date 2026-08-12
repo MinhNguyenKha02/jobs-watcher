@@ -1,8 +1,9 @@
 // src/services/profile/retrieval/evidence/evidence-ranker.ts
 
+import { EvidenceNode } from '../../types/retrieval.types.js';
+
 import { EvidenceFeaturesExtractor } from './evidence-feature-extractor.js';
 import { evidenceRankingPolicy } from './evidence-ranking-policy.js';
-import { EvidenceNode } from '../../types/retrieval.types.js';
 
 /**
  * Ranks an evidence node by computing a score based on its features.
@@ -15,7 +16,7 @@ export class EvidenceRanker {
    */
   static scoreEvidence(evidence: EvidenceNode): number {
     const features = EvidenceFeaturesExtractor.extract(evidence);
-    let score =
+    const score =
       features.operationalScore * evidenceRankingPolicy.operationalWeight +
       features.architectureScore * evidenceRankingPolicy.architectureWeight +
       features.ownershipScore * evidenceRankingPolicy.ownershipWeight +

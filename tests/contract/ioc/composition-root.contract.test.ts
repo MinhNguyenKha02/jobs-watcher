@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { buildSystemContainer, type AppContainer } from '../../../src/application/container.js';
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+
+import { buildDaemonContainer, type DaemonContainer } from '../../../src/application/container.js';
 import { createTestStorage } from '../../helpers/create-test-storage.js';
 
 /**
@@ -13,14 +15,14 @@ import { createTestStorage } from '../../helpers/create-test-storage.js';
  */
 describe('Container conformance — IoC composition root', () => {
   let storage: Awaited<ReturnType<typeof createTestStorage>>;
-  let container: AppContainer;
+  let container: DaemonContainer;
   let assetDir: string;
 
   beforeAll(async () => {
     storage = await createTestStorage();
     assetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jobs-watcher-composition-root-assets-'));
     const exchange = 'jobs.events.int.composition-root';
-    container = buildSystemContainer(
+    container = buildDaemonContainer(
       {
         nodeEnv: 'test',
         mongodb: { uri: storage.uri, dbName: storage.dbName },

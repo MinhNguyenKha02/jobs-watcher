@@ -1,18 +1,21 @@
-import { describe, it, expect, beforeAll } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { describe, it, expect, beforeAll } from 'vitest';
+
+import type { ResolveOutput } from '../../../src/domain/profile/types/resolve.types.js';
+import { AssetProducingAdapter } from '../../../src/infrastructure/outbound/asset-builder/asset-producing-adapter.js';
+import { renderPdf } from '../../../src/infrastructure/outbound/asset-builder/renderer/pdf-renderer.js';
+
 import {
   createPipeline,
   runSingle,
   runWithDebug,
   flattenSkills,
   type CorpusEntry,
+  PipelineComponents,
 } from './helpers/run-pipeline.js';
-import type { PipelineComponents } from './helpers/run-pipeline.js';
-import type { ResolveOutput } from '../../../src/domain/profile/types/resolve.types.js';
-import { AssetProducingAdapter } from '../../../src/infrastructure/outbound/asset-builder/asset-producing-adapter.js';
-import { renderPdf } from '../../../src/infrastructure/outbound/asset-builder/renderer/pdf-renderer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

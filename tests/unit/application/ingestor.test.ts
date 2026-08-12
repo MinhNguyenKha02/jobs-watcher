@@ -5,9 +5,10 @@
  *   Path attribution: arrows in titles mark the c1/c2 cause→effect arc they belong to.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { buildSystemContainer } from '../../../src/application/container.js';
-import { JobStage, JobStatus, JobSource } from '../../../src/domain/types/job-lifecycle.js';
+
+import { buildDaemonContainer } from '../../../src/application/container.js';
 import type { IngestorPort } from '../../../src/application/ports/inbound/ingestor.port.js';
+import { JobStage, JobStatus, JobSource } from '../../../src/domain/types/job-lifecycle.js';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
 
 function mockPort() {
@@ -115,7 +116,7 @@ describe('JobIngestor', () => {
     // Unit decision rows resolve the SUT through the production composition
     // root with an explicit binding profile (mock ports at IoC). No start() is
     // called, so the graph is infra-free: app decisions only, never infra.
-    const container = buildSystemContainer(
+    const container = buildDaemonContainer(
       {
         nodeEnv: 'test',
         mongodb: { uri: 'mongodb://localhost/jw-unit', dbName: 'unit' },

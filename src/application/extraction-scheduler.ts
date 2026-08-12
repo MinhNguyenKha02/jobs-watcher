@@ -1,10 +1,11 @@
-import { createLogger } from '../infrastructure/outbound/logging/logger.js';
 import { JobSource, JobStage } from '../domain/types/job-lifecycle.js';
-import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
+import { createLogger } from '../infrastructure/outbound/logging/logger.js';
+import type { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
+
 import type { BrowserPort } from './ports/browser.port.js';
+import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
 import type { IngestorPort } from './ports/inbound/ingestor.port.js';
 import type { JobLifecyclePort } from './ports/job-lifecycle.port.js';
-import type { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
 
 const logger = createLogger('ExtractionScheduler');
 const WORKER_COUNT = 3;

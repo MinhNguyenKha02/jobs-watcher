@@ -402,7 +402,7 @@ function levelOf(file: string): string {
   if (file.includes('/integration/path/')) return 'integ-path';
   if (file.includes('/unit/application/')) return 'unit-app';
   if (file.includes('/unit/domain/')) return 'unit-domain';
-  if (file.includes('/adapter/') || file.includes('/ioc/')) return 'contract';
+  if (file.includes('/contract/')) return 'contract';
   if (file.includes('/integration/')) return 'integ';
   if (file.includes('/unit/')) return 'unit';
   return 'unit';

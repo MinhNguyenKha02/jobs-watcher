@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EvidenceRanker } from '../../../../src/domain/profile/retrieval/evidence/evidence-ranker.js';
+
 import { EvidenceFeaturesExtractor } from '../../../../src/domain/profile/retrieval/evidence/evidence-feature-extractor.js';
+import { EvidenceRanker } from '../../../../src/domain/profile/retrieval/evidence/evidence-ranker.js';
 import { evidenceRankingPolicy } from '../../../../src/domain/profile/retrieval/evidence/evidence-ranking-policy.js';
 import { EvidenceNode } from '../../../../src/domain/profile/types/retrieval.types.js';
 

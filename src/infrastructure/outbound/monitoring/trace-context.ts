@@ -6,8 +6,8 @@ export interface TraceContext {
 }
 
 export interface TraceHeaders {
-  'x-trace-id': string;
-  'x-parent-span-id'?: string;
+  xTraceId: string;
+  xParentSpanId?: string;
 }
 
 export function createTraceContext(parent?: TraceContext): TraceContext {
@@ -18,18 +18,18 @@ export function createTraceContext(parent?: TraceContext): TraceContext {
 }
 
 export function traceContextToHeaders(ctx: TraceContext): TraceHeaders {
-  const headers: TraceHeaders = { 'x-trace-id': ctx.traceId };
+  const headers: TraceHeaders = { xTraceId: ctx.traceId };
   if (ctx.parentSpanId) {
-    headers['x-parent-span-id'] = ctx.parentSpanId;
+    headers.xParentSpanId = ctx.parentSpanId;
   }
   return headers;
 }
 
-export function headersToTraceContext(headers: Record<string, unknown>): TraceContext | null {
-  const traceId = headers['x-trace-id'];
+export function headersToTraceContext(headers: TraceHeaders): TraceContext | null {
+  const traceId = headers.xTraceId;
   if (typeof traceId !== 'string' || !traceId) return null;
   const ctx: TraceContext = { traceId };
-  const parentSpanId = headers['x-parent-span-id'];
+  const parentSpanId = headers.xParentSpanId;
   if (typeof parentSpanId === 'string' && parentSpanId) {
     ctx.parentSpanId = parentSpanId;
   }

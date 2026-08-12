@@ -1,10 +1,11 @@
 import { spawn } from 'node:child_process';
 
-import { clipboardGetter } from './services/clipboard-getter.js';
+import { JobStage } from '../../domain/types/job-lifecycle.js';
 import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 
 import { KeyboardHandler, KeyAction } from './components/KeyboardHandler.js';
 import { UdsActionWriter } from './components/UdsActionWriter.js';
+import { clipboardGetter } from './services/clipboard-getter.js';
 import {
   getCurrentJob,
   getQueueMode,
@@ -13,7 +14,6 @@ import {
   setQueueMode,
   type ModalState,
 } from './shared-tui-state.js';
-import { JobStage } from '../../domain/types/job-lifecycle.js';
 
 const logger = createLogger('TUI-Actions');
 
@@ -263,7 +263,7 @@ export class ActionController {
       logger.debug('Action executed', {
         action: 'queue',
         jobLifecycleId: state.jobLifecycleId,
-        Signal: 3,
+        signal: 3,
         udsTookMs: udsTook,
       });
     } catch (err) {
@@ -300,7 +300,7 @@ export class ActionController {
       logger.debug('Action executed', {
         action: 'trash',
         jobLifecycleId: state.jobLifecycleId,
-        Signal: 3,
+        signal: 3,
         udsTookMs: udsTook,
       });
     } catch (err) {

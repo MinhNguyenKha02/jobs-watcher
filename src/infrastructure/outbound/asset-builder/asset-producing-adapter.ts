@@ -1,14 +1,15 @@
 import path from 'node:path';
-import { createLogger } from '../logging/logger.js';
-import type { AssetProducingPort } from '../../../application/ports/asset-producing.port.js';
-import { renderPdf } from './renderer/pdf-renderer.js';
-import { profileSource } from '../../../domain/profile/source/profile.source.js';
-import { ResolveOutput } from '../../../domain/profile/types/resolve.types.js';
-import { ProfileSource } from '../../../domain/profile/source/source.types.js';
-import { BuildResult, PdfAsset } from '../../../domain/types/asset.js';
 
+import type { AssetProducingPort } from '../../../application/ports/asset-producing.port.js';
 import { AtsSkillGroup } from '../../../domain/profile/resume/compiler/ats-skill-group.compiler.js';
 import { SkillKeyNormalizer } from '../../../domain/profile/resume/normalization/skill-key-normalizer.js';
+import { profileSource } from '../../../domain/profile/source/profile.source.js';
+import { ProfileSource } from '../../../domain/profile/source/source.types.js';
+import { ResolveOutput } from '../../../domain/profile/types/resolve.types.js';
+import { BuildResult, PdfAsset } from '../../../domain/types/asset.js';
+import { createLogger } from '../logging/logger.js';
+
+import { renderPdf } from './renderer/pdf-renderer.js';
 
 const logger = createLogger('AssetProducer');
 
@@ -25,6 +26,9 @@ export class AssetProducingAdapter implements AssetProducingPort {
   }
 
   async toAsset(resolved: ResolveOutput, outputDir?: string): Promise<BuildResult> {
+    if (!resolved) {
+      throw new Error('Resolved output is required to produce assets');
+    }
     const asset = this.toPdf(resolved, this.profile);
     this.result.pdfPath = await renderPdf(asset, outputDir ?? this.outputDir);
 
@@ -99,22 +103,22 @@ export class AssetProducingAdapter implements AssetProducingPort {
 
   private reSkillGroups(groups: AtsSkillGroup[]): AtsSkillGroup[] {
     const CATEGORY_REMAP: Record<string, string> = {
-      Backend: 'Backend',
-      Architecture: 'Backend',
-      Security: 'Backend',
-      Communication: 'Backend',
-      Fundamentals: 'Backend',
-      Frameworks: 'Backend',
-      Protocols: 'Backend',
-      Languages: 'Languages',
-      Databases: 'Databases',
-      Infrastructure: 'Infrastructure',
-      Testing: 'Testing',
-      Observability: 'Observability',
+      backend: 'Backend',
+      architecture: 'Backend',
+      security: 'Backend',
+      communication: 'Backend',
+      fundamentals: 'Backend',
+      frameworks: 'Backend',
+      protocols: 'Backend',
+      languages: 'Languages',
+      databases: 'Databases',
+      infrastructure: 'Infrastructure',
+      testing: 'Testing',
+      observability: 'Observability',
     };
     const merged = new Map<string, Set<string>>();
     for (const group of groups) {
-      const target = CATEGORY_REMAP[group.label];
+      const target = CATEGORY_REMAP[group.label.toLowerCase()];
       if (!target) continue;
       if (!merged.has(target)) merged.set(target, new Set());
       for (const skill of group.skills) {

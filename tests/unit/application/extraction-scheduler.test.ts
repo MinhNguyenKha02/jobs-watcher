@@ -4,7 +4,8 @@
  *   THEN processIngest(S2 FULL_PARSED) on success, or PARTIAL_PARSED fallback on failure — queue keeps draining.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { buildSystemContainer } from '../../../src/application/container.js';
+
+import { buildDaemonContainer } from '../../../src/application/container.js';
 import type { ExtractionScheduler } from '../../../src/application/extraction-scheduler.js';
 import { JobSource, JobStage } from '../../../src/domain/types/job-lifecycle.js';
 
@@ -58,7 +59,7 @@ describe('ExtractionScheduler', () => {
     // Resolve SUT through the production composition root with an explicit
     // binding profile (extractionQueue/browser/jobLifecycle/ingestor fakes at
     // IoC). No start() is called, so the graph is infra-free.
-    scheduler = buildSystemContainer(
+    scheduler = buildDaemonContainer(
       {
         nodeEnv: 'test',
         mongodb: { uri: 'mongodb://localhost/jw-unit', dbName: 'unit' },

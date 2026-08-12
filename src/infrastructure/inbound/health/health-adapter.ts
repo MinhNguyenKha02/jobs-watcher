@@ -1,4 +1,5 @@
 import express, { type Request, type Response } from 'express';
+
 import { createLogger } from '../../outbound/logging/logger.js';
 import type { MetricsRegistry } from '../../outbound/monitoring/metrics-registry.js';
 import { SystemMonitor } from '../../outbound/monitoring/system-monitor.js';

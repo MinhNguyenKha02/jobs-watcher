@@ -9,16 +9,19 @@ import { createLogger } from '../../../infrastructure/outbound/logging/logger.js
 
 export class AnsiTerminal {
   private originalRawMode: boolean = false;
-  private originalTermios: any = null;
+
+  private get stdinWithRawMode(): NodeJS.ReadStream & { isRawMode?: () => boolean } {
+    return process.stdin as NodeJS.ReadStream & { isRawMode?: () => boolean };
+  }
 
   /**
    * Enable raw mode for single-character input without buffering.
    */
   enableRawMode(): void {
     try {
-      if (process.stdin.isTTY) {
-        this.originalRawMode = (process.stdin as any).isRawMode?.() ?? false;
-        process.stdin.setRawMode(true);
+      if (this.stdinWithRawMode.isTTY) {
+        this.originalRawMode = this.stdinWithRawMode.isRawMode?.() ?? false;
+        this.stdinWithRawMode.setRawMode(true);
       }
     } catch (err) {
       createLogger('AnsiTerminal').error('Failed to enable raw mode', { error: err });
@@ -30,8 +33,8 @@ export class AnsiTerminal {
    */
   restoreTerminal(): void {
     try {
-      if (process.stdin.isTTY && (process.stdin as any).isRawMode?.()) {
-        process.stdin.setRawMode(false);
+      if (this.stdinWithRawMode.isTTY && this.stdinWithRawMode.isRawMode?.()) {
+        this.stdinWithRawMode.setRawMode(false);
       }
     } catch (err) {
       createLogger('AnsiTerminal').error('Failed to restore terminal', { error: err });

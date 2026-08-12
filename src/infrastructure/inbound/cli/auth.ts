@@ -1,9 +1,9 @@
-import { google } from 'googleapis';
-import http from 'http';
-import url from 'url';
 import fs from 'fs';
+import http from 'http';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import url, { fileURLToPath } from 'url';
+
+import { google } from 'googleapis';
 import open from 'open';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,10 +34,15 @@ async function authenticate() {
     process.exit(1);
   }
 
-  const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
-  const { client_secret, client_id, redirect_uris } = credentials.installed || credentials.web;
+  const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8')) as {
+    installed?: { client_secret?: string; client_id?: string; redirect_uris?: string[] };
+    web?: { client_secret?: string; client_id?: string; redirect_uris?: string[] };
+  };
+  const { client_secret, client_id, redirect_uris } =
+    credentials.installed || credentials.web || {};
+  const firstRedirectUri = redirect_uris?.[0];
 
-  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, firstRedirectUri);
 
   // Generate auth URL
   const authUrl = oAuth2Client.generateAuthUrl({

@@ -1,12 +1,10 @@
-import { AnchorId, LexicalSurface } from '../../types/retrieval.types.js';
-
+import { RelationNode, RelationsSource } from '../../source/source.types.js';
 import {
   englishTemplates,
   vietnameseTemplates,
   vendorTemplates,
 } from '../../source/templates.source.js';
-
-import { RelationNode, RelationsSource } from '../../source/source.types.js';
+import { AnchorId, LexicalSurface } from '../../types/retrieval.types.js';
 
 const TEMPLATE_KINDS = ['responsibility', 'requirement', 'preference'] as const;
 

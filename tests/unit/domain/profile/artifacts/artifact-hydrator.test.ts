@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+
 import { ArtifactHydrator } from '../../../../../src/domain/profile/artifacts/loaders/artifact-hydrator.js';
 import type { ArtifactBundle } from '../../../../../src/domain/profile/artifacts/types/artifact.types.js';
 
@@ -8,7 +9,7 @@ vi.mock('../../../../../src/services/profile/artifacts/producers/aho.producer.js
       search: vi.fn(() => []),
       insert: vi.fn(),
       buildFallbackLinks: vi.fn(),
-      _surfaceCount: surfaces.length,
+      surfaceCount: surfaces.length,
     })),
   })),
 }));

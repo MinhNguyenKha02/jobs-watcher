@@ -6,8 +6,8 @@
  * for gap analysis, recruiter fit scoring, and learning loops.
  */
 
-import { RetrievalPolicy, retrievalPolicy } from '../policies/retrieval.policy.js';
 import { MatchSignal, ResolutionStrength } from '../../types/retrieval.types.js';
+import { RetrievalPolicy, retrievalPolicy } from '../policies/retrieval.policy.js';
 
 /**
  * Classifies a match signal into a resolution strength category based on the final score and signal characteristics.

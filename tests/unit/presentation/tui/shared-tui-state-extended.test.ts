@@ -1,5 +1,7 @@
+import { unlinkSync, existsSync, writeFileSync } from 'node:fs';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { unlinkSync, existsSync, writeFileSync, readFileSync } from 'node:fs';
+
 import { JobStage } from '../../../../src/domain/types/job-lifecycle.js';
 
 const TEST_STATE_PATH = '/tmp/test-tui-state-ext.json';
@@ -20,7 +22,6 @@ vi.mock('node:fs', async (importOriginal) => {
 const {
   setCurrentJob,
   getCurrentJob,
-  getQueueMode,
   setQueueMode,
   clearCurrentJob,
   resetState,
@@ -126,14 +127,14 @@ describe('shared-tui-state extended: setCurrentJob guard', () => {
     const job1 = { _id: 'job-same', company: 'Co', role: 'Engineer' } as any;
     setCurrentJob('job-same', job1, JobStage.PARTIAL_PARSED);
 
-    const job2 = { ...job1, role: 'Senior Engineer', matchScore: 90 };
+    const job2 = { ...job1, role: 'Senior Engineer', description: 'enriched description' };
     setCurrentJob('job-same', job2, JobStage.FULL_PARSED);
 
     const state = getCurrentJob();
     expect(state.jobLifecycleId).toBe('job-same');
     expect(state.stage).toBe(JobStage.FULL_PARSED);
     expect(state.job?.role).toBe('Senior Engineer');
-    expect(state.job?.matchScore).toBe(90);
+    expect(state.job?.description).toBe('enriched description');
   });
 
   it('GIVEN shared WHEN exercised THEN allows latest-wins overwrite with different job ID in direct mode (B17) (S2)', () => {

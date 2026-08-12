@@ -5,10 +5,10 @@
  * Implements singleton pattern for artifact bundle hydration.
  */
 
-import { ArtifactLoader } from './artifact.loader.js';
-import { ArtifactHydrator } from './artifact-hydrator.js';
-
 import type { HydratedArtifactBundle } from '../types/artifact.types.js';
+
+import { ArtifactHydrator } from './artifact-hydrator.js';
+import { ArtifactLoader } from './artifact.loader.js';
 
 /**
  * Singleton artifact registry that caches the hydrated artifact bundle.

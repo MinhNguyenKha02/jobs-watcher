@@ -5,7 +5,8 @@
  * - Logs all filter reasons and missing/ambiguous fields
  */
 
-import type { Job, JobDetails } from '../types/job.js';
+import type { Job } from '../types/job.js';
+
 import { matchesRole, matchesLang, matchesExperience, JobFilterResult } from './constraints.js';
 
 export interface FilterOptions {

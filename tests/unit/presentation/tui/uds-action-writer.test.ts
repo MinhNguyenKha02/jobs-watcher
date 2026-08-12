@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, writeFileSync, unlinkSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdtempSync, writeFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../../src/presentation/tui/services/clipboard-getter.js', () => ({
   clipboardGetter: vi.fn().mockResolvedValue(['<div>test clipboard</div>']),
@@ -19,7 +20,7 @@ describe('UdsActionWriter reliability', () => {
   let tmpDir: string;
   let validSocketPath: string;
   let missingSocketPath: string;
-  let writer: UdsActionWriter;
+  let writer: InstanceType<typeof UdsActionWriter>;
 
   beforeEach(() => {
     tmpDir = mkdtempSync(join(tmpdir(), 'uds-test-'));
@@ -40,18 +41,18 @@ describe('UdsActionWriter reliability', () => {
   describe('sendAction socket existence check', () => {
     it('GIVEN socket does not exist WHEN writer.queue THEN throws', async () => {
       writer = new UdsActionWriter(missingSocketPath, 'test-token');
-      await expect(writer.queue('job-1', {})).rejects.toThrow(/UDS socket not found/);
+      await expect(writer.queue('job-1')).rejects.toThrow(/UDS socket not found/);
     });
 
     it('GIVEN socket exists WHEN writer.queue THEN succeeds', async () => {
       writer = new UdsActionWriter(validSocketPath, 'test-token');
-      await expect(writer.queue('job-1', {})).resolves.toBeUndefined();
+      await expect(writer.queue('job-1')).resolves.toBeUndefined();
       expect(mockPostJsonOverUds).toHaveBeenCalledTimes(1);
     });
 
     it('GIVEN UdsActionWriter WHEN writer.queue THEN throws immediately without retrying on missing socket (fs check is pre-request)', async () => {
       writer = new UdsActionWriter(missingSocketPath, 'test-token');
-      await expect(writer.queue('job-1', {})).rejects.toThrow(/UDS socket not found/);
+      await expect(writer.queue('job-1')).rejects.toThrow(/UDS socket not found/);
       expect(mockPostJsonOverUds).not.toHaveBeenCalled();
     });
   });
@@ -59,7 +60,7 @@ describe('UdsActionWriter reliability', () => {
   describe('sendAction retry logic', () => {
     it('GIVEN UdsActionWriter WHEN writer.queue THEN succeeds on first attempt', async () => {
       writer = new UdsActionWriter(validSocketPath, 'test-token');
-      await writer.queue('job-1', {});
+      await writer.queue('job-1');
       expect(mockPostJsonOverUds).toHaveBeenCalledTimes(1);
     });
 
@@ -69,7 +70,7 @@ describe('UdsActionWriter reliability', () => {
         .mockResolvedValueOnce({ statusCode: 202, body: '{"accepted":true}' });
 
       writer = new UdsActionWriter(validSocketPath, 'test-token');
-      await writer.queue('job-retry', {});
+      await writer.queue('job-retry');
       expect(mockPostJsonOverUds).toHaveBeenCalledTimes(2);
     });
 
@@ -77,7 +78,7 @@ describe('UdsActionWriter reliability', () => {
       mockPostJsonOverUds.mockRejectedValue(new Error('ECONNREFUSED'));
 
       writer = new UdsActionWriter(validSocketPath, 'test-token');
-      await expect(writer.trash('job-fail', {})).rejects.toThrow('ECONNREFUSED');
+      await expect(writer.trash('job-fail')).rejects.toThrow('ECONNREFUSED');
       expect(mockPostJsonOverUds).toHaveBeenCalledTimes(3);
     });
 
@@ -88,7 +89,7 @@ describe('UdsActionWriter reliability', () => {
         .mockResolvedValueOnce({ statusCode: 202, body: '{"accepted":true}' });
 
       writer = new UdsActionWriter(validSocketPath, 'test-token');
-      await writer.queue('job-recover', {});
+      await writer.queue('job-recover');
       expect(mockPostJsonOverUds).toHaveBeenCalledTimes(3);
     });
   });

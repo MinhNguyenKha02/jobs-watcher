@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { SkillKeyNormalizer } from '../../../../src/domain/profile/resume/normalization/skill-key-normalizer.js';
 
 describe('SkillKeyNormalizer', () => {

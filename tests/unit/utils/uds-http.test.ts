@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import http from 'node:http';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 let mockReq: any;
 let mockResponses: Array<{ statusCode: number; body: string }>;

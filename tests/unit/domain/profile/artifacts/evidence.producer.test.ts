@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { EvidenceProducer } from '../../../../../src/domain/profile/artifacts/producers/evidence.producer.js';
 import type {
   ProfileSource,

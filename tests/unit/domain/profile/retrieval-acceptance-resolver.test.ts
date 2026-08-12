@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { RetrievalAcceptanceResolver } from '../../../../src/domain/profile/retrieval/resolver/retrieval-acceptance.resolver.js';
+
 import { RetrievalPolicy } from '../../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
+import { RetrievalAcceptanceResolver } from '../../../../src/domain/profile/retrieval/resolver/retrieval-acceptance.resolver.js';
 import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js';
 
 describe('RetrievalAcceptanceResolver', () => {

@@ -1,12 +1,14 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
 import http from 'http';
-import { buildSystemContainer } from '../../../../src/application/container.js';
-import type { IngestorPort } from '../../../../src/application/ports/inbound/ingestor.port.js';
-import { JobStage, JobSource } from '../../../../src/domain/types/job-lifecycle.js';
+
+import { describe, it, expect, vi, afterEach } from 'vitest';
+
+import { buildDaemonContainer } from '../../../src/application/container.js';
+import type { IngestorPort } from '../../../src/application/ports/inbound/ingestor.port.js';
+import { JobStage, JobSource } from '../../../src/domain/types/job-lifecycle.js';
 import type {
   GmailClient,
   WebhookAdapter,
-} from '../../../../src/infrastructure/inbound/web/webhook-adapter.js';
+} from '../../../src/infrastructure/inbound/web/webhook-adapter.js';
 
 const CLIPBOARD_HTML = `<html><body>
 <div class="job-detail__info--title"><h1>Software Engineer</h1></div>
@@ -96,7 +98,7 @@ describe('PRC-006 — Webhook adapter contract', () => {
    * so the adapter under test is the container-resolved one.
    */
   function boot(gmail: GmailClient, ingestor: IngestorPort) {
-    const container = buildSystemContainer(
+    const container = buildDaemonContainer(
       {
         nodeEnv: 'test',
         mongodb: { uri: 'mongodb://localhost/jw-webhook', dbName: 'unit' },
@@ -234,10 +236,10 @@ describe('PRC-006 — Webhook adapter contract', () => {
       extractHeader: vi.fn(
         (_m: unknown, name: string) =>
           ({
-            Subject: 'Re: Job Alert',
-            From: 'jobs@topcv.vn',
-            To: 'me@dev.vn',
-            'Message-ID': 'thr-42',
+            subject: 'Re: Job Alert',
+            from: 'jobs@topcv.vn',
+            to: 'me@dev.vn',
+            'message-id': 'thr-42',
           })[name] || ''
       ),
     });

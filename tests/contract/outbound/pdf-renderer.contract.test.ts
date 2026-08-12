@@ -1,9 +1,11 @@
-import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
-import { renderPdf } from '../../../../src/infrastructure/outbound/asset-builder/renderer/pdf-renderer.js';
-import type { PdfAsset } from '../../../../src/domain/types/asset.js';
+import path from 'node:path';
+
+import { describe, it, expect } from 'vitest';
+
+import type { PdfAsset } from '../../../src/domain/types/asset.js';
+import { renderPdf } from '../../../src/infrastructure/outbound/asset-builder/renderer/pdf-renderer.js';
 
 function makeAsset(overrides?: Partial<PdfAsset>): PdfAsset {
   return {

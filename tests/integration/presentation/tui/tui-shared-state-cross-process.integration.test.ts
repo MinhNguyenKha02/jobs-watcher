@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { execFile } from 'node:child_process';
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import fs from 'node:fs';
-import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 const statePath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'tui-xproc-')), 'tui-state.json');
 process.env.TUI_SHARED_STATE_PATH = statePath;

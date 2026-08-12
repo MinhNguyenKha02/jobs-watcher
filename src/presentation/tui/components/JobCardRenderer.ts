@@ -7,6 +7,7 @@
  */
 
 import type { Job, JobDetails } from '../../../domain/types/job.js';
+
 import { KeyAction } from './KeyboardHandler.js';
 
 export interface CardStatus {

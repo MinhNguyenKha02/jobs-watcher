@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
-import type { JobLifecyclePort } from '../../../../src/application/ports/job-lifecycle.port.js';
-import { JobStage, JobSource, JobStatus } from '../../../../src/domain/types/job-lifecycle.js';
-import type { JobLifecycleDocument } from '../../../../src/domain/types/job-lifecycle.js';
+
+import type { JobLifecyclePort } from '../../../src/application/ports/job-lifecycle.port.js';
+import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
+import type { JobLifecycleDocument } from '../../../src/domain/types/job-lifecycle.js';
+import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
 
 const now = new Date();
 
@@ -28,7 +29,7 @@ describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
   let collection: any;
 
   beforeAll(async () => {
-    tc = await createTestContainer({ ns: 'app-ingestor-storage' });
+    tc = await buildTestContainer({ ns: 'app-ingestor-storage' });
     await tc.start();
     adapter = tc.mongoJobLifecycleAdapter;
     collection = tc.db.collection('job_lifecycle');

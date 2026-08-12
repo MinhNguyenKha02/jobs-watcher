@@ -1,4 +1,5 @@
 import amqplib, { type Channel } from 'amqplib';
+
 import { createLogger } from '../logging/logger.js';
 
 const logger = createLogger('RabbitMq');

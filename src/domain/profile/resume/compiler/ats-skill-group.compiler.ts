@@ -1,8 +1,9 @@
-import { MatchSignal, AnchorNode } from '../../types/retrieval.types.js';
 import { retrievalPolicy } from '../../retrieval/policies/retrieval.policy.js';
-import { SkillKeyNormalizer } from '../normalization/skill-key-normalizer.js';
-import { AtsSkillGroupMapper } from './ats-skill-group.mapper.js';
+import { MatchSignal, AnchorNode } from '../../types/retrieval.types.js';
 import { SkillClusterResolver } from '../normalization/skill-cluster-resolver.js';
+import { SkillKeyNormalizer } from '../normalization/skill-key-normalizer.js';
+
+import { AtsSkillGroupMapper } from './ats-skill-group.mapper.js';
 
 export interface AtsSkillGroup {
   label: string;

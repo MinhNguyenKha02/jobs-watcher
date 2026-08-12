@@ -4,7 +4,6 @@ import {
   ProfileSource,
   ProjectSource,
 } from '../../source/source.types.js';
-
 import { AnchorId, EvidenceBullet, EvidenceId, EvidenceNode } from '../../types/retrieval.types.js';
 
 export class EvidenceProducer {

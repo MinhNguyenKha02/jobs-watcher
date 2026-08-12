@@ -11,12 +11,12 @@ import {
   watch,
   statSync,
 } from 'node:fs';
-import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
 
-import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
-import type { Job } from '../../domain/types/job.js';
 import { JobStage } from '../../domain/types/job-lifecycle.js';
+import type { Job } from '../../domain/types/job.js';
+import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 
 const logger = createLogger('TUI-State');
 
@@ -88,9 +88,6 @@ function createDefaultModeSubState(): ModeSubState {
   };
 }
 
-const ACTIVE_SUB = Symbol('activeSub');
-type RootWithActive = TuiSharedState & { [ACTIVE_SUB]: ModeSubState };
-
 let sharedState: TuiSharedState = {
   version: STATE_VERSION,
   queueMode: true,
@@ -112,26 +109,26 @@ function readSharedStateFromDisk(): TuiSharedState {
 
     // v1 → v2 migration
     if (parsed.version === 1 || (!parsed.version && parsed.messageId !== undefined)) {
-      const old = parsed as any;
       const queue: ModeSubState = {
-        jobLifecycleId: typeof old.messageId === 'string' ? old.messageId : null,
-        job: old.job && typeof old.job === 'object' ? (old.job as Job) : null,
+        jobLifecycleId: typeof parsed.messageId === 'string' ? parsed.messageId : null,
+        job: parsed.job && typeof parsed.job === 'object' ? (parsed.job as Job) : null,
         stage:
-          old.stage === JobStage.PARTIAL_PARSED || old.stage === 'PARTIAL'
+          parsed.stage === JobStage.PARTIAL_PARSED || parsed.stage === 'PARTIAL'
             ? JobStage.PARTIAL_PARSED
-            : old.stage === JobStage.FULL_PARSED || old.stage === 'FULL_PARSED'
+            : parsed.stage === JobStage.FULL_PARSED || parsed.stage === 'FULL_PARSED'
               ? JobStage.FULL_PARSED
               : null,
         editedFields:
-          old.editedFields && typeof old.editedFields === 'object'
-            ? (old.editedFields as Record<string, unknown>)
+          parsed.editedFields && typeof parsed.editedFields === 'object'
+            ? (parsed.editedFields as Record<string, unknown>)
             : null,
-        modal: old.modal && typeof old.modal === 'object' ? (old.modal as ModalState) : null,
+        modal:
+          parsed.modal && typeof parsed.modal === 'object' ? (parsed.modal as ModalState) : null,
       };
       const migrated: TuiSharedState = {
         version: STATE_VERSION,
         queueMode: true,
-        updatedAt: typeof old.updatedAt === 'string' ? old.updatedAt : null,
+        updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : null,
         queue,
         direct: createDefaultModeSubState(),
       };
@@ -193,8 +190,8 @@ function acquireExclusiveLock(): string {
       const fd = openSync(lockPath, 'wx');
       closeSync(fd);
       return lockPath;
-    } catch (err: any) {
-      if (err.code !== 'EEXIST') throw err;
+    } catch (err: unknown) {
+      if ((err as { code?: string }).code !== 'EEXIST') throw err;
       try {
         const st = statSync(lockPath);
         if (Date.now() - st.mtimeMs > STALE_LOCK_MS) {

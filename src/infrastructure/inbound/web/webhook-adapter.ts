@@ -1,11 +1,12 @@
+import type { Server } from 'http';
+
 import express, { type Request, type Response } from 'express';
-import { createLogger } from '../../outbound/logging/logger.js';
+
 import type { IngestorPort } from '../../../application/ports/inbound/ingestor.port.js';
 import { JobStage, JobSource } from '../../../domain/types/job-lifecycle.js';
+import { createLogger } from '../../outbound/logging/logger.js';
 
 const logger = createLogger('Webhook');
-
-import type { Server } from 'http';
 
 interface PubSubPushPayload {
   message?: {
@@ -19,7 +20,7 @@ interface PubSubPushPayload {
 
 function decodeBase64Json(data: string): Record<string, unknown> {
   try {
-    return JSON.parse(Buffer.from(data, 'base64').toString('utf-8'));
+    return JSON.parse(Buffer.from(data, 'base64').toString('utf-8')) as Record<string, unknown>;
   } catch {
     return {};
   }
@@ -90,9 +91,9 @@ export class WebhookAdapter {
 
         const gmailMsg = await this.gmail.getMessage(gmailMessageId);
         const rawPayload = this.gmail.extractBody(gmailMsg);
-        const subject = this.gmail.extractHeader(gmailMsg, 'Subject');
-        const from = this.gmail.extractHeader(gmailMsg, 'From');
-        const to = this.gmail.extractHeader(gmailMsg, 'To');
+        const subject = this.gmail.extractHeader(gmailMsg, 'subject');
+        const from = this.gmail.extractHeader(gmailMsg, 'from');
+        const to = this.gmail.extractHeader(gmailMsg, 'to');
 
         if (!rawPayload.trim()) {
           logger.warn('Empty email body after extraction', { gmailMessageId });
@@ -107,7 +108,7 @@ export class WebhookAdapter {
           undefined,
           {
             messageId: gmailMessageId,
-            threadId: this.gmail.extractHeader(gmailMsg, 'Message-ID') || '',
+            threadId: this.gmail.extractHeader(gmailMsg, 'message-id') || '',
             from,
             to,
             subject,

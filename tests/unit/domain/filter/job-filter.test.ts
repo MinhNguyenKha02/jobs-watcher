@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'vitest';
+
 import { hybridJobFilter } from '../../../../src/domain/filter/job-filter.js';
 
 function makeJob(overrides: Record<string, unknown>) {

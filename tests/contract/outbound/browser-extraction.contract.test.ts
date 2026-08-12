@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'node:http';
-import { PlaywrightBrowserAdapter } from '../../../../src/infrastructure/outbound/browser/browser-adapter.js';
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+
+import { PlaywrightBrowserAdapter } from '../../../src/infrastructure/outbound/browser/browser-adapter.js';
 
 const FIXTURE_HTML = `<html><body><div class="test-fixture"><h1>Integration Test</h1><p>Hello from Playwright + stealth</p></div></body></html>`;
 

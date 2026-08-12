@@ -1,7 +1,9 @@
 import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
-import type { Job, JobDetails } from '../../types/job.js';
+import type { Element } from 'domhandler';
+
 import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
+import type { Job, JobDetails } from '../../types/job.js';
 
 const logger = createLogger('HtmlParser');
 
@@ -77,7 +79,7 @@ function extractSectionByInlineLabel($: CheerioAPI, patterns: string[]): string 
 }
 
 function extractInlineStrongSections($: CheerioAPI): TopCvSection[] {
-  const candidates: Array<{ el: any; title: string }> = [];
+  const candidates: Array<{ el: Element; title: string }> = [];
 
   $('strong, b').each((_, el) => {
     const raw = $(el).text().trim();
@@ -115,24 +117,6 @@ function extractInlineStrongSections($: CheerioAPI): TopCvSection[] {
     if (content) sections.push({ title: candidates[i].title, content });
   }
 
-  return sections;
-}
-
-function extractHeadingSections($: CheerioAPI): TopCvSection[] {
-  const sections: TopCvSection[] = [];
-  $('h2, h3').each((_, el) => {
-    const title = cleanText($(el).text());
-    if (!title) return;
-    const texts: string[] = [];
-    $(el)
-      .nextUntil('h2, h3')
-      .each((_, sib) => {
-        const t = $(sib).text().trim();
-        if (t) texts.push(t);
-      });
-    const content = cleanText(texts.join(' '));
-    if (content) sections.push({ title, content });
-  });
   return sections;
 }
 
@@ -671,7 +655,7 @@ export class HtmlJobParser {
       return found?.content || '';
     };
 
-    let responsibilities = sectionByTitle(
+    const responsibilities = sectionByTitle(
       (title) =>
         title.includes('responsibilities') ||
         title.includes('what you will do') ||

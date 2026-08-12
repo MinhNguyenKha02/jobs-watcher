@@ -1,8 +1,9 @@
 import type { ParsePort } from '../../../application/ports/parse.port.js';
-import type { JobLifecycleDocument } from '../../outbound/persistence/schemas.js';
-import type { RabbitMqConnection } from './rabbitmq-connection.js';
 import { ActionEvent } from '../../../domain/types/action-event.js';
+import type { JobLifecycleDocument } from '../../outbound/persistence/schemas.js';
 import { traceContextToHeaders, type TraceContext } from '../monitoring/trace-context.js';
+
+import type { RabbitMqConnection } from './rabbitmq-connection.js';
 
 export class RabbitMqParseAdapter implements ParsePort {
   constructor(

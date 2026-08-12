@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import { EvidenceRanker } from '../../../../src/domain/profile/retrieval/evidence/evidence-ranker.js';
 import { RankingFeaturesExtractor } from '../../../../src/domain/profile/retrieval/ranking/ranking-features.js';
 import { MatchSignal } from '../../../../src/domain/profile/types/retrieval.types.js';
 
 vi.mock('../../../../src/services/profile/retrieval/evidence/evidence-ranker.js');
-
-import { EvidenceRanker } from '../../../../src/domain/profile/retrieval/evidence/evidence-ranker.js';
 
 function makeSignal(id: string, overrides: Partial<MatchSignal> = {}): MatchSignal {
   return {

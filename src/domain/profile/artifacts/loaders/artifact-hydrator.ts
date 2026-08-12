@@ -1,5 +1,4 @@
 import { AhoProducer } from '../producers/aho.producer.js';
-
 import { ArtifactBundle, HydratedArtifactBundle } from '../types/artifact.types.js';
 
 export class ArtifactHydrator {

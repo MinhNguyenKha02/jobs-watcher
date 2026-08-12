@@ -34,12 +34,17 @@ function isHtmlLike(text: string): boolean {
   return /<html|<body|<div|<article|<main|<section/i.test(text);
 }
 
-// Simulate clipboard setter for tests: injects raw HTML as clipboard content
-export function clipboardSetter(html: string) {
-  (global as any).__clipboardJob = html;
+declare global {
+  // eslint-disable-next-line no-var
+  var __clipboardJob: string | undefined;
 }
 
-async function getFixtureClipboard(): Promise<any[]> {
+// Simulate clipboard setter for tests: injects raw HTML as clipboard content
+export function clipboardSetter(html: string) {
+  global.__clipboardJob = html;
+}
+
+async function getFixtureClipboard(): Promise<string[]> {
   const {
     indeedPlatformPageHtml1,
     indeedPlatformPageHtml2,
@@ -47,8 +52,8 @@ async function getFixtureClipboard(): Promise<any[]> {
     linkedinPlatformPageHtml2,
   } = await loadClipboardFixtures();
 
-  if ((global as any).__clipboardJob) {
-    const text = (global as any).__clipboardJob;
+  if (global.__clipboardJob) {
+    const text = global.__clipboardJob;
     const currentHash = toHash(text);
     if (currentHash === lastClipboardHash) {
       return [];
@@ -64,7 +69,7 @@ async function getFixtureClipboard(): Promise<any[]> {
   ];
 }
 
-export async function clipboardGetter(): Promise<any[]> {
+export async function clipboardGetter(): Promise<string[]> {
   const fixtureMode = isClipboardFixtureModeEnabled();
 
   if (fixtureMode) {

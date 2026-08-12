@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { createTestContainer, type TestContainer } from '../../helpers/test-container.js';
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+
 import { ProfileInfoRetriever } from '../../../src/domain/profile/index.js';
-import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import { ActionEvent } from '../../../src/domain/types/action-event.js';
+import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
+import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
 
 /**
  * DIP/LSP conformance: each application port is bound in the production
@@ -18,7 +20,7 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
   let tc: TestContainer;
 
   beforeAll(async () => {
-    tc = await createTestContainer({ ns: 'dip-conformance', startScheduler: false });
+    tc = await buildTestContainer({ ns: 'dip-conformance', startScheduler: false });
     await tc.start();
   }, 120000);
 

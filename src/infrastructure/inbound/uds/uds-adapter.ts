@@ -1,9 +1,10 @@
-import http from 'node:http';
 import fs from 'node:fs';
+import http from 'node:http';
 import path from 'node:path';
-import { createLogger } from '../../outbound/logging/logger.js';
+
 import type { IngestorPort } from '../../../application/ports/inbound/ingestor.port.js';
 import { JobStage, JobSource } from '../../../domain/types/job-lifecycle.js';
+import { createLogger } from '../../outbound/logging/logger.js';
 
 const logger = createLogger('UDS');
 
@@ -76,13 +77,18 @@ export class UdsAdapter {
 
   private async readBody(req: http.IncomingMessage): Promise<string> {
     const bufs: Buffer[] = [];
-    for await (const chunk of req) bufs.push(Buffer.from(chunk));
+    for await (const chunk of req) {
+      bufs.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string));
+    }
     return Buffer.concat(bufs).toString();
   }
 
   private async handleAction(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     try {
-      const body = JSON.parse(await this.readBody(req));
+      const body = JSON.parse(await this.readBody(req)) as {
+        jobLifecycleId?: string;
+        action?: string;
+      };
       const jobLifecycleId = body.jobLifecycleId;
       const action = body.action as 'queue' | 'trash';
       if (!jobLifecycleId || !action) {
@@ -106,7 +112,10 @@ export class UdsAdapter {
     isWebhook: boolean
   ): Promise<void> {
     try {
-      const body = JSON.parse(await this.readBody(req));
+      const body = JSON.parse(await this.readBody(req)) as {
+        html?: string;
+        jobLifecycleId?: string;
+      };
       const html = body.html || '';
       if (!html.trim()) {
         res.writeHead(400, { 'Content-Type': 'application/json' });

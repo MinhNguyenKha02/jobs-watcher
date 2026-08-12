@@ -3,10 +3,44 @@
  * GIVEN an [i] clipboard ingest (no S1) WHEN [j]/[d] UDS resolution is applied
  * THEN a clip-* ENRICHED doc routes to S3 QUEUED / S4 TRASHED and the next direct ingest completes.
  */
+import amqplib from 'amqplib';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+
+import { JobStage, JobStatus, JobSource } from '../../src/domain/types/job-lifecycle.js';
+import { getCurrentJob } from '../../src/presentation/tui/shared-tui-state.js';
 import { createE2eApp, ActionEvent, type E2eApp } from '../helpers/e2e-app.js';
 import { topcvDetailHtml } from '../helpers/html-fixtures.js';
-import { JobStage, JobStatus, JobSource } from '../../src/domain/types/job-lifecycle.js';
+import { buildTuiTestContainer } from '../helpers/test-container.js';
+
+const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
+
+async function waitFor(check: () => boolean, timeoutMs = 15000, intervalMs = 50): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (check()) return;
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  throw new Error(`waitFor timed out after ${timeoutMs}ms`);
+}
+
+async function purgeTuiQueues(ns: string): Promise<void> {
+  const conn = await amqplib.connect(RMQ_URL);
+  const ch = await conn.createChannel();
+  for (const suffix of ['s1', 's2', 's3s4']) {
+    try {
+      await ch.assertQueue(`tui.${ns}.${suffix}`);
+      await ch.purgeQueue(`tui.${ns}.${suffix}`);
+    } catch {
+      /* best-effort — a missing/closed queue is treated as empty */
+    }
+  }
+  try {
+    await ch.close();
+  } catch {
+    /* channel may already be closed by the server */
+  }
+  await conn.close();
+}
 
 describe('C4 direct e2e — [i] clipboard ingest → fully job → [d] trash → next cycle (prod bootstrap, no queue/asset mocks)', () => {
   let app: E2eApp;
@@ -106,4 +140,50 @@ describe('C4 direct e2e — [i] clipboard ingest → fully job → [d] trash →
     expect(compMsg.job.company).toBe('C4EmptyCo');
     expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
   }, 60000);
+
+  it('GIVEN the tui-ioc precondition WHEN the daemon webhook+paste publishes S1+S2 over RMQ and the tui sends [j] over UDS THEN the reader mirrors then clears the job on the ipc seam (tui↔daemon real RMQ+UDS) · e2e c4', async () => {
+    await purgeTuiQueues('c4-direct');
+    const tui = await buildTuiTestContainer({ ns: 'c4-direct' });
+    try {
+      await waitFor(() => tui.rmqReader.isConnected());
+      await app.resetDb();
+
+      const gen = await app.events.on([ActionEvent.GENERATED]);
+      const res = await app.webhook.post('c4-boundary-msg');
+      expect(res.status).toBe(202);
+
+      const genMsg = await gen.msg();
+      const jobId: string = genMsg._id;
+      await waitFor(() => getCurrentJob().jobLifecycleId === jobId);
+      expect(getCurrentJob().stage).toBe(JobStage.PARTIAL_PARSED);
+
+      const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
+      const cRes = await app.uds.ingest(
+        topcvDetailHtml('Software Engineer', 'E2eCanonicalCo'),
+        jobId
+      );
+      expect(cRes.statusCode).toBe(200);
+
+      const compMsg = await comp.msg();
+      expect(compMsg.job._id).toBe(jobId);
+      await waitFor(
+        () =>
+          getCurrentJob().jobLifecycleId === jobId && getCurrentJob().stage === JobStage.FULL_PARSED
+      );
+
+      const queue = await app.events.on([
+        ActionEvent.QUEUED,
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+      ]);
+      await tui.udsWriter.queue(jobId);
+
+      const queueMsg = await queue.msg();
+      expect(queueMsg.jobLifecycleId).toBe(jobId);
+      await waitFor(() => getCurrentJob().jobLifecycleId === null);
+      expect(getCurrentJob().job).toBeNull();
+    } finally {
+      await tui.stop();
+    }
+  }, 90000);
 });

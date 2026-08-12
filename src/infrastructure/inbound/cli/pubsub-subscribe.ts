@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { PubSub } from '@google-cloud/pubsub';
+
 import { config } from '../../../config.js';
 
 /**
@@ -32,15 +33,16 @@ async function main() {
     });
 
     console.log(`✅ Subscription created: ${subscription.name}`);
-  } catch (err: any) {
-    if (err?.code === 6) {
+  } catch (err: unknown) {
+    const { code, message } = err as { code?: number; message?: string };
+    if (code === 6) {
       console.log('ℹ️  Subscription already exists. Updating push config...');
       const subscription = pubsub.subscription(subscriptionName);
       await subscription.modifyPushConfig({ pushEndpoint: baseEndpoint });
       console.log(`✅ Push endpoint updated to ${baseEndpoint}`);
       return;
     }
-    console.error('❌ Failed to create subscription:', err?.message || err);
+    console.error('❌ Failed to create subscription:', message || err);
     process.exit(1);
   }
 }

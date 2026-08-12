@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import pLimit from '../../../src/infrastructure/utils/p-limit.js';
 
 describe('pLimit', () => {

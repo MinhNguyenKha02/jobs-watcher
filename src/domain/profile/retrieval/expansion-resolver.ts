@@ -1,8 +1,7 @@
 import { AnchorId, AdjacencyMap, MatchSignal } from '../types/retrieval.types.js';
 
-import { MatchSignalBuilder } from './scoring/match-signal.builder.js';
-
 import { retrievalPolicy } from './policies/retrieval.policy.js';
+import { MatchSignalBuilder } from './scoring/match-signal.builder.js';
 
 export class ExpansionResolver {
   private readonly builder = new MatchSignalBuilder(retrievalPolicy);

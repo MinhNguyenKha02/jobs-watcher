@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { google } from 'googleapis';
+import { google, gmail_v1 } from 'googleapis';
 
 // DeliveryLog import removed (was unused)
 
@@ -12,7 +12,7 @@ try {
     throw new Error('test env');
   }
   // Use eval to prevent Jest from parsing import.meta at syntax level
-  const importMeta = eval('import.meta');
+  const importMeta = eval('import.meta') as { url: string };
   __dir = path.dirname(fileURLToPath(importMeta.url));
 } catch {
   __dir = process.cwd();
@@ -20,31 +20,47 @@ try {
 const TOKEN_PATH = path.join(__dir, '../../token.json');
 const CREDENTIALS_PATH = path.join(__dir, '../../credentials.json');
 
-export class GmailService {
-  private auth: any;
-  private gmail: any;
+type OAuth2ClientType = InstanceType<typeof google.auth.OAuth2>;
 
-  constructor(gmailClient?: any, authClient?: any) {
-    this.gmail = gmailClient;
-    this.auth = authClient;
+type StoredToken = {
+  access_token?: string;
+  refresh_token?: string;
+  scope?: string;
+  token_type?: string;
+  expiry_date?: number;
+};
+
+type CredentialsFile = {
+  installed?: { client_secret?: string; client_id?: string; redirect_uris?: string[] };
+  web?: { client_secret?: string; client_id?: string; redirect_uris?: string[] };
+};
+
+export class GmailService {
+  private auth: OAuth2ClientType | null = null;
+  private gmail: gmail_v1.Gmail | null = null;
+
+  constructor(gmailClient?: gmail_v1.Gmail, authClient?: OAuth2ClientType) {
+    this.gmail = gmailClient ?? null;
+    this.auth = authClient ?? null;
   }
 
-  private ensureClient() {
+  private ensureClient(): gmail_v1.Gmail {
     if (!this.gmail) {
       throw new Error('Gmail client not initialized. Call authenticate() first.');
     }
     return this.gmail;
   }
 
-  async authenticate() {
+  async authenticate(): Promise<void> {
     const credentials = this.loadCredentials();
-    const { client_secret, client_id, redirect_uris } = credentials.installed || credentials.web;
+    const { client_secret, client_id, redirect_uris } =
+      credentials.installed || credentials.web || {};
 
-    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris?.[0]);
 
     // Check if we have previously stored a token
     if (fs.existsSync(TOKEN_PATH)) {
-      const token = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
+      const token = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8')) as StoredToken;
       oAuth2Client.setCredentials(token);
     } else {
       throw new Error('No token found. Please run: npm run auth');
@@ -54,11 +70,11 @@ export class GmailService {
     this.gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
   }
 
-  private loadCredentials() {
+  private loadCredentials(): CredentialsFile {
     if (!fs.existsSync(CREDENTIALS_PATH)) {
       throw new Error('credentials.json not found. Please download it from Google Cloud Console.');
     }
-    return JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
+    return JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8')) as CredentialsFile;
   }
 
   /**
@@ -68,7 +84,7 @@ export class GmailService {
    * - listMessages(labelId, 1)                // With maxResults
    * - listMessagesByLabel(labelId, 1)         // Explicit label query
    */
-  async listMessages(queryOrLabelId: string, maxResults = 10) {
+  async listMessages(queryOrLabelId: string, maxResults = 10): Promise<gmail_v1.Schema$Message[]> {
     const gmail = this.ensureClient();
 
     // If it looks like a query (contains : or special chars), use as query
@@ -97,7 +113,11 @@ export class GmailService {
    * Explicitly list messages by label ID, optionally since a given ISO date string (RFC3339)
    * If since is provided, uses Gmail query to filter by newer_than (in days)
    */
-  async listMessagesByLabel(labelId: string, maxResults = 10, since?: string) {
+  async listMessagesByLabel(
+    labelId: string,
+    maxResults = 10,
+    since?: string
+  ): Promise<gmail_v1.Schema$Message[]> {
     const gmail = this.ensureClient();
     let q = undefined;
     if (since) {
@@ -123,13 +143,13 @@ export class GmailService {
   async getLabelId(labelName: string): Promise<string> {
     const gmail = this.ensureClient();
     const res = await gmail.users.labels.list({ userId: 'me' });
-    const label = res.data.labels?.find((l: any) => l.name === labelName);
+    const label = res.data.labels?.find((l) => l.name === labelName);
 
     if (!label) {
       throw new Error(`Label "${labelName}" not found. Please create it in Gmail.`);
     }
 
-    return label.id;
+    return label.id ?? '';
   }
 
   async setupWatch(labelIdOrTopicName: string, topicName?: string): Promise<void> {
@@ -155,7 +175,7 @@ export class GmailService {
     }
   }
 
-  async getMessage(messageId: string) {
+  async getMessage(messageId: string): Promise<gmail_v1.Schema$Message> {
     const gmail = this.ensureClient();
     const res = await gmail.users.messages.get({
       userId: 'me',
@@ -218,7 +238,9 @@ export class GmailService {
     });
   }
 
-  async listHistory(startHistoryId: string) {
+  async listHistory(
+    startHistoryId: string
+  ): Promise<{ history: gmail_v1.Schema$History[]; historyId?: string | null }> {
     const gmail = this.ensureClient();
     const res = await gmail.users.history.list({
       userId: 'me',
@@ -232,17 +254,17 @@ export class GmailService {
   }
 
   extractHeader(message: unknown, headerName: string): string {
-    const msg = message as any;
+    const msg = message as gmail_v1.Schema$Message;
     const header = msg.payload?.headers?.find(
-      (h: { name: string }) => h.name.toLowerCase() === headerName.toLowerCase()
+      (h) => h.name?.toLowerCase() === headerName.toLowerCase()
     );
     return header?.value || '';
   }
 
   extractBody(message: unknown): string {
     let body = '';
-    const msg = message as any;
-    const getParts = (parts: any[]): void => {
+    const msg = message as gmail_v1.Schema$Message;
+    const getParts = (parts: gmail_v1.Schema$MessagePart[]): void => {
       parts.forEach((part) => {
         if (part.mimeType === 'text/plain' || part.mimeType === 'text/html') {
           if (part.body?.data) {

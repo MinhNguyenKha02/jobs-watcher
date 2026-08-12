@@ -1,5 +1,4 @@
 import { AnchorId, MatchSignal, RetrievalAcceptance } from '../../types/retrieval.types.js';
-
 import { RetrievalPolicy } from '../policies/retrieval.policy.js';
 
 export class RetrievalAcceptanceResolver {

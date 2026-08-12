@@ -1,5 +1,6 @@
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient } from 'mongodb';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+
 import { getSharedMongod, releaseSharedMongod } from './setup.js';
 
 export async function createTestStorage(): Promise<{

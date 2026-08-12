@@ -1,5 +1,6 @@
 // src/services/profile/retrieval/evidence-resolver.ts
 
+import { RetrievalEvidenceScore } from '../artifacts/types/artifact.types.js';
 import {
   AnchorId,
   AnchorToEvidenceMap,
@@ -7,8 +8,6 @@ import {
   EvidenceNode,
   MatchSignal,
 } from '../types/retrieval.types.js';
-
-import { RetrievalEvidenceScore } from '../artifacts/types/artifact.types.js';
 
 export class EvidenceResolver {
   constructor(

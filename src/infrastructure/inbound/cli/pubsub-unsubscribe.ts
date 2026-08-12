@@ -12,8 +12,9 @@ async function main() {
   try {
     await pubsub.subscription(subscriptionName).delete();
     console.log('✅ Subscription deleted');
-  } catch (err: any) {
-    console.error('❌ Failed to delete subscription:', err?.message || err);
+  } catch (err: unknown) {
+    const { message } = err as { message?: string };
+    console.error('❌ Failed to delete subscription:', message || err);
     process.exit(1);
   }
 }

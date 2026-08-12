@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+
 import { type Job } from '../../types/job.js';
 
 export class JobExtractionService {

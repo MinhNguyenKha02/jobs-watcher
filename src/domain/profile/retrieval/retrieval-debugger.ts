@@ -1,4 +1,5 @@
 import { AnchorId, ResolutionStrength } from '../types/retrieval.types.js';
+
 import type { RetrievalOutput } from './contracts/retrieval.types.js';
 
 export interface DebugTraceEntry {

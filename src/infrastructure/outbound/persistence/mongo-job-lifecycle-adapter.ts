@@ -1,6 +1,9 @@
 import { Db, type Collection } from 'mongodb';
-import { createLogger } from '../logging/logger.js';
+
 import type { JobLifecyclePort } from '../../../application/ports/job-lifecycle.port.js';
+import { JobStage, JobStatus } from '../../../domain/types/job-lifecycle.js';
+import { createLogger } from '../logging/logger.js';
+
 import { COLLECTIONS, type JobLifecycleDocument } from './schemas.js';
 
 const logger = createLogger('MongoJobLifecycleAdapter');
@@ -29,8 +32,8 @@ export class MongoJobLifecycleAdapter implements JobLifecyclePort {
       { _id: jobLifecycleId },
       {
         $set: {
-          stage: stage as any,
-          status: status as any,
+          stage: stage as JobStage,
+          status: status as JobStatus,
           updatedAt: new Date(),
           stageTimestamp: new Date(),
         },

@@ -1,7 +1,3 @@
-import { createLogger } from '../logging/logger.js';
-
-const logger = createLogger('System');
-
 export interface SystemSnapshot {
   rssMb: number;
   heapUsedMb: number;

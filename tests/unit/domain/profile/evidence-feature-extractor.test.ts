@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { EvidenceFeaturesExtractor } from '../../../../src/domain/profile/retrieval/evidence/evidence-feature-extractor.js';
 import { EvidenceNode } from '../../../../src/domain/profile/types/retrieval.types.js';
 

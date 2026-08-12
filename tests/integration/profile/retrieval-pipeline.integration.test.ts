@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { ProfileRetrievalEngine } from '../../../src/domain/profile/retrieval/profile-retrieval-engine.js';
 import { buildHydratedArtifactBundle } from '../../helpers/profile/integration-fixtures.js';
 

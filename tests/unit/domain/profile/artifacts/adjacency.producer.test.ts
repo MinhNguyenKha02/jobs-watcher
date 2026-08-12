@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { AdjacencyProducer } from '../../../../../src/domain/profile/artifacts/producers/adjacency.producer.js';
 import type { RelationsSource } from '../../../../../src/domain/profile/source/source.types.js';
 import type { AnchorId } from '../../../../../src/domain/profile/types/retrieval.types.js';

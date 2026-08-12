@@ -1,7 +1,5 @@
 import { AdjacencyMap, AnchorId, MatchSignal } from '../../types/retrieval.types.js';
-
 import { RetrievalPolicy, retrievalPolicy } from '../policies/retrieval.policy.js';
-
 import { MatchSignalBuilder } from '../scoring/match-signal.builder.js';
 
 interface PropagationWalkState {

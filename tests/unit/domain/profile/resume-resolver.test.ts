@@ -1,18 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import {
+  HydratedArtifactBundle,
+  RetrievalEvidenceScore,
+} from '../../../../src/domain/profile/artifacts/types/artifact.types.js';
+import {
+  AtsSkillSection,
+  AtsSkillGroupCompiler,
+} from '../../../../src/domain/profile/resume/compiler/ats-skill-group.compiler.js';
+import { SkillKeyNormalizer } from '../../../../src/domain/profile/resume/normalization/skill-key-normalizer.js';
 import { ResumeResolver } from '../../../../src/domain/profile/resume/resolve/resume-resolver.js';
 import { RetrievalOutput } from '../../../../src/domain/profile/retrieval/contracts/retrieval.types.js';
-import { HydratedArtifactBundle } from '../../../../src/domain/profile/artifacts/types/artifact.types.js';
-import { MatchSignal, AnchorNode } from '../../../../src/domain/profile/types/retrieval.types.js';
-import { RankedSignal } from '../../../../src/domain/profile/retrieval/ranking/retrieval-ranker.js';
-import { RetrievalEvidenceScore } from '../../../../src/domain/profile/artifacts/types/artifact.types.js';
-import { retrievalPolicy } from '../../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
 import { RetrievalLogger } from '../../../../src/domain/profile/retrieval/logging/retrieval-logger.js';
-import { AtsSkillSection } from '../../../../src/domain/profile/resume/compiler/ats-skill-group.compiler.js';
+import { retrievalPolicy } from '../../../../src/domain/profile/retrieval/policies/retrieval.policy.js';
+import {
+  RetrievalRanker,
+  RankedSignal,
+} from '../../../../src/domain/profile/retrieval/ranking/retrieval-ranker.js';
 import { RetrievalAcceptanceResolver } from '../../../../src/domain/profile/retrieval/resolver/retrieval-acceptance.resolver.js';
-import { AtsSkillGroupCompiler } from '../../../../src/domain/profile/resume/compiler/ats-skill-group.compiler.js';
-import { RetrievalRanker } from '../../../../src/domain/profile/retrieval/ranking/retrieval-ranker.js';
 import { EvidenceAttachmentValidator } from '../../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js';
-import { SkillKeyNormalizer } from '../../../../src/domain/profile/resume/normalization/skill-key-normalizer.js';
+import { MatchSignal, AnchorNode } from '../../../../src/domain/profile/types/retrieval.types.js';
 
 vi.mock('../../../../src/domain/profile/retrieval/resolver/retrieval-acceptance.resolver.js');
 vi.mock('../../../../src/domain/profile/resume/compiler/ats-skill-group.compiler.js');

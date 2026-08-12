@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import { JobStage } from '../../../../src/domain/types/job-lifecycle.js';
 
 function makeMockChannel() {

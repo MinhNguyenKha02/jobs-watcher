@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { AnchorEvidenceProducer } from '../../../../../src/domain/profile/artifacts/producers/anchor-evidence.producer.js';
 import type {
   EvidenceId,

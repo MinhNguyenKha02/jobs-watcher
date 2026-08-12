@@ -1,16 +1,15 @@
-import amqplib, { type Channel, type ChannelModel, type ConsumeMessage } from 'amqplib';
-import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
+import amqplib, { type Channel, type ConsumeMessage } from 'amqplib';
+
 import { ActionEvent } from '../../../domain/types/action-event.js';
-import { JobStage } from '../../../domain/types/job-lifecycle.js';
-import { JobLifecycleDocument } from '../../../infrastructure/outbound/persistence/schemas.js';
+import { JobStage, JobLifecycleDocument } from '../../../domain/types/job-lifecycle.js';
+import type { Job } from '../../../domain/types/job.js';
+import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
 import {
   setCurrentJob,
   clearCurrentJob,
   getCurrentJob,
   getQueueMode,
-  setQueueMode,
 } from '../shared-tui-state.js';
-import { Job } from '../../../domain/types/job.js';
 
 const logger = createLogger('RMQReader');
 
@@ -168,7 +167,10 @@ export class RabbitMqJobReader {
 
   private onMessageS2(msg: ConsumeMessage): void {
     try {
-      const payload = JSON.parse(msg.content.toString()) as Partial<JobLifecycleDocument>;
+      const parsed = JSON.parse(msg.content.toString()) as Record<string, unknown>;
+      const payload = (
+        parsed && typeof parsed === 'object' && 'job' in parsed ? parsed.job : parsed
+      ) as Partial<JobLifecycleDocument>;
       const id = payload._id as string;
       if (!id) {
         this.s2channel!.ack(msg);
@@ -188,13 +190,13 @@ export class RabbitMqJobReader {
         };
         logger.info('job.parse.completed — merged in pending', { id });
       } else if (this.currentJobId === id) {
-        setCurrentJob(id, { ...getCurrentJob().job, ...payload } as any, JobStage.FULL_PARSED);
+        setCurrentJob(id, { ...getCurrentJob().job, ...payload } as Job, JobStage.FULL_PARSED);
         logger.info('job.parse.completed — IPC enriched displayed job', { id });
       } else if (this.getQueueMode() === false) {
         if (this.currentJobId !== null) {
           this.ackAllForJob(this.currentJobId);
         }
-        setCurrentJob(id, payload as any, JobStage.FULL_PARSED);
+        setCurrentJob(id, payload as Job, JobStage.FULL_PARSED);
         this.currentJobId = id;
         logger.info('job.parse.completed — direct mode set', { id });
       } else {
@@ -218,8 +220,11 @@ export class RabbitMqJobReader {
 
   private onMessageS3S4(msg: ConsumeMessage): void {
     try {
-      const payload = JSON.parse(msg.content.toString()) as string;
-      const id = payload;
+      const parsed = JSON.parse(msg.content.toString()) as unknown;
+      const id =
+        parsed !== null && typeof parsed === 'object' && 'jobLifecycleId' in parsed
+          ? String((parsed as { jobLifecycleId: unknown }).jobLifecycleId)
+          : String(parsed);
       if (!id) {
         this.s34channel!.ack(msg);
         return;

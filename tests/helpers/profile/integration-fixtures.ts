@@ -1,5 +1,5 @@
-import { AhoCorasick } from '../../../src/domain/profile/retrieval/aho-corasick.js';
 import { HydratedArtifactBundle } from '../../../src/domain/profile/artifacts/types/artifact.types.js';
+import { AhoCorasick } from '../../../src/domain/profile/retrieval/aho-corasick.js';
 import {
   AdjacencyEdge,
   AdjacencyMap,

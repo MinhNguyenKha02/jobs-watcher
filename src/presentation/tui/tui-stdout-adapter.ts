@@ -1,17 +1,11 @@
-import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 import type { Job } from '../../domain/types/job.js';
+import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 
-import { RabbitMqJobReader } from './components/RabbitMqJobReader.js';
-import { JobCardRenderer, type CardStatus } from './components/JobCardRenderer.js';
 import { AnsiTerminal } from './components/AnsiTerminal.js';
+import { JobCardRenderer, type CardStatus } from './components/JobCardRenderer.js';
 import { renderPreviewViewerModal } from './components/PreviewViewerModal.js';
-import {
-  clearCurrentJob,
-  setCurrentJob,
-  getCurrentJob,
-  getQueueMode,
-  resetState,
-} from './shared-tui-state.js';
+import { RabbitMqJobReader } from './components/RabbitMqJobReader.js';
+import { clearCurrentJob, getCurrentJob, getQueueMode, resetState } from './shared-tui-state.js';
 import type { CurrentJobState } from './shared-tui-state.js';
 
 const logger = createLogger('TUI');
@@ -81,7 +75,6 @@ export class OpsTuiApp {
   }
 
   private async mainLoop(): Promise<void> {
-    let lastRenderedJobLifecycleId: string | null = null;
     let renderCount = 0;
 
     while (this.isRunning) {
@@ -215,7 +208,9 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('Unhandled error in main:', err);
-  process.exit(1);
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((err) => {
+    console.error('Unhandled error in main:', err);
+    process.exit(1);
+  });
+}

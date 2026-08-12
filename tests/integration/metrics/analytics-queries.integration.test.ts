@@ -1,10 +1,7 @@
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 import { AnalyticsQueries } from '../../../src/infrastructure/outbound/monitoring/analytics-queries.js';
-import {
-  MetricsRecorder,
-  ApplicationMetric,
-} from '../../../src/infrastructure/outbound/monitoring/metrics-recorder.js';
+import { MetricsRecorder } from '../../../src/infrastructure/outbound/monitoring/metrics-recorder.js';
 
 /**
  * Integration test for AnalyticsQueries

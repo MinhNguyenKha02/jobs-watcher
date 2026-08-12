@@ -6,7 +6,7 @@
  */
 
 import type { PreviewViewerModal } from '../shared-tui-state.js';
-import type { CurrentJobState } from '../shared-tui-state.js';
+
 import { ANSI, MODAL_THEME } from './AnsiStyles.js';
 
 const MODAL_WIDTH = 70;

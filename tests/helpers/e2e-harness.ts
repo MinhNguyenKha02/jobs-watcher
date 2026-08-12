@@ -1,6 +1,8 @@
 import http from 'http';
 import fs from 'node:fs';
+
 import { type Channel } from 'amqplib';
+
 import { AssetProducingAdapter } from '../../src/infrastructure/outbound/asset-builder/asset-producing-adapter.js';
 import { postJsonOverUds } from '../../src/infrastructure/utils/uds-http.js';
 

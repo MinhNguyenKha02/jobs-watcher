@@ -1,10 +1,11 @@
-import amqplib, { type Channel, type ChannelModel } from 'amqplib';
-import { RabbitMqConnection } from '../../src/infrastructure/outbound/rabbitmq/rabbitmq-connection.js';
-import { RabbitMqParseAdapter } from '../../src/infrastructure/outbound/rabbitmq/rabbitmq-parse-adapter.js';
-import { RabbitMqRoutingAdapter } from '../../src/infrastructure/outbound/rabbitmq/rabbitmq-route-adapter.js';
+import amqplib from 'amqplib';
+
 import type { ParsePort } from '../../src/application/ports/parse.port.js';
 import type { RoutePort } from '../../src/application/ports/route.port.js';
 import { ActionEvent } from '../../src/domain/types/action-event.js';
+import { RabbitMqConnection } from '../../src/infrastructure/outbound/rabbitmq/rabbitmq-connection.js';
+import { RabbitMqParseAdapter } from '../../src/infrastructure/outbound/rabbitmq/rabbitmq-parse-adapter.js';
+import { RabbitMqRoutingAdapter } from '../../src/infrastructure/outbound/rabbitmq/rabbitmq-route-adapter.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 

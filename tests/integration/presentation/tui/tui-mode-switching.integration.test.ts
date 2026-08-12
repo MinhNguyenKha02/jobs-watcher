@@ -1,11 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import fs from 'node:fs';
-import amqplib, { type Channel, type Connection } from 'amqplib';
-import { RabbitMqJobReader } from '../../../../src/presentation/tui/components/RabbitMqJobReader.js';
+
+import amqplib, { type Channel } from 'amqplib';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+
 import { ActionEvent } from '../../../../src/domain/types/action-event.js';
 import { JobStage } from '../../../../src/domain/types/job-lifecycle.js';
+import { RabbitMqJobReader } from '../../../../src/presentation/tui/components/RabbitMqJobReader.js';
 import {
   setQueueMode,
   getQueueMode,
@@ -50,7 +52,7 @@ async function waitFor(check: () => boolean, timeoutMs = 8000, intervalMs = 50):
 }
 
 describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () => {
-  let conn: Connection;
+  let conn: Awaited<ReturnType<typeof amqplib.connect>>;
   let ch: Channel;
 
   beforeAll(async () => {

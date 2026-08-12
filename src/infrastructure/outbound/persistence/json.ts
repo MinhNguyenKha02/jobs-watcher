@@ -50,7 +50,7 @@ export const canonicalProfile = {
         solid: ['PostgreSQL', 'MongoDB'],
         familiar: ['SQLite', 'Redis', 'Supabase'],
       },
-      'Authentication\/Authorization': [
+      'Authentication/Authorization': [
         'OAuth, JWT, MFA practices',
         'Session management',
         'CORS configuration',

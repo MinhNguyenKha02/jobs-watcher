@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { EvidenceAttachmentValidator } from '../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js';
+
 import { ExpansionResolver } from '../../../src/domain/profile/retrieval/expansion-resolver.js';
+import { RetrievalLogger } from '../../../src/domain/profile/retrieval/logging/retrieval-logger.js';
+import { EvidenceAttachmentValidator } from '../../../src/domain/profile/retrieval/validation/evidence-attachment.validator.js';
 import {
   makeSignal,
   buildHydratedArtifactBundle,
 } from '../../helpers/profile/integration-fixtures.js';
-import { RetrievalLogger } from '../../../src/domain/profile/retrieval/logging/retrieval-logger.js';
 
 describe('Artifact Integrity Integration', () => {
   describe('INT-014: propagation to non-existent anchor is skipped', () => {

@@ -13,7 +13,7 @@ export function postJsonOverUds(
   body: unknown
 ): Promise<{ statusCode: number; body: string }> {
   const payload = typeof body === 'string' ? body : JSON.stringify(body || {});
-  const options: any = {
+  const options: http.RequestOptions = {
     method: opts.method || 'POST',
     path: opts.path,
     socketPath: opts.socketPath,
@@ -26,7 +26,7 @@ export function postJsonOverUds(
   return new Promise((resolve, reject) => {
     const req = http.request(options, (res) => {
       const bufs: Buffer[] = [];
-      res.on('data', (c) => bufs.push(Buffer.from(c)));
+      res.on('data', (c: Buffer | string) => bufs.push(typeof c === 'string' ? Buffer.from(c) : c));
       res.on('end', () => {
         const text = Buffer.concat(bufs).toString();
         resolve({ statusCode: res.statusCode || 0, body: text });

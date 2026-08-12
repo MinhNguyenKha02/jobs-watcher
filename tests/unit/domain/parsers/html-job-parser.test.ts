@@ -1,7 +1,6 @@
 import fc from 'fast-check';
 
 import { HtmlJobParser } from '../../../../src/domain/services/parsing/html-job-parser.js';
-import type { JobDetails } from '../../../../src/domain/types/job.js';
 import {
   topCVDetailPageHTML,
   indeedDetailPageHTML,

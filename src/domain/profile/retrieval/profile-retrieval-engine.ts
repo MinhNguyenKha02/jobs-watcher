@@ -1,12 +1,9 @@
 import { HydratedArtifactBundle } from '../artifacts/types/artifact.types.js';
 
-import { ExpansionResolver } from './expansion-resolver.js';
-
-import { EvidenceResolver } from './evidence-resolver.js';
-
-import { NormalizationPipeline } from './normalization.pipeline.js';
-
 import { RetrievalOutput } from './contracts/retrieval.types.js';
+import { EvidenceResolver } from './evidence-resolver.js';
+import { ExpansionResolver } from './expansion-resolver.js';
+import { NormalizationPipeline } from './normalization.pipeline.js';
 
 export class ProfileRetrievalEngine {
   private readonly normalizer = new NormalizationPipeline();

@@ -5,9 +5,9 @@ export class JobReader {
   private processedIds = new Set<string>();
   private arrivalSignal: (() => void) | null = null;
 
-  addEventListener(_eventType: string, _callback: (event: any) => void): void {}
+  addEventListener(_eventType: string, _callback: (event: unknown) => void): void {}
 
-  removeEventListener(_eventType: string, _callback: (event: any) => void): void {}
+  removeEventListener(_eventType: string, _callback: (event: unknown) => void): void {}
 
   start(_baseUrl: string, _token?: string): void {}
 

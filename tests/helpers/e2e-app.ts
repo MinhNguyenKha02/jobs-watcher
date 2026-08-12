@@ -1,14 +1,16 @@
-import http from 'node:http';
 import fs from 'node:fs';
+import http from 'node:http';
 import path from 'node:path';
+
+import { ActionEvent } from '../../src/domain/types/action-event.js';
 import {
   WebhookAdapter,
   type GmailClient,
 } from '../../src/infrastructure/inbound/web/webhook-adapter.js';
-import { createTestContainer, type TestContainer } from './test-container.js';
+
 import { postJson, udsHelpers } from './e2e-harness.js';
-import { ActionEvent } from '../../src/domain/types/action-event.js';
 import { topcvEmailHtmlMany, indeedEmailHtmlMany } from './html-fixtures.js';
+import { buildTestContainer } from './test-container.js';
 
 export { ActionEvent };
 
@@ -73,7 +75,7 @@ function freePort(): Promise<number> {
 
 /**
  * In-process prod bootstrap for e2e scenarios. All system objects come from
- * the production composition root (`buildSystemContainer`) with real adapters
+ * the production composition root (`buildDaemonContainer`) with real adapters
  * (Mongo, RMQ, Playwright, UDS, asset/PdfRenderer). The ONLY fakes are the
  * external systems the prod bootstrap cannot talk to (gmail in front of the
  * webhook). e2e bodies call scenario verbs — no `new JobIngestor`, no
@@ -84,7 +86,7 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
   const role = opts.role ?? 'Software Engineer';
   const company = opts.company ?? 'E2eCanonicalCo';
 
-  const tc = await createTestContainer({
+  const tc = await buildTestContainer({
     ns: opts.ns,
     startScheduler: opts.startScheduler ?? false,
   });
@@ -94,10 +96,10 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
     getMessage: async (msgId: string): Promise<unknown> => ({ messageId: msgId }),
     extractHeader: (_m: unknown, name: string) =>
       ({
-        Subject: 'Job Alert',
-        From: 'jobs@topcv.vn',
-        To: 'me@dev.vn',
-        'Message-ID': 'thr-<message-id>',
+        subject: 'Job Alert',
+        from: 'jobs@topcv.vn',
+        to: 'me@dev.vn',
+        'message-id': 'thr-<message-id>',
       })[name] || '',
     extractBody: (m: unknown): string => {
       const msgId = (m as { messageId?: string } | undefined)?.messageId ?? '';

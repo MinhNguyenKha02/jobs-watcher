@@ -1,9 +1,3 @@
-import { deserializeMap, deserializeNestedSetMap } from '../serializers/map.serializer.js';
-
-import { readArtifactFile } from '../utils/artifact-file.util.js';
-
-import { ArtifactBundle } from '../types/artifact.types.js';
-
 import {
   AnchorId,
   AnchorNode,
@@ -12,6 +6,9 @@ import {
   LexicalSurface,
   AdjacencyEdge,
 } from '../../types/retrieval.types.js';
+import { deserializeMap, deserializeNestedSetMap } from '../serializers/map.serializer.js';
+import { ArtifactBundle } from '../types/artifact.types.js';
+import { readArtifactFile } from '../utils/artifact-file.util.js';
 
 export class ArtifactLoader {
   async load(): Promise<ArtifactBundle> {

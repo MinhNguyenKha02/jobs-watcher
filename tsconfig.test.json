@@ -5,9 +5,7 @@
     "node_modules",
     "dist",
     "tests/unit/domain/profile/**",
-    "tests/unit/presentation/**",
     "tests/integration/profile/**",
-    "tests/integration/presentation/**",
     "tests/helpers/profile/**"
   ],
   "compilerOptions": {

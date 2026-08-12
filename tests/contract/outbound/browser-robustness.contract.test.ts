@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import http from 'http';
-import { PlaywrightBrowserAdapter } from '../../../../src/infrastructure/outbound/browser/browser-adapter.js';
+
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
+
+import { PlaywrightBrowserAdapter } from '../../../src/infrastructure/outbound/browser/browser-adapter.js';
 
 function startHtmlServer(): Promise<{
   server: http.Server;

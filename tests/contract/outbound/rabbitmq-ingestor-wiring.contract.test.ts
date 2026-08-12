@@ -1,9 +1,10 @@
 import 'dotenv/config';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
-import { JobStage, JobSource } from '../../../../src/domain/types/job-lifecycle.js';
-import { ActionEvent } from '../../../../src/domain/types/action-event.js';
-import { topcvEmailHtmlMany, topcvDetailHtml } from '../../../helpers/html-fixtures.js';
+
+import { ActionEvent } from '../../../src/domain/types/action-event.js';
+import { JobStage, JobSource } from '../../../src/domain/types/job-lifecycle.js';
+import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
+import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
 
 /**
  * Ingestor saga over the real composition root: processIngest / processResolution
@@ -14,7 +15,7 @@ describe('RMQ + Ingestor wiring', { timeout: 60000 }, () => {
   let tc: TestContainer;
 
   beforeAll(async () => {
-    tc = await createTestContainer({ ns: 'rmq-ingestor-wiring' });
+    tc = await buildTestContainer({ ns: 'rmq-ingestor-wiring' });
     await tc.start();
   }, 120000);
 

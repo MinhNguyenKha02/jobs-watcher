@@ -1,9 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import http from 'http';
-import { createTestContainer, type TestContainer } from '../../../helpers/test-container.js';
-import { JobStage, JobSource } from '../../../../src/domain/types/job-lifecycle.js';
-import { ActionEvent } from '../../../../src/domain/types/action-event.js';
-import type { GmailClient } from '../../../../src/infrastructure/inbound/web/webhook-adapter.js';
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+
+import { ActionEvent } from '../../../src/domain/types/action-event.js';
+import { JobStage, JobSource } from '../../../src/domain/types/job-lifecycle.js';
+import type { GmailClient } from '../../../src/infrastructure/inbound/web/webhook-adapter.js';
+import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
 
 const S1_EMAIL_HTML = `<div data-source="topcv">
 <a class="job-item-link" href="/viec-lam/software-engineer">
@@ -37,7 +39,7 @@ describe('Webhook-to-completion saga (S1->S2->S3->S4)', () => {
       extractBody: () => S1_EMAIL_HTML,
       getMessagesSinceHistory: async () => ['wh-saga-msg'],
     };
-    tc = await createTestContainer({ ns: 'webhook-to-completion', gmail });
+    tc = await buildTestContainer({ ns: 'webhook-to-completion', gmail });
     await tc.start();
     port = freshPort();
     tc.container.webhookAdapter.start(port, '/webhook');

@@ -1,3 +1,4 @@
+import { AhoCorasick } from '../../retrieval/aho-corasick.js';
 import {
   AdjacencyMap,
   AnchorNode,
@@ -8,8 +9,6 @@ import {
   MatchSignal,
   AnchorId,
 } from '../../types/retrieval.types.js';
-
-import { AhoCorasick } from '../../retrieval/aho-corasick.js';
 
 export interface SerializedNestedSetEntry<K, V> extends Array<K | V[]> {
   0: K;

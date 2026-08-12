@@ -1,7 +1,7 @@
 // src/services/profile/retrieval/validation/evidence-attachment.validator.ts
 
-import { MatchSignal } from '../../types/retrieval.types.js';
 import { HydratedArtifactBundle } from '../../artifacts/types/artifact.types.js';
+import { MatchSignal } from '../../types/retrieval.types.js';
 import { RetrievalLogger } from '../logging/retrieval-logger.js';
 
 export interface ValidationResult {

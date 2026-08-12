@@ -10,9 +10,10 @@
  * Requires: GMAIL_TOPIC_NAME in .env
  */
 
-import { GmailService } from '../../outbound/gmail.js';
-import { config } from '../../../config.js';
 import readline from 'readline';
+
+import { config } from '../../../config.js';
+import { GmailService } from '../../outbound/gmail.js';
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -69,8 +70,9 @@ async function setup() {
       try {
         await gmailService.setupWatch(labelId, config.gmail.topicName);
         console.log('✅ Gmail watch configured successfully!\n');
-      } catch (error: any) {
-        console.error('❌ Failed to set up watch:', error.message);
+      } catch (error: unknown) {
+        const { message } = error as { message?: string };
+        console.error('❌ Failed to set up watch:', message || String(error));
         console.log('\nMake sure:');
         console.log('- Pub/Sub topic exists');
         console.log('- gmail-api-push@system.gserviceaccount.com has publish permissions');
@@ -86,8 +88,9 @@ async function setup() {
     console.log('');
 
     rl.close();
-  } catch (error: any) {
-    console.error('❌ Setup failed:', error.message);
+  } catch (error: unknown) {
+    const { message } = error as { message?: string };
+    console.error('❌ Setup failed:', message || String(error));
     rl.close();
     process.exit(1);
   }

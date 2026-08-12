@@ -1,7 +1,6 @@
-import { LexicalSurface } from '../../types/retrieval.types.js';
-
 import { AhoCorasick } from '../../retrieval/aho-corasick.js';
 import { NormalizationPipeline } from '../../retrieval/normalization.pipeline.js';
+import { LexicalSurface } from '../../types/retrieval.types.js';
 
 export class AhoProducer {
   produce(surfaces: LexicalSurface[]) {

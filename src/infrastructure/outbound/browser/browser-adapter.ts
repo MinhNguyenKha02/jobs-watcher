@@ -1,8 +1,9 @@
+import { type Browser, type BrowserContext, type Page } from 'playwright';
 import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { type Browser, type BrowserContext, type Page } from 'playwright';
-import { createLogger } from '../logging/logger.js';
+
 import { BrowserPort } from '../../../application/ports/browser.port.js';
+import { createLogger } from '../logging/logger.js';
 
 chromium.use(StealthPlugin());
 const logger = createLogger('BrowserExtractor');

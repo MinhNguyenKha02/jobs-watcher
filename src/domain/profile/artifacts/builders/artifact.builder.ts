@@ -1,23 +1,14 @@
-import { profileSource } from '../../source/profile.source.js';
-
-import { relationsSource } from '../../source/relations.source.js';
-
-import { AnchorProducer } from '../producers/anchor.producer.js';
-
-import { EvidenceProducer } from '../producers/evidence.producer.js';
-
-import { LexicalSurfaceProducer } from '../producers/lexical-surface.producer.js';
-
-import { AdjacencyProducer } from '../producers/adjacency.producer.js';
-
-import { AnchorEvidenceProducer } from '../producers/anchor-evidence.producer.js';
-
-import { serializeMap, serializeNestedSetMap } from '../serializers/map.serializer.js';
 import { createLogger } from '../../../../infrastructure/outbound/logging/logger.js';
-
-import { ensureArtifactDirectory, writeArtifactFile } from '../utils/artifact-file.util.js';
-
+import { profileSource } from '../../source/profile.source.js';
+import { relationsSource } from '../../source/relations.source.js';
 import { ARTIFACT_VERSION } from '../constants/artifact.constants.js';
+import { AdjacencyProducer } from '../producers/adjacency.producer.js';
+import { AnchorEvidenceProducer } from '../producers/anchor-evidence.producer.js';
+import { AnchorProducer } from '../producers/anchor.producer.js';
+import { EvidenceProducer } from '../producers/evidence.producer.js';
+import { LexicalSurfaceProducer } from '../producers/lexical-surface.producer.js';
+import { serializeMap, serializeNestedSetMap } from '../serializers/map.serializer.js';
+import { ensureArtifactDirectory, writeArtifactFile } from '../utils/artifact-file.util.js';
 
 export async function buildArtifacts(): Promise<void> {
   await ensureArtifactDirectory();

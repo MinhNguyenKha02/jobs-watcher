@@ -5,12 +5,11 @@
  * Handles queue, trash, skip, clipboard ingest, and edit_generated actions.
  */
 
-import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 
-import { clipboardGetter } from '../services/clipboard-getter.js';
 import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
 import { postJsonOverUds, type UdsRequestOptions } from '../../../infrastructure/utils/uds-http.js';
+import { clipboardGetter } from '../services/clipboard-getter.js';
 
 const logger = createLogger('UdsAction');
 
@@ -25,6 +24,11 @@ export interface ActionPayload {
   editedKVs?: Record<string, unknown>;
   generatedPath?: string;
   source?: string;
+}
+
+export interface WebhookIngestPayload {
+  html: string;
+  jobLifecycleId?: string;
 }
 
 export class UdsActionWriter {
@@ -94,7 +98,7 @@ export class UdsActionWriter {
         timeoutMs: 10000,
       };
 
-      const ingestPayload: Record<string, any> = {
+      const ingestPayload: WebhookIngestPayload = {
         html,
       };
 

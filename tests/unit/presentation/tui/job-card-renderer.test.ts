@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 const { JobCardRenderer } =
   await import('../../../../src/presentation/tui/components/JobCardRenderer.js');
 
 describe('JobCardRenderer', () => {
-  let renderer: JobCardRenderer;
+  let renderer: InstanceType<typeof JobCardRenderer>;
 
   beforeEach(() => {
     renderer = new JobCardRenderer(80, 24);
