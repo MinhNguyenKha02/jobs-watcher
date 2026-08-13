@@ -28,7 +28,7 @@ import { createRealDipBus, type RealDipBus } from './real-dip-bus.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 
-export interface BuildTestContainerOptions {
+export interface BuildTestDaemonContainerOptions {
   /** Unique namespace for the RMQ exchange + UDS socket path (per-file isolation). */
   ns: string;
   dbName?: string;
@@ -43,7 +43,7 @@ export interface BuildTestContainerOptions {
   gmail?: GmailClient;
 }
 
-export interface TestContainer {
+export interface TestDaemonContainer {
   ns: string;
   storage: Awaited<ReturnType<typeof createTestStorage>>;
   container: DaemonContainer;
@@ -69,7 +69,7 @@ export interface TestContainer {
  * orchestration boundary so tests assert at the app-integration-via-DIP level
  * with real adapters.
  */
-export async function buildTestContainer(opts: BuildTestContainerOptions): Promise<TestContainer> {
+export async function buildTestDaemonContainer(opts: BuildTestDaemonContainerOptions): Promise<TestDaemonContainer> {
   const storage = await createTestStorage();
   const dbName = opts.dbName ?? storage.dbName;
   const exchange = opts.rmqExchange ?? `jobs.events.int.${opts.ns}`;
@@ -177,7 +177,7 @@ export interface TuiTestContainer {
  * talk over real IPC. Callers start the interactive rmqReader explicitly.
  */
 export async function buildTuiTestContainer(
-  opts: Pick<BuildTestContainerOptions, 'ns'> & { rmqExchange?: string }
+  opts: Pick<BuildTestDaemonContainerOptions, 'ns'> & { rmqExchange?: string }
 ): Promise<TuiTestContainer> {
   const exchange = opts.rmqExchange ?? `jobs.events.int.${opts.ns}`;
   const socket = `/tmp/jobs-watcher-${opts.ns}.sock`;
@@ -205,37 +205,4 @@ export async function buildTuiTestContainer(
     start: () => container.start(),
     stop: () => container.stop(),
   };
-}
-
-export interface AppTestContainer extends TestContainer {
-  tui: TuiContainer;
-}
-
-/**
- * Combined two-process harness: daemon + TUI composition roots wired over the
- * same per-ns RMQ exchange (`jobs.events.int.<ns>`) and UDS socket
- * (`/tmp/jobs-watcher-<ns>.sock`) with token `e2e-internal-token`. This is the
- * harness for the TUI↔daemon boundary contract (job type + job payload flow
- * strictly over RMQ-over-IPC and UDS-over-IPC; the shared ipc file is the
- * observable seam).
- */
-export async function buildAppTestContainer(
-  opts: BuildTestContainerOptions
-): Promise<AppTestContainer> {
-  const base = await buildTestContainer(opts);
-
-  const tui = buildTuiContainer({
-    rmq: {
-      url: RMQ_URL,
-      exchange: base.exchange,
-      s1Queue: `tui.${opts.ns}.s1`,
-      s2Queue: `tui.${opts.ns}.s2`,
-      s34Queue: `tui.${opts.ns}.s3s4`,
-    },
-    uds: { socketPath: base.socket, token: 'e2e-internal-token' },
-  });
-  await tui.start();
-  await tui.rmqReader.start();
-
-  return { ...base, tui };
 }

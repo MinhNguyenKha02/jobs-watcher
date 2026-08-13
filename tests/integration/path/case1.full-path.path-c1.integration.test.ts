@@ -19,9 +19,9 @@ import {
 } from '../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
 import {
-  buildTestContainer,
+  buildTestDaemonContainer,
   buildTuiTestContainer,
-  type TestContainer,
+  type TestDaemonContainer,
 } from '../../helpers/test-container.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
@@ -82,11 +82,11 @@ function waitForPdfFiles(dir: string, timeoutMs = 20000): Promise<void> {
 }
 
 describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] → next', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
   let uds: ReturnType<typeof udsHelpers>;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'c1-full-path' });
+    tc = await buildTestDaemonContainer({ ns: 'c1-full-path' });
     await tc.start();
     uds = udsHelpers(tc.socket, 'e2e-internal-token');
   }, 120000);

@@ -6,7 +6,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ProfileInfoRetriever } from '../../../src/domain/profile/index.js';
 import { ActionEvent } from '../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
-import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
+import { buildTestDaemonContainer, type TestDaemonContainer } from '../../helpers/test-container.js';
 
 /**
  * DIP/LSP conformance: each application port is bound in the production
@@ -17,10 +17,10 @@ import { buildTestContainer, type TestContainer } from '../../helpers/test-conta
  * IoC wiring that `composition-root.integration.test.ts` asserts structurally.
  */
 describe('DIP/LSP conformance — production-resolved port adapters are behaviorally substitutable', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'dip-conformance', startScheduler: false });
+    tc = await buildTestDaemonContainer({ ns: 'dip-conformance', startScheduler: false });
     await tc.start();
   }, 120000);
 

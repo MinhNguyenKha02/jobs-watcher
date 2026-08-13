@@ -25,9 +25,9 @@ import {
 import type { RealDipBus } from '../../helpers/real-dip-bus.js';
 import { makeStage1Partial, makeFullParsedDoc } from '../../helpers/test-builders.js';
 import {
-  buildTestContainer,
+  buildTestDaemonContainer,
   buildTuiTestContainer,
-  type TestContainer,
+  type TestDaemonContainer,
 } from '../../helpers/test-container.js';
 
 const INTERNAL_TOKEN = 'e2e-internal-token';
@@ -61,7 +61,7 @@ async function purgeTuiQueues(ns: string): Promise<void> {
   await conn.close();
 }
 // Resolution / enrichment steps are driven across the real UDS boundary.
-const UDS = (tc: TestContainer) => udsHelpers(tc.socket, INTERNAL_TOKEN);
+const UDS = (tc: TestDaemonContainer) => udsHelpers(tc.socket, INTERNAL_TOKEN);
 
 /** Asserts that no matching event landed on a bound exclusive queue within the window. */
 async function assertNoMessage(handle: Awaited<ReturnType<RealDipBus['setup']>>): Promise<void> {
@@ -69,12 +69,12 @@ async function assertNoMessage(handle: Awaited<ReturnType<RealDipBus['setup']>>)
 }
 
 describe('Failure cycle (S4→S1 auto-advance)', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
   let adapter: JobLifecyclePort;
   let bus: RealDipBus;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'c3-full-path-failure' });
+    tc = await buildTestDaemonContainer({ ns: 'c3-full-path-failure' });
     await tc.start();
     adapter = tc.mongoJobLifecycleAdapter;
     bus = tc.bus;
@@ -279,12 +279,12 @@ describe('Failure cycle (S4→S1 auto-advance)', () => {
 });
 
 describe('Failure injection (cause→effect, real-DIP)', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
   let adapter: JobLifecyclePort;
   let bus: RealDipBus;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'c3-full-path-inject' });
+    tc = await buildTestDaemonContainer({ ns: 'c3-full-path-inject' });
     await tc.start();
     adapter = tc.mongoJobLifecycleAdapter;
     bus = tc.bus;
@@ -418,12 +418,12 @@ describe('Failure injection (cause→effect, real-DIP)', () => {
 });
 
 describe('Reliability cycles (S2→S4→S1)', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
   let adapter: JobLifecyclePort;
   let bus: RealDipBus;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'c3-full-path-reliability' });
+    tc = await buildTestDaemonContainer({ ns: 'c3-full-path-reliability' });
     await tc.start();
     adapter = tc.mongoJobLifecycleAdapter;
     bus = tc.bus;
@@ -574,12 +574,12 @@ describe('Reliability cycles (S2→S4→S1)', () => {
 });
 
 describe('High-ROI rate stress & guards (H1-H5)', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
   let adapter: JobLifecyclePort;
   let bus: RealDipBus;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'c3-full-path-roi' });
+    tc = await buildTestDaemonContainer({ ns: 'c3-full-path-roi' });
     await tc.start();
     adapter = tc.mongoJobLifecycleAdapter;
     bus = tc.bus;
@@ -845,13 +845,13 @@ describe('High-ROI rate stress & guards (H1-H5)', () => {
 });
 
 describe('Extraction-failure fallback (scheduler with real browser — unroutable URLs)', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
   let adapter: JobLifecyclePort;
   let queueAd: ExtractionQueuePort;
   let bus: RealDipBus;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'c3-full-path-sched', startScheduler: true });
+    tc = await buildTestDaemonContainer({ ns: 'c3-full-path-sched', startScheduler: true });
     await tc.start();
     adapter = tc.mongoJobLifecycleAdapter;
     queueAd = tc.extractionQueueAdapter;
@@ -961,11 +961,11 @@ describe('Extraction-failure fallback (scheduler with real browser — unroutabl
 });
 
 describe('fast-check failure-cycle invariants', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
   let adapter: JobLifecyclePort;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'c3-full-path-fc' });
+    tc = await buildTestDaemonContainer({ ns: 'c3-full-path-fc' });
     await tc.start();
     adapter = tc.mongoJobLifecycleAdapter;
   }, 120000);

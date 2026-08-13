@@ -29,7 +29,6 @@ export interface ActionControllerConfig {
 const PROCESSED_IDS_MAX_SIZE = 1000;
 
 export class ActionController {
-  private config: ActionControllerConfig;
   private udsWriter: UdsActionWriter;
   private keyboard: KeyboardHandler;
 
@@ -37,7 +36,6 @@ export class ActionController {
   private processedJobLifecycleIds = new Set<string>();
 
   constructor(config: ActionControllerConfig) {
-    this.config = config;
     this.udsWriter = new UdsActionWriter(config.socketPath, config.udsToken);
     this.keyboard = new KeyboardHandler();
   }
@@ -366,30 +364,7 @@ export class ActionController {
       logger.debug('Ingesting clipboard as Stage 2...');
 
       // Send to UDS /internal/ingest without jobLifecycleId (auto-generated as 'clip-...')
-      const headers: Record<string, string> = {};
-      if (this.config.udsToken) {
-        headers['x-internal-token'] = this.config.udsToken;
-      }
-
-      const ingestOpts = {
-        socketPath: this.config.socketPath,
-        path: '/internal/ingest',
-        method: 'POST' as const,
-        headers: headers || undefined,
-        timeoutMs: 10000,
-      };
-
-      const ingestPayload = {
-        webhook: false,
-        html: htmlPayload,
-      };
-
-      // Dynamic import for postJsonOverUds
-      const { postJsonOverUds } = await import('../../infrastructure/utils/uds-http.js');
-      const res = await postJsonOverUds(ingestOpts, ingestPayload);
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        throw new Error(`Ingest failed: ${res.statusCode} ${res.body}`);
-      }
+      await this.udsWriter.ingest(htmlPayload);
 
       logger.info(' Clipboard ingestion triggered');
     } catch (err) {

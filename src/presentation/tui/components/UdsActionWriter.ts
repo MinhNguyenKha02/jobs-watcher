@@ -9,29 +9,17 @@ import fs from 'node:fs';
 
 import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
 import { postJsonOverUds, type UdsRequestOptions } from '../../../infrastructure/utils/uds-http.js';
+import {
+  OperatorAction,
+  type ActionPayload,
+  type ActionWriterPort,
+  type WebhookIngestPayload,
+} from '../ports/action-writer.port.js';
 import { clipboardGetter } from '../services/clipboard-getter.js';
 
 const logger = createLogger('UdsAction');
 
-export enum OperatorAction {
-  QUEUE = 'queue',
-  TRASH = 'trash',
-}
-
-export interface ActionPayload {
-  jobLifecycleId: string;
-  action: OperatorAction;
-  editedKVs?: Record<string, unknown>;
-  generatedPath?: string;
-  source?: string;
-}
-
-export interface WebhookIngestPayload {
-  html: string;
-  jobLifecycleId?: string;
-}
-
-export class UdsActionWriter {
+export class UdsActionWriter implements ActionWriterPort {
   private socketPath: string;
   private token: string | undefined;
   private udsOpts: UdsRequestOptions;
@@ -70,6 +58,26 @@ export class UdsActionWriter {
     };
 
     await this.sendAction(payload);
+  }
+
+  /**
+   * Send a direct-mode clipboard ingest ([i]) — html only, no jobLifecycleId.
+   */
+  async ingest(html: string): Promise<void> {
+    const ingestOpts: UdsRequestOptions = {
+      socketPath: this.socketPath,
+      path: '/internal/ingest',
+      method: 'POST',
+      headers: this.token ? { 'x-internal-token': this.token } : {},
+      timeoutMs: 10000,
+    };
+
+    const res = await postJsonOverUds(ingestOpts, { webhook: false, html });
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw new Error(`Ingest failed: ${res.statusCode} ${res.body}`);
+    }
+
+    logger.info('Clipboard ingestion triggered', { size: html.length });
   }
 
   async webhookIngest(jobLifecycleId?: string): Promise<string> {

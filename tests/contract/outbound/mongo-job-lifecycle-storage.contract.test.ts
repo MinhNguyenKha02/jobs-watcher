@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { JobLifecyclePort } from '../../../src/application/ports/job-lifecycle.port.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import type { JobLifecycleDocument } from '../../../src/domain/types/job-lifecycle.js';
-import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
+import { buildTestDaemonContainer, type TestDaemonContainer } from '../../helpers/test-container.js';
 
 const now = new Date();
 
@@ -24,12 +24,12 @@ function makeDoc(overrides: Partial<JobLifecycleDocument> & { _id: string }): Jo
 }
 
 describe('Ingestor <-> MongoDB storage (mongodb-memory-server)', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
   let adapter: JobLifecyclePort;
   let collection: any;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'app-ingestor-storage' });
+    tc = await buildTestDaemonContainer({ ns: 'app-ingestor-storage' });
     await tc.start();
     adapter = tc.mongoJobLifecycleAdapter;
     collection = tc.db.collection('job_lifecycle');

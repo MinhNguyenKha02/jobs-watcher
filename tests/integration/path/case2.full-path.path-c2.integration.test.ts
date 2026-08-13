@@ -24,9 +24,9 @@ import { udsHelpers } from '../../helpers/e2e-harness.js';
 import { indeedEmailHtmlMany, indeedDetailHtml } from '../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
 import {
-  buildTestContainer,
+  buildTestDaemonContainer,
   buildTuiTestContainer,
-  type TestContainer,
+  type TestDaemonContainer,
 } from '../../helpers/test-container.js';
 
 const UDS_TOKEN = 'e2e-internal-token';
@@ -169,14 +169,14 @@ function waitForPdfFiles(dir: string, timeoutMs = 20000): Promise<void> {
 }
 
 describe('c2 browser extraction + resolution cycle', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
   let adapter: JobLifecyclePort;
   let eqAdapter: ExtractionQueuePort;
   let detail: DetailServer;
   let uds: ReturnType<typeof udsHelpers>;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'c2-full-path', startScheduler: true });
+    tc = await buildTestDaemonContainer({ ns: 'c2-full-path', startScheduler: true });
     await tc.start();
     adapter = tc.mongoJobLifecycleAdapter;
     eqAdapter = tc.extractionQueueAdapter;
@@ -300,13 +300,13 @@ describe('c2 browser extraction + resolution cycle', () => {
   });
 
   describe('(b) signal1 → signal2 cluster-merge → [j] (no scheduler)', () => {
-    let tcB: TestContainer;
+    let tcB: TestDaemonContainer;
     let adapterB: JobLifecyclePort;
     let eqB: ExtractionQueuePort;
     let udsB: ReturnType<typeof udsHelpers>;
 
     beforeAll(async () => {
-      tcB = await buildTestContainer({ ns: 'c2-merge-def' });
+      tcB = await buildTestDaemonContainer({ ns: 'c2-merge-def' });
       await tcB.start();
       adapterB = tcB.mongoJobLifecycleAdapter;
       eqB = tcB.extractionQueueAdapter;

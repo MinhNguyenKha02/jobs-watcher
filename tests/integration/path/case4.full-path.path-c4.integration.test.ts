@@ -18,9 +18,9 @@ import {
 } from '../../helpers/html-fixtures.js';
 import type { RealDipBus } from '../../helpers/real-dip-bus.js';
 import {
-  buildTestContainer,
+  buildTestDaemonContainer,
   buildTuiTestContainer,
-  type TestContainer,
+  type TestDaemonContainer,
 } from '../../helpers/test-container.js';
 
 const DIRECT_HTML = linkedinSduiDetailHtml('Backend Developer', 'CopyJuniorCompany');
@@ -56,12 +56,12 @@ async function purgeTuiQueues(ns: string): Promise<void> {
 }
 
 describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, dedupe and failure edges', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
   let realBus: RealDipBus;
   let uds: ReturnType<typeof udsHelpers>;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'c4-full-path' });
+    tc = await buildTestDaemonContainer({ ns: 'c4-full-path' });
     await tc.start();
     realBus = tc.bus;
     uds = udsHelpers(tc.socket, 'e2e-internal-token');

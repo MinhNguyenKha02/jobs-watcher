@@ -5,15 +5,15 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ProfileInfoRetriever } from '../../../src/domain/profile/index.js';
 import { flattenJob } from '../../../src/domain/services/flatten-job.js';
 import { JobStage, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
-import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
+import { buildTestDaemonContainer, type TestDaemonContainer } from '../../helpers/test-container.js';
 
 describe('Asset builder pipeline — full chain from queue action to PdfAsset', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
 
   beforeAll(async () => {
     // The chain is resolved through the production composition root: the real
     // AssetProducingAdapter is bound to a temp asset dir; storage is atomic.
-    tc = await buildTestContainer({ ns: 'asset-builder-flow' });
+    tc = await buildTestDaemonContainer({ ns: 'asset-builder-flow' });
     await tc.start();
   }, 120000);
 

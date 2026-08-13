@@ -4,7 +4,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ActionEvent } from '../../../src/domain/types/action-event.js';
 import { JobStage, JobSource } from '../../../src/domain/types/job-lifecycle.js';
 import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
-import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
+import { buildTestDaemonContainer, type TestDaemonContainer } from '../../helpers/test-container.js';
 
 /**
  * Ingestor saga over the real composition root: processIngest / processResolution
@@ -12,10 +12,10 @@ import { buildTestContainer, type TestContainer } from '../../helpers/test-conta
  * adapters), with each republished signal asserted on its labeled topic.
  */
 describe('RMQ + Ingestor wiring', { timeout: 60000 }, () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'rmq-ingestor-wiring' });
+    tc = await buildTestDaemonContainer({ ns: 'rmq-ingestor-wiring' });
     await tc.start();
   }, 120000);
 

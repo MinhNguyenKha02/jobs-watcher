@@ -10,7 +10,7 @@ import {
 
 import { postJson, udsHelpers } from './e2e-harness.js';
 import { topcvEmailHtmlMany, indeedEmailHtmlMany } from './html-fixtures.js';
-import { buildTestContainer } from './test-container.js';
+import { buildTestDaemonContainer } from './test-container.js';
 
 export { ActionEvent };
 
@@ -86,7 +86,7 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
   const role = opts.role ?? 'Software Engineer';
   const company = opts.company ?? 'E2eCanonicalCo';
 
-  const tc = await buildTestContainer({
+  const tc = await buildTestDaemonContainer({
     ns: opts.ns,
     startScheduler: opts.startScheduler ?? false,
   });

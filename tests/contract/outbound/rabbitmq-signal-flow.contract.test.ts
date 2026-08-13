@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { ActionEvent } from '../../../src/domain/types/action-event.js';
 import { JobStage, JobSource } from '../../../src/domain/types/job-lifecycle.js';
-import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
+import { buildTestDaemonContainer, type TestDaemonContainer } from '../../helpers/test-container.js';
 
 /**
  * Labeled transport probe: the real outbound Parse/Route adapters resolved from
@@ -15,10 +15,10 @@ describe(
   'RMQ Signal Flow — container adapters + labeled transport probe',
   { timeout: 30000 },
   () => {
-    let tc: TestContainer;
+    let tc: TestDaemonContainer;
 
     beforeAll(async () => {
-      tc = await buildTestContainer({ ns: 'rmq-signal-flow' });
+      tc = await buildTestDaemonContainer({ ns: 'rmq-signal-flow' });
       await tc.container.rmq.connect();
     }, 120000);
 

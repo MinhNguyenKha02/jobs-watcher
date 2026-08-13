@@ -4,6 +4,7 @@ import { ActionEvent } from '../../../domain/types/action-event.js';
 import { JobStage, JobLifecycleDocument } from '../../../domain/types/job-lifecycle.js';
 import type { Job } from '../../../domain/types/job.js';
 import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
+import type { JobEventReaderPort } from '../ports/job-event-reader.port.js';
 import {
   setCurrentJob,
   clearCurrentJob,
@@ -39,7 +40,7 @@ interface S2BufferEntry {
   timestamp: number;
 }
 
-export class RabbitMqJobReader {
+export class RabbitMqJobReader implements JobEventReaderPort {
   private s1channel: Channel | null = null;
   private s2channel: Channel | null = null;
   private s34channel: Channel | null = null;

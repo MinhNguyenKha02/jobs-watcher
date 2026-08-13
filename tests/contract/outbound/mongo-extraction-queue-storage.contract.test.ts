@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 import type { ExtractionQueuePort } from '../../../src/application/ports/extraction-queue.port.js';
-import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
+import { buildTestDaemonContainer, type TestDaemonContainer } from '../../helpers/test-container.js';
 
 describe('ExtractionQueue storage (Mongo FIFO, mongodb-memory-server)', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
   let queue: ExtractionQueuePort;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'extraction-queue' });
+    tc = await buildTestDaemonContainer({ ns: 'extraction-queue' });
     await tc.start();
     queue = tc.extractionQueueAdapter;
   }, 120000);

@@ -7,15 +7,15 @@ import { flattenJob } from '../../../src/domain/services/flatten-job.js';
 import { ActionEvent } from '../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
-import { buildTestContainer, type TestContainer } from '../../helpers/test-container.js';
+import { buildTestDaemonContainer, type TestDaemonContainer } from '../../helpers/test-container.js';
 
 describe('PRC-010 — Asset pipeline: s3-queued → profile IR → asset via container adapters', () => {
-  let tc: TestContainer;
-  let dbCollection: ReturnType<TestContainer['db']['collection']>;
+  let tc: TestDaemonContainer;
+  let dbCollection: ReturnType<TestDaemonContainer['db']['collection']>;
   let retriever: ProfileInfoRetriever;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({ ns: 'asset-pipeline' });
+    tc = await buildTestDaemonContainer({ ns: 'asset-pipeline' });
     await tc.start();
     dbCollection = tc.db.collection('job_lifecycle');
     retriever = new ProfileInfoRetriever();
@@ -102,10 +102,10 @@ describe('PRC-010 — Asset pipeline: s3-queued → profile IR → asset via con
 });
 
 describe('PRC-010 — Asset pipeline resilience (non-fatal toAsset failure)', () => {
-  let tc: TestContainer;
+  let tc: TestDaemonContainer;
 
   beforeAll(async () => {
-    tc = await buildTestContainer({
+    tc = await buildTestDaemonContainer({
       ns: 'asset-pipeline-failure',
       ports: {
         // Scripted asset seam: toAsset rejects — the saga must still emit QUEUED
