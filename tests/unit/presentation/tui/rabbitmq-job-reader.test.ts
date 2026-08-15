@@ -132,7 +132,7 @@ describe('RabbitMqJobReader', () => {
     });
   });
 
-  describe('S2 — job.parse.completed', () => {
+  describe('S2 — job.parse.completed — QUEUE mode (S1-then-S2 / [c] enrichment)', () => {
     it('GIVEN RabbitMqJobReader WHEN exercised THEN merges into displayed job and upgrades stage (S2)', () => {
       (reader as any).onMessageS1(makeS1Msg('job-1'));
       (reader as any).onMessageS2(makeS2Msg('job-1'));
@@ -151,6 +151,24 @@ describe('RabbitMqJobReader', () => {
       expect(currentJob.stage).toBe(JobStage.FULL_PARSED);
     });
 
+    it('GIVEN s2 before s1 ordering WHEN exercised THEN deferred S2 drains then acks exactly once via S34 (no double-ack)', () => {
+      vi.clearAllMocks();
+      (reader as any).onMessageS2(makeS2Msg('job-early'));
+      const tagId = String((reader as any).deliveryTagsS2.keys().next().value);
+      expect(tagId).toBe('job-early');
+      (reader as any).onMessageS1(makeS1Msg('job-early'));
+      expect((reader as any).deferredS2Buffer.has('job-early')).toBe(false);
+      (reader as any).onMessageS3S4(makeS34Msg('job-early', 'job.queue'));
+      expect(mockS2.ack).toHaveBeenCalledWith(
+        expect.objectContaining({ fields: { deliveryTag: 2 } }),
+        false
+      );
+      expect((reader as any).deliveryTagsS2.has('job-early')).toBe(false);
+      expect(mockS2.ack).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('S2 — job.parse.completed — DIRECT mode ([i], no S1)', () => {
     it('GIVEN RabbitMqJobReader WHEN exercised THEN F5: direct mode sets immediately (S2)', () => {
       queueMode = false;
       (reader as any).onMessageS2(makeS2Msg('job-d'));
@@ -164,6 +182,15 @@ describe('RabbitMqJobReader', () => {
       expect(currentJob.jobLifecycleId).toBe('job-1');
       (reader as any).onMessageS2(makeS2Msg('job-2'));
       expect(currentJob.jobLifecycleId).toBe('job-2');
+    });
+
+    it('GIVEN RabbitMqJobReader WHEN exercised THEN direct mode acks its own delivery once (no deferred record)', () => {
+      queueMode = false;
+      vi.clearAllMocks();
+      (reader as any).onMessageS2(makeS2Msg('job-d-ack'));
+      expect(mockS2.ack).toHaveBeenCalledTimes(1);
+      expect((reader as any).deliveryTagsS2.size).toBe(0);
+      expect((reader as any).deferredS2Buffer.size).toBe(0);
     });
   });
 
@@ -188,6 +215,38 @@ describe('RabbitMqJobReader', () => {
       vi.clearAllMocks();
       (reader as any).onMessageS3S4(makeS34Msg('job-tag', 'job.queue'));
       expect(mockS34.ack).toHaveBeenCalled();
+    });
+
+    it('GIVEN a deferred-only S2 WHEN its S3 resolves THEN the S2 tag is acked once and a later evict never re-nacks', () => {
+      vi.clearAllMocks();
+      (reader as any).onMessageS2(makeS2Msg('job-donly'));
+      (reader as any).deferredS2Buffer.set('job-donly', {
+        payload: { _id: 'job-donly', role: 'Engineer', company: 'TestCo' },
+        deliveryTag: 2,
+        timestamp: Date.now() - 31_000,
+      });
+      (reader as any).onMessageS3S4(makeS34Msg('job-donly', 'job.queue'));
+      expect(mockS2.ack).toHaveBeenCalledWith(
+        expect.objectContaining({ fields: { deliveryTag: 2 } }),
+        false
+      );
+      expect(mockS2.ack).toHaveBeenCalledTimes(1);
+      expect((reader as any).deliveryTagsS2.has('job-donly')).toBe(false);
+      vi.clearAllMocks();
+      (reader as any).evictStaleDeferred();
+      expect(mockS2.nack).toHaveBeenCalledTimes(0);
+      expect((reader as any).deferredS2Buffer.has('job-donly')).toBe(false);
+    });
+
+    it('GIVEN a direct-mode job WHEN its S3 resolves THEN only the S34 delivery is acked (no S1/S2 ack)', () => {
+      queueMode = false;
+      (reader as any).onMessageS2(makeS2Msg('job-d'));
+      vi.clearAllMocks();
+      (reader as any).onMessageS3S4(makeS34Msg('job-d', 'job.queue'));
+      expect(mockS2.ack).toHaveBeenCalledTimes(0);
+      expect(mockS1.ack).toHaveBeenCalledTimes(0);
+      expect(mockS34.ack).toHaveBeenCalledTimes(1);
+      expect(currentJob.jobLifecycleId).toBeNull();
     });
   });
 
@@ -231,6 +290,35 @@ describe('RabbitMqJobReader', () => {
       (reader as any).evictStaleDeferred();
       expect(mockS2.nack).toHaveBeenCalledWith(expect.anything(), false, false);
       expect((reader as any).deferredS2Buffer.has('early-stale')).toBe(false);
+    });
+
+    it('GIVEN RabbitMqJobReader WHEN vi.clearAllMocks THEN evict removes the nacked tag from deliveryTagsS2 (no re-ack by dead tag)', () => {
+      vi.clearAllMocks();
+      (reader as any).onMessageS2(makeS2Msg('early-stale'));
+      (reader as any).deferredS2Buffer.set('early-stale', {
+        payload: { _id: 'early-stale', role: 'Engineer', company: 'TestCo' },
+        deliveryTag: 2,
+        timestamp: Date.now() - 31_000,
+      });
+      (reader as any).evictStaleDeferred();
+      expect((reader as any).deliveryTagsS2.has('early-stale')).toBe(false);
+      (reader as any).onMessageS3S4(makeS34Msg('early-stale', 'job.queue'));
+      expect(mockS2.ack).toHaveBeenCalledTimes(0);
+    });
+
+    it('GIVEN a deferred S2 already resolved by S3 WHEN evict runs THEN stale entry is dropped with no nack', () => {
+      vi.clearAllMocks();
+      (reader as any).onMessageS2(makeS2Msg('early-resolved'));
+      (reader as any).deferredS2Buffer.set('early-resolved', {
+        payload: { _id: 'early-resolved', role: 'Engineer', company: 'TestCo' },
+        deliveryTag: 2,
+        timestamp: Date.now() - 31_000,
+      });
+      (reader as any).onMessageS3S4(makeS34Msg('early-resolved', 'job.queue'));
+      vi.clearAllMocks();
+      (reader as any).evictStaleDeferred();
+      expect(mockS2.nack).toHaveBeenCalledTimes(0);
+      expect((reader as any).deferredS2Buffer.has('early-resolved')).toBe(false);
     });
   });
 });

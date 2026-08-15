@@ -1,20 +1,23 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 import type { ExtractionQueuePort } from '../../../src/application/ports/extraction-queue.port.js';
-import { buildTestDaemonContainer, type TestDaemonContainer } from '../../helpers/test-container.js';
+import {
+  buildTestDaemonContainer,
+  type TestDaemonContainer,
+} from '../../helpers/test-container.js';
 
 describe('ExtractionQueue storage (Mongo FIFO, mongodb-memory-server)', () => {
-  let tc: TestDaemonContainer;
+  let daemon: TestDaemonContainer;
   let queue: ExtractionQueuePort;
 
   beforeAll(async () => {
-    tc = await buildTestDaemonContainer({ ns: 'extraction-queue' });
-    await tc.start();
-    queue = tc.extractionQueueAdapter;
+    daemon = await buildTestDaemonContainer({ ns: 'extraction-queue' });
+    await daemon.start();
+    queue = daemon.extractQueue;
   }, 120000);
 
   afterAll(async () => {
-    await tc.stop();
+    await daemon.stop();
   });
 
   it('GIVEN the ExtractionQueue precondition WHEN enqueue → dequeue → size on the real ExtractionQueue THEN dequeues in FIFO order and returns the persisted identity per job', async () => {

@@ -16,6 +16,7 @@ import {
   clearCurrentJob,
   resetState,
 } from '../../../../src/presentation/tui/shared-tui-state.js';
+import { waitFor } from '../../../helpers/test-utils.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 
@@ -40,15 +41,6 @@ process.env.TUI_SHARED_STATE_PATH = path.join(sharedStateDir, 'tui-state.json');
 
 function publish(ch: Channel, key: string, payload: unknown): void {
   ch.publish(EXCHANGE, key, Buffer.from(JSON.stringify(payload)), { persistent: true });
-}
-
-async function waitFor(check: () => boolean, timeoutMs = 8000, intervalMs = 50): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (check()) return;
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error(`waitFor timed out after ${timeoutMs}ms`);
 }
 
 describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () => {

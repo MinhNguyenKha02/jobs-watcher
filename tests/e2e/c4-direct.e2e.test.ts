@@ -1,48 +1,20 @@
 /*
- * e2e c4-direct (prod bootstrap, real deps, black-box; no IoC in the body):
- * GIVEN an [i] clipboard ingest (no S1) WHEN [j]/[d] UDS resolution is applied
- * THEN a clip-* ENRICHED doc routes to S3 QUEUED / S4 TRASHED and the next direct ingest completes.
+ * e2e c4-direct (P3 skeleton: 2 real containers, black-box, final-outcome asserts):
+ *   [i] clipboard ingest → clip-* FULL_PARSED → [j] QUEUED + PDF / [d] TRASHED + empty-payload 400 boundary.
+ *   Assert ONLY final outcomes (daemon.mongo S3/S4 + real asset PDF + the ipc seam folded in).
  */
-import amqplib from 'amqplib';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 import { JobStage, JobStatus, JobSource } from '../../src/domain/types/job-lifecycle.js';
-import { getCurrentJob } from '../../src/presentation/tui/shared-tui-state.js';
-import { createE2eApp, ActionEvent, type E2eApp } from '../helpers/e2e-app.js';
+import { ActionEvent, createE2eApp, type E2eApp } from '../helpers/e2e-app.js';
 import { topcvDetailHtml } from '../helpers/html-fixtures.js';
-import { buildTuiTestContainer } from '../helpers/test-container.js';
 
-const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
+const waitForDoc = (app: E2eApp, jobId: string) =>
+  vi.waitUntil(async () => (await app.jobLifecycle.findById(jobId)) !== null, {
+    timeout: 15000,
+  });
 
-async function waitFor(check: () => boolean, timeoutMs = 15000, intervalMs = 50): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (check()) return;
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error(`waitFor timed out after ${timeoutMs}ms`);
-}
-
-async function purgeTuiQueues(ns: string): Promise<void> {
-  const conn = await amqplib.connect(RMQ_URL);
-  const ch = await conn.createChannel();
-  for (const suffix of ['s1', 's2', 's3s4']) {
-    try {
-      await ch.assertQueue(`tui.${ns}.${suffix}`);
-      await ch.purgeQueue(`tui.${ns}.${suffix}`);
-    } catch {
-      /* best-effort — a missing/closed queue is treated as empty */
-    }
-  }
-  try {
-    await ch.close();
-  } catch {
-    /* channel may already be closed by the server */
-  }
-  await conn.close();
-}
-
-describe('C4 direct e2e — [i] clipboard ingest → fully job → [d] trash → next cycle (prod bootstrap, no queue/asset mocks)', () => {
+describe('C4 direct e2e — [i] clipboard ingest → fully job → [j] queue + pdf / [d] trash / 400 boundary → next cycle (prod bootstrap)', () => {
   let app: E2eApp;
 
   beforeAll(async () => {
@@ -53,137 +25,142 @@ describe('C4 direct e2e — [i] clipboard ingest → fully job → [d] trash →
     await app.stop();
   });
 
-  it('GIVEN [i] clipboard ingest WHEN ENRICHED clip-* doc; [d] trash THEN TRASHED; next direct ingest still completes', async () => {
-    const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-    const iRes = await app.uds.ingest(topcvDetailHtml('Backend Engineer', 'C4DirectCo'));
-    expect(iRes.statusCode).toBe(200);
-
-    const compMsg = await comp.msg();
-    const firstJobId: string = compMsg.job._id;
-    expect(firstJobId).toMatch(/^clip-/);
-    expect(compMsg.job.role).toBe('Backend Engineer');
-    expect(compMsg.job.company).toBe('C4DirectCo');
-    expect(compMsg.job.stage).toBe(JobStage.FULL_PARSED);
-    expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
-    expect(compMsg.job.source).toBe(JobSource.MANUAL);
-
-    const trash = await app.events.on([
-      ActionEvent.TRASHED,
-      ActionEvent.ROUTE_FAILED,
-      ActionEvent.PARSE_FAILED,
-    ]);
-    const dRes = await app.uds.action(firstJobId, 'trash');
-    expect(dRes.statusCode).toBe(200);
-
-    const trashMsg = await trash.msg();
-    expect(trashMsg.jobLifecycleId).toBe(firstJobId);
-    expect(trashMsg.reason).toBe('operator:trash');
-
-    const comp2 = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-    const i2Res = await app.uds.ingest(topcvDetailHtml('Data Engineer', 'C4DirectCo2'));
-    expect(i2Res.statusCode).toBe(200);
-
-    const comp2Msg = await comp2.msg();
-    expect(comp2Msg.job._id).toMatch(/^clip-/);
-    expect(comp2Msg.job._id).not.toBe(firstJobId);
-    expect(comp2Msg.job.company).toBe('C4DirectCo2');
-    expect(comp2Msg.job.status).toBe(JobStatus.ENRICHED);
-  }, 60000);
-
-  it('GIVEN [i] clipboard ingest WHEN a [j] resolution is applied THEN QUEUED + real asset pdf; next direct ingest still completes', async () => {
-    const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-    const iRes = await app.uds.ingest(topcvDetailHtml('DevOps Engineer', 'C4QueueCo'));
-    expect(iRes.statusCode).toBe(200);
-
-    const compMsg = await comp.msg();
-    const jobId: string = compMsg.job._id;
-    expect(jobId).toMatch(/^clip-/);
-    expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
-
-    const queue = await app.events.on([
-      ActionEvent.QUEUED,
-      ActionEvent.TRASHED,
-      ActionEvent.ROUTE_FAILED,
-    ]);
-    const jRes = await app.uds.action(jobId, 'queue');
-    expect(jRes.statusCode).toBe(200);
-
-    const queueMsg = await queue.msg();
-    expect(queueMsg.jobLifecycleId).toBe(jobId);
-
-    const pdfPath = await app.artifacts.waitForPdf();
-    expect(pdfPath).toBeTruthy();
-
-    const comp2 = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-    const i2Res = await app.uds.ingest(topcvDetailHtml('Frontend Engineer', 'C4QueueCo2'));
-    expect(i2Res.statusCode).toBe(200);
-
-    const comp2Msg = await comp2.msg();
-    expect(comp2Msg.job._id).toMatch(/^clip-/);
-    expect(comp2Msg.job._id).not.toBe(jobId);
-    expect(comp2Msg.job.company).toBe('C4QueueCo2');
-    expect(comp2Msg.job.status).toBe(JobStatus.ENRICHED);
-  }, 60000);
-
-  it('GIVEN an empty [i] clipboard WHEN the path is exercised THEN the UDS boundary rejects it (400 empty payload) with no parse attempt; next direct ingest still completes', async () => {
-    const fail = await app.events.on([ActionEvent.PARSE_FAILED], 2000);
-    const emptyRes = await app.uds.ingest('');
-    expect(emptyRes.statusCode).toBe(400);
-    await expect(fail.msg()).rejects.toThrow();
-
-    const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-    const okRes = await app.uds.ingest(topcvDetailHtml('Site Reliability Engineer', 'C4EmptyCo'));
-    expect(okRes.statusCode).toBe(200);
-
-    const compMsg = await comp.msg();
-    expect(compMsg.job._id).toMatch(/^clip-/);
-    expect(compMsg.job.company).toBe('C4EmptyCo');
-    expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
-  }, 60000);
-
-  it('GIVEN the tui-ioc precondition WHEN the daemon webhook+paste publishes S1+S2 over RMQ and the tui sends [j] over UDS THEN the reader mirrors then clears the job on the ipc seam (tui↔daemon real RMQ+UDS) · e2e c4', async () => {
-    await purgeTuiQueues('c4-direct');
-    const tui = await buildTuiTestContainer({ ns: 'c4-direct' });
-    try {
-      await waitFor(() => tui.rmqReader.isConnected());
-      await app.resetDb();
-
-      const gen = await app.events.on([ActionEvent.GENERATED]);
-      const res = await app.webhook.post('c4-boundary-msg');
-      expect(res.status).toBe(202);
-
-      const genMsg = await gen.msg();
-      const jobId: string = genMsg._id;
-      await waitFor(() => getCurrentJob().jobLifecycleId === jobId);
-      expect(getCurrentJob().stage).toBe(JobStage.PARTIAL_PARSED);
-
+  describe('(a) [i] direct ingest → [d] TRASHED → next direct ingest', () => {
+    it('GIVEN [i] clipboard ingest WHEN ENRICHED clip-* doc; [d] trash THEN TRASHED; next direct ingest still completes · e2e c4', async () => {
       const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-      const cRes = await app.uds.ingest(
-        topcvDetailHtml('Software Engineer', 'E2eCanonicalCo'),
-        jobId
-      );
-      expect(cRes.statusCode).toBe(200);
+      const iRes = await app.uds.ingest(topcvDetailHtml('Backend Engineer', 'C4DirectCo'));
+      expect(iRes.statusCode).toBe(200);
 
       const compMsg = await comp.msg();
-      expect(compMsg.job._id).toBe(jobId);
-      await waitFor(
-        () =>
-          getCurrentJob().jobLifecycleId === jobId && getCurrentJob().stage === JobStage.FULL_PARSED
-      );
+      const firstJobId: string = compMsg.job._id;
+      expect(firstJobId).toMatch(/^clip-/);
+
+      const trash = await app.events.on([
+        ActionEvent.TRASHED,
+        ActionEvent.ROUTE_FAILED,
+        ActionEvent.PARSE_FAILED,
+      ]);
+      const dRes = await app.uds.action(firstJobId, 'trash');
+      expect(dRes.statusCode).toBe(200);
+
+      const trashMsg = await trash.msg();
+      expect(trashMsg.jobLifecycleId).toBe(firstJobId);
+      expect(trashMsg.reason).toBe('operator:trash');
+
+      const trashedDoc = await app.jobLifecycle.findById(firstJobId);
+      expect(trashedDoc!.status).toBe(JobStatus.TRASHED);
+
+      const comp2 = await app.events.on([ActionEvent.PARSE_COMPLETED]);
+      const i2Res = await app.uds.ingest(topcvDetailHtml('Data Engineer', 'C4DirectCo2'));
+      expect(i2Res.statusCode).toBe(200);
+
+      const comp2Msg = await comp2.msg();
+      const nextId: string = comp2Msg.job._id;
+      expect(nextId).toMatch(/^clip-/);
+      expect(nextId).not.toBe(firstJobId);
+
+      const nextDoc = await app.jobLifecycle.findById(nextId);
+      expect(nextDoc!.company).toBe('C4DirectCo2');
+      expect(nextDoc!.status).toBe(JobStatus.ENRICHED);
+    }, 60000);
+  });
+
+  describe('(b) [i] direct ingest → [j] QUEUED + asset PDF → next direct ingest', () => {
+    it('GIVEN [i] clipboard ingest WHEN a [j] resolution is applied THEN QUEUED + real asset pdf; next direct ingest still completes · e2e c4', async () => {
+      const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
+      const iRes = await app.uds.ingest(topcvDetailHtml('DevOps Engineer', 'C4QueueCo'));
+      expect(iRes.statusCode).toBe(200);
+
+      const compMsg = await comp.msg();
+      const jobId: string = compMsg.job._id;
+      expect(jobId).toMatch(/^clip-/);
+      expect(compMsg.job.source).toBe(JobSource.MANUAL);
 
       const queue = await app.events.on([
         ActionEvent.QUEUED,
         ActionEvent.TRASHED,
         ActionEvent.ROUTE_FAILED,
       ]);
-      await tui.udsWriter.queue(jobId);
+      const jRes = await app.uds.action(jobId, 'queue');
+      expect(jRes.statusCode).toBe(200);
 
       const queueMsg = await queue.msg();
       expect(queueMsg.jobLifecycleId).toBe(jobId);
-      await waitFor(() => getCurrentJob().jobLifecycleId === null);
-      expect(getCurrentJob().job).toBeNull();
-    } finally {
-      await tui.stop();
-    }
-  }, 90000);
+
+      const pdfPath = await app.artifacts.waitForPdf();
+      expect(pdfPath).toBeTruthy();
+
+      const queuedDoc = await app.jobLifecycle.findById(jobId);
+      expect(queuedDoc!.status).toBe(JobStatus.QUEUED);
+
+      const comp2 = await app.events.on([ActionEvent.PARSE_COMPLETED]);
+      const i2Res = await app.uds.ingest(topcvDetailHtml('Frontend Engineer', 'C4QueueCo2'));
+      expect(i2Res.statusCode).toBe(200);
+
+      const comp2Msg = await comp2.msg();
+      const nextId: string = comp2Msg.job._id;
+      expect(nextId).toMatch(/^clip-/);
+      expect(nextId).not.toBe(jobId);
+
+      const nextDoc = await app.jobLifecycle.findById(nextId);
+      expect(nextDoc!.company).toBe('C4QueueCo2');
+      expect(nextDoc!.status).toBe(JobStatus.ENRICHED);
+    }, 60000);
+  });
+
+  describe('(c) empty [i] clipboard → 400 boundary, no parse attempt, next completes', () => {
+    it('GIVEN an empty [i] clipboard WHEN the path is exercised THEN the UDS boundary rejects it (400 empty payload) with no parse attempt; next direct ingest still completes · e2e c4', async () => {
+      const fail = await app.events.on([ActionEvent.PARSE_FAILED], 2000);
+      const emptyRes = await app.uds.ingest('');
+      expect(emptyRes.statusCode).toBe(400);
+      await expect(fail.msg()).rejects.toThrow();
+
+      const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
+      const okRes = await app.uds.ingest(topcvDetailHtml('Site Reliability Engineer', 'C4EmptyCo'));
+      expect(okRes.statusCode).toBe(200);
+
+      const compMsg = await comp.msg();
+      const clipId: string = compMsg.job._id;
+      expect(clipId).toMatch(/^clip-/);
+
+      const clipDoc = await app.jobLifecycle.findById(clipId);
+      expect(clipDoc!.company).toBe('C4EmptyCo');
+      expect(clipDoc!.status).toBe(JobStatus.ENRICHED);
+    }, 60000);
+  });
+
+  describe('(d) ring closure — webhook S1 → [c] paste → [j] QUEUED + tui seam', () => {
+    it('GIVEN a recovery ring WHEN a full webhook→paste→[j] cycle runs THEN QUEUED and the ipc seam mirrors then clears · e2e c4', async () => {
+      await app.resetDb();
+      app.tui.rmq.reader.resetReader();
+      const jobId = 'c4-boundary-msg-job-0';
+
+      const res = await app.webhook.post('c4-boundary-msg');
+      expect(res.status).toBe(202);
+      await waitForDoc(app, jobId);
+
+      const cRes = await app.uds.ingest(
+        topcvDetailHtml('Software Engineer', 'E2eCanonicalCo'),
+        jobId
+      );
+      expect(cRes.statusCode).toBe(200);
+
+      await vi.waitUntil(
+        () =>
+          app.tui.ipc.read().jobLifecycleId === jobId &&
+          app.tui.ipc.read().stage === JobStage.FULL_PARSED,
+        { timeout: 15000 }
+      );
+
+      const jRes = await app.uds.action(jobId, 'queue');
+      expect(jRes.statusCode).toBe(200);
+
+      await vi.waitUntil(
+        async () => (await app.jobLifecycle.findById(jobId))?.status === JobStatus.QUEUED,
+        { timeout: 15000 }
+      );
+      await vi.waitUntil(() => app.tui.ipc.read().jobLifecycleId === null, { timeout: 15000 });
+      expect(app.tui.ipc.read().job).toBeNull();
+    }, 90000);
+  });
 });

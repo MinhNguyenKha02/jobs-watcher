@@ -2,23 +2,29 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 
+import type { JobLifecyclePort } from '../../src/application/ports/job-lifecycle.port.js';
 import { ActionEvent } from '../../src/domain/types/action-event.js';
 import {
   WebhookAdapter,
   type GmailClient,
 } from '../../src/infrastructure/inbound/web/webhook-adapter.js';
 
-import { postJson, udsHelpers } from './e2e-harness.js';
 import { topcvEmailHtmlMany, indeedEmailHtmlMany } from './html-fixtures.js';
-import { buildTestDaemonContainer } from './test-container.js';
+import {
+  buildTestDaemonContainer,
+  buildTestTuiContainer,
+  type TuiTestContainer,
+} from './test-container.js';
+import { postJson, udsHelpers } from './test-utils.js';
 
 export { ActionEvent };
 
 export interface E2eEvents {
   /**
-   * Bind a fresh exclusive RMQ queue to the given action routing keys (S1…S4)
-   * and resolve with the first matching real event. Setup must complete before
-   * triggering the system-under-test to avoid the bind-vs-publish race.
+   * Register a consumer-leg waiter on the tui facade's pre-bound role queue
+   * (s1/s2/s34; fresh queue for cross-role arrays) and resolve with the first
+   * matching real event. Registration happens before triggering so the role
+   * queue holds any early publish for the awaited `msg()`.
    */
   on(keys: ActionEvent[], timeoutMs?: number): Promise<{ msg(): Promise<any> }>;
 }
@@ -58,6 +64,10 @@ export interface E2eApp {
   artifacts: E2eArtifacts;
   webhook: { post(messageId: string): Promise<{ status: number }> };
   uds: E2eUds;
+  /** The real tui composition root (reader + ipc seam) sharing this app's ns. */
+  tui: TuiTestContainer;
+  /** Real job-lifecycle port for final mongo S3/S4 state assertions. */
+  jobLifecycle: JobLifecyclePort;
   resetDb(): Promise<void>;
   stop(): Promise<void>;
 }
@@ -86,11 +96,12 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
   const role = opts.role ?? 'Software Engineer';
   const company = opts.company ?? 'E2eCanonicalCo';
 
-  const tc = await buildTestDaemonContainer({
+  const daemon = await buildTestDaemonContainer({
     ns: opts.ns,
     startScheduler: opts.startScheduler ?? false,
   });
-  await tc.start();
+  await daemon.start();
+  const tui = await buildTestTuiContainer({ ns: opts.ns });
 
   const gmail = {
     getMessage: async (msgId: string): Promise<unknown> => ({ messageId: msgId }),
@@ -117,13 +128,20 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
   };
 
   const webhookPort = await freePort();
-  const webhook = new WebhookAdapter(tc.ingestor, gmail as unknown as GmailClient);
+  const webhook = new WebhookAdapter(daemon.apps.ingest, gmail as unknown as GmailClient);
   await new Promise<void>((resolve) => {
     webhook.start(webhookPort, '/webhook');
     setTimeout(resolve, 250);
   });
 
-  const uds = udsHelpers(tc.socket, token);
+  const uds: E2eUds = {
+    ingest: (html, jobLifecycleId) =>
+      udsHelpers(daemon.uds.socket, token).ingest(html, jobLifecycleId),
+    action: async (jobLifecycleId, action) => {
+      await tui.uds.write[action](jobLifecycleId);
+      return { statusCode: 200 };
+    },
+  };
 
   const waitForPdf = (timeoutMs = 25000): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -131,13 +149,13 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
       const poll = () => {
         let pdfs: string[] = [];
         try {
-          pdfs = fs.readdirSync(tc.assetDir).filter((f) => f.endsWith('.pdf'));
+          pdfs = fs.readdirSync(daemon.assetDir).filter((f) => f.endsWith('.pdf'));
         } catch {
           /* dir not created yet */
         }
         if (pdfs.length > 0) {
           const newest = pdfs
-            .map((f) => path.join(tc.assetDir, f))
+            .map((f) => path.join(daemon.assetDir, f))
             .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0];
           return resolve(newest);
         }
@@ -150,21 +168,27 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
 
   return {
     events: {
-      on: (keys, timeoutMs) => tc.bus.setup(keys, timeoutMs),
+      on: (keys, timeoutMs = 10000) => {
+        const pending = tui.rmq.consume(keys, timeoutMs);
+        return Promise.resolve({ msg: () => pending });
+      },
     },
     artifacts: { waitForPdf },
     webhook: {
       post: (messageId) => postJson(webhookPort, '/webhook', { messageId }),
     },
     uds,
-    resetDb: () => tc.storage.clearDb(),
+    tui,
+    jobLifecycle: daemon.jobLifecycle,
+    resetDb: () => daemon.storage.clearDb(),
     stop: async () => {
       try {
         await webhook.stop();
       } catch {
         /* best-effort */
       }
-      await tc.stop();
+      await tui.stop();
+      await daemon.stop();
     },
   };
 }

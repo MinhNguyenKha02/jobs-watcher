@@ -11,4 +11,6 @@ export interface JobEventReaderPort {
   stop(): void;
   isConnected(): boolean;
   getQueueDepth(): number;
+  /** Drop all transient reader state so a fresh scenario starts clean. */
+  resetReader(): void;
 }

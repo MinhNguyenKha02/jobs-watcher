@@ -1,127 +1,74 @@
 /* Path cell (c4): direct full-path clipboard 2b -> clip-* FULL_PARSED doc -> queue/trash resolution over UDS and the real-DIP bus (see plans/tests-path-matrix.md)
  * GWT cause-effect (path c4, no S1): GIVEN a clipboard [i] direct ingest WHEN [j]/[d] UDS resolution is applied
- *   THEN S3 QUEUED / S3 TRASHED (+ PDF asset) clip-* doc, duplicates dedupe (11000), latest-wins stays current. */
-import { readdirSync } from 'node:fs';
-
-import amqplib from 'amqplib';
+ *   THEN S3 QUEUED / S3 TRASHED (+ PDF asset) clip-* doc, duplicates dedupe (11000), latest-wins stays current.
+ * Canonical ring: root describe = path ring title; nested describe = ONE checkpoint role; it = GWT.
+ * Roles: (a) S2 direct arrival, (b) S3 [j] queue, (c) S3 [d] trash + guards + empty-ipc closure, (d) dedupe/latest-wins,
+ * (e) negative clip, (f) fast-check invariants. Failure rows (route-failure injection) live in c3. */
 import fc from 'fast-check';
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
-import { ActionEvent } from '../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
-import { getCurrentJob } from '../../../src/presentation/tui/shared-tui-state.js';
-import { udsHelpers } from '../../helpers/e2e-harness.js';
 import {
   linkedinSduiDetailHtml,
   topcvDetailHtml,
   nonJobHtml,
 } from '../../helpers/html-fixtures.js';
-import type { RealDipBus } from '../../helpers/real-dip-bus.js';
 import {
   buildTestDaemonContainer,
-  buildTuiTestContainer,
+  buildTestTuiContainer,
   type TestDaemonContainer,
+  type TuiTestContainer,
 } from '../../helpers/test-container.js';
+import { udsHelpers, purgeTuiQueues, waitFor, waitForPdfFiles } from '../../helpers/test-utils.js';
 
 const DIRECT_HTML = linkedinSduiDetailHtml('Backend Developer', 'CopyJuniorCompany');
 
-const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
-
-async function waitFor(check: () => boolean, timeoutMs = 15000, intervalMs = 50): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (check()) return;
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error(`waitFor timed out after ${timeoutMs}ms`);
-}
-
-async function purgeTuiQueues(ns: string): Promise<void> {
-  const conn = await amqplib.connect(RMQ_URL);
-  const ch = await conn.createChannel();
-  for (const suffix of ['s1', 's2', 's3s4']) {
-    try {
-      await ch.assertQueue(`tui.${ns}.${suffix}`);
-      await ch.purgeQueue(`tui.${ns}.${suffix}`);
-    } catch {
-      /* best-effort — a missing/closed queue is treated as empty */
-    }
-  }
-  try {
-    await ch.close();
-  } catch {
-    /* channel may already be closed by the server */
-  }
-  await conn.close();
-}
-
 describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, dedupe and failure edges', () => {
   let tc: TestDaemonContainer;
-  let realBus: RealDipBus;
+  let tui: TuiTestContainer;
   let uds: ReturnType<typeof udsHelpers>;
 
   beforeAll(async () => {
     tc = await buildTestDaemonContainer({ ns: 'c4-full-path' });
     await tc.start();
-    realBus = tc.bus;
-    uds = udsHelpers(tc.socket, 'e2e-internal-token');
+    tui = await buildTestTuiContainer({ ns: 'c4-full-path' });
+    uds = udsHelpers(tc.uds.socket, 'e2e-internal-token');
   }, 120000);
 
   afterAll(async () => {
+    await tui.stop();
     await tc.stop();
   });
 
   beforeEach(async () => {
     await tc.storage.clearDb();
+    await purgeTuiQueues('c4-full-path');
+    tui.rmq.reader.resetReader();
+    tui.ipc.clear();
   });
 
-  const jobCol = () => tc.db.collection('job_lifecycle');
+  const jobCol = () => tc.mongo.raw('job_lifecycle');
 
   async function ingestClip(html: string): Promise<string> {
-    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
-    await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
-    const compMsg = await comp.msg();
+    const comp = tui.rmq.consume('s2');
+    await tc.apps.ingest.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
+    const compMsg = await comp;
     const id = compMsg.job._id as string;
     expect(id).toMatch(/^clip-/);
     return id;
   }
 
-  async function expectNoCompletedEvent(): Promise<void> {
-    const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED], 4000);
-    let timedOut = false;
-    try {
-      await comp.msg();
-    } catch (e) {
-      timedOut = /Timeout waiting for message/.test(e instanceof Error ? e.message : String(e));
-    }
-    expect(timedOut).toBe(true);
+  function expectNoCompletedEvent(): Promise<void> {
+    return expect(tui.rmq.consume('s2', 4000)).rejects.toThrow(/Timeout/);
   }
 
-  function waitForPdfFiles(dir: string, timeoutMs = 20000): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const start = Date.now();
-      const poll = () => {
-        try {
-          const files = readdirSync(dir).filter((f) => f.endsWith('.pdf'));
-          if (files.length > 0) return resolve();
-        } catch {
-          /* dir may not be created yet */
-        }
-        if (Date.now() - start > timeoutMs)
-          return reject(new Error(`Timeout waiting for pdf asset in ${dir}`));
-        setTimeout(poll, 250);
-      };
-      poll();
-    });
-  }
-
-  describe('signal2bManual creates a full-parsed clip-* doc and emits parse.completed — real-DIP', () => {
+  describe('(a) S2 direct arrival — clip-* FULL_PARSED doc creation', () => {
     it('GIVEN an S2 manual FULL_PARSED input WHEN findById loads the doc THEN creates a new FULL_PARSED job with a fabricated clip-* id (S2) · path c4', async () => {
       const docsBefore = await jobCol().countDocuments({});
       const id = await ingestClip(DIRECT_HTML);
       const docsAfter = await jobCol().countDocuments({});
       expect(docsAfter).toBe(docsBefore + 1);
-      const job = await tc.mongoJobLifecycleAdapter.findById(id);
+      const job = await tc.jobLifecycle.findById(id);
       expect(job).not.toBeNull();
       expect(job!.stage).toBe(JobStage.FULL_PARSED);
       expect(job!.status).toBe(JobStatus.ENRICHED);
@@ -139,22 +86,12 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       expect(doc!.status).toBe(JobStatus.ENRICHED);
     });
 
-    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN duplicate role+company silently skips (MongoDB 11000) and emits no second parse.completed (S2) · path c4', async () => {
-      const html = linkedinSduiDetailHtml('Duplicate Role', 'DuplicateClipCo');
-      await ingestClip(html);
-      const docsBefore = await jobCol().countDocuments({});
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
-      await expectNoCompletedEvent();
-      const docsAfter = await jobCol().countDocuments({});
-      expect(docsAfter).toBe(docsBefore);
-    });
-
     it('GIVEN duplicate role+company over the socket WHEN the path is exercised THEN S1 also silently skipped (S2) · path c4', async () => {
       const html = linkedinSduiDetailHtml('Socket Dedup Role', 'SocketDedupCo');
-      const firstSetup = realBus.setup([ActionEvent.PARSE_COMPLETED]);
+      const firstSetup = tui.rmq.consume('s2');
       const firstRes = await uds.ingest(html);
       expect(firstRes.statusCode).toBe(200);
-      const firstMsg = await (await firstSetup).msg();
+      const firstMsg = await firstSetup;
       expect(firstMsg.job._id).toMatch(/^clip-/);
       const docsBefore = await jobCol().countDocuments({});
       const secondRes = await uds.ingest(html);
@@ -163,17 +100,62 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       const docsAfter = await jobCol().countDocuments({});
       expect(docsAfter).toBe(docsBefore);
     });
+
+    it('GIVEN the tui-ioc precondition WHEN the daemon publishes S1+S2 over RMQ and the tui sends [j] over UDS THEN the tui reader mirrors then clears the job on the ipc seam (tui↔daemon over real RMQ+UDS) · path c4', async () => {
+      await waitFor(() => tui.rmq.reader.isConnected());
+      const jobId = 'c4-tui-boundary-1';
+
+      await tc.rmq.ports.parse.emitGenerated(
+        {
+          _id: jobId,
+          role: 'Backend Developer',
+          company: 'BoundaryCo4',
+          stage: JobStage.PARTIAL_PARSED,
+        },
+        { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+      );
+      await waitFor(() => tui.ipc.read().jobLifecycleId === jobId);
+      expect(tui.ipc.read().stage).toBe(JobStage.PARTIAL_PARSED);
+
+      await tc.rmq.ports.parse.emitCompleted(
+        {
+          _id: jobId,
+          role: 'Backend Developer',
+          company: 'BoundaryCo4',
+          description: 'boundary desc c4',
+          stage: JobStage.FULL_PARSED,
+          status: JobStatus.ENRICHED,
+        },
+        { stage: JobStage.FULL_PARSED, source: JobSource.MANUAL }
+      );
+      await waitFor(() => tui.ipc.read().job?.description === 'boundary desc c4');
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
+
+      await tc.jobLifecycle.upsert({
+        _id: jobId,
+        company: 'BoundaryCo4',
+        role: 'Backend Developer',
+        description: 'boundary desc c4',
+        stage: JobStage.FULL_PARSED,
+        status: JobStatus.ENRICHED,
+        source: JobSource.MANUAL,
+      });
+
+      await tui.uds.write.queue(jobId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
+    }, 60000);
   });
 
-  describe('clipboard paste path over the real UDS socket ([b] direct ingest + [j]/[d] actions)', () => {
+  describe('(b) S3 [j] queue resolution over UDS', () => {
     it('GIVEN uds.ingest without a webhook WHEN the path is exercised THEN S1 fabricates a clip-* id for the full direct ingest (S2) · path c4', async () => {
-      const comp = await realBus.setup([ActionEvent.PARSE_COMPLETED]);
+      const comp = tui.rmq.consume('s2');
       const res = await uds.ingest(linkedinSduiDetailHtml('Socket Engineer', 'UdsDirectCo'));
       expect(res.statusCode).toBe(200);
-      const compMsg = await comp.msg();
+      const compMsg = await comp;
       expect(compMsg.job).toBeDefined();
       expect(compMsg.job._id).toMatch(/^clip-/);
-      const doc = await tc.mongoJobLifecycleAdapter.findById(compMsg.job._id);
+      const doc = await tc.jobLifecycle.findById(compMsg.job._id);
       expect(doc).not.toBeNull();
       expect(doc!.stage).toBe(JobStage.FULL_PARSED);
       expect(doc!.status).toBe(JobStatus.ENRICHED);
@@ -182,77 +164,57 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
 
     it('GIVEN the path c4 preconditions WHEN a UDS action is dispatched THEN uds.action(clip, queue) routes the clipboard job to QUEUED + pdf asset (S2+S3) · path c4', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Socket Queue Role', 'UdsQueueCo'));
-      const queue = await realBus.setup([
-        ActionEvent.QUEUED,
-        ActionEvent.TRASHED,
-        ActionEvent.ROUTE_FAILED,
-      ]);
-      const res = await uds.action(id, 'queue');
-      expect(res.statusCode).toBe(200);
-      const queueMsg = await queue.msg();
+      const queue = tui.rmq.consume('s34');
+      await expect(tui.uds.write.queue(id)).resolves.toBeUndefined();
+      const queueMsg = await queue;
       expect(queueMsg.jobLifecycleId).toBe(id);
       await waitForPdfFiles(tc.assetDir);
-      const doc = await tc.mongoJobLifecycleAdapter.findById(id);
+      const doc = await tc.jobLifecycle.findById(id);
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.QUEUED);
     });
 
-    it('GIVEN the path c4 preconditions WHEN a UDS action is dispatched THEN uds.action(clip, trash) routes the clipboard job to TRASHED (S2+S3) · path c4', async () => {
-      const id = await ingestClip(linkedinSduiDetailHtml('Socket Trash Role', 'UdsTrashCo'));
-      const trash = await realBus.setup([
-        ActionEvent.TRASHED,
-        ActionEvent.ROUTE_FAILED,
-        ActionEvent.PARSE_FAILED,
-      ]);
-      const res = await uds.action(id, 'trash');
-      expect(res.statusCode).toBe(200);
-      const trashMsg = await trash.msg();
-      expect(trashMsg.jobLifecycleId).toBe(id);
-      expect(trashMsg.reason).toBe('operator:trash');
-      const doc = await tc.mongoJobLifecycleAdapter.findById(id);
+    it('GIVEN the path c4 preconditions WHEN a resolution is applied THEN signal2bManual queue resolution: full clipboard-to-queued flow + pdf asset (S2+S3) · path c4', async () => {
+      const id = await ingestClip(linkedinSduiDetailHtml('Clipboard Queue Role', 'ClipQueueCorp'));
+      const queue = tui.rmq.consume('s34');
+      await tc.apps.ingest.processResolution(id, 'queue');
+      const queueMsg = await queue;
+      expect(queueMsg.jobLifecycleId).toBe(id);
+      await waitForPdfFiles(tc.assetDir);
+      const doc = await tc.jobLifecycle.findById(id);
       expect(doc).not.toBeNull();
-      expect(doc!.status).toBe(JobStatus.TRASHED);
+      expect(doc!.status).toBe(JobStatus.QUEUED);
     });
   });
 
-  describe('direct lifecycle completion ([i] to [j] / [d]) — Case 4', () => {
-    it('GIVEN the path c4 preconditions WHEN a resolution is applied THEN signal2bManual queue resolution: full clipboard-to-queued flow + pdf asset (S2+S3) · path c4', async () => {
-      const id = await ingestClip(linkedinSduiDetailHtml('Clipboard Queue Role', 'ClipQueueCorp'));
-      const queue = await realBus.setup([
-        ActionEvent.QUEUED,
-        ActionEvent.TRASHED,
-        ActionEvent.ROUTE_FAILED,
-      ]);
-      await tc.ingestor.processResolution(id, 'queue');
-      const queueMsg = await queue.msg();
-      expect(queueMsg.jobLifecycleId).toBe(id);
-      await waitForPdfFiles(tc.assetDir);
-      const doc = await tc.mongoJobLifecycleAdapter.findById(id);
+  describe('(c) S3 [d] trash + guards + empty-ipc closure', () => {
+    it('GIVEN the path c4 preconditions WHEN a UDS action is dispatched THEN uds.action(clip, trash) routes the clipboard job to TRASHED (S2+S3) · path c4', async () => {
+      const id = await ingestClip(linkedinSduiDetailHtml('Socket Trash Role', 'UdsTrashCo'));
+      const trash = tui.rmq.consume('s34');
+      await expect(tui.uds.write.trash(id)).resolves.toBeUndefined();
+      const trashMsg = await trash;
+      expect(trashMsg.jobLifecycleId).toBe(id);
+      expect(trashMsg.reason).toBe('operator:trash');
+      const doc = await tc.jobLifecycle.findById(id);
       expect(doc).not.toBeNull();
-      expect(doc!.status).toBe(JobStatus.QUEUED);
+      expect(doc!.status).toBe(JobStatus.TRASHED);
     });
 
     it('GIVEN the path c4 preconditions WHEN a resolution is applied THEN signal2bManual trash resolution: full clipboard-to-trashed flow (S2+S3) · path c4', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Clipboard Trash Role', 'ClipTrashCorp'));
-      const trash = await realBus.setup([
-        ActionEvent.TRASHED,
-        ActionEvent.ROUTE_FAILED,
-        ActionEvent.PARSE_FAILED,
-      ]);
-      await tc.ingestor.processResolution(id, 'trash');
-      const trashMsg = await trash.msg();
+      const trash = tui.rmq.consume('s34');
+      await tc.apps.ingest.processResolution(id, 'trash');
+      const trashMsg = await trash;
       expect(trashMsg.jobLifecycleId).toBe(id);
       expect(trashMsg.reason).toBe('operator:trash');
-      const doc = await tc.mongoJobLifecycleAdapter.findById(id);
+      const doc = await tc.jobLifecycle.findById(id);
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.TRASHED);
     });
-  });
 
-  describe('resolution guards (not-ENRICHED and terminal-state protections over the real bus)', () => {
     it('GIVEN an S1 manual PARTIAL_PARSED input WHEN a resolution is applied THEN queue on a not-ENRICHED job is guarded — no queued event, status unchanged (S1+S3+S4+S2) · path c4', async () => {
       const guardId = 'c4-guard-not-enriched';
-      await tc.mongoJobLifecycleAdapter.upsert({
+      await tc.jobLifecycle.upsert({
         _id: guardId,
         raw: '<html><body>partial</body></html>',
         stage: JobStage.PARTIAL_PARSED,
@@ -264,55 +226,106 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
         updatedAt: new Date(),
         stageTimestamp: new Date(),
       });
-      const queue = await realBus.setup([
-        ActionEvent.QUEUED,
-        ActionEvent.TRASHED,
-        ActionEvent.ROUTE_FAILED,
-      ]);
-      await tc.ingestor.processResolution(guardId, 'queue');
-      let noQueue = false;
-      try {
-        await queue.msg();
-      } catch (e) {
-        noQueue = /Timeout waiting for message/.test(e instanceof Error ? e.message : String(e));
-      }
-      expect(noQueue).toBe(true);
-      const doc = await tc.mongoJobLifecycleAdapter.findById(guardId);
+      const queue = tui.rmq.consume('s34');
+      await tc.apps.ingest.processResolution(guardId, 'queue');
+      await expect(queue).rejects.toThrow(/Timeout/);
+      const doc = await tc.jobLifecycle.findById(guardId);
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.ENRICHING);
     });
 
     it('GIVEN the path c4 preconditions WHEN a resolution is applied THEN a QUEUED job rejects a later trash action (terminal-state protection) (S2+S3) · path c4', async () => {
       const id = await ingestClip(linkedinSduiDetailHtml('Guard Trash Role', 'GuardTrashCo'));
-      const queue = await realBus.setup([
-        ActionEvent.QUEUED,
-        ActionEvent.TRASHED,
-        ActionEvent.ROUTE_FAILED,
-      ]);
-      await tc.ingestor.processResolution(id, 'queue');
-      const queueMsg = await queue.msg();
+      const queue = tui.rmq.consume('s34');
+      await tc.apps.ingest.processResolution(id, 'queue');
+      const queueMsg = await queue;
       expect(queueMsg.jobLifecycleId).toBe(id);
-      const trash = await realBus.setup([ActionEvent.TRASHED, ActionEvent.PARSE_FAILED]);
-      await tc.ingestor.processResolution(id, 'trash');
-      let noTrash = false;
-      try {
-        await trash.msg();
-      } catch (e) {
-        noTrash = /Timeout waiting for message/.test(e instanceof Error ? e.message : String(e));
-      }
-      expect(noTrash).toBe(true);
-      const doc = await tc.mongoJobLifecycleAdapter.findById(id);
+      const trash = tui.rmq.consume('s34', 4000);
+      await tc.apps.ingest.processResolution(id, 'trash');
+      await expect(trash).rejects.toThrow(/Timeout/);
+      const doc = await tc.jobLifecycle.findById(id);
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.QUEUED);
     });
+
+    it('GIVEN a resolved clip-* job WHEN a second direct cycle follows THEN the ring closes: the next job reaches S3 QUEUED and the ipc direct seam stays empty (s2b→s3→s2b→s3→empty ipc[direct]) · path c4', async () => {
+      const firstId = await ingestClip(
+        linkedinSduiDetailHtml('Closure First Role', 'ClosureFirstCo')
+      );
+      const queue1 = tui.rmq.consume('s34');
+      await tc.apps.ingest.processResolution(firstId, 'queue');
+      const queue1Msg = await queue1;
+      expect(queue1Msg.jobLifecycleId).toBe(firstId);
+      await waitForPdfFiles(tc.assetDir);
+      const firstDoc = await tc.jobLifecycle.findById(firstId);
+      expect(firstDoc).not.toBeNull();
+      expect(firstDoc!.status).toBe(JobStatus.QUEUED);
+
+      const secondId = await ingestClip(
+        linkedinSduiDetailHtml('Closure Second Role', 'ClosureSecondCo')
+      );
+      const queue2 = tui.rmq.consume('s34');
+      await tc.apps.ingest.processResolution(secondId, 'queue');
+      const queue2Msg = await queue2;
+      expect(queue2Msg.jobLifecycleId).toBe(secondId);
+      const secondDoc = await tc.jobLifecycle.findById(secondId);
+      expect(secondDoc).not.toBeNull();
+      expect(secondDoc!.status).toBe(JobStatus.QUEUED);
+      expect(await jobCol().countDocuments({})).toBe(2);
+    });
+
+    it('GIVEN the tui-ioc precondition WHEN the daemon publishes S1+S2 over RMQ and the tui sends [d] over UDS THEN the tui reader mirrors then clears the job on the ipc seam (tui↔daemon over real RMQ+UDS) · path c4', async () => {
+      await waitFor(() => tui.rmq.reader.isConnected());
+      const jobId = 'c4-tui-boundary-trash';
+
+      await tc.rmq.ports.parse.emitGenerated(
+        {
+          _id: jobId,
+          role: 'Backend Developer',
+          company: 'BoundaryCo4',
+          stage: JobStage.PARTIAL_PARSED,
+        },
+        { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+      );
+      await waitFor(() => tui.ipc.read().jobLifecycleId === jobId);
+      expect(tui.ipc.read().stage).toBe(JobStage.PARTIAL_PARSED);
+
+      await tc.rmq.ports.parse.emitCompleted(
+        {
+          _id: jobId,
+          role: 'Backend Developer',
+          company: 'BoundaryCo4',
+          description: 'boundary desc c4',
+          stage: JobStage.FULL_PARSED,
+          status: JobStatus.ENRICHED,
+        },
+        { stage: JobStage.FULL_PARSED, source: JobSource.MANUAL }
+      );
+      await waitFor(() => tui.ipc.read().job?.description === 'boundary desc c4');
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
+
+      await tc.jobLifecycle.upsert({
+        _id: jobId,
+        company: 'BoundaryCo4',
+        role: 'Backend Developer',
+        description: 'boundary desc c4',
+        stage: JobStage.FULL_PARSED,
+        status: JobStatus.ENRICHED,
+        source: JobSource.MANUAL,
+      });
+
+      await tui.uds.write.trash(jobId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
+    }, 60000);
   });
 
-  describe('duplicate detection and latest-wins across multiple clip ingests', () => {
+  describe('(d) dedupe + latest-wins across multiple clip ingests', () => {
     it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN second identical ingest leaves the doc count unchanged and emits no parse.completed (S2) · path c4', async () => {
       const html = linkedinSduiDetailHtml('Dedup Role', 'DedupClipCo');
       await ingestClip(html);
       const docsBefore = await jobCol().countDocuments({});
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
+      await tc.apps.ingest.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
       await expectNoCompletedEvent();
       const docsAfter = await jobCol().countDocuments({});
       expect(docsAfter).toBe(docsBefore);
@@ -322,8 +335,8 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       const firstId = await ingestClip(linkedinSduiDetailHtml('B17 Role', 'FirstWinCo'));
       const secondId = await ingestClip(linkedinSduiDetailHtml('B17 Role', 'SecondWinCo'));
       expect(secondId).not.toBe(firstId);
-      const firstDoc = await tc.mongoJobLifecycleAdapter.findById(firstId);
-      const secondDoc = await tc.mongoJobLifecycleAdapter.findById(secondId);
+      const firstDoc = await tc.jobLifecycle.findById(firstId);
+      const secondDoc = await tc.jobLifecycle.findById(secondId);
       expect(firstDoc!.company).toBe('FirstWinCo');
       expect(secondDoc!.company).toBe('SecondWinCo');
       const count = await jobCol().countDocuments({});
@@ -331,12 +344,12 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
     });
   });
 
-  describe('negative and failure paths (unparsable/empty clipboard, route failure injection)', () => {
+  describe('(e) negative clip — unparsable/empty clipboard (S2+S4)', () => {
     it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN unparsable clipboard HTML emits parse.failed and creates no doc (S2+S4) · path c4', async () => {
       const docsBefore = await jobCol().countDocuments({});
-      const fail = await realBus.setup([ActionEvent.PARSE_FAILED]);
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, nonJobHtml());
-      const failMsg = await fail.msg();
+      const fail = tui.rmq.consume('s34');
+      await tc.apps.ingest.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, nonJobHtml());
+      const failMsg = await fail;
       expect(failMsg.jobLifecycleId).toMatch(/^clip-/);
       const docsAfter = await jobCol().countDocuments({});
       expect(docsAfter).toBe(docsBefore);
@@ -344,32 +357,16 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
 
     it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN empty clipboard HTML emits parse.failed and creates no doc (S2+S4) · path c4', async () => {
       const docsBefore = await jobCol().countDocuments({});
-      const fail = await realBus.setup([ActionEvent.PARSE_FAILED]);
-      await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '');
-      const failMsg = await fail.msg();
+      const fail = tui.rmq.consume('s34');
+      await tc.apps.ingest.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '');
+      const failMsg = await fail;
       expect(failMsg.jobLifecycleId).toMatch(/^clip-/);
       const docsAfter = await jobCol().countDocuments({});
       expect(docsAfter).toBe(docsBefore);
     });
-
-    it('GIVEN the path c4 preconditions WHEN a resolution is applied THEN stage update failure emits route.failed, doc stays ENRICHED, mocks restored (S4+S2) · path c4', async () => {
-      const id = await ingestClip(linkedinSduiDetailHtml('Route Fail Role', 'RouteFailCo'));
-      const fail = await realBus.setup([ActionEvent.ROUTE_FAILED]);
-      vi.spyOn(tc.mongoJobLifecycleAdapter, 'updateStage').mockRejectedValueOnce(
-        new Error('DB timeout')
-      );
-      await tc.ingestor.processResolution(id, 'queue');
-      const failMsg = await fail.msg();
-      expect(failMsg.jobLifecycleId).toBe(id);
-      expect(failMsg.reason).toBe('DB timeout');
-      vi.restoreAllMocks();
-      const doc = await tc.mongoJobLifecycleAdapter.findById(id);
-      expect(doc).not.toBeNull();
-      expect(doc!.status).toBe(JobStatus.ENRICHED);
-    });
   });
 
-  describe('fast-check property over direct clipboard 2b', () => {
+  describe('(f) fast-check invariants', () => {
     it('property: random role/company seeds never crash and either create a clip-* doc or dedupe on duplicate', async () => {
       await fc.assert(
         fc.asyncProperty(
@@ -382,14 +379,14 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
               `${companySeed.replace(/[^a-zA-Z0-9 ]/g, '').trim()}-Prop-${suffix}` || 'Factory';
             const html = linkedinSduiDetailHtml(role, company);
             const before = await jobCol().countDocuments({});
-            await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
+            await tc.apps.ingest.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
             const afterCreate = await jobCol().countDocuments({});
             expect([before + 1, before]).toContain(afterCreate);
             const stored = await jobCol().findOne({ role, company });
             if (stored) {
               expect(String(stored._id)).toMatch(/^clip-/);
             }
-            await tc.ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
+            await tc.apps.ingest.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, html);
             const afterDuplicate = await jobCol().countDocuments({});
             expect(afterDuplicate).toBe(afterCreate);
             return true;
@@ -399,55 +396,4 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
       );
     });
   });
-
-  it('GIVEN the tui-ioc precondition WHEN the daemon publishes S1+S2 over RMQ and the tui sends [j] over UDS THEN the tui reader mirrors then clears the job on the ipc seam (tui↔daemon over real RMQ+UDS) · path c4', async () => {
-    await purgeTuiQueues('c4-full-path');
-    const tui = await buildTuiTestContainer({ ns: 'c4-full-path' });
-    try {
-      await waitFor(() => tui.rmqReader.isConnected());
-      const jobId = 'c4-tui-boundary-1';
-
-      await tc.container.parseAdapter.emitGenerated(
-        {
-          _id: jobId,
-          role: 'Backend Developer',
-          company: 'BoundaryCo4',
-          stage: JobStage.PARTIAL_PARSED,
-        },
-        { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
-      );
-      await waitFor(() => getCurrentJob().jobLifecycleId === jobId);
-      expect(getCurrentJob().stage).toBe(JobStage.PARTIAL_PARSED);
-
-      await tc.container.parseAdapter.emitCompleted(
-        {
-          _id: jobId,
-          role: 'Backend Developer',
-          company: 'BoundaryCo4',
-          description: 'boundary desc c4',
-          stage: JobStage.FULL_PARSED,
-          status: JobStatus.ENRICHED,
-        },
-        { stage: JobStage.FULL_PARSED, source: JobSource.MANUAL }
-      );
-      await waitFor(() => getCurrentJob().job?.description === 'boundary desc c4');
-      expect(getCurrentJob().stage).toBe(JobStage.FULL_PARSED);
-
-      await tc.mongoJobLifecycleAdapter.upsert({
-        _id: jobId,
-        company: 'BoundaryCo4',
-        role: 'Backend Developer',
-        description: 'boundary desc c4',
-        stage: JobStage.FULL_PARSED,
-        status: JobStatus.ENRICHED,
-        source: JobSource.MANUAL,
-      });
-
-      await tui.udsWriter.queue(jobId);
-      await waitFor(() => getCurrentJob().jobLifecycleId === null);
-      expect(getCurrentJob().job).toBeNull();
-    } finally {
-      await tui.stop();
-    }
-  }, 60000);
 });

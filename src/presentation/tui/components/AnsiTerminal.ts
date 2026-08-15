@@ -84,55 +84,6 @@ export class AnsiTerminal {
   }
 
   /**
-   * Bold text style.
-   */
-  bold(text: string): string {
-    return `\x1b[1m${text}\x1b[0m`;
-  }
-
-  /**
-   * Dim text style.
-   */
-  dim(text: string): string {
-    return `\x1b[2m${text}\x1b[0m`;
-  }
-
-  /**
-   * Bright/High-intensity foreground color.
-   */
-  bright(text: string, colorCode: number = 32): string {
-    return `\x1b[9${colorCode}m${text}\x1b[0m`;
-  }
-
-  /**
-   * Green text.
-   */
-  green(text: string): string {
-    return `\x1b[32m${text}\x1b[0m`;
-  }
-
-  /**
-   * Red text.
-   */
-  red(text: string): string {
-    return `\x1b[31m${text}\x1b[0m`;
-  }
-
-  /**
-   * Yellow text.
-   */
-  yellow(text: string): string {
-    return `\x1b[33m${text}\x1b[0m`;
-  }
-
-  /**
-   * Cyan text.
-   */
-  cyan(text: string): string {
-    return `\x1b[36m${text}\x1b[0m`;
-  }
-
-  /**
    * Truncate a string to fit within terminal width, adding ellipsis if needed.
    */
   truncate(text: string, width: number): string {

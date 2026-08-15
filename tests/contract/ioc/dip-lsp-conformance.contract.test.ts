@@ -1,12 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
 import { ProfileInfoRetriever } from '../../../src/domain/profile/index.js';
-import { ActionEvent } from '../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
-import { buildTestDaemonContainer, type TestDaemonContainer } from '../../helpers/test-container.js';
+import {
+  buildTestDaemonContainer,
+  buildTestTuiContainer,
+  type TestDaemonContainer,
+  type TuiTestContainer,
+} from '../../helpers/test-container.js';
+import { purgeTuiQueues } from '../../helpers/test-utils.js';
 
 /**
  * DIP/LSP conformance: each application port is bound in the production
@@ -17,19 +22,29 @@ import { buildTestDaemonContainer, type TestDaemonContainer } from '../../helper
  * IoC wiring that `composition-root.integration.test.ts` asserts structurally.
  */
 describe('DIP/LSP conformance — production-resolved port adapters are behaviorally substitutable', () => {
-  let tc: TestDaemonContainer;
+  let daemon: TestDaemonContainer;
+  let tui: TuiTestContainer;
 
   beforeAll(async () => {
-    tc = await buildTestDaemonContainer({ ns: 'dip-conformance', startScheduler: false });
-    await tc.start();
+    daemon = await buildTestDaemonContainer({ ns: 'dip-conformance', startScheduler: false });
+    await daemon.start();
+    tui = await buildTestTuiContainer({ ns: 'dip-conformance' });
   }, 120000);
 
   afterAll(async () => {
-    await tc.stop();
+    await tui.stop();
+    await daemon.stop();
+  });
+
+  beforeEach(async () => {
+    await daemon.storage.clearDb();
+    await purgeTuiQueues('dip-conformance');
+    tui.rmq.reader.resetReader();
+    tui.ipc.clear();
   });
 
   it('GIVEN the DIP precondition WHEN upsert → findById → updateStage on the real DIP THEN job-lifecycle port: upsert → findById → updateStage roundtrip through the mongo adapter (S2+S1+S3)', async () => {
-    const port = tc.container.mongoJobLifecycleAdapter;
+    const port = daemon.jobLifecycle;
     const doc = {
       _id: 'dip-storage-1',
       raw: '<html>dip</html>',
@@ -53,7 +68,7 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
   });
 
   it('GIVEN the DIP precondition WHEN enqueue → size → dequeue on the real DIP THEN extraction-queue port: enqueue → size → FIFO dequeue through the mongo adapter', async () => {
-    const port = tc.container.extractionQueueAdapter;
+    const port = daemon.extractQueue;
     await port.enqueue('dip-q-1');
     await port.enqueue('dip-q-2');
     expect(await port.size()).toBe(2);
@@ -62,9 +77,8 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
   });
 
   it('GIVEN the DIP precondition WHEN the port is exercised on the real DIP THEN parse port: emitGenerated publishes a GENERATED action reachable over real RMQ', async () => {
-    const bus = tc.bus;
-    const handle = await bus.setup([ActionEvent.GENERATED]);
-    const port = tc.container.parseAdapter;
+    const handle = tui.rmq.consume('s1');
+    const port = daemon.rmq.ports.parse;
 
     await port.emitGenerated(
       {
@@ -78,29 +92,27 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
       { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
     );
 
-    const msg = await handle.msg();
+    const msg = await handle;
     expect(msg._id).toBe('dip-gen-1');
     expect(msg.company).toBe('GenCo');
   }, 20000);
 
   it('GIVEN the DIP precondition WHEN the port is exercised on the real DIP THEN route port: emitJobQueued publishes a QUEUED action reachable over real RMQ', async () => {
-    const bus = tc.bus;
-    const handle = await bus.setup([ActionEvent.QUEUED]);
-    const port = tc.container.routeAdapter;
+    const handle = tui.rmq.consume('s34');
+    const port = daemon.rmq.ports.route;
 
     await port.emitJobQueued('dip-route-1', { source: JobSource.MANUAL });
 
-    const msg = await handle.msg();
+    const msg = await handle;
     expect(msg.jobLifecycleId).toBe('dip-route-1');
   }, 20000);
 
   it('GIVEN the DIP precondition WHEN the port is exercised on the real DIP THEN ingestor composition: missing-job resolution emits ROUTE_FAILED over real RMQ', async () => {
-    const bus = tc.bus;
-    const handle = await bus.setup([ActionEvent.ROUTE_FAILED]);
+    const handle = tui.rmq.consume('s34');
 
-    await tc.ingestor.processResolution('dip-missing', 'queue');
+    await daemon.apps.ingest.processResolution('dip-missing', 'queue');
 
-    const msg = await handle.msg();
+    const msg = await handle;
     expect(msg.jobLifecycleId).toBe('dip-missing');
     expect(msg.reason).toContain('No existing job lifecycle');
   }, 20000);
@@ -112,12 +124,12 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
       'Role: Platform Engineer\nCompany: LspCo\nDescription: Node.js, Go\nRequirements: Kubernetes, Terraform';
     const resolved = retriever.resolve(retriever.retrieve(text));
 
-    const result = await tc.container.assetProducingAdapter.toAsset(resolved);
+    const result = await daemon.assetProducing.toAsset(resolved);
 
     expect(result).toBeDefined();
     expect(result.pdfPath).toBeDefined();
     const pdfPath = result.pdfPath as string;
     expect(fs.existsSync(pdfPath)).toBe(true);
-    expect(path.dirname(pdfPath)).toMatch(path.resolve(tc.assetDir));
+    expect(path.dirname(pdfPath)).toMatch(path.resolve(daemon.assetDir));
   }, 60000);
 });

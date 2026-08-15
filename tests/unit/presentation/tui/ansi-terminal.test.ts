@@ -46,36 +46,6 @@ describe('AnsiTerminal', () => {
     });
   });
 
-  describe('text styling', () => {
-    it('GIVEN AnsiTerminal WHEN t.bold THEN bold wraps text', () => {
-      expect(t.bold('hello')).toBe('\x1b[1mhello\x1b[0m');
-    });
-
-    it('GIVEN AnsiTerminal WHEN t.dim THEN dim wraps text', () => {
-      expect(t.dim('test')).toBe('\x1b[2mtest\x1b[0m');
-    });
-
-    it('GIVEN AnsiTerminal WHEN t.green THEN green wraps text', () => {
-      expect(t.green('ok')).toBe('\x1b[32mok\x1b[0m');
-    });
-
-    it('GIVEN AnsiTerminal WHEN t.red THEN red wraps text', () => {
-      expect(t.red('err')).toBe('\x1b[31merr\x1b[0m');
-    });
-
-    it('GIVEN AnsiTerminal WHEN t.yellow THEN yellow wraps text', () => {
-      expect(t.yellow('warn')).toBe('\x1b[33mwarn\x1b[0m');
-    });
-
-    it('GIVEN AnsiTerminal WHEN t.cyan THEN cyan wraps text', () => {
-      expect(t.cyan('info')).toBe('\x1b[36minfo\x1b[0m');
-    });
-
-    it('GIVEN AnsiTerminal WHEN t.bright THEN bright uses specified color code', () => {
-      expect(t.bright('hi', 32)).toBe('\x1b[932mhi\x1b[0m');
-    });
-  });
-
   describe('string utilities', () => {
     it('GIVEN AnsiTerminal WHEN t.truncate THEN truncate shortens long strings', () => {
       expect(t.truncate('hello world', 8)).toBe('hello...');

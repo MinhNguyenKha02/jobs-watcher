@@ -1,54 +1,25 @@
 /*
- * e2e c2-browser-auto (prod bootstrap, real deps, black-box; no IoC in the body):
- * GIVEN an Indeed webhook msg with URL WHEN scheduler+Playwright S2c runs + [j]/[d] UDS action
- * THEN S3 QUEUED + real PDF, or S4 TRASHED, and the next pick still completes.
+ * e2e c2-browser-auto (P3 skeleton: 2 real containers, black-box, final-outcome asserts):
+ *   S1 Indeed webhook(url) → scheduler + Playwright s2c → [j] QUEUED + PDF / [d] TRASHED.
+ *   Assert ONLY final outcomes: daemon.mongo S3/S4 status + real asset PDF + the ipc seam
+ *   folded into the needy checkpoints + the next pick still completing. Each message maps
+ *   to a distinct role/company (dedupe-safe) so the long-running scheduler never conflicts.
  */
 import http from 'node:http';
 
-import amqplib from 'amqplib';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
-import { JobStage, JobStatus } from '../../src/domain/types/job-lifecycle.js';
-import { getCurrentJob } from '../../src/presentation/tui/shared-tui-state.js';
-import { createE2eApp, ActionEvent, type E2eApp } from '../helpers/e2e-app.js';
-import { indeedDetailHtml, topcvDetailHtml } from '../helpers/html-fixtures.js';
-import { buildTuiTestContainer } from '../helpers/test-container.js';
-
-const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
-
-async function waitFor(check: () => boolean, timeoutMs = 15000, intervalMs = 50): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (check()) return;
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error(`waitFor timed out after ${timeoutMs}ms`);
-}
-
-async function purgeTuiQueues(ns: string): Promise<void> {
-  const conn = await amqplib.connect(RMQ_URL);
-  const ch = await conn.createChannel();
-  for (const suffix of ['s1', 's2', 's3s4']) {
-    try {
-      await ch.assertQueue(`tui.${ns}.${suffix}`);
-      await ch.purgeQueue(`tui.${ns}.${suffix}`);
-    } catch {
-      /* best-effort — a missing/closed queue is treated as empty */
-    }
-  }
-  try {
-    await ch.close();
-  } catch {
-    /* channel may already be closed by the server */
-  }
-  await conn.close();
-}
+import { JobStatus } from '../../src/domain/types/job-lifecycle.js';
+import { createE2eApp, type E2eApp } from '../helpers/e2e-app.js';
+import { indeedDetailHtml } from '../helpers/html-fixtures.js';
 
 const CASES = {
   c2Auto: { role: 'Backend Developer', company: 'C2AutoCo' },
   c2Data: { role: 'Data Engineer', company: 'C2DataCo' },
   c2Trash: { role: 'Full Stack Developer', company: 'C2TrashCo' },
   c2Qa: { role: 'Full-stack Developer', company: 'C2QaCo' },
+  c2Ring: { role: 'Software Engineer', company: 'C2RingCo' },
+  c2RingNext: { role: 'Automation Engineer', company: 'C2RingNextCo' },
 } as const;
 
 const KEY_BY_JOB: Record<string, string> = Object.fromEntries(
@@ -59,8 +30,15 @@ function jobForMessage(messageId: string): { role: string; company: string } {
   if (messageId.includes('trash-msg-2')) return CASES['c2Qa'];
   if (messageId.includes('trash')) return CASES['c2Trash'];
   if (messageId.includes('-2')) return CASES['c2Data'];
+  if (messageId.includes('ring-next')) return CASES['c2RingNext'];
+  if (messageId.includes('ring')) return CASES['c2Ring'];
   return CASES['c2Auto'];
 }
+
+const waitForStatus = (app: E2eApp, jobId: string, status: JobStatus) =>
+  vi.waitUntil(async () => (await app.jobLifecycle.findById(jobId))?.status === status, {
+    timeout: 30000,
+  });
 
 /**
  * URL must satisfy the ingestor's S1 enqueue heuristic (`indeed.com/viewjob?`)
@@ -123,122 +101,77 @@ describe('C2 browser-auto e2e — webhook Indeed s1(url) → scheduler + Playwri
     await app.stop();
   });
 
-  it('GIVEN Indeed s1(with url) WHEN scheduler+Playwright s2c → [j] queue → QUEUED + real asset pdf THEN next pick still completes', async () => {
-    const comp = await app.events.on([ActionEvent.PARSE_COMPLETED, ActionEvent.PARSE_FAILED]);
-    const res = await app.webhook.post('c2-indeed-msg');
-    expect(res.status).toBe(202);
+  describe('(a) S1 webhook(url) → scheduler+Playwright s2c → [j] QUEUED + PDF, next pick', () => {
+    it('GIVEN Indeed s1(with url) WHEN scheduler+Playwright s2c → [j] queue THEN QUEUED + real asset pdf and the tui mirror clears · e2e c2', async () => {
+      const jobId = 'c2-indeed-msg-job-0';
 
-    const compMsg = await comp.msg();
-    expect(compMsg.job).toBeDefined();
-    const jobId = compMsg.job._id;
-    expect(compMsg.job.role).toBe('Backend Developer');
-    expect(compMsg.job.company).toBe('C2AutoCo');
-    expect(compMsg.job.stage).toBe(JobStage.FULL_PARSED);
-    expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
-
-    const queue = await app.events.on([
-      ActionEvent.QUEUED,
-      ActionEvent.TRASHED,
-      ActionEvent.ROUTE_FAILED,
-    ]);
-    const jRes = await app.uds.action(jobId, 'queue');
-    expect(jRes.statusCode).toBe(200);
-
-    const queueMsg = await queue.msg();
-    expect(queueMsg.jobLifecycleId).toBe(jobId);
-
-    const pdfPath = await app.artifacts.waitForPdf();
-    expect(pdfPath).toBeTruthy();
-
-    const comp2 = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-    const res2 = await app.webhook.post('c2-indeed-msg-2');
-    expect(res2.status).toBe(202);
-
-    const comp2Msg = await comp2.msg();
-    expect(comp2Msg.job).toBeDefined();
-    expect(comp2Msg.job._id).not.toBe(jobId);
-    expect(comp2Msg.job.role).toBe('Data Engineer');
-    expect(comp2Msg.job.company).toBe('C2DataCo');
-    expect(comp2Msg.job.status).toBe(JobStatus.ENRICHED);
-  }, 90000);
-
-  it('GIVEN [d] trash variant: Indeed s1(url) WHEN scheduler+Playwright s2c → [d] trash → TRASHED THEN next cycle continues', async () => {
-    const comp = await app.events.on([ActionEvent.PARSE_COMPLETED, ActionEvent.PARSE_FAILED]);
-    const res = await app.webhook.post('c2-indeed-trash-msg');
-    expect(res.status).toBe(202);
-
-    const compMsg = await comp.msg();
-    expect(compMsg.job).toBeDefined();
-    const jobId = compMsg.job._id;
-    expect(compMsg.job.role).toBe('Full Stack Developer');
-    expect(compMsg.job.company).toBe('C2TrashCo');
-    expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
-
-    const trash = await app.events.on([
-      ActionEvent.TRASHED,
-      ActionEvent.ROUTE_FAILED,
-      ActionEvent.PARSE_FAILED,
-    ]);
-    const dRes = await app.uds.action(jobId, 'trash');
-    expect(dRes.statusCode).toBe(200);
-
-    const trashMsg = await trash.msg();
-    expect(trashMsg.jobLifecycleId).toBe(jobId);
-    expect(trashMsg.reason).toBe('operator:trash');
-
-    const comp2 = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-    const res2 = await app.webhook.post('c2-indeed-trash-msg-2');
-    expect(res2.status).toBe(202);
-
-    const comp2Msg = await comp2.msg();
-    expect(comp2Msg.job).toBeDefined();
-    expect(comp2Msg.job._id).not.toBe(jobId);
-    expect(comp2Msg.job.role).toBe('Full-stack Developer');
-    expect(comp2Msg.job.company).toBe('C2QaCo');
-    expect(comp2Msg.job.status).toBe(JobStatus.ENRICHED);
-  }, 90000);
-
-  it('GIVEN the tui-ioc precondition WHEN the daemon webhook+paste publishes S1+S2 over RMQ and the tui sends [j] over UDS THEN the reader mirrors then clears the job on the ipc seam (tui↔daemon real RMQ+UDS) · e2e c2', async () => {
-    await purgeTuiQueues('c2-browser-auto');
-    const tui = await buildTuiTestContainer({ ns: 'c2-browser-auto' });
-    try {
-      await waitFor(() => tui.rmqReader.isConnected());
-      await app.resetDb();
-
-      const gen = await app.events.on([ActionEvent.GENERATED]);
-      const res = await app.webhook.post('c2-boundary-msg');
+      const res = await app.webhook.post('c2-indeed-msg');
       expect(res.status).toBe(202);
+      await waitForStatus(app, jobId, JobStatus.ENRICHED);
+      expect((await app.jobLifecycle.findById(jobId))!.role).toBe('Backend Developer');
 
-      const genMsg = await gen.msg();
-      const jobId: string = genMsg._id;
-      expect(genMsg.company).toBe('C2AutoCo');
-      await waitFor(() => getCurrentJob().jobLifecycleId === jobId);
-      expect(getCurrentJob().stage).toBe(JobStage.PARTIAL_PARSED);
+      const jRes = await app.uds.action(jobId, 'queue');
+      expect(jRes.statusCode).toBe(200);
 
-      const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-      const cRes = await app.uds.ingest(topcvDetailHtml('Backend Developer', 'C2AutoCo'), jobId);
-      expect(cRes.statusCode).toBe(200);
+      await waitForStatus(app, jobId, JobStatus.QUEUED);
+      const pdfPath = await app.artifacts.waitForPdf();
+      expect(pdfPath).toBeTruthy();
+      await vi.waitUntil(() => app.tui.ipc.read().jobLifecycleId === null, { timeout: 15000 });
 
-      const compMsg = await comp.msg();
-      expect(compMsg.job._id).toBe(jobId);
-      await waitFor(
-        () =>
-          getCurrentJob().jobLifecycleId === jobId && getCurrentJob().stage === JobStage.FULL_PARSED
-      );
+      const nextId = 'c2-indeed-msg-2-job-0';
+      const res2 = await app.webhook.post('c2-indeed-msg-2');
+      expect(res2.status).toBe(202);
+      await waitForStatus(app, nextId, JobStatus.ENRICHED);
+      const nextDoc = await app.jobLifecycle.findById(nextId);
+      expect(nextDoc!.role).toBe('Data Engineer');
+      expect(nextDoc!._id).not.toBe(jobId);
+    }, 120000);
+  });
 
-      const queue = await app.events.on([
-        ActionEvent.QUEUED,
-        ActionEvent.TRASHED,
-        ActionEvent.ROUTE_FAILED,
-      ]);
-      await tui.udsWriter.queue(jobId);
+  describe('(b) S1 webhook(url) → scheduler+Playwright s2c → [d] TRASHED, next cycle', () => {
+    it('GIVEN [d] trash variant: Indeed s1(url) WHEN scheduler+Playwright s2c → [d] trash THEN TRASHED and the next cycle still completes · e2e c2', async () => {
+      const jobId = 'c2-indeed-trash-msg-job-0';
 
-      const queueMsg = await queue.msg();
-      expect(queueMsg.jobLifecycleId).toBe(jobId);
-      await waitFor(() => getCurrentJob().jobLifecycleId === null);
-      expect(getCurrentJob().job).toBeNull();
-    } finally {
-      await tui.stop();
-    }
-  }, 90000);
+      const res = await app.webhook.post('c2-indeed-trash-msg');
+      expect(res.status).toBe(202);
+      await waitForStatus(app, jobId, JobStatus.ENRICHED);
+      expect((await app.jobLifecycle.findById(jobId))!.role).toBe('Full Stack Developer');
+
+      const dRes = await app.uds.action(jobId, 'trash');
+      expect(dRes.statusCode).toBe(200);
+
+      await waitForStatus(app, jobId, JobStatus.TRASHED);
+
+      const nextId = 'c2-indeed-trash-msg-2-job-0';
+      const res2 = await app.webhook.post('c2-indeed-trash-msg-2');
+      expect(res2.status).toBe(202);
+      await waitForStatus(app, nextId, JobStatus.ENRICHED);
+      const nextDoc = await app.jobLifecycle.findById(nextId);
+      expect(nextDoc!.role).toBe('Full-stack Developer');
+      expect(nextDoc!._id).not.toBe(jobId);
+    }, 120000);
+  });
+
+  describe('(c) ring closure — full [j] cycle + ipc seam + next pick', () => {
+    it('GIVEN a completed auto cycle WHEN a fresh Indeed s1(url) follows THEN the next job reaches ENRICHED through the scheduler and the ipc seam stays empty · e2e c2', async () => {
+      await app.resetDb();
+      app.tui.rmq.reader.resetReader();
+      const jobId = 'c2-indeed-ring-msg-job-0';
+
+      const res = await app.webhook.post('c2-indeed-ring-msg');
+      expect(res.status).toBe(202);
+      await waitForStatus(app, jobId, JobStatus.ENRICHED);
+
+      const jRes = await app.uds.action(jobId, 'queue');
+      expect(jRes.statusCode).toBe(200);
+      await waitForStatus(app, jobId, JobStatus.QUEUED);
+      await vi.waitUntil(() => app.tui.ipc.read().jobLifecycleId === null, { timeout: 15000 });
+
+      const nextId = 'c2-indeed-ring-next-msg-job-0';
+      const res2 = await app.webhook.post('c2-indeed-ring-next-msg');
+      expect(res2.status).toBe(202);
+      await waitForStatus(app, nextId, JobStatus.ENRICHED);
+      expect((await app.jobLifecycle.findById(nextId))!._id).not.toBe(jobId);
+    }, 120000);
+  });
 });

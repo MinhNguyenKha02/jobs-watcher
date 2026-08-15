@@ -12,103 +12,30 @@ describe('KeyboardHandler — key mapping via public API', () => {
     handler.detach();
   });
 
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps `o` to OPEN action', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from('o'));
-    await expect(promise).resolves.toBe(KeyAction.OPEN);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps `p` to PREVIEW action', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from('p'));
-    await expect(promise).resolves.toBe(KeyAction.PREVIEW);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps `j` to QUEUE action', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from('j'));
-    await expect(promise).resolves.toBe(KeyAction.QUEUE);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps `d` to TRASH action', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from('d'));
-    await expect(promise).resolves.toBe(KeyAction.TRASH);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps `i` to INGEST action', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from('i'));
-    await expect(promise).resolves.toBe(KeyAction.INGEST);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps `c` to WEBHOOK_STAGE2_PARSE action', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from('c'));
-    await expect(promise).resolves.toBe(KeyAction.WEBHOOK_STAGE2_PARSE);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps `b` to TOGGLE_QUEUE action', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from('b'));
-    await expect(promise).resolves.toBe(KeyAction.TOGGLE_QUEUE);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps `?` to HELP action', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from('?'));
-    await expect(promise).resolves.toBe(KeyAction.HELP);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps `q` to QUIT action', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from('q'));
-    await expect(promise).resolves.toBe(KeyAction.QUIT);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps uppercase `O` to OPEN (case insensitive)', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from('O'));
-    await expect(promise).resolves.toBe(KeyAction.OPEN);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps uppercase `P` to PREVIEW (case insensitive)', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from('P'));
-    await expect(promise).resolves.toBe(KeyAction.PREVIEW);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps ESC to MODAL_DISCARD', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from([0x1b]));
-    await expect(promise).resolves.toBe(KeyAction.MODAL_DISCARD);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps arrow up to MODAL_SCROLL_UP', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from([0x1b, 0x5b, 0x41]));
-    await expect(promise).resolves.toBe(KeyAction.MODAL_SCROLL_UP);
-  });
-
-  it('GIVEN KeyboardHandler WHEN handler.attach THEN maps arrow down to MODAL_SCROLL_DOWN', async () => {
-    await handler.attach();
-    const promise = handler.waitForAction(1000);
-    process.stdin.emit('data', Buffer.from([0x1b, 0x5b, 0x42]));
-    await expect(promise).resolves.toBe(KeyAction.MODAL_SCROLL_DOWN);
-  });
+  it.each([
+    ['o', [0x6f], KeyAction.OPEN],
+    ['O (case insensitive)', [0x4f], KeyAction.OPEN],
+    ['p', [0x70], KeyAction.PREVIEW],
+    ['P (case insensitive)', [0x50], KeyAction.PREVIEW],
+    ['j', [0x6a], KeyAction.QUEUE],
+    ['d', [0x64], KeyAction.TRASH],
+    ['i', [0x69], KeyAction.INGEST],
+    ['c', [0x63], KeyAction.WEBHOOK_STAGE2_PARSE],
+    ['b', [0x62], KeyAction.TOGGLE_QUEUE],
+    ['?', [0x3f], KeyAction.HELP],
+    ['q', [0x71], KeyAction.QUIT],
+    ['esc', [0x1b], KeyAction.MODAL_DISCARD],
+    ['arrow up', [0x1b, 0x5b, 0x41], KeyAction.MODAL_SCROLL_UP],
+    ['arrow down', [0x1b, 0x5b, 0x42], KeyAction.MODAL_SCROLL_DOWN],
+  ] as const)(
+    'GIVEN KeyboardHandler WHEN handler.attach THEN %s emits its mapped action',
+    async (_label: string, bites: readonly number[], action: KeyAction) => {
+      await handler.attach();
+      const promise = handler.waitForAction(1000);
+      process.stdin.emit('data', Buffer.from(bites));
+      await expect(promise).resolves.toBe(action);
+    }
+  );
 
   it('GIVEN KeyboardHandler WHEN handler.attach THEN maps unknown key to NONE via timeout', async () => {
     await handler.attach();
@@ -129,76 +56,6 @@ describe('KeyboardHandler', () => {
     try {
       handler.detach();
     } catch {}
-  });
-
-  describe('keyToAction mapping', () => {
-    function buffer(char: string): Buffer {
-      return Buffer.from(char);
-    }
-
-    function escapeSeq(code: number): Buffer {
-      return Buffer.from([0x1b, 0x5b, code]);
-    }
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps j to queue', () => {
-      expect((handler as any).keyToAction(buffer('j'))).toBe('queue');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps d to trash', () => {
-      expect((handler as any).keyToAction(buffer('d'))).toBe('trash');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps p to preview', () => {
-      expect((handler as any).keyToAction(buffer('p'))).toBe('preview');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps i to ingest', () => {
-      expect((handler as any).keyToAction(buffer('i'))).toBe('ingest');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps c to webhook_stage2_parse', () => {
-      expect((handler as any).keyToAction(buffer('c'))).toBe('webhook_stage2_parse');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps o to open', () => {
-      expect((handler as any).keyToAction(buffer('o'))).toBe('open');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps b to toggle_queue', () => {
-      expect((handler as any).keyToAction(buffer('b'))).toBe('toggle_queue');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps ? to help', () => {
-      expect((handler as any).keyToAction(buffer('?'))).toBe('help');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps q to quit', () => {
-      expect((handler as any).keyToAction(buffer('q'))).toBe('quit');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps ESC to modal_discard', () => {
-      expect((handler as any).keyToAction(Buffer.from([0x1b]))).toBe('modal_discard');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps Arrow Up to modal_scroll_up', () => {
-      expect((handler as any).keyToAction(escapeSeq(0x41))).toBe('modal_scroll_up');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps Arrow Down to modal_scroll_down', () => {
-      expect((handler as any).keyToAction(escapeSeq(0x42))).toBe('modal_scroll_down');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN maps unknown keys to none', () => {
-      expect((handler as any).keyToAction(buffer('x'))).toBe('none');
-      expect((handler as any).keyToAction(buffer('z'))).toBe('none');
-      expect((handler as any).keyToAction(buffer('1'))).toBe('none');
-    });
-
-    it('GIVEN KeyboardHandler WHEN exercised THEN is case-insensitive', () => {
-      expect((handler as any).keyToAction(buffer('J'))).toBe('queue');
-      expect((handler as any).keyToAction(buffer('C'))).toBe('webhook_stage2_parse');
-      expect((handler as any).keyToAction(buffer('B'))).toBe('toggle_queue');
-    });
   });
 
   describe('showHelp', () => {

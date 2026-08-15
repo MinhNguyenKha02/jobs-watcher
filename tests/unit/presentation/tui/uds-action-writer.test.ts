@@ -4,8 +4,9 @@ import { join } from 'node:path';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+const mockClipboardGetter = vi.fn().mockResolvedValue(['<div>test clipboard</div>']);
 vi.mock('../../../../src/presentation/tui/services/clipboard-getter.js', () => ({
-  clipboardGetter: vi.fn().mockResolvedValue(['<div>test clipboard</div>']),
+  clipboardGetter: () => mockClipboardGetter(),
 }));
 
 const mockPostJsonOverUds = vi.fn();
@@ -115,6 +116,55 @@ describe('UdsActionWriter reliability', () => {
         jobLifecycleId: 'job-t',
         action: 'trash',
       });
+    });
+  });
+
+  describe('ingest payload', () => {
+    beforeEach(() => {
+      writer = new UdsActionWriter(validSocketPath, 'test-token');
+    });
+
+    it('GIVEN UdsActionWriter WHEN writer.ingest THEN posts html to /internal/ingest with webhook false', async () => {
+      await writer.ingest('<div>direct clipboard</div>');
+      const [opts, payload] = mockPostJsonOverUds.mock.calls[0];
+      expect(opts.path).toBe('/internal/ingest');
+      expect(payload).toEqual({ webhook: false, html: '<div>direct clipboard</div>' });
+    });
+
+    it('GIVEN UdsActionWriter WHEN writer.ingest receives a non-2xx response THEN it throws Ingest failed', async () => {
+      mockPostJsonOverUds.mockResolvedValueOnce({ statusCode: 500, body: 'boom' });
+      await expect(writer.ingest('<div>x</div>')).rejects.toThrow(/Ingest failed/);
+    });
+
+    it('GIVEN UdsActionWriter WHEN writer.webhookIngest THEN posts clipboard html to /internal/ingest?webhook=true', async () => {
+      const result = await writer.webhookIngest();
+      const [opts, payload] = mockPostJsonOverUds.mock.calls[0];
+      expect(opts.path).toBe('/internal/ingest?webhook=true');
+      expect(payload).toEqual({ html: '<div>test clipboard</div>' });
+      expect(result).toBe('<div>test clipboard</div>');
+    });
+
+    it('GIVEN UdsActionWriter WHEN writer.webhookIngest with a jobLifecycleId THEN the payload carries it', async () => {
+      await writer.webhookIngest('job-c');
+      const [, payload] = mockPostJsonOverUds.mock.calls[0];
+      expect(payload).toEqual({ html: '<div>test clipboard</div>', jobLifecycleId: 'job-c' });
+    });
+
+    it('GIVEN UdsActionWriter WHEN writer.webhookIngest receives a non-2xx response THEN it throws Webhook ingest failed', async () => {
+      mockPostJsonOverUds.mockResolvedValueOnce({ statusCode: 503, body: 'unavailable' });
+      await expect(writer.webhookIngest()).rejects.toThrow(/Webhook ingest failed/);
+    });
+
+    it('GIVEN UdsActionWriter WHEN the clipboard is empty THEN webhookIngest throws', async () => {
+      mockClipboardGetter.mockResolvedValueOnce([]);
+      await expect(writer.webhookIngest()).rejects.toThrow(/Clipboard is empty or no new content/);
+      expect(mockPostJsonOverUds).not.toHaveBeenCalled();
+    });
+
+    it('GIVEN UdsActionWriter WHEN webhookIngest succeeds THEN it does not retry (single post)', async () => {
+      const result = await writer.webhookIngest();
+      expect(mockPostJsonOverUds).toHaveBeenCalledTimes(1);
+      expect(result).toBe('<div>test clipboard</div>');
     });
   });
 });

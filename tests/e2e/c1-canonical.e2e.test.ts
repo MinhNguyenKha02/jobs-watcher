@@ -1,52 +1,30 @@
 /*
- * e2e c1-canonical (prod bootstrap, real deps, black-box; no IoC in the body):
- * GIVEN a webhook msg WHEN the prod bootstrap ingests → [c] UDS paste → [j] UDS action
- * THEN S1 GENERATED → S2 PARSE_COMPLETED → S3 QUEUED and a real asset PDF is produced.
+ * e2e c1-canonical (P3 skeleton: 2 real containers, black-box, final-outcome asserts):
+ *   root = path ring; nested describe = ONE checkpoint boundary.
+ *   Inputs via app.webhook (fake gmail) + app.uds.ingest ([c] paste carrying the id);
+ *   operator via app.uds.action (tui.uds.write). Assert ONLY final external outcomes:
+ *   daemon.mongo S3/S4 status + real asset PDF + the tui ipc seam mirror→clear folded
+ *   into the needy checkpoints. No S1/S2 intermediate re-proving (integ owns that).
  */
 import fs from 'node:fs';
 
-import amqplib from 'amqplib';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 import { JobStage, JobStatus } from '../../src/domain/types/job-lifecycle.js';
-import { getCurrentJob } from '../../src/presentation/tui/shared-tui-state.js';
-import { createE2eApp, ActionEvent, type E2eApp } from '../helpers/e2e-app.js';
+import { ActionEvent, createE2eApp, type E2eApp } from '../helpers/e2e-app.js';
 import { topcvDetailHtml, nonJobHtml } from '../helpers/html-fixtures.js';
-import { buildTuiTestContainer } from '../helpers/test-container.js';
 
-const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
+const waitForDoc = (app: E2eApp, jobId: string) =>
+  vi.waitUntil(async () => (await app.jobLifecycle.findById(jobId)) !== null, {
+    timeout: 15000,
+  });
 
-async function waitFor(check: () => boolean, timeoutMs = 15000, intervalMs = 50): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (check()) return;
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  throw new Error(`waitFor timed out after ${timeoutMs}ms`);
-}
+const waitForStatus = (app: E2eApp, jobId: string, status: JobStatus) =>
+  vi.waitUntil(async () => (await app.jobLifecycle.findById(jobId))?.status === status, {
+    timeout: 15000,
+  });
 
-async function purgeTuiQueues(ns: string): Promise<void> {
-  const conn = await amqplib.connect(RMQ_URL);
-  const ch = await conn.createChannel();
-  for (const suffix of ['s1', 's2', 's3s4']) {
-    try {
-      await ch.assertQueue(`tui.${ns}.${suffix}`);
-      await ch.purgeQueue(`tui.${ns}.${suffix}`);
-    } catch {
-      /* best-effort — a missing/closed queue is treated as empty */
-    }
-  }
-  try {
-    await ch.close();
-  } catch {
-    /* channel may already be closed by the server */
-  }
-  await conn.close();
-}
-
-describe('C1 canonical e2e — webhook msg → s1 → s2 full parse → [j] queue → asset pdf (prod bootstrap, real deps)', () => {
-  const messageId = 'c1-canonical-msg';
-  const jobLifecycleId = `${messageId}-job-0`;
+describe('C1 canonical e2e — webhook msg → s1 → s2 full parse → [j] queue → asset pdf → next (prod bootstrap, real deps)', () => {
   let app: E2eApp;
 
   beforeAll(async () => {
@@ -58,6 +36,9 @@ describe('C1 canonical e2e — webhook msg → s1 → s2 full parse → [j] queu
         if (mid === 'c1-canonical-msg')
           return { role: 'Software Engineer', company: 'C1CanonicalCo' };
         if (mid === 'c1-fail-msg') return { role: 'Software Engineer', company: 'C1FailCo' };
+        if (mid === 'c1-ring-msg') return { role: 'Software Engineer', company: 'C1RingCo' };
+        if (mid === 'c1-ring-next-msg')
+          return { role: 'Software Engineer', company: 'C1RingNextCo' };
         return { role: 'Software Engineer', company: 'C1RecoveryCo' };
       },
     });
@@ -67,120 +48,94 @@ describe('C1 canonical e2e — webhook msg → s1 → s2 full parse → [j] queu
     await app.stop();
   });
 
-  it('GIVEN webhook s1 WHEN GENERATED; s2 full parse → PARSE_COMPLETED; [j] THEN QUEUED + real asset pdf', async () => {
-    const gen = await app.events.on([ActionEvent.GENERATED]);
-    const res = await app.webhook.post(messageId);
-    expect(res.status).toBe(202);
-
-    const genMsg = await gen.msg();
-    expect(genMsg._id).toBe(jobLifecycleId);
-    expect(genMsg.role).toBe('Software Engineer');
-    expect(genMsg.company).toBe('C1CanonicalCo');
-    expect(genMsg.stage).toBe(JobStage.PARTIAL_PARSED);
-    expect(genMsg.status).toBe(JobStatus.ENRICHING);
-
-    const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-    const cRes = await app.uds.ingest(
-      topcvDetailHtml('Software Engineer', 'C1CanonicalCo'),
-      jobLifecycleId
-    );
-    expect(cRes.statusCode).toBe(200);
-
-    const compMsg = await comp.msg();
-    expect(compMsg.job).toBeDefined();
-    expect(compMsg.job._id).toBe(jobLifecycleId);
-    expect(compMsg.job.stage).toBe(JobStage.FULL_PARSED);
-    expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
-
-    const queue = await app.events.on([
-      ActionEvent.QUEUED,
-      ActionEvent.TRASHED,
-      ActionEvent.ROUTE_FAILED,
-    ]);
-    const jRes = await app.uds.action(jobLifecycleId, 'queue');
-    expect(jRes.statusCode).toBe(200);
-
-    const queueMsg = await queue.msg();
-    expect(queueMsg.jobLifecycleId).toBe(jobLifecycleId);
-
-    const pdfPath = await app.artifacts.waitForPdf();
-    expect(pdfPath).toBeTruthy();
-    expect(fs.existsSync(pdfPath)).toBe(true);
-    expect(fs.statSync(pdfPath).size).toBeGreaterThan(0);
-  }, 60000);
-
-  it('GIVEN an unparseable [c] paste after webhook s1 WHEN the path is exercised THEN PARSE_FAILED (s4); next webhook s1 recovers (GENERATED)', async () => {
-    const gen = await app.events.on([ActionEvent.GENERATED]);
-    const failRes = await app.webhook.post('c1-fail-msg');
-    expect(failRes.status).toBe(202);
-
-    const genMsg = await gen.msg();
-    const s1Id: string = genMsg._id;
-    expect(genMsg.company).toBe('C1FailCo');
-    expect(genMsg.status).toBe(JobStatus.ENRICHING);
-
-    const fail = await app.events.on([ActionEvent.PARSE_FAILED]);
-    const cRes = await app.uds.ingest(nonJobHtml(), s1Id);
-    expect(cRes.statusCode).toBe(200);
-
-    const failMsg = await fail.msg();
-    expect(failMsg.jobLifecycleId).toBe(s1Id);
-
-    const gen2 = await app.events.on([ActionEvent.GENERATED]);
-    const res2 = await app.webhook.post('c1-recovery-msg');
-    expect(res2.status).toBe(202);
-
-    const gen2Msg = await gen2.msg();
-    expect(gen2Msg._id).toBe('c1-recovery-msg-job-0');
-    expect(gen2Msg.company).toBe('C1RecoveryCo');
-    expect(gen2Msg.status).toBe(JobStatus.ENRICHING);
-  }, 60000);
-
-  it('GIVEN the tui-ioc precondition WHEN the daemon webhook+paste publishes S1+S2 over RMQ and the tui sends [j] over UDS THEN the reader mirrors then clears the job on the ipc seam (tui↔daemon real RMQ+UDS) · e2e c1', async () => {
-    await purgeTuiQueues('c1-canonical');
-    const tui = await buildTuiTestContainer({ ns: 'c1-canonical' });
-    try {
-      await waitFor(() => tui.rmqReader.isConnected());
+  describe('(a) canonical S1 → [c] paste → [j] QUEUED + pdf (+ tui mirror folded)', () => {
+    it('GIVEN webhook S1 WHEN [c] paste THEN [j] queue → QUEUED + real asset pdf and the tui mirror advances then clears · e2e c1', async () => {
       await app.resetDb();
+      const jobId = 'c1-canonical-msg-job-0';
+      app.tui.rmq.reader.resetReader();
 
-      const gen = await app.events.on([ActionEvent.GENERATED]);
-      const res = await app.webhook.post('c1-boundary-msg');
+      const res = await app.webhook.post('c1-canonical-msg');
       expect(res.status).toBe(202);
+      await waitForDoc(app, jobId);
 
-      const genMsg = await gen.msg();
-      const jobId: string = genMsg._id;
-      expect(genMsg.company).toBe('C1RecoveryCo');
-      await waitFor(() => getCurrentJob().jobLifecycleId === jobId);
-      expect(getCurrentJob().stage).toBe(JobStage.PARTIAL_PARSED);
-
-      const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
       const cRes = await app.uds.ingest(
-        topcvDetailHtml('Software Engineer', 'C1RecoveryCo'),
+        topcvDetailHtml('Software Engineer', 'C1CanonicalCo'),
         jobId
       );
       expect(cRes.statusCode).toBe(200);
 
-      const compMsg = await comp.msg();
-      expect(compMsg.job._id).toBe(jobId);
-      await waitFor(
+      await vi.waitUntil(
         () =>
-          getCurrentJob().jobLifecycleId === jobId && getCurrentJob().stage === JobStage.FULL_PARSED
+          app.tui.ipc.read().jobLifecycleId === jobId &&
+          app.tui.ipc.read().stage === JobStage.FULL_PARSED,
+        { timeout: 15000 }
       );
-      expect(getCurrentJob().job?.company).toBe('C1RecoveryCo');
 
-      const queue = await app.events.on([
-        ActionEvent.QUEUED,
-        ActionEvent.TRASHED,
-        ActionEvent.ROUTE_FAILED,
-      ]);
-      await tui.udsWriter.queue(jobId);
+      const jRes = await app.uds.action(jobId, 'queue');
+      expect(jRes.statusCode).toBe(200);
 
-      const queueMsg = await queue.msg();
-      expect(queueMsg.jobLifecycleId).toBe(jobId);
-      await waitFor(() => getCurrentJob().jobLifecycleId === null);
-      expect(getCurrentJob().job).toBeNull();
-    } finally {
-      await tui.stop();
-    }
-  }, 90000);
+      await waitForStatus(app, jobId, JobStatus.QUEUED);
+      const pdfPath = await app.artifacts.waitForPdf();
+      expect(fs.existsSync(pdfPath)).toBe(true);
+      expect(fs.statSync(pdfPath).size).toBeGreaterThan(0);
+
+      await vi.waitUntil(() => app.tui.ipc.read().jobLifecycleId === null, { timeout: 15000 });
+      expect(app.tui.ipc.read().job).toBeNull();
+    }, 90000);
+  });
+
+  describe('(b) S4 PARSE_FAILED → next webhook S1 recovery', () => {
+    it('GIVEN webhook S1 WHEN an unparseable [c] paste THEN PARSE_FAILED; next webhook S1 recovers to a fresh doc · e2e c1', async () => {
+      const jobId = 'c1-fail-msg-job-0';
+      await app.webhook.post('c1-fail-msg');
+      await waitForDoc(app, jobId);
+
+      const fail = await app.events.on([ActionEvent.PARSE_FAILED]);
+      const cRes = await app.uds.ingest(nonJobHtml(), jobId);
+      expect(cRes.statusCode).toBe(200);
+
+      const failMsg = await fail.msg();
+      expect(failMsg.jobLifecycleId).toBe(jobId);
+
+      const failedDoc = await app.jobLifecycle.findById(jobId);
+      expect(failedDoc!.stage).toBe(JobStage.PARTIAL_PARSED);
+      expect(failedDoc!.status).toBe(JobStatus.ENRICHING);
+
+      const recoveryId = 'c1-recovery-msg-job-0';
+      await app.webhook.post('c1-recovery-msg');
+      await waitForDoc(app, recoveryId);
+      const recDoc = await app.jobLifecycle.findById(recoveryId);
+      expect(recDoc!.company).toBe('C1RecoveryCo');
+      expect(recDoc!.stage).toBe(JobStage.PARTIAL_PARSED);
+    }, 60000);
+  });
+
+  describe('(c) ring closure — next pick after a completed cycle', () => {
+    it('GIVEN a completed webhook→paste→[j] cycle WHEN a fresh S1 follows THEN the next job reaches QUEUED and the ipc seam is empty again · e2e c1', async () => {
+      await app.resetDb();
+      app.tui.rmq.reader.resetReader();
+      const jobId = 'c1-ring-msg-job-0';
+
+      const res = await app.webhook.post('c1-ring-msg');
+      expect(res.status).toBe(202);
+      await waitForDoc(app, jobId);
+
+      const cRes = await app.uds.ingest(topcvDetailHtml('Software Engineer', 'C1RingCo'), jobId);
+      expect(cRes.statusCode).toBe(200);
+
+      const jRes = await app.uds.action(jobId, 'queue');
+      expect(jRes.statusCode).toBe(200);
+
+      await waitForStatus(app, jobId, JobStatus.QUEUED);
+      await vi.waitUntil(() => app.tui.ipc.read().jobLifecycleId === null, { timeout: 15000 });
+
+      const nextId = 'c1-ring-next-msg-job-0';
+      const res2 = await app.webhook.post('c1-ring-next-msg');
+      expect(res2.status).toBe(202);
+      await waitForDoc(app, nextId);
+      const nextDoc = await app.jobLifecycle.findById(nextId);
+      expect(nextDoc!.company).toBe('C1RingNextCo');
+      expect(nextDoc!.stage).toBe(JobStage.PARTIAL_PARSED);
+    }, 90000);
+  });
 });
