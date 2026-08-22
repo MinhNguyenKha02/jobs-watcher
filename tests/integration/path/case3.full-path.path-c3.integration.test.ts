@@ -103,16 +103,28 @@ describe('Failure saga (a) — parse failure (S2→S4) with S1 recovery ring', (
     expect(nextDoc!.company).toBe('NextCorp');
   });
 
-  it('GIVEN unparsable FULL_PARSED payload WHEN the path is exercised THEN PARSE_FAILED (saga reaches S4) (S2+S4) · path c3', async () => {
-    const fail = tui.rmq.consume('s34');
+  it('GIVEN non-job FULL_PARSED HTML over a seeded s1 doc WHEN the path is exercised THEN enrichment proceeds with details=htmlToText(html) — no PARSE_FAILED at s2c (S1+S2) · path c3', async () => {
+    await adapter.upsert(
+      makeStage1Partial({ _id: 'fail-parse-id', company: 'FailParseCo', role: 'Engineer' })
+    );
+
+    const comp = tui.rmq.consume('s2');
     await daemon.apps.ingest.processIngest(
       JobSource.BROWSER_AUTO,
       JobStage.FULL_PARSED,
       nonJobHtml(),
       'fail-parse-id'
     );
-    const msg = await fail;
-    expect(msg.jobLifecycleId).toBe('fail-parse-id');
+    const compMsg = await comp;
+    expect(compMsg.job._id).toBe('fail-parse-id');
+
+    const doc = await adapter.findById('fail-parse-id');
+    expect(doc).not.toBeNull();
+    expect(doc!.status).toBe(JobStatus.ENRICHED);
+    expect(doc!.company).toBe('FailParseCo');
+    expect(doc!.details).toContain('not a job posting');
+
+    await expect(tui.rmq.consume('s34', 1500)).rejects.toThrow(/Timeout|No messages/);
   });
 
   it('GIVEN empty HTML payload WHEN the path is exercised THEN graceful PARSE_FAILED without crash (S2+S4) · path c3', async () => {
@@ -414,7 +426,7 @@ describe('Failure saga (b) — route failure (S3→S4) with S1 recovery ring', (
         await daemon.apps.ingest.processIngest(
           JobSource.MANUAL,
           JobStage.FULL_PARSED,
-          topcvDetailHtml('Software Engineer', `RecoverCo-${token}`),
+          linkedinSduiDetailHtml('Software Engineer', `RecoverCo-${token}`),
           undefined,
           undefined,
           new Date()
@@ -529,7 +541,7 @@ describe('Failure saga (c) — guards, S4→S1 ring closure and tui seam', () =>
       daemon.apps.ingest.processIngest(
         JobSource.MANUAL,
         JobStage.PARTIAL_PARSED,
-        topcvDetailHtml('Any Job', 'AnyCo')
+        linkedinSduiDetailHtml('Any Job', 'AnyCo')
       )
     ).resolves.toBeUndefined();
     await expect(silence).rejects.toThrow(/Timeout/);
@@ -611,26 +623,21 @@ describe('Failure saga (c) — guards, S4→S1 ring closure and tui seam', () =>
     expect(guardDoc!.status).toBe(JobStatus.QUEUED);
   });
 
-  it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN S2 enrichment with missing stage1Partial falls back to an HTML-only parsed job · path c3', async () => {
+  it('GIVEN an S2 manual FULL_PARSED input with missing stage-1 doc WHEN an ingest signal is processed THEN enrichment is skipped — no completion, no doc (found(id) guard, S2) · path c3', async () => {
     const jobLifecycleId = 'h4-no-partial';
 
-    const comp = tui.rmq.consume('s2');
+    const comp = tui.rmq.consume('s2', 2000);
     await daemon.apps.ingest.processIngest(
       JobSource.MANUAL,
       JobStage.FULL_PARSED,
       linkedinSduiDetailHtml('Fallback Role', 'FallbackCo'),
       jobLifecycleId
     );
-    const compMsg = await comp;
-    expect(compMsg.job).toBeDefined();
-    expect(compMsg.job._id).toBe(jobLifecycleId);
+
+    await expect(comp).rejects.toThrow(/Timeout|No messages/);
 
     const doc = await adapter.findById(jobLifecycleId);
-    expect(doc).not.toBeNull();
-    expect(doc!.stage).toBe(JobStage.FULL_PARSED);
-    expect(doc!.status).toBe(JobStatus.ENRICHED);
-    expect(doc!.company).toBe('FallbackCo');
-    expect(doc!.role).toBe('Fallback Role');
+    expect(doc).toBeNull();
   });
 
   it('GIVEN an S4 route failure WHEN a fresh valid S1 follows THEN the ring closes: the next job reaches S3 QUEUED (s4→s1→s3) · path c3', async () => {
@@ -681,6 +688,24 @@ describe('Failure saga (c) — guards, S4→S1 ring closure and tui seam', () =>
     const routedDoc = await adapter.findById(nextId);
     expect(routedDoc).not.toBeNull();
     expect(routedDoc!.status).toBe(JobStatus.QUEUED);
+  });
+
+  it('G4 waiter hygiene GIVEN a timed-out consume registration WHEN a fresh publish follows THEN the stale waiter cannot steal the message — the fresh waiter resolves it · path c3', async () => {
+    const stale = await tui.rmq
+      .consume('s1', 300)
+      .then(() => ({ timedOut: false }))
+      .catch((err: Error) => ({ timedOut: true, reason: err.message }));
+    expect(stale.timedOut).toBe(true);
+
+    const payloadId = 'g4-hygiene-1';
+    await tui.rmq.flushPending('g4-cell');
+    const fresh = tui.rmq.consume('s1', 8000);
+    await daemon.rmq.ports.parse.emitGenerated(
+      { _id: payloadId, role: 'Software Engineer', company: 'G4Co', stage: JobStage.PARTIAL_PARSED },
+      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+    );
+    const msg = await fresh;
+    expect(msg._id ?? msg.job?._id ?? msg.jobLifecycleId).toBe(payloadId);
   });
 
   it('GIVEN the tui-ioc precondition WHEN the daemon publishes S1+S2 over RMQ and the tui sends [j] over UDS THEN the reader mirrors then clears the job on the ipc seam (tui↔daemon real RMQ+UDS) · path c3', async () => {

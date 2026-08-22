@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 import { JobStage, JobStatus } from '../../src/domain/types/job-lifecycle.js';
 import { ActionEvent, createE2eApp, type E2eApp } from '../helpers/e2e-app.js';
-import { topcvDetailHtml, nonJobHtml } from '../helpers/html-fixtures.js';
+import { linkedinSduiDetailHtml, nonJobHtml } from '../helpers/html-fixtures.js';
 
 const waitForDoc = (app: E2eApp, jobId: string) =>
   vi.waitUntil(async () => (await app.jobLifecycle.findById(jobId)) !== null, {
@@ -16,7 +16,7 @@ const waitForDoc = (app: E2eApp, jobId: string) =>
   });
 
 describe('C3 error e2e — s2 failure → s4 → next valid s2 recovers (prod bootstrap, real deps)', () => {
-  const messageId = 'c3-error-recovery';
+  const _messageId = 'c3-error-recovery';
   let app: E2eApp;
 
   beforeAll(async () => {
@@ -30,14 +30,14 @@ describe('C3 error e2e — s2 failure → s4 → next valid s2 recovers (prod bo
   describe('(a) S4 PARSE_FAILED → next valid clipboard recovers', () => {
     it('GIVEN unparseable UDS ingest WHEN PARSE_FAILED (s4); next valid clipboard THEN a clip-* doc is ENRICHED (recovery) · e2e c3', async () => {
       const fail = await app.events.on([ActionEvent.PARSE_FAILED]);
-      const failRes = await app.uds.ingest(nonJobHtml(), messageId);
+      const failRes = await app.uds.ingest(nonJobHtml());
       expect(failRes.statusCode).toBe(200);
 
       const failMsg = await fail.msg();
-      expect(failMsg.jobLifecycleId).toBe(messageId);
+      expect(failMsg.jobLifecycleId).toMatch(/^clip-/);
 
       const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-      const okRes = await app.uds.ingest(topcvDetailHtml('Software Engineer', 'C3RecoveryCo'));
+      const okRes = await app.uds.ingest(linkedinSduiDetailHtml('Software Engineer', 'C3RecoveryCo'));
       expect(okRes.statusCode).toBe(200);
 
       const compMsg = await comp.msg();
@@ -62,7 +62,7 @@ describe('C3 error e2e — s2 failure → s4 → next valid s2 recovers (prod bo
       expect(failMsg.reason).toBe('No existing job lifecycle found');
 
       const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-      const okRes = await app.uds.ingest(topcvDetailHtml('Software Engineer', 'C3ResilientCo'));
+      const okRes = await app.uds.ingest(linkedinSduiDetailHtml('Software Engineer', 'C3ResilientCo'));
       expect(okRes.statusCode).toBe(200);
 
       const compMsg = await comp.msg();
@@ -87,7 +87,7 @@ describe('C3 error e2e — s2 failure → s4 → next valid s2 recovers (prod bo
       await waitForDoc(app, jobId);
 
       const cRes = await app.uds.ingest(
-        topcvDetailHtml('Software Engineer', 'E2eCanonicalCo'),
+        linkedinSduiDetailHtml('Software Engineer', 'E2eCanonicalCo'),
         jobId
       );
       expect(cRes.statusCode).toBe(200);

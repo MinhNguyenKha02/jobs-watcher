@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 import { JobStage, JobStatus, JobSource } from '../../src/domain/types/job-lifecycle.js';
 import { ActionEvent, createE2eApp, type E2eApp } from '../helpers/e2e-app.js';
-import { topcvDetailHtml } from '../helpers/html-fixtures.js';
+import { linkedinSduiDetailHtml } from '../helpers/html-fixtures.js';
 
 const waitForDoc = (app: E2eApp, jobId: string) =>
   vi.waitUntil(async () => (await app.jobLifecycle.findById(jobId)) !== null, {
@@ -28,7 +28,7 @@ describe('C4 direct e2e — [i] clipboard ingest → fully job → [j] queue + p
   describe('(a) [i] direct ingest → [d] TRASHED → next direct ingest', () => {
     it('GIVEN [i] clipboard ingest WHEN ENRICHED clip-* doc; [d] trash THEN TRASHED; next direct ingest still completes · e2e c4', async () => {
       const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-      const iRes = await app.uds.ingest(topcvDetailHtml('Backend Engineer', 'C4DirectCo'));
+      const iRes = await app.uds.ingest(linkedinSduiDetailHtml('Backend Engineer', 'C4DirectCo'));
       expect(iRes.statusCode).toBe(200);
 
       const compMsg = await comp.msg();
@@ -51,7 +51,7 @@ describe('C4 direct e2e — [i] clipboard ingest → fully job → [j] queue + p
       expect(trashedDoc!.status).toBe(JobStatus.TRASHED);
 
       const comp2 = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-      const i2Res = await app.uds.ingest(topcvDetailHtml('Data Engineer', 'C4DirectCo2'));
+      const i2Res = await app.uds.ingest(linkedinSduiDetailHtml('Data Engineer', 'C4DirectCo2'));
       expect(i2Res.statusCode).toBe(200);
 
       const comp2Msg = await comp2.msg();
@@ -68,7 +68,7 @@ describe('C4 direct e2e — [i] clipboard ingest → fully job → [j] queue + p
   describe('(b) [i] direct ingest → [j] QUEUED + asset PDF → next direct ingest', () => {
     it('GIVEN [i] clipboard ingest WHEN a [j] resolution is applied THEN QUEUED + real asset pdf; next direct ingest still completes · e2e c4', async () => {
       const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-      const iRes = await app.uds.ingest(topcvDetailHtml('DevOps Engineer', 'C4QueueCo'));
+      const iRes = await app.uds.ingest(linkedinSduiDetailHtml('DevOps Engineer', 'C4QueueCo'));
       expect(iRes.statusCode).toBe(200);
 
       const compMsg = await comp.msg();
@@ -94,7 +94,7 @@ describe('C4 direct e2e — [i] clipboard ingest → fully job → [j] queue + p
       expect(queuedDoc!.status).toBe(JobStatus.QUEUED);
 
       const comp2 = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-      const i2Res = await app.uds.ingest(topcvDetailHtml('Frontend Engineer', 'C4QueueCo2'));
+      const i2Res = await app.uds.ingest(linkedinSduiDetailHtml('Frontend Engineer', 'C4QueueCo2'));
       expect(i2Res.statusCode).toBe(200);
 
       const comp2Msg = await comp2.msg();
@@ -116,7 +116,7 @@ describe('C4 direct e2e — [i] clipboard ingest → fully job → [j] queue + p
       await expect(fail.msg()).rejects.toThrow();
 
       const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-      const okRes = await app.uds.ingest(topcvDetailHtml('Site Reliability Engineer', 'C4EmptyCo'));
+      const okRes = await app.uds.ingest(linkedinSduiDetailHtml('Site Reliability Engineer', 'C4EmptyCo'));
       expect(okRes.statusCode).toBe(200);
 
       const compMsg = await comp.msg();
@@ -140,7 +140,7 @@ describe('C4 direct e2e — [i] clipboard ingest → fully job → [j] queue + p
       await waitForDoc(app, jobId);
 
       const cRes = await app.uds.ingest(
-        topcvDetailHtml('Software Engineer', 'E2eCanonicalCo'),
+        linkedinSduiDetailHtml('Software Engineer', 'E2eCanonicalCo'),
         jobId
       );
       expect(cRes.statusCode).toBe(200);

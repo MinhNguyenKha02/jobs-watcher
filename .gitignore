@@ -21,6 +21,8 @@ test-output/
 src.bak/
 tests.bak/
 *.json*
+!tests/fixtures/*.json
+!tests/__fixtures__/**/*.html
 .agents
 .github
 .zed

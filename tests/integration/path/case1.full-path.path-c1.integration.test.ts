@@ -7,7 +7,11 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
 import { ActionEvent } from '../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
-import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
+import {
+  linkedinSduiDetailHtml,
+  topcvEmailHtmlMany,
+  topcvDetailHtml,
+} from '../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
 import {
   buildTestDaemonContainer,
@@ -81,8 +85,10 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(enrichedDoc).not.toBeNull();
       expect(enrichedDoc!.stage).toBe(JobStage.FULL_PARSED);
       expect(enrichedDoc!.status).toBe(JobStatus.ENRICHED);
-      expect(enrichedDoc!.salary).toBe('15,000,000 VNĐ');
-      expect(enrichedDoc!.location).toBe('Ho Chi Minh');
+      expect(enrichedDoc!.salary).toBe('');
+      expect(enrichedDoc!.location).toBe('');
+      expect(typeof enrichedDoc!.details).toBe('string');
+      expect(enrichedDoc!.details!.length).toBeGreaterThan(0);
 
       const queue = tui.rmq.consume('s34');
       await tui.uds.write.queue(jobLifecycleId);
@@ -151,7 +157,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
   });
 
   describe('(b) signal2aManual ([c]) upgrade + B2/B9 guards', () => {
-    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] upgrades PARTIAL_PARSED to FULL_PARSED with merged fields — real-DIP (S2) · path c1', async () => {
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] upgrades PARTIAL_PARSED to FULL_PARSED preserving s1 fields with details=htmlToText(html) (S2) · path c1', async () => {
       const jobLifecycleId = await seedPartial({
         _id: 'c1-2a-valid',
         company: 'OldCo',
@@ -173,27 +179,22 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(doc).not.toBeNull();
       expect(doc!.stage).toBe(JobStage.FULL_PARSED);
       expect(doc!.status).toBe(JobStatus.ENRICHED);
-      expect(doc!.company).toBe('NewCo');
+      expect(doc!.company).toBe('OldCo');
       expect(doc!.role).toBe('Software Engineer');
     });
 
-    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] with missing stage1Partial builds FULL_PARSED from parsed HTML alone (S2) · path c1', async () => {
-      const comp = tui.rmq.consume('s2');
+    it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] with missing stage-1 doc skips enrichment — no completion, no doc (data-loss guard, S2) · path c1', async () => {
+      const comp = tui.rmq.consume('s2', 1500);
       await daemon.apps.ingest.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
-        topcvDetailHtml('Software Engineer', 'NoPartialCo'),
+        topcvDetailHtml(),
         'c1-missing-partial'
       );
-      const compMsg = await comp;
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toBe('c1-missing-partial');
+      await expect(comp).rejects.toThrow(/Timeout/);
 
       const doc = await daemon.jobLifecycle.findById('c1-missing-partial');
-      expect(doc).not.toBeNull();
-      expect(doc!.company).toBe('NoPartialCo');
-      expect(doc!.role).toBe('Software Engineer');
-      expect(doc!.stage).toBe(JobStage.FULL_PARSED);
+      expect(doc).toBeNull();
     });
 
     it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] on an already FULL_PARSED job is a no-op (B2 guard) (S2) · path c1', async () => {
@@ -226,7 +227,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       await daemon.apps.ingest.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
-        CLIPBOARD_HTML
+        linkedinSduiDetailHtml('Software Engineer', 'ClipB9Co')
       );
       const compMsg = await comp;
       expect(compMsg.job).toBeDefined();

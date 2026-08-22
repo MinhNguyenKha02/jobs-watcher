@@ -9,7 +9,7 @@ function makeJob(overrides: Record<string, unknown>) {
     location: overrides.location as string | undefined,
     description: overrides.description as string | undefined,
     url: overrides.url as string | undefined,
-    details: overrides.details as Record<string, string> | undefined,
+    details: overrides.details as string | undefined,
   };
 }
 
@@ -75,7 +75,7 @@ describe('hybridJobFilter - decision table by filter logic analysis', () => {
   type Row = {
     role: string;
     desc: string;
-    details?: Record<string, string>;
+    details?: string;
     tier: 1 | 2;
     expectPass: boolean;
     label: string;
@@ -103,7 +103,7 @@ describe('hybridJobFilter - decision table by filter logic analysis', () => {
     {
       role: swRole,
       desc: withLang,
-      details: { requirements: 'TypeScript, Python' },
+      details: 'Requirements:\nTypeScript, Python',
       tier: 2,
       expectPass: true,
       label: 'T2 lang+exp both pass',
@@ -118,7 +118,7 @@ describe('hybridJobFilter - decision table by filter logic analysis', () => {
     {
       role: swRole,
       desc: seniorExp,
-      details: { requirements: 'TypeScript, Python' },
+      details: 'Requirements:\nTypeScript, Python',
       tier: 2,
       expectPass: false,
       label: 'T2 lang ok but senior exp fails',
@@ -144,7 +144,7 @@ describe('hybridJobFilter - metamorphic relations', () => {
     const job = makeJob({
       role: 'Junior Software Engineer',
       description: 'Fresh graduates welcome.',
-      details: { requirements: 'TypeScript, Node.js' },
+      details: 'Requirements:\nTypeScript, Node.js',
     });
     const t2 = hybridJobFilter(job, { sinceTier: 2 });
     const t1 = hybridJobFilter(job);
@@ -156,12 +156,12 @@ describe('hybridJobFilter - metamorphic relations', () => {
     const junior = makeJob({
       role: 'Junior Software Engineer',
       description: 'Fresh graduates welcome.',
-      details: { requirements: 'TypeScript, Python' },
+      details: 'Requirements:\nTypeScript, Python',
     });
     const senior = makeJob({
       role: 'Senior Software Engineer',
       description: '3+ years experience required.',
-      details: { requirements: 'TypeScript, Python' },
+      details: 'Requirements:\nTypeScript, Python',
     });
     const juniorRes = hybridJobFilter(junior, { sinceTier: 2 });
     const seniorRes = hybridJobFilter(senior, { sinceTier: 2 });

@@ -10,7 +10,6 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import {
   linkedinSduiDetailHtml,
-  topcvDetailHtml,
   nonJobHtml,
 } from '../../helpers/html-fixtures.js';
 import {
@@ -78,7 +77,7 @@ describe('Path full-path c4 — direct clipboard ingest, queue/trash routing, de
     });
 
     it('GIVEN full filter pass WHEN the path is exercised THEN S2 stores a clip-* doc · path c4', async () => {
-      const id = await ingestClip(topcvDetailHtml('Software Engineer', 'FilterPassCo'));
+      const id = await ingestClip(linkedinSduiDetailHtml('Software Engineer', 'FilterPassCo'));
       const doc = await jobCol().findOne({ company: 'FilterPassCo' });
       expect(doc).not.toBeNull();
       expect(doc!._id).toBe(id);

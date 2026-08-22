@@ -3,17 +3,14 @@ import { describe, it, expect } from 'vitest';
 import { flattenJob, flattenJobDetails } from '../../../../src/domain/services/flatten-job.js';
 
 describe('flattenJob', () => {
-  it('GIVEN flattenJob input "{\n      role: \'Software Engineer\'" WHEN flattenJob evaluates THEN returns formatted string with all fields', () => {
+  it('GIVEN flattenJob input with all fields WHEN flattenJob evaluates THEN returns formatted string with all fields', () => {
     const result = flattenJob({
       role: 'Software Engineer',
       company: 'Tech Corp',
       description: 'Build things',
       salary: '$100k',
       location: 'Remote',
-      details: {
-        responsibilities: 'Code review',
-        requirements: '5 years exp',
-      },
+      details: 'Responsibilities:\nCode review\n\nRequirements:\n5 years exp',
     });
 
     expect(result).toContain('Role:');
@@ -30,7 +27,7 @@ describe('flattenJob', () => {
     expect(result).toContain('Code review');
   });
 
-  it('GIVEN flattenJob input "{\n      role: \'Developer\'" WHEN flattenJob evaluates THEN handles partial fields', () => {
+  it('GIVEN flattenJob input with partial fields WHEN flattenJob evaluates THEN handles partial fields', () => {
     const result = flattenJob({
       role: 'Developer',
       company: 'Startup',
@@ -46,7 +43,7 @@ describe('flattenJob', () => {
     expect(result).not.toContain('Location:');
   });
 
-  it('GIVEN flattenJob input "{\n      role: \'\'" WHEN flattenJob evaluates THEN returns empty string for empty input', () => {
+  it('GIVEN flattenJob input empty WHEN flattenJob evaluates THEN returns empty string for empty input', () => {
     const result = flattenJob({
       role: '',
       company: '',
@@ -61,11 +58,8 @@ describe('flattenJob', () => {
 });
 
 describe('flattenJobDetails', () => {
-  it('GIVEN flattenJobDetails input "{\n      responsibilities: \'Task A\\nTask B\'" WHEN flattenJobDetails evaluates THEN formats known detail labels', () => {
-    const result = flattenJobDetails({
-      responsibilities: 'Task A\nTask B',
-      benefits: 'Health insurance',
-    });
+  it('GIVEN flattenJobDetails input string with sections WHEN flattenJobDetails evaluates THEN returns the text as-is', () => {
+    const result = flattenJobDetails('Responsibilities:\nTask A\nTask B\n\nBenefits:\nHealth insurance');
 
     expect(result).toContain('Responsibilities:');
     expect(result).toContain('Task A');
@@ -73,14 +67,10 @@ describe('flattenJobDetails', () => {
     expect(result).toContain('Health insurance');
   });
 
-  it('GIVEN flattenJobDetails input "{\n      responsibilities: \'Main task\'" WHEN flattenJobDetails evaluates THEN handles extraSections', () => {
-    const result = flattenJobDetails({
-      responsibilities: 'Main task',
-      extraSections: {
-        certifications: 'AWS Certified',
-        languages: 'English, Vietnamese',
-      },
-    });
+  it('GIVEN flattenJobDetails input string with custom sections WHEN flattenJobDetails evaluates THEN preserves raw section labels', () => {
+    const result = flattenJobDetails(
+      'Main task\n\ncertifications:\nAWS Certified\n\nlanguages:\nEnglish, Vietnamese'
+    );
 
     expect(result).toContain('certifications:');
     expect(result).toContain('AWS Certified');
@@ -91,31 +81,12 @@ describe('flattenJobDetails', () => {
     expect(flattenJobDetails(undefined)).toBe('');
   });
 
-  it('GIVEN flattenJobDetails input "{\n      responsibilities: \'\'" WHEN flattenJobDetails evaluates THEN skips empty string values', () => {
-    const result = flattenJobDetails({
-      responsibilities: '',
-      requirements: 'Must have',
-    });
-
-    expect(result).not.toContain('Responsibilities:');
-    expect(result).toContain('Requirements:');
+  it('GIVEN flattenJobDetails input "" WHEN flattenJobDetails evaluates THEN returns empty string for empty details', () => {
+    expect(flattenJobDetails('')).toBe('');
   });
 
-  it('GIVEN flattenJobDetails input "{\n      extraSections: { customField: \'custom value\' }" WHEN flattenJobDetails evaluates THEN uses raw key as label for unknown fields (extraSections)', () => {
-    const result = flattenJobDetails({
-      extraSections: { customField: 'custom value' },
-    });
-
-    expect(result).toContain('customField:');
-    expect(result).toContain('custom value');
-  });
-
-  it('GIVEN flattenJobDetails input "{\n      responsibilities: \'Resp\'" WHEN flattenJobDetails evaluates THEN joins sections with double newline', () => {
-    const result = flattenJobDetails({
-      responsibilities: 'Resp',
-      requirements: 'Req',
-    });
-
-    expect(result).toContain('Responsibilities:\nResp\n\nRequirements:\nReq');
+  it('GIVEN flattenJobDetails input plain text WHEN flattenJobDetails evaluates THEN returns identical string (identity)', () => {
+    const text = 'Requirements:\nMust have';
+    expect(flattenJobDetails(text)).toBe(text);
   });
 });

@@ -11,6 +11,7 @@ import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-li
 import type { UdsAdapter } from '../../../src/infrastructure/inbound/uds/uds-adapter.js';
 import { postJsonOverUds } from '../../../src/infrastructure/utils/uds-http.js';
 import { linkedinSduiDetailHtml } from '../../helpers/html-fixtures.js';
+import { makeStage1Partial } from '../../helpers/test-builders.js';
 import {
   buildTestDaemonContainer,
   buildTestTuiContainer,
@@ -198,7 +199,14 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
       expect(doc!.status).toBe(JobStatus.ENRICHED);
     });
 
-    it('GIVEN the UDS precondition WHEN a webhook ingest with jobLifecycleId is posted on the real UDS THEN 200 and PARSE_COMPLETED carries the given id (S2)', async () => {
+    it('GIVEN a seeded stage-1 doc WHEN a webhook ingest with jobLifecycleId is posted on the real UDS THEN 200, s2a preserves s1 fields and PARSE_COMPLETED carries the given id (S2)', async () => {
+      await daemon.jobLifecycle.upsert(
+        makeStage1Partial({
+          _id: 'uds-upgrade-1',
+          role: 'Webhook Upgrade Role',
+          company: 'WebhookUpgradeCo',
+        })
+      );
       const html = linkedinSduiDetailHtml('Webhook Upgrade Role', 'WebhookUpgradeCo');
       const comp = tui.rmq.consume('s2');
 

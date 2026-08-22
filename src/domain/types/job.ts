@@ -11,15 +11,4 @@ export interface Job {
   easyApply?: boolean;
 }
 
-export interface JobDetails {
-  responsibilities?: string;
-  requirements?: string;
-  benefits?: string;
-  companyInfo?: string;
-  contact?: string;
-  applicationProcess?: string;
-  additionalInfo?: string;
-  pay?: string;
-  jobType?: string;
-  extraSections?: Record<string, string>;
-}
+export type JobDetails = string;

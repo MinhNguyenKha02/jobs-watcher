@@ -47,7 +47,7 @@ export const topCVEmailAlert = `<html><head><meta charset="UTF-8"/></head><body>
 </div>
 </body></html>`;
 
-// *EmailAlert source
+//! LEGACY
 export const topCVDetailPageHTML = `<html>
 <head><title>Software Developer For Broadband Devices - MARUSYS VINA</title></head>
 <body>

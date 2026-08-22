@@ -70,23 +70,27 @@ export function waitForPdfFiles(dir: string, timeoutMs = 20000): Promise<void> {
   });
 }
 
-/** UDS client bound to a shared internal token. `ingest(html, jobLifecycleId)` uses the webhook flag. */
+/**
+ * UDS client bound to a shared internal token. Timeout parity with the
+ * facade action-writer (60s): real-mode [j] resolution renders the PDF before
+ * responding. `ingest(html, jobLifecycleId)` uses the webhook flag.
+ */
 export function udsHelpers(socketPath: string, token: string) {
+  const post = (pathName: string, body: unknown) =>
+    postJsonOverUds(
+      {
+        socketPath,
+        path: pathName,
+        headers: { 'x-internal-token': token },
+        timeoutMs: 60000,
+      },
+      body
+    );
   return {
     ingest: (html: string, jobLifecycleId?: string) =>
-      postJsonOverUds(
-        {
-          socketPath,
-          path: `/internal/ingest${jobLifecycleId ? '?webhook=true' : ''}`,
-          headers: { 'x-internal-token': token },
-        },
-        { html, jobLifecycleId }
-      ),
+      post(`/internal/ingest${jobLifecycleId ? '?webhook=true' : ''}`, { html, jobLifecycleId }),
     action: (jobLifecycleId: string, action: string) =>
-      postJsonOverUds(
-        { socketPath, path: '/internal/action', headers: { 'x-internal-token': token } },
-        { jobLifecycleId, action }
-      ),
+      post('/internal/action', { jobLifecycleId, action }),
   };
 }
 

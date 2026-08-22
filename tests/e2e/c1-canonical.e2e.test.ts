@@ -85,21 +85,17 @@ describe('C1 canonical e2e — webhook msg → s1 → s2 full parse → [j] queu
   });
 
   describe('(b) S4 PARSE_FAILED → next webhook S1 recovery', () => {
-    it('GIVEN webhook S1 WHEN an unparseable [c] paste THEN PARSE_FAILED; next webhook S1 recovers to a fresh doc · e2e c1', async () => {
-      const jobId = 'c1-fail-msg-job-0';
-      await app.webhook.post('c1-fail-msg');
-      await waitForDoc(app, jobId);
-
+    it('GIVEN a non-LinkedIn clipboard paste WHEN s2b evaluates THEN PARSE_FAILED (no doc persisted); next webhook S1 recovers to a fresh doc · e2e c1', async () => {
       const fail = await app.events.on([ActionEvent.PARSE_FAILED]);
-      const cRes = await app.uds.ingest(nonJobHtml(), jobId);
+      const cRes = await app.uds.ingest(nonJobHtml());
       expect(cRes.statusCode).toBe(200);
 
       const failMsg = await fail.msg();
-      expect(failMsg.jobLifecycleId).toBe(jobId);
+      expect(failMsg.jobLifecycleId).toMatch(/^clip-/);
 
-      const failedDoc = await app.jobLifecycle.findById(jobId);
-      expect(failedDoc!.stage).toBe(JobStage.PARTIAL_PARSED);
-      expect(failedDoc!.status).toBe(JobStatus.ENRICHING);
+      const clipId: string = failMsg.jobLifecycleId;
+      const failedDoc = await app.jobLifecycle.findById(clipId);
+      expect(failedDoc).toBeNull();
 
       const recoveryId = 'c1-recovery-msg-job-0';
       await app.webhook.post('c1-recovery-msg');

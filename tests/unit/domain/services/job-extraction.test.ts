@@ -1,86 +1,10 @@
 import { describe, it, expect } from 'vitest';
 
-import { extractAllJobs } from '../../../../src/domain/services/parsing/job-extraction.js';
+import { extractAllJobs } from '../../../../src/domain/services/extractor/jobs-extractor.js';
+import { topcvEmailHtmlMany, indeedEmailHtmlMany } from '../../../../tests/helpers/html-fixtures.js';
 import { topCVEmailAlert, indeedEmailAlert } from '../../../__fixtures__/emails.js';
 
-function makeTopCvEmailHtml(
-  ...jobs: Array<{
-    role: string;
-    company: string;
-    location: string;
-    salary: string;
-    url: string;
-    daysLeft?: number;
-  }>
-) {
-  const items = jobs
-    .map(
-      (j) =>
-        `<a class="job-item-link" href="${j.url}">
-      <div class="job-item">
-        <div class="avatar"><span class="company-logo"><img src="https://via.placeholder.com/67" alt=""/></span></div>
-        <div class="body">
-          <div class="title"><span>${j.role}</span></div>
-          <div class="company"><span>${j.company}</span></div>
-          <div class="meta-job">
-            <div class="text-primary item"><b>${j.salary}</b></div>
-            <div class="item">${j.location}</div>
-            <div class="item">Còn <strong>${j.daysLeft ?? 30}</strong> ngày để ứng tuyển</div>
-          </div>
-        </div>
-      </div>
-    </a>`
-    )
-    .join('\n');
-  return `<html><head></head><body>
-    <h1>TopCV Job Alert</h1>
-    <p>Xin chào, việc làm mới phù hợp với bạn:</p>
-    <div class="job-list">${items}</div>
-  </body></html>`;
-}
-
-function makeIndeedEmailHtml(
-  jobs: Array<{
-    role: string;
-    company: string;
-    location: string;
-    salary: string;
-    description?: string;
-    daysAgo?: string;
-    easyApply?: boolean;
-    jk?: string;
-  }>
-) {
-  const items = jobs
-    .map((j) => {
-      const jk = j.jk ?? 'test';
-      const easyApplyBadge = j.easyApply ? '<span>Easily apply</span>' : '';
-      return `<td align="left" valign="top" class="pb-24" style="padding:0 0 32px">
-  <a href="https://vn.indeed.com/viewjob?jk=${jk}" style="display:block;text-decoration:none">
-    <table cellPadding="0" cellSpacing="0" border="0" align="left" width="100%" role="presentation">
-      <tr><td align="left" valign="top">
-        <h2 style="color:#2d2d2d;font-family:'Indeed Sans','Noto Sans',Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;line-height:24px;Margin:0;padding:0"><a href="https://vn.indeed.com/viewjob?jk=${jk}" style="text-decoration:none">${j.role}</a></h2>
-        <div style="color:#2d2d2d">${j.company}</div>
-        <div style="color:#2d2d2d">${j.location}</div>
-        <strong>${j.salary}</strong>
-        <div style="color:#767676">${j.description ?? ''}</div>
-        <div style="font-size:12px">${j.daysAgo ?? '30 days ago'}</div>
-        ${easyApplyBadge}
-      </td></tr>
-    </table>
-  </a>
-</td>`;
-    })
-    .join('\n');
-  return `<html><body>
-    <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr><td><p>Indeed Job Alert - new jobs found</p><p>indeed.com</p></td></tr>
-    ${items}
-    </table>
-  </body></html>`;
-}
-
-describe('JobExtractionService', () => {
+describe('JobsExtractor', () => {
   describe('extractAllJobs — TopCV fixtures', () => {
     it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts all jobs from fixture', () => {
       const jobs = extractAllJobs(topCVEmailAlert);
@@ -122,23 +46,14 @@ describe('JobExtractionService', () => {
     });
   });
 
-  describe('extractAllJobs — TopCV inline factory', () => {
+  describe('extractAllJobs — TopCV helper builder (meta block)', () => {
     it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts multiple jobs', () => {
-      const html = makeTopCvEmailHtml(
-        {
-          role: 'Software Developer',
-          company: 'ABC Corp',
-          location: 'Hà Nội',
-          salary: 'Từ 10 triệu',
-          url: 'https://www.topcv.vn/viec-lam/sw-dev/1',
-        },
-        {
-          role: 'Frontend Engineer',
-          company: 'XYZ Ltd',
-          location: 'Hồ Chí Minh',
-          salary: 'Thỏa thuận',
-          url: 'https://www.topcv.vn/viec-lam/fe/2',
-        }
+      const html = topcvEmailHtmlMany(
+        [
+          { role: 'Software Developer', company: 'ABC Corp' },
+          { role: 'Frontend Engineer', company: 'XYZ Ltd' },
+        ],
+        { location: 'Hà Nội', salary: 'Từ 10 triệu', deadlineDays: 30 }
       );
       const jobs = extractAllJobs(html);
       expect(jobs).toHaveLength(2);
@@ -147,27 +62,20 @@ describe('JobExtractionService', () => {
     });
 
     it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts single job', () => {
-      const html = makeTopCvEmailHtml({
-        role: 'Backend Developer',
-        company: 'Tech Inc',
-        location: 'Đà Nẵng',
-        salary: 'Từ 15 triệu',
-        url: 'https://www.topcv.vn/viec-lam/be/3',
-      });
+      const html = topcvEmailHtmlMany(
+        [{ role: 'Backend Developer', company: 'Tech Inc' }],
+        { location: 'Đà Nẵng', salary: 'Từ 15 triệu', deadlineDays: 30 }
+      );
       const jobs = extractAllJobs(html);
       expect(jobs).toHaveLength(1);
       expect(jobs[0].role).toBe('Backend Developer');
     });
 
     it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts deadline', () => {
-      const html = makeTopCvEmailHtml({
-        role: 'DevOps Engineer',
-        company: 'Cloud Co',
-        location: 'Hồ Chí Minh',
-        salary: 'Từ 20 triệu',
-        url: 'https://www.topcv.vn/viec-lam/devops/4',
-        daysLeft: 15,
-      });
+      const html = topcvEmailHtmlMany(
+        [{ role: 'Software Engineer', company: 'Cloud Co' }],
+        { location: 'Hồ Chí Minh', salary: 'Từ 20 triệu', deadlineDays: 15 }
+      );
       const jobs = extractAllJobs(html);
       expect(jobs).toHaveLength(1);
       expect(jobs[0].deadline).toContain('15 ngày');
@@ -202,13 +110,13 @@ describe('JobExtractionService', () => {
     });
   });
 
-  describe('extractAllJobs — Indeed inline factory', () => {
+  describe('extractAllJobs — Indeed helper builder (legacy layout)', () => {
     it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts a single Indeed job', () => {
-      const html = makeIndeedEmailHtml([
+      const html = indeedEmailHtmlMany([
         {
           role: 'Senior Frontend Developer',
           company: 'Zalo',
-          location: 'Ho Chi Minh City',
+          url: 'https://vn.indeed.com/viewjob?jk=g3-a',
           salary: '15,000,000 VNĐ',
           description: 'Frontend role',
         },
@@ -219,11 +127,11 @@ describe('JobExtractionService', () => {
     });
 
     it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN extracts company, salary and deadline', () => {
-      const html = makeIndeedEmailHtml([
+      const html = indeedEmailHtmlMany([
         {
           role: 'Backend Developer',
           company: 'SHB',
-          location: 'Ha Noi',
+          url: 'https://vn.indeed.com/viewjob?jk=g3-b',
           salary: '18,000,000 VNĐ',
           description: 'Backend role',
           daysAgo: '5 days ago',
@@ -237,11 +145,11 @@ describe('JobExtractionService', () => {
     });
 
     it('GIVEN JobExtractionService WHEN JobExtractionService evaluates THEN detects easyApply', () => {
-      const html = makeIndeedEmailHtml([
+      const html = indeedEmailHtmlMany([
         {
           role: 'Frontend Developer',
           company: 'ABC',
-          location: 'Hanoi',
+          url: 'https://vn.indeed.com/viewjob?jk=g3-c',
           salary: '10,000,000 VNĐ',
           easyApply: true,
         },

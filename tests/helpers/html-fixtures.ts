@@ -1,4 +1,36 @@
-export function topcvEmailHtmlMany(jobs: Array<{ role: string; company: string }>): string {
+import {
+  topcvDetailFixture,
+  topcvDetail2Fixture,
+  indeedDetailFixture,
+  indeedDetail2Fixture,
+} from '../__fixtures__/html-fixture-loader.js';
+
+export interface TopCvEmailMeta {
+  location?: string;
+  salary?: string;
+  deadlineDays?: number;
+}
+
+/**
+ * TopCV job-alert email (Signal 1). `meta` is opt-in: when provided, the real
+ * alert's `.meta-job` block (location / salary / 'Còn N ngày để ứng tuyển') is
+ * emitted so s1→doc field-flow GWT cells can assert the full field set.
+ */
+export function topcvEmailHtmlMany(
+  jobs: Array<{ role: string; company: string }>,
+  meta?: TopCvEmailMeta
+): string {
+  const metaBlock = meta
+    ? `<div class="meta-job">
+            ${meta.salary ? `<div class="text-primary item"><b>${meta.salary}</b></div>` : ''}
+            ${meta.location ? `<div class="item">${meta.location}</div>` : ''}
+            ${
+              meta.deadlineDays
+                ? `<div class="item">Còn <strong>${meta.deadlineDays}</strong> ngày để ứng tuyển</div>`
+                : ''
+            }
+          </div>`
+    : '';
   const items = jobs
     .map((job) => {
       const encodedUrl = `/viec-lam/${job.role.toLowerCase().replace(/\s+/g, '-')}`;
@@ -6,7 +38,7 @@ export function topcvEmailHtmlMany(jobs: Array<{ role: string; company: string }
           <div class="topcv-job-item">
             <div class="title"><span>${job.role}</span></div>
             <div class="company"><span>${job.company}</span></div>
-            <div>Hà Nội</div>
+            ${metaBlock}
           </div>
         </a>`;
     })
@@ -15,9 +47,9 @@ export function topcvEmailHtmlMany(jobs: Array<{ role: string; company: string }
 }
 
 /**
- * Full TopCV detail page — role/company plus a TypeScript-flavoured
- * description block. The commonly duplicated `htmlFor`/`makeTopCvHtml`
- * helper form across the integration suite.
+ * TopCV detail page — static real capture (tests/__fixtures__/html/topcv-detail.html).
+ * s2a/s2c never parse detail payloads under the htmlToText contract; args are kept
+ * for call-site backward compatibility only.
  */
 export interface TopCvDetailOptions {
   salary?: string;
@@ -26,42 +58,16 @@ export interface TopCvDetailOptions {
 }
 
 export function topcvDetailHtml(
-  role: string,
-  company: string,
-  opts: TopCvDetailOptions = {}
+  _role?: string,
+  _company?: string,
+  _opts?: TopCvDetailOptions
 ): string {
-  const description = opts.description ?? 'We need a TypeScript developer with JavaScript skills';
-  const meta = [
-    opts.salary
-      ? '<div class="meta-item section-salary"><span class="job-detail__info--section-content-value">' +
-        opts.salary +
-        '</span></div>'
-      : '',
-    opts.location
-      ? '<div class="meta-item section-location"><span class="job-detail__info--section-content-value">' +
-        opts.location +
-        '</span></div>'
-      : '',
-  ]
-    .filter(Boolean)
-    .join('');
+  return topcvDetailFixture();
+}
 
-  return (
-    '<div class="job-detail__info--title"><h1>' +
-    role +
-    '</h1></div>' +
-    '<div class="company-name-label"><a class="name">' +
-    company +
-    '</a></div>' +
-    '<div>topcv</div>' +
-    '<p>TypeScript</p>' +
-    (meta ? '<div class="job-detail__meta">' + meta + '</div>' : '') +
-    '<div class="job-description__item"><h3>Mô tả công việc</h3>' +
-    '<div class="job-description__item--content">' +
-    description +
-    '</div>' +
-    '</div>'
-  );
+/** Static variant #2 — real capture topcv-detail-2.html. */
+export function topcvDetail2Html(): string {
+  return topcvDetail2Fixture();
 }
 
 /**
@@ -72,59 +78,91 @@ export function nonJobHtml(): string {
 }
 
 /**
- * LinkedIn SDUI detail page (Signal 2 for the operator `[i]` direct path).
- * Mirrors the selectors in tests/__fixtures__/emails/sdui.ts and
- * parseLinkedInSdui: role in `a[href*="/jobs/view/"]`, company in
- * `[aria-label*="Company,"]`, description in
- * `[componentkey*="JobDetails_TheJob"] + [data-testid="expandable-text-box"]`.
+ * LinkedIn SDUi detail page (s2b direct path, LinkedInJobExtractor).
+ * Child1 (header/metadata) mirrors the validated capture selectors:
+ * company in `[aria-label*="Company,"]`, role in `a[href*="/jobs/view/"]`,
+ * location/deadline in a tertiary `<p>` split on `·`, tags as exact-match
+ * `<a><span>` texts, apply-button aria-label per easyApply.
+ * Child2 is a minimal stable About-the-job box (real captures' child2 is unstable).
  */
+export interface LinkedInSduiOptions {
+  easyApply?: boolean;
+  jobType?: string;
+  workLocationType?: string;
+}
+
 export function linkedinSduiDetailHtml(
   role: string,
   company: string,
   location = 'Ho Chi Minh City, Vietnam',
-  description = `${role} role at ${company}. We are looking for an experienced developer.`
+  description = `${role} role at ${company}. We are looking for an experienced developer.`,
+  opts: LinkedInSduiOptions = {}
 ): string {
   const slug = company.toLowerCase().replace(/[^a-z0-9]+/g, '');
-  return `<div data-component-type="LazyColumn">
-  <div aria-label="Company, ${company}.">
-    <a href="https://www.linkedin.com/company/${slug}">${company}</a>
-  </div>
-  <h1><a href="/jobs/view/1111111111/">${role}</a></h1>
+  const easyApply = opts.easyApply ?? true;
+  const jobType = opts.jobType ?? 'Full-time';
+  const workLocationType = opts.workLocationType ?? 'On-site';
+  const applyButton = easyApply
+    ? '<button aria-label="Easy Apply to this job"><span>Easy Apply</span></button>'
+    : '<button aria-label="Apply on company website"><span>Apply</span></button>';
+  return `<div data-testid="lazy-column">
   <div>
-    <span>${location}</span>
-    <span>·</span>
-    <span>2 weeks ago</span>
-    <span>·</span>
-    <span>Over 50 applicants</span>
+    <div aria-label="Company, ${company}.">
+      <a href="https://www.linkedin.com/company/${slug}">${company}</a>
+    </div>
+    <p>
+      <a href="/jobs/view/1111111111/">${role}</a>
+    </p>
+    <p>
+      <span>${location}</span>
+      ·
+      <span>2 weeks ago</span>
+      ·
+      <span>Over 50 applicants</span>
+    </p>
+    <div>
+      <a><svg id="check-small"></svg><span>${workLocationType}</span></a>
+      <a><svg id="check-small"></svg><span>${jobType}</span></a>
+    </div>
+    ${applyButton}
   </div>
-  <button aria-label="Easy Apply to this job">Easy Apply</button>
-  <div class="job-details-fit-level-preferences">
-    <button><strong><li-icon type="check"></li-icon> Full-time</strong></button>
-  </div>
-  <div componentkey="JobDetails_AboutTheJob_abc123">
-    <h2>About the job</h2>
-    <span data-testid="expandable-text-box">${description}</span>
+  <div>
+    <div componentkey="JobDetails_AboutTheJob_abc123">
+      <h2>About the job</h2>
+      <p><span data-testid="expandable-text-box">${description}</span></p>
+    </div>
   </div>
 </div>`;
 }
 
 /**
- * Indeed Job Alert email (Signal 1 for the BROWSER_AUTO / extraction path).
- * role + url come from `h2 > a[href*=viewjob]`; company from the trailing div.
+ * Indeed Job Alert email (Signal 1, legacy table layout → extractIndeedJobs
+ * legacy branch). Item fields beyond role/company/url are additive: omitted
+ * fields preserve the historical output exactly.
  */
-export function indeedEmailHtmlMany(
-  jobs: Array<{ role: string; company: string; url: string }>
-): string {
+export interface IndeedEmailItem {
+  role: string;
+  company: string;
+  url: string;
+  salary?: string;
+  description?: string;
+  daysAgo?: string;
+  easyApply?: boolean;
+}
+
+export function indeedEmailHtmlMany(jobs: Array<IndeedEmailItem>): string {
   const rows = jobs
     .map(
       (job) => `<td class="pb-24" style="padding-bottom:24px">
       <h2><a href="${job.url}">${job.role}</a></h2>
-      <table>
-        <tr><td style="padding:0 12px;color:#2d2d2d;font-size:14px;line-height:21px">${job.company}</td></tr>
-      </table>
+      <div style="padding:0 12px;color:#2d2d2d;font-size:14px;line-height:21px">${job.company}</div>
       <div style="color:#2d2d2d">Ho Chi Minh City</div>
-      <div style="padding:0;color:#767676;font-size:14px;line-height:21px">${job.role} opportunity</div>
-      <div style="font-size:12px;line-height:18px">Just posted</div>
+      ${job.salary ? `<strong>${job.salary}</strong>` : ''}
+      <div style="padding:0;color:#767676;font-size:14px;line-height:21px">${
+        job.description ?? `${job.role} opportunity`
+      }</div>
+      <div style="font-size:12px;line-height:18px">${job.daysAgo ?? 'Just posted'}</div>
+      ${job.easyApply ? '<span>Easily apply</span>' : ''}
     </td>`
     )
     .map((row) => `<tr>${row}</tr>`)
@@ -133,28 +171,19 @@ export function indeedEmailHtmlMany(
 }
 
 /**
- * Indeed JobSearch viewjob detail page (Signal 2 for the BROWSER_AUTO /
- * playwright extraction result). Mirrors the shared __fixtures__ selectors:
- * `jobsearch-JobInfoHeader-title`, `inlineHeader-companyName`.
+ * Indeed JobSearch viewjob detail page — static real capture
+ * (tests/__fixtures__/html/indeed-detail.html). Payload-only input for
+ * htmlToText at s2c; args kept for call-site backward compatibility only.
  */
 export function indeedDetailHtml(
-  role: string,
-  company: string,
-  url = 'https://vn.indeed.com/viewjob?jk=000000000000'
+  _role?: string,
+  _company?: string,
+  _url?: string
 ): string {
-  return `<html><body>
-<div id="jobsearch-ViewjobHeader">
-  <h1 data-testid="jobsearch-JobInfoHeader-title"><span>${role}</span></h1>
-  <div class="company-header">
-    <div data-testid="inlineHeader-companyName">${company}</div>
-    <div data-testid="inlineHeader-companyLocation">Ho Chi Minh City</div>
-  </div>
-  <div id="salaryInfoAndJobType">
-    <span>$1000 - $1500 a month</span>
-  </div>
-</div>
-<div id="jobDescriptionText" class="job-description-section">
-  <p>${role} role at ${company}. We need TypeScript experience. ${url}</p>
-</div>
-</body></html>`;
+  return indeedDetailFixture();
+}
+
+/** Static variant #2 — real capture indeed-detail-2.html. */
+export function indeedDetail2Html(): string {
+  return indeedDetail2Fixture();
 }

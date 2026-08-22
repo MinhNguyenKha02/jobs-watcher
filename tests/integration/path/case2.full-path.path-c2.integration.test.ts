@@ -20,7 +20,6 @@ import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-li
 import {
   indeedDetailHtml,
   topcvEmailHtmlMany,
-  topcvDetailHtml,
 } from '../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
 import {
@@ -33,11 +32,8 @@ import { udsHelpers, purgeTuiQueues, waitFor, waitForPdfFiles } from '../../help
 
 const UDS_TOKEN = 'e2e-internal-token';
 
-const FULL_PARSED_HTML = indeedDetailHtml(
-  'Backend Developer',
-  'FullParsedCo',
-  'https://vn.indeed.com/viewjob?jk=e2e-c2-full'
-);
+const FULL_PARSED_HTML = indeedDetailHtml();
+const FULL_PARSED_URL = 'https://vn.indeed.com/viewjob?jk=e2e-c2-full';
 
 interface DetailServer {
   server: http.Server;
@@ -156,6 +152,13 @@ describe('c2 browser extraction + resolution cycle', () => {
   describe('(a) S2 full direct arrival — Queue[j] / trash[d]', () => {
     it('GIVEN S2 BROWSER_AUTO FULL_PARSED arrival WHEN parse events → [j] over UDS THEN QUEUED + pdf asset (S1+S2+S3) · path c2', async () => {
       const jobLifecycleId = 'e2e-c2-full-arrival';
+      await seedPartial(
+        adapter,
+        jobLifecycleId,
+        FULL_PARSED_URL,
+        'Backend Developer',
+        'FullParsedCo'
+      );
 
       const gen = tui.rmq.consume('s1');
       const comp = tui.rmq.consume('s2');
@@ -196,6 +199,13 @@ describe('c2 browser extraction + resolution cycle', () => {
 
     it('GIVEN S2 BROWSER_AUTO FULL_PARSED arrival WHEN [d] over UDS THEN TRASHED (S2+S3) · path c2', async () => {
       const jobLifecycleId = 'e2e-c2-full-trash';
+      await seedPartial(
+        adapter,
+        jobLifecycleId,
+        FULL_PARSED_URL,
+        'Backend Developer',
+        'FullParsedCo'
+      );
 
       const comp = tui.rmq.consume('s2');
       await daemon.apps.ingest.processIngest(
@@ -223,21 +233,18 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(trashedDoc!.status).toBe(JobStatus.TRASHED);
     }, 60000);
 
-    it('GIVEN an S2 browser auto FULL_PARSED input WHEN an ingest signal is processed THEN S2 BROWSER_AUTO FULL_PARSED without jobLifecycleId auto-creates browser-auto-* doc (S2) · path c2', async () => {
+    it('GIVEN an S2 browser auto FULL_PARSED input without jobLifecycleId WHEN an ingest signal is processed THEN found(id) precondition fails — enrichment skipped, no doc created (S2) · path c2', async () => {
+      const comp = tui.rmq.consume('s2');
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.FULL_PARSED,
         FULL_PARSED_HTML
       );
+      await expect(comp).rejects.toThrow(/Timeout|No messages/);
 
       const col = daemon.mongo.raw('job_lifecycle');
       const docs = await col.find({}).toArray();
-      expect(docs.length).toBe(1);
-      expect(docs[0]._id).toMatch(/^browser-auto-/);
-      expect(docs[0].role).toBe('Backend Developer');
-      expect(docs[0].company).toBe('FullParsedCo');
-      expect(docs[0].stage).toBe(JobStage.FULL_PARSED);
-      expect(docs[0].status).toBe(JobStatus.ENRICHED);
+      expect(docs.length).toBe(0);
     });
 
     it('GIVEN the tui-ioc precondition WHEN the daemon publishes S1+S2 over RMQ and the tui sends [d] over UDS THEN the tui reader mirrors then clears the job on the ipc seam (tui↔daemon over real RMQ+UDS) · path c2', async () => {
@@ -454,7 +461,7 @@ describe('c2 browser extraction + resolution cycle', () => {
       await daemon.apps.ingest.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
-        topcvDetailHtml('Data Engineer', 'C2RingNextCo'),
+        indeedDetailHtml(),
         nextId
       );
       const comp2Msg = await comp2;
@@ -570,7 +577,7 @@ describe('c2 browser extraction + resolution cycle', () => {
         await daemon.apps.ingest.processIngest(
           JobSource.MANUAL,
           JobStage.FULL_PARSED,
-          topcvDetailHtml(role, company),
+          indeedDetailHtml(),
           jobLifecycleId
         );
         const compMsg = await comp;
@@ -629,7 +636,7 @@ describe('c2 browser extraction + resolution cycle', () => {
   });
 
   describe('(d) S4 explicit — browser HTML-parse failure', () => {
-    it('GIVEN S2 BROWSER_AUTO FULL_PARSED garbage HTML WHEN the path is exercised THEN PARSE_FAILED emitted, seeded doc stays ENRICHING (S1+S2+S4) · path c2', async () => {
+    it('GIVEN S2 BROWSER_AUTO FULL_PARSED non-job HTML over a seeded s1 doc WHEN the path is exercised THEN enrichment proceeds with details=htmlToText(html), s1 fields preserved — no PARSE_FAILED at s2c (S1+S2) · path c2', async () => {
       const jobId = 'c2-s4-1';
       await seedPartial(
         adapter,
@@ -639,7 +646,7 @@ describe('c2 browser extraction + resolution cycle', () => {
         'S4FailCo'
       );
 
-      const fail = tui.rmq.consume('s34');
+      const comp = tui.rmq.consume('s2');
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.FULL_PARSED,
@@ -647,13 +654,19 @@ describe('c2 browser extraction + resolution cycle', () => {
         jobId
       );
 
-      const failMsg = await fail;
-      expect(failMsg.jobLifecycleId).toBe(jobId);
+      const compMsg = await comp;
+      expect(compMsg.job._id).toBe(jobId);
 
       const doc = await adapter.findById(jobId);
       expect(doc).not.toBeNull();
-      expect(doc!.status).toBe(JobStatus.ENRICHING);
-      expect(doc!.stage).toBe(JobStage.PARTIAL_PARSED);
+      expect(doc!.status).toBe(JobStatus.ENRICHED);
+      expect(doc!.stage).toBe(JobStage.FULL_PARSED);
+      expect(doc!.company).toBe('S4FailCo');
+      expect(doc!.details).toContain('not a job format');
+
+      await expect(
+        tui.rmq.consume([ActionEvent.PARSE_FAILED], 1500)
+      ).rejects.toThrow(/Timeout|No messages/);
     });
   });
 
@@ -680,7 +693,7 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(partialDoc!.stage).toBe(JobStage.PARTIAL_PARSED);
       expect(partialDoc!.status).toBe(JobStatus.ENRICHING);
 
-      const ingest = await uds.ingest(topcvDetailHtml(role, company), jobLifecycleId);
+      const ingest = await uds.ingest(indeedDetailHtml(), jobLifecycleId);
       expect(ingest.statusCode).toBe(200);
 
       await vi.waitFor(

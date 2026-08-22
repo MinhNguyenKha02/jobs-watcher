@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import type { IngestorPort } from '../../../src/application/ports/inbound/ingestor.port.js';
 import { JobStage, JobSource } from '../../../src/domain/types/job-lifecycle.js';
-import { indeedEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
+import { indeedEmailHtmlMany, indeedDetailHtml } from '../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
 import {
   mockJobLifecyclePort,
@@ -50,8 +50,8 @@ const indeedEmail = () =>
     },
   ]);
 
-/** TopCV detail page — consumed by HtmlJobParser for signal2c (browser full-parse). */
-const topcvDetail = () => topcvDetailHtml('Junior Software Engineer', 'Junior Co');
+/** Indeed detail page (static capture) — htmlToText payload for signal2c browser full-parse. */
+const indeedDetail = () => indeedDetailHtml();
 
 let storage: ReturnType<typeof mockJobLifecyclePort>;
 let queue: ReturnType<typeof mockExtractionQueuePort>;
@@ -90,6 +90,26 @@ describe('Path c2 unit — browser-auto — S1(url) → scheduler browser full-p
       expect(parsePort.emitGenerated).not.toHaveBeenCalled();
     });
 
+    it('GIVEN an S1 email with a real-alert rc/clk url WHEN an ingest signal is processed THEN persists S1 partial and enqueues to the extraction queue (S1) · path c2', async () => {
+      await ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.PARTIAL_PARSED,
+        indeedEmailHtmlMany([
+          {
+            role: 'Full-stack Developer',
+            company: 'RcClk Co',
+            url: 'https://vn.indeed.com/rc/clk/dl?jk=rcclk123&from=ja',
+          },
+        ]),
+        undefined,
+        { messageId: 'rcclk-msg' }
+      );
+      expect(storage.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO })
+      );
+      expect(queue.enqueue).toHaveBeenCalled();
+    });
+
     it('GIVEN an S1 partial job WHEN only a jobLifecycleId is provided THEN falls back to signal1BrowserAutoFallback — emits GENERATED (shallow c1-fallback, S1) · path c2', async () => {
       storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'existing-id' }));
       await ingestor.processIngest(
@@ -110,14 +130,15 @@ describe('Path c2 unit — browser-auto — S1(url) → scheduler browser full-p
       ingestor = (await buildContainer({})).apps.ingest;
     });
 
-    it('GIVEN a dequeued S1 job WHEN a BROWSER_AUTO FULL_PARSED signal is processed THEN merges parsed fields into FULL_PARSED/ENRICHED and emits completed (S2) · path c2', async () => {
+    it('GIVEN a dequeued S1 job WHEN a BROWSER_AUTO FULL_PARSED signal is processed THEN preserves s1 fields with details=htmlToText(html), FULL_PARSED/ENRICHED, emits completed (S2) · path c2', async () => {
       storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'browser-job' }));
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.FULL_PARSED,
-        topcvDetail(),
+        indeedDetail(),
         'browser-job'
       );
+      expect(storage.findById).toHaveBeenCalledWith('browser-job');
       expect(storage.findById).toHaveBeenCalledWith('browser-job');
       expect(storage.upsert).toHaveBeenCalledWith(
         expect.objectContaining({ stage: JobStage.FULL_PARSED, source: JobSource.BROWSER_AUTO })

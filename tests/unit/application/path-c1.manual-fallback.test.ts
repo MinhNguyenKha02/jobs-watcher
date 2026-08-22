@@ -86,10 +86,35 @@ describe('Path c1 unit — manual fallback — partial HTML → deep parse → [
       expect(storage.upsert).not.toHaveBeenCalled();
       expect(parsePort.emitGenerated).not.toHaveBeenCalled();
     });
+
+    it('GIVEN an S1 email with the real-alert meta block (location/salary/deadline) WHEN an ingest signal is processed THEN the persisted doc carries all s1 fields — email→job[]→upsert full-field flow (S1) · path c1', async () => {
+      await ingestor.processIngest(
+        JobSource.BROWSER_AUTO,
+        JobStage.PARTIAL_PARSED,
+        topcvEmailHtmlMany([{ role: 'Backend Developer', company: 'MetaFlow Co' }], {
+          location: 'Đà Nẵng',
+          salary: '12.5 - 19.5 triệu',
+          deadlineDays: 29,
+        }),
+        undefined,
+        { messageId: 'meta-flow-msg' }
+      );
+      expect(storage.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: 'Backend Developer',
+          company: 'MetaFlow Co',
+          location: 'Đà Nẵng',
+          salary: '12.5 - 19.5 triệu',
+          deadline: expect.stringContaining('29'),
+          stage: JobStage.PARTIAL_PARSED,
+        })
+      );
+      expect(parsePort.emitGenerated).toHaveBeenCalled();
+    });
   });
 
   describe('(b) S2 manual deep-parse enrichment', () => {
-    it('GIVEN an existing S1 partial job WHEN a signal2a manual FULL_PARSED ingest is processed THEN merges parsed fields into FULL_PARSED/ENRICHED and emits completed (S2) · path c1', async () => {
+    it('GIVEN an existing S1 partial job WHEN a signal2a manual FULL_PARSED ingest is processed THEN preserves s1 fields with details=htmlToText(html), FULL_PARSED/ENRICHED, emits completed (S2) · path c1', async () => {
       storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'manual-job' }));
       await ingestor.processIngest(
         JobSource.MANUAL,
@@ -118,6 +143,7 @@ describe('Path c1 unit — manual fallback — partial HTML → deep parse → [
         topcvDetail(),
         'routed-job'
       );
+      expect(storage.findById).toHaveBeenCalledWith('routed-job');
       expect(storage.upsert).not.toHaveBeenCalled();
       expect(parsePort.emitCompleted).not.toHaveBeenCalled();
     });

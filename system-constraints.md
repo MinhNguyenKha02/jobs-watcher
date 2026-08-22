@@ -133,7 +133,8 @@ s4 is failure and both s3, s4 expected next cycle
 
 the logic is sequence, saga pattern, "lead to", pre-req, signals s1 -> s2 -> s3 or s4
 
-s1 -> s2 -> s3 -> s1
+s1 -> s2a|s2c -> s3 -> s1
+s2b -> s3
 s2, s3 failure -> s4 -> s1
 at [b] = direct mode is no s1
 s3, s4 is both move on s1
@@ -149,12 +150,12 @@ each worker take that job record's url and call playwright browser to access url
 the manual test cases r (corpus produced already by passes)
 
 each pending[] s1 dequeue was pick to a cycle initial
-case 1: partial job -> [o], [p], [c] at tui over uds -> tui receive sse -> fully job -> [j] or [d] -> next pick
-case 2: fully job -> [j] or [d] -> next pick
+case 1: given partial job by invalid url's indeed xor partial job to browsing producer via its url failure -> partial job rmq publish -> tui receive rmq amqp -> [c] at tui over uds -> fully job rmq publish -> [j] or [d] -> next pick
+case 2: gmail's body extracted jobs loop -> partial job (unless url's indeed valid then become case 1) -> extract_q (partial job id) -> scheduler (3 browser idle->wake fifo listener) app -> browser producing by partial job's url (unless browser producer did succeed then become case 1) -> fully job (+ jobDetails) -> [j] or [d] -> next pick
 case 3: failure s2, s3 -> expect to next pick
-case 4: copied external html, [b] -> [i] -> tui receive sse -> fully job -> [j] or [d]
+case 4: copied external html, [b] -> [i] -> tui receive amqp rmq -> fully job -> [j] or [d]
 
-case 1 is normal, fallback
+case 1 is normal, fallback, case 2 is pre-req of case 1
 case 2 is of case 1 (happy path)
 case 4 is familiar case 2
 
@@ -165,11 +166,28 @@ case 4 do s2 only, no s1 (another concern, no need dequeue)
 
 the case 1, 2 both pick the s1 at partial job and full job, the [o,p,c] case 1 is for partial job parsing to full to next [j] or[d] while case 2 is full job expect to [j] or [d] only the [o, p, c] of this case is fallback intended, while the [b] is define how case 4 [i] and case 1, case 2 [c] both used for parsing and html the clipboard [p] consumer already guarded and [j] only fully job but [d] is partial/fully job no matter
 
-the manual tests was for end-2-end flows already completed since the codebase later had done big changes, refinement (ensure behavior, backward-compat) and the regression risk at these steps is may bugs/wrongs/errors to resolve
+the manual tests was for end-2-end flows already completed confirmation
+
+for tests (unit, integration, e2e):
+
+domain - app layer -> no infra
+app - infra -> dip
+arch perspective on manual tests cases:
+
+hexagon architecture components at 4 paths r cases 1, 4 (happy paths), case 2 (case 1 of fallback path), case 3 (error path) on ring:
+case 1: webhook - app - mongo (s1) - scheduler - browser - app - mongo (s1, s2c) - rabbitmq - tui (rmq) - tui(uds) - uds - app - mongo (s3) - rabbitmq, s3 === queued ? asset-builder (end-output) -> (completion state) : (completion state)
+case 2: webhook - app - mongo (s1) - rabbitmq - tui (rmq) - tui(uds) - uds - app - mongo (s2a) - rabbitmq - tui(rmq) - tui(uds) - uds - app - mongo (s3) - rabbitmq, s3 === queued ? asset-builder (end-output) -> (completion state) : (completion state)
+case 3: mongo (s2, s3) -> rabbitmq -> tui (next success) - uds - app
+case 4: tui(uds) - uds - app - mongo (s2b) - rabbitmq - tui(rmq) - tui (uds) - uds - app - mongo (s3) - rabbitmq, s3 === queued ? asset-builder (end-output) -> (completion state) : (completion state)
+
+say checkpoint is signals[1-4] as stage with
+checkpoint boundary: rmq; tui(rmq); tui(uds); app(ingestor) because of owner of 2 inbound ports uds, webhook;
+
+tui-daemon pairs is rmq and uds where tui(rmq) as consumer, tui(uds) as writer and daemon(uds) as reader and daemon(rmq) as publisher by design and paths serving
 
 constraint:
 codebase src/ is hexagon arch and saga app pattern, ensure solid, clean of separation
 tests/ is evidence, src/ is refinement, big changes lead to regression risk by tests/ already (unit, integration, regression) but the unused tests, irrelevant tests is intended by phase for deletion and ensure system behaviors is in still unchanged and adding more tests cases by necessary
 4 signals ordered state machine, saga pattern by application layer and scheduler orchestration for 3 workers browser  
 the manual tests at case 1 and case 2 and case 4 is canonical workflow of and the case 3 required not fail, intended
-avoid heruistic, design side-effect, harmless, worst potential
+avoid heuristic, design side-effect, harmless, worst potential

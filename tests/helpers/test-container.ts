@@ -58,6 +58,28 @@ import { createTestStorage } from './create-test-storage.js';
 
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 
+/**
+ * G7 fail-fast (real-mode only): two LIVE harnesses sharing a namespace means
+ * shared exchange/socket/db — the symptom is cross-suite message theft.
+ * Tracks active count; released on facade stop(). Mock-mode rebuilds (per-cell
+ * `beforeEach`) are unaffected.
+ */
+const activeNs = new Map<string, number>();
+function claimRealNs(ns: string): void {
+  const n = activeNs.get(ns) ?? 0;
+  if (n > 0) {
+    throw new Error(
+      `test-container: namespace "${ns}" already has ${n} live real-mode harness(es) — unique per-file ns required`
+    );
+  }
+  activeNs.set(ns, n + 1);
+}
+function releaseRealNs(ns: string): void {
+  const n = activeNs.get(ns) ?? 0;
+  if (n <= 1) activeNs.delete(ns);
+  else activeNs.set(ns, n - 1);
+}
+
 /** Shared consumed payload shape (mirrors what the real RabbitMqJobReader reads). */
 export type ConsumedJob = any;
 
@@ -350,6 +372,7 @@ export async function buildTestDaemonContainer(
   }
 
   // ---- real mode ----
+  claimRealNs(opts.ns);
   const storage = await createTestStorage();
   const dbName = opts.mongodb?.dbName ?? storage.dbName;
   const assetDir =
@@ -383,6 +406,7 @@ export async function buildTestDaemonContainer(
   }
 
   async function stop(): Promise<void> {
+    releaseRealNs(opts.ns);
     try {
       if (opts.startScheduler) {
         await container.extractionScheduler.stop();
@@ -474,6 +498,8 @@ export interface TuiTestContainer {
      * AFTER. Kills the bind-vs-publish race via a channel established at build.
      */
     consume(target: ConsumeTarget, timeoutMs?: number): Promise<ConsumedJob>;
+    /** Cancel all pending consume waiters (G4 hygiene); returns flushed count. */
+    flushPending(reason?: string): number;
     reader: JobEventReaderPort;
   };
   uds: { write: ActionWriterPort };
@@ -502,6 +528,7 @@ export async function buildTestTuiContainer(
   const socket = opts.uds?.socketPath ?? `/tmp/jobs-watcher-${opts.ns}.sock`;
   const token = opts.uds?.token ?? 'e2e-internal-token';
   const isMock = Boolean(overrides.ports);
+  if (!isMock) claimRealNs(`tui:${opts.ns}`);
 
   const readerPort = overrides.ports?.rmqReader;
   const writerPort = overrides.ports?.udsWriter;
@@ -671,6 +698,26 @@ export async function buildTestTuiContainer(
     });
   };
 
+  /**
+   * Waiter hygiene (G4): cancel every pending consume waiter so a timed-out or
+   * un-awaited registration from one cell can never steal a later cell's
+   * message. Exposed for explicit per-cell cleanup and wired into `stop()`.
+   * Flushed waiters resolve with a `__flushed__` sentinel payload; the drain
+   * consumer acks their messages untouched (cancelled flag).
+   */
+  const flushPending = (reason = 'flushPending'): number => {
+    let flushed = 0;
+    for (const role of CONSUME_ROLES) {
+      for (const waiter of pending[role].splice(0)) {
+        clearTimeout(waiter.timer);
+        waiter.cancelled = true;
+        flushed++;
+        waiter.resolve({ flushedSentinel: true, reason, ns: opts.ns });
+      }
+    }
+    return flushed;
+  };
+
   // TUI→daemon action-writer seam. Uses the raw UDS HTTP wire with a generous
   // timeout: real-mode resolution renders the PDF before responding, which
   // exceeds the prod UdsActionWriter's 10s client timeout.
@@ -710,7 +757,7 @@ export async function buildTestTuiContainer(
 
   return {
     ns: opts.ns,
-    rmq: { consume, reader: readerPort ?? container.rmqReader },
+    rmq: { consume, flushPending, reader: readerPort ?? container.rmqReader },
     uds: { write: (writerPort ?? facadeUdsWriter()) as unknown as ActionWriterPort },
     ipc: {
       path: process.env.TUI_SHARED_STATE_PATH ?? '',
@@ -721,6 +768,8 @@ export async function buildTestTuiContainer(
     start: () => container.start(),
     stop: async () => {
       container.stop();
+      if (!isMock) releaseRealNs(`tui:${opts.ns}`);
+      flushPending('tui-stop');
       if (consumeCh) {
         try {
           await consumeCh.close();

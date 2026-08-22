@@ -1,3 +1,5 @@
+// LEGACY  
+
 export const linkedinPlatformPageHtml1 = `
   <div class="jobs-search__job-details--wrapper">
     <div aria-label="Research Engineer Intern" class="jobs-search__job-details--container">

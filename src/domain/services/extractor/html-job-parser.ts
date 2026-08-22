@@ -2,12 +2,35 @@ import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import type { Element } from 'domhandler';
 
+/**
+ * @deprecated Frozen legacy artifact — unused in production. Superseded by
+ * `extractor/linkedin-job-extractor.ts` (s2b) and `htmlToText` details:string
+ * (s2a/s2c). Kept only for the historical parser regression test.
+ */
 import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
-import type { Job, JobDetails } from '../../types/job.js';
+import type { Job } from '../../types/job.js';
+
+/**
+ * Frozen legacy artifact — superseded by extractor/linkedin-job-extractor.ts.
+ * Upstream JobDetails became `string` (types/job.ts); this reference
+ * implementation keeps its own object shape for historical tests.
+ */
+interface LegacyJobDetails {
+  responsibilities?: string;
+  requirements?: string;
+  benefits?: string;
+  companyInfo?: string;
+  contact?: string;
+  applicationProcess?: string;
+  additionalInfo?: string;
+  pay?: string;
+  jobType?: string;
+  extraSections?: Record<string, string>;
+}
 
 const logger = createLogger('HtmlParser');
 
-export type ParsedJobData = Partial<Job>;
+export type ParsedJobData = Omit<Partial<Job>, 'details'> & { details?: LegacyJobDetails };
 
 function cleanText(input: string): string {
   return input.replace(/[\s\n]+/g, ' ').trim();
@@ -544,7 +567,7 @@ export class HtmlJobParser {
     const benefitsResolved = mergePipeText(benefits || benefitsFromTags, customBenefitsText);
     const additionalInfoResolved = customOtherText || undefined;
 
-    const details: JobDetails = {
+    const details: LegacyJobDetails = {
       responsibilities: responsibilities || undefined,
       requirements: requirementsResolved ?? '',
       benefits: benefitsResolved ?? '',
@@ -877,7 +900,7 @@ export class HtmlJobParser {
     for (const section of descriptionSections) addExtraSection(section.title, section.content);
     for (const section of strongSections) addExtraSection(section.title, section.content);
 
-    const details: JobDetails = {
+    const details: LegacyJobDetails = {
       responsibilities: responsibilitiesResolved || undefined,
       requirements: requirementsResolved ?? '',
       benefits: benefitsResolved ?? '',
@@ -1140,7 +1163,7 @@ export class HtmlJobParser {
     for (const section of linkedInSections) addExtraSection(section.title, section.content);
     for (const section of strongSections) addExtraSection(section.title, section.content);
 
-    const details: JobDetails = {
+    const details: LegacyJobDetails = {
       responsibilities: responsibilitiesResolved || undefined,
       requirements: requirementsResolved || undefined,
       benefits: benefitsResolved || undefined,
@@ -1327,7 +1350,7 @@ export class HtmlJobParser {
 
     if (!role || !company) return null;
 
-    const details: JobDetails = {
+    const details: LegacyJobDetails = {
       responsibilities: responsibilities || undefined,
       requirements: requirements || undefined,
       benefits: benefits || undefined,

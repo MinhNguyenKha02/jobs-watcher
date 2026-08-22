@@ -130,9 +130,9 @@ export class JobCardRenderer {
     for (const [key, value] of Object.entries(job)) {
       if (excludeKeys.has(key)) continue;
 
-      // Render details sub-fields individually instead of flat description
-      if (key === 'details' && value && typeof value === 'object') {
-        this.renderDetails(lines, value as JobDetails);
+      // Render details as plain text block instead of flat description
+      if (key === 'details' && typeof value === 'string' && value) {
+        this.renderDetails(lines, value);
         continue;
       }
       if (key === 'description' && hasDetails) continue;
@@ -147,38 +147,15 @@ export class JobCardRenderer {
   }
 
   /**
-   * Render structured details sub-fields as indented key-value pairs.
-   * Follows the job_lifecycle[job] contract where details replaces flat description.
+   * Render details as an indented plain-text block.
+   * Follows the job_lifecycle[job] contract where details is a string
+   * produced by htmlToText at stage 2.
    */
   private renderDetails(lines: string[], details: JobDetails): void {
     lines.push(`║  details:`);
-
-    const labelMap: Record<string, string> = {
-      responsibilities: 'Responsibilities',
-      requirements: 'Requirements',
-      benefits: 'Benefits',
-      companyInfo: 'Company Info',
-      contact: 'Contact',
-      applicationProcess: 'Application Process',
-      additionalInfo: 'Additional Info',
-      pay: 'Pay',
-      jobType: 'Job Type',
-    };
-
-    for (const [key, value] of Object.entries(details)) {
-      if (key === 'extraSections' && value && typeof value === 'object') {
-        for (const [section, content] of Object.entries(value as Record<string, string>)) {
-          if (content && content.trim()) {
-            lines.push(`║    ${section}: ${this.truncate(content, this.terminalWidth - 14)}`);
-          }
-        }
-        continue;
-      }
-      if (value && typeof value === 'string' && value.trim()) {
-        const label =
-          labelMap[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
-        lines.push(`║    ${label}: ${this.truncate(value, this.terminalWidth - 14)}`);
-      }
+    for (const line of details.split('\n')) {
+      if (!line.trim()) continue;
+      lines.push(`║    ${this.truncate(line, this.terminalWidth - 6)}`);
     }
   }
 

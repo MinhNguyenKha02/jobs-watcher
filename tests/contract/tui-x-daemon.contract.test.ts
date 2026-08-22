@@ -12,6 +12,8 @@ import {
   type ActionWriterPort,
 } from '../../src/presentation/tui/ports/action-writer.port.js';
 import type { JobEventReaderPort } from '../../src/presentation/tui/ports/job-event-reader.port.js';
+import { linkedinSduiDetailHtml } from '../helpers/html-fixtures.js';
+import { makeStage1Partial } from '../helpers/test-builders.js';
 import type { TestDaemonContainer, TuiTestContainer } from '../helpers/test-container.js';
 import { udsHelpers, waitFor } from '../helpers/test-utils.js';
 
@@ -37,11 +39,6 @@ const TRASH_CO_HTML = `<div class="job-detail__info--title"><h1>DevOps Engineer<
 <div class="company-name-label"><a class="name">BinCo</a></div>
 <h3>Mô tả công việc</h3>
 <div class="job-description__item--content">CI/CD pipelines</div>`;
-
-const CLIP_CO_HTML = `<div class="job-detail__info--title"><h1>Data Engineer</h1></div>
-<div class="company-name-label"><a class="name">ClipCo</a></div>
-<h3>Mô tả công việc</h3>
-<div class="job-description__item--content">ETL pipelines</div>`;
 
 /**
  * TUI × daemon 2-process boundary contract.
@@ -153,7 +150,10 @@ describe('TUI × daemon 2-process boundary contract ([c]/[i]/[j]/[d] over UDS + 
       expect(tui.rmq.reader.getQueueDepth()).toBe(0);
     });
 
-    it('GIVEN the 2-process precondition WHEN the TUI ingests clipboard HTML over UDS THEN the daemon persists + republishes job.parse.completed over RMQ and the seam shows the FULL job', async () => {
+    it('GIVEN a seeded stage-1 doc WHEN the TUI ingests clipboard HTML over UDS THEN s2a preserves s1 fields, details=htmlToText, republishes job.parse.completed and the seam shows the FULL job', async () => {
+      await base.jobLifecycle.upsert(
+        makeStage1Partial({ _id: 'txd-1', role: 'Full Stack', company: 'FullCo' })
+      );
       clipboardSetter(FULL_CO_HTML);
       await uds.ingest(FULL_CO_HTML, 'txd-1');
 
@@ -184,6 +184,9 @@ describe('TUI × daemon 2-process boundary contract ([c]/[i]/[j]/[d] over UDS + 
       await waitFor(() => tui.ipc.read().jobLifecycleId === 'txd-2');
 
       clipboardSetter(TRASH_CO_HTML);
+      await base.jobLifecycle.upsert(
+        makeStage1Partial({ _id: 'txd-2', role: 'DevOps Engineer', company: 'BinCo' })
+      );
       await uds.ingest(TRASH_CO_HTML, 'txd-2');
       await waitFor(() => tui.ipc.read().job?.company === 'BinCo');
 
@@ -210,8 +213,9 @@ describe('TUI × daemon 2-process boundary contract ([c]/[i]/[j]/[d] over UDS + 
 
     it('GIVEN the 2-process precondition WHEN the TUI ingests a standalone clipboard over UDS in direct mode THEN the daemon publishes job.parse.completed and the seam shows the standalone job', async () => {
       setQueueMode(false);
-      clipboardSetter(CLIP_CO_HTML);
-      await uds.ingest(CLIP_CO_HTML);
+      const standalone = linkedinSduiDetailHtml('Data Engineer', 'ClipCo');
+      clipboardSetter(standalone);
+      await uds.ingest(standalone);
 
       await waitFor(() => tui.ipc.read().job?.company === 'ClipCo');
       const cur = tui.ipc.read();

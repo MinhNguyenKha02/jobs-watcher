@@ -20,7 +20,7 @@ export interface CorpusEntry {
   company: string;
   role: string;
   description?: string;
-  details?: Record<string, unknown>;
+  details?: string;
   salary?: string;
   location?: string;
 }

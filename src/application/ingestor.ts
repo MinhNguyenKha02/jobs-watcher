@@ -1,8 +1,9 @@
 import { hybridJobFilter } from '../domain/filter/job-filter.js';
 import { ProfileInfoRetriever } from '../domain/profile/index.js';
+import { JobsExtractor } from '../domain/services/extractor/jobs-extractor.js';
+import { LinkedInJobExtractor } from '../domain/services/extractor/linkedin-job-extractor.js';
 import { flattenJob } from '../domain/services/flatten-job.js';
-import { HtmlJobParser } from '../domain/services/parsing/html-job-parser.js';
-import { JobExtractionService } from '../domain/services/parsing/job-extraction.js';
+import { htmlToText } from '../domain/services/html-to-text.js';
 import {
   JobStage,
   JobStatus,
@@ -27,7 +28,7 @@ function generateFallbackId(prefix = 'unk'): string {
 }
 
 export class JobIngestor implements IngestorPort {
-  private htmlParser = new HtmlJobParser();
+  private linkedInExtractor = new LinkedInJobExtractor();
 
   constructor(
     private jobLifecycleColPort: JobLifecyclePort,
@@ -146,7 +147,7 @@ export class JobIngestor implements IngestorPort {
     rawPayload: string,
     metadata?: IngestMetadata
   ): Promise<void> {
-    const jobExtractor = new JobExtractionService();
+    const jobExtractor = new JobsExtractor();
     let extractedJobs: Partial<Job>[] = [];
     try {
       extractedJobs = jobExtractor.extractAllJobs(rawPayload);
@@ -177,7 +178,10 @@ export class JobIngestor implements IngestorPort {
       const company = this.getStringField(extracted.company) || '';
       const url = this.getStringField(extracted.url) || '';
 
-      const hasUrl = /indeed\.com\/(?:applystart|viewjob)\?/i.test(url);
+      // Real Indeed alerts carry rc/clk redirect urls (100% of gmailmeta corpus);
+      // legacy table emails carry applystart/viewjob — both enqueue for browser s2c.
+      const hasUrl =
+      /indeed\.com\/(?:applystart|viewjob)\?|indeed\.com\/rc\/clk\//i.test(url);
 
       const doc: Partial<JobLifecycleDocument> = {
         _id: jobLifeCycleId,
@@ -284,17 +288,6 @@ export class JobIngestor implements IngestorPort {
       return;
     }
 
-    const parsed = this.htmlParser.parseJobFromHtml(rawPayload);
-    if (!parsed) {
-      this.metricsRegistry?.jobErrors.inc({ stage: 's2', error_type: 'parse_failed' });
-      await this.parsePublishingPort.emitFailed(jobLifecycleId || generateFallbackId(), {
-        stage: JobStage.FULL_PARSED,
-        source: JobSource.MANUAL,
-        error: 'HTML parse failed',
-      });
-      return;
-    }
-
     if (!jobLifecycleId) {
       logger.warn('Missing jobLifecycleId for manual signal2a — data loss prevented');
       this.metricsRegistry?.jobErrors.inc({ stage: 's2', error_type: 'missing_job_lifecycle_id' });
@@ -315,25 +308,22 @@ export class JobIngestor implements IngestorPort {
       return;
     }
 
+    if (!stage1Partial) {
+      logger.warn('S2 enrichment skipped — no stage-1 job lifecycle found', { jobLifecycleId });
+      this.metricsRegistry?.jobErrors.inc({ stage: 's2', error_type: 'missing_job' });
+      return;
+    }
+
     const doc: Partial<JobLifecycleDocument> = {
+      ...stage1Partial,
       _id: jobLifecycleId,
-      role: this.getStringField(parsed.role) || stage1Partial?.role || 'Unknown',
-      company: this.getStringField(parsed.company) || stage1Partial?.company || 'Unknown',
-      description: this.getStringField(parsed.description) || stage1Partial?.description || '',
-      salary: this.getStringField(parsed.salary) || stage1Partial?.salary || '',
-      location: this.getStringField(parsed.location) || stage1Partial?.location || '',
-      url: this.getStringField(parsed.url) || stage1Partial?.url || '',
-      details: parsed.details || stage1Partial?.details,
-      deadline: parsed.deadline || stage1Partial?.deadline,
-      easyApply: parsed.easyApply ?? stage1Partial?.easyApply,
+      details: htmlToText(rawPayload),
       raw: rawPayload,
       stage: JobStage.FULL_PARSED,
       status: JobStatus.ENRICHED,
       source: JobSource.MANUAL,
-      gmailMeta: stage1Partial?.gmailMeta,
       updatedAt: new Date(),
       stageTimestamp: new Date(),
-      createdAt: stage1Partial?.createdAt || new Date(),
     };
 
     await this.jobLifecycleColPort.upsert(doc);
@@ -349,8 +339,8 @@ export class JobIngestor implements IngestorPort {
   }
 
   private async signal2bManual(rawPayload: string): Promise<void> {
-    const parsed = this.htmlParser.parseJobFromHtml(rawPayload);
-    if (!parsed) {
+    const extracted = this.linkedInExtractor.extract(rawPayload);
+    if (!extracted) {
       this.metricsRegistry?.jobErrors.inc({ stage: 's2', error_type: 'parse_failed' });
       await this.parsePublishingPort.emitFailed(generateFallbackId('clip'), {
         stage: JobStage.FULL_PARSED,
@@ -363,15 +353,15 @@ export class JobIngestor implements IngestorPort {
     const doc: Partial<JobLifecycleDocument> = {
       _id: generateFallbackId('clip'),
       raw: rawPayload,
-      role: this.getStringField(parsed.role) || 'Unknown',
-      company: this.getStringField(parsed.company) || 'Unknown',
-      description: this.getStringField(parsed.description) || '',
-      salary: this.getStringField(parsed.salary) || '',
-      location: this.getStringField(parsed.location) || '',
-      url: this.getStringField(parsed.url) || '',
-      details: parsed.details,
-      deadline: parsed.deadline || undefined,
-      easyApply: parsed.easyApply || undefined,
+      role: this.getStringField(extracted.role) || 'Unknown',
+      company: this.getStringField(extracted.company) || 'Unknown',
+      description: '',
+      salary: this.getStringField(extracted.salary) || '',
+      location: this.getStringField(extracted.location) || '',
+      url: this.getStringField(extracted.url) || '',
+      details: extracted.details,
+      deadline: extracted.deadline || undefined,
+      easyApply: extracted.easyApply || undefined,
       stage: JobStage.FULL_PARSED,
       status: JobStatus.ENRICHED,
       source: JobSource.MANUAL,
@@ -415,6 +405,15 @@ export class JobIngestor implements IngestorPort {
       return;
     }
 
+    // found(id) precondition: without a stage-1 doc there is nothing to enrich.
+    if (!stage1Partial) {
+      logger.warn('signal2cBrowserAuto skipped — no stage-1 job lifecycle found', {
+        jobLifecycleId,
+      });
+      this.metricsRegistry?.jobErrors.inc({ stage: 's2', error_type: 'missing_job' });
+      return;
+    }
+
     const s1Doc: Partial<JobLifecycleDocument> = {
       ...stage1Partial,
       updatedAt: new Date(),
@@ -426,30 +425,20 @@ export class JobIngestor implements IngestorPort {
       source: JobSource.BROWSER_AUTO,
     });
 
-    const parsed = this.htmlParser.parseJobFromHtml(rawPayload);
-    if (!parsed) {
-      this.metricsRegistry?.jobErrors.inc({ stage: 's2', error_type: 'parse_failed' });
-      await this.parsePublishingPort.emitFailed(jobLifecycleId || generateFallbackId(), {
-        stage: JobStage.FULL_PARSED,
-        source: JobSource.BROWSER_AUTO,
-        error: 'HTML parse failed after browser extraction',
-      });
-      return;
-    }
-
     const doc: Partial<JobLifecycleDocument> = {
+      ...(stage1Partial || {}),
       _id: jobLifecycleId || s1Doc._id || generateFallbackId('browser-auto'),
       raw: rawPayload,
       gmailMeta: stage1Partial?.gmailMeta,
-      role: this.getStringField(parsed.role) || stage1Partial?.role || 'Unknown',
-      company: this.getStringField(parsed.company) || stage1Partial?.company || 'Unknown',
-      description: this.getStringField(parsed.description) || stage1Partial?.description || '',
-      salary: this.getStringField(parsed.salary) || stage1Partial?.salary || '',
-      location: this.getStringField(parsed.location) || stage1Partial?.location || '',
-      url: this.getStringField(parsed.url) || stage1Partial?.url || '',
-      details: parsed.details || stage1Partial?.details,
-      deadline: parsed.deadline || stage1Partial?.deadline,
-      easyApply: parsed.easyApply ?? stage1Partial?.easyApply,
+      role: stage1Partial?.role || 'Unknown',
+      company: stage1Partial?.company || 'Unknown',
+      description: stage1Partial?.description || '',
+      salary: stage1Partial?.salary || '',
+      location: stage1Partial?.location || '',
+      url: stage1Partial?.url || '',
+      details: htmlToText(rawPayload),
+      deadline: stage1Partial?.deadline,
+      easyApply: stage1Partial?.easyApply,
       stage: JobStage.FULL_PARSED,
       status: JobStatus.ENRICHED,
       source: JobSource.BROWSER_AUTO,

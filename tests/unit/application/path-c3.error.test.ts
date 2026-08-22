@@ -14,7 +14,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import type { IngestorPort } from '../../../src/application/ports/inbound/ingestor.port.js';
 import { JobStage, JobStatus, JobSource } from '../../../src/domain/types/job-lifecycle.js';
-import { nonJobHtml, topcvDetailHtml, topcvEmailHtmlMany } from '../../helpers/html-fixtures.js';
+import {
+  linkedinSduiDetailHtml,
+  nonJobHtml,
+  topcvEmailHtmlMany,
+} from '../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
 import {
   mockJobLifecyclePort,
@@ -52,19 +56,33 @@ describe('Path c3 unit — error sagas — parse-failure → PARSE_FAILED, route
   });
 
   describe('(a) parse-failure saga — S2 → PARSE_FAILED', () => {
-    it('GIVEN an S2 full-parse job with unparsable HTML WHEN an ingest signal is processed THEN emits PARSE_FAILED and the job stays ENRICHING (S2+S4) · path c3', async () => {
-      storage.findById.mockResolvedValue(makeStage1Partial({ _id: 'parse-bad' }));
+    it('GIVEN an S2 clipboard job with non-LinkedIn HTML WHEN an s2b ingest signal is processed THEN LinkedInJobExtractor rejects it, emits PARSE_FAILED and no doc is written (S2+S4) · path c3', async () => {
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, nonJobHtml());
+      expect(parsePort.emitFailed).toHaveBeenCalledWith(
+        expect.stringMatching(/^clip-/),
+        expect.objectContaining({ stage: JobStage.FULL_PARSED })
+      );
+      expect(storage.upsert).not.toHaveBeenCalled();
+    });
+
+    it('GIVEN an S2 full-parse signal with non-job HTML over an existing S1 doc WHEN an s2c ingest signal is processed THEN enrichment proceeds with details as plain text instead of PARSE_FAILED (S2) · path c3', async () => {
+      storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's2c-any-html' }));
       await ingestor.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.FULL_PARSED,
         nonJobHtml(),
-        'parse-bad'
+        's2c-any-html'
       );
-      expect(parsePort.emitFailed).toHaveBeenCalledWith(
-        'parse-bad',
-        expect.objectContaining({ stage: JobStage.FULL_PARSED })
+      expect(storage.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          _id: 's2c-any-html',
+          stage: JobStage.FULL_PARSED,
+          status: JobStatus.ENRICHED,
+          details: expect.stringContaining('not a job posting'),
+        })
       );
-      expect(storage.upsert).not.toHaveBeenCalled();
+      expect(storage.findById).toHaveBeenCalledWith('s2c-any-html');
+      expect(parsePort.emitFailed).not.toHaveBeenCalled();
     });
 
     it('GIVEN an empty FULL_PARSED payload WHEN a manual ingest signal is processed THEN emits PARSE_FAILED with an Empty HTML payload reason (S2+S4) · path c3', async () => {
@@ -101,13 +119,13 @@ describe('Path c3 unit — error sagas — parse-failure → PARSE_FAILED, route
   });
 
   describe('(c) error propagation', () => {
-    it('GIVEN a non-duplicate upsert failure WHEN an S2 ingest signal is processed THEN the error propagates instead of being swallowed (S2+S4) · path c3', async () => {
+    it('GIVEN a non-duplicate upsert failure WHEN an s2b clipboard signal with LinkedIn html is processed THEN the error propagates instead of being swallowed (S2+S4) · path c3', async () => {
       storage.upsert.mockRejectedValueOnce(Object.assign(new Error('Disk full'), { code: 9000 }));
       await expect(
         ingestor.processIngest(
           JobSource.MANUAL,
           JobStage.FULL_PARSED,
-          topcvDetailHtml('Software Engineer', 'ACME'),
+          linkedinSduiDetailHtml('Software Engineer', 'ACME'),
           undefined
         )
       ).rejects.toThrow('Disk full');
@@ -127,13 +145,8 @@ describe('Path c3 unit — error sagas — parse-failure → PARSE_FAILED, route
   });
 
   describe('(d) ring closure — S4 → S1 recovery', () => {
-    it('GIVEN a completed S2 parse-failure saga WHEN a fresh valid S1 follows THEN the next job persists and emits GENERATED (s4→s1→s2) · path c3', async () => {
-      await ingestor.processIngest(
-        JobSource.BROWSER_AUTO,
-        JobStage.FULL_PARSED,
-        nonJobHtml(),
-        'bad-1'
-      );
+    it('GIVEN a completed s2b parse-failure saga (non-LinkedIn html) WHEN a fresh valid S1 follows THEN the next job persists and emits GENERATED (s4→s1→s2) · path c3', async () => {
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, nonJobHtml());
       expect(parsePort.emitFailed).toHaveBeenCalled();
 
       await ingestor.processIngest(

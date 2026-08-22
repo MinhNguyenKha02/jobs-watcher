@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import type { IngestorPort } from '../../../src/application/ports/inbound/ingestor.port.js';
 import { JobStage, JobStatus, JobSource } from '../../../src/domain/types/job-lifecycle.js';
-import { nonJobHtml, topcvDetailHtml } from '../../helpers/html-fixtures.js';
+import { linkedinSduiDetailHtml, nonJobHtml } from '../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
 import {
   mockJobLifecyclePort,
@@ -18,8 +18,9 @@ import {
   buildTestDaemonContainer,
 } from '../../helpers/test-container.js';
 
-/** TopCV detail page — consumed by HtmlJobParser for signal2b (clipboard direct ingest). */
-const topcvDetail = () => topcvDetailHtml('Junior Software Engineer', 'Junior Co');
+/** LinkedIn SDUi detail page — consumed by LinkedInJobExtractor for signal2b (clipboard direct ingest). */
+const clipDetail = (role = 'Junior Software Engineer', company = 'Junior Co', opts?: { easyApply?: boolean }) =>
+  linkedinSduiDetailHtml(role, company, 'Ho Chi Minh City, Vietnam', undefined, opts);
 
 describe('Path c4 unit — direct [i] clipboard → clip-* doc → [j]/[d] → empty ipc[direct] next cycle (mocked test-ioc)', () => {
   let ingestor: IngestorPort;
@@ -50,7 +51,7 @@ describe('Path c4 unit — direct [i] clipboard → clip-* doc → [j]/[d] → e
 
   describe('(a) direct [i] clipboard ingest — signal2bManual', () => {
     it('GIVEN a clipboard detail-page HTML WHEN a MANUAL FULL_PARSED ingest without jobLifecycleId is processed THEN persists a clip-* FULL_PARSED doc and emits completed (S2) · path c4', async () => {
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetail());
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, clipDetail());
       expect(storage.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           stage: JobStage.FULL_PARSED,
@@ -64,14 +65,14 @@ describe('Path c4 unit — direct [i] clipboard → clip-* doc → [j]/[d] → e
 
     it('GIVEN a clipboard detail-page HTML WHEN a duplicate role+company is upserted THEN the duplicate is skipped without emitting completed (dedupe, S2) · path c4', async () => {
       storage.upsert.mockRejectedValueOnce({ code: 11000 });
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetail());
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, clipDetail());
       expect(storage.upsert).toHaveBeenCalled();
       expect(parsePort.emitCompleted).not.toHaveBeenCalled();
     });
 
     it('GIVEN two clipboard ingests with different companies WHEN each is processed THEN each creates its own clip-* doc (latest-wins, S2) · path c4', async () => {
-      const a = topcvDetailHtml('Junior Software Engineer', 'First Co');
-      const b = topcvDetailHtml('Junior Software Engineer', 'Second Co');
+      const a = clipDetail('Junior Software Engineer', 'First Co');
+      const b = clipDetail('Junior Software Engineer', 'Second Co');
       await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, a);
       await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, b);
       expect(storage.upsert).toHaveBeenCalledTimes(2);
@@ -158,7 +159,7 @@ describe('Path c4 unit — direct [i] clipboard → clip-* doc → [j]/[d] → e
       await ingestor.processResolution('clip-first', 'queue');
       expect(routingPort.emitJobQueued).toHaveBeenCalled();
 
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, topcvDetail());
+      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, clipDetail());
       expect(storage.upsert).toHaveBeenCalledWith(
         expect.objectContaining({ _id: expect.stringMatching(/^clip-/) })
       );

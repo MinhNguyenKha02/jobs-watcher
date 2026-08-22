@@ -46,8 +46,8 @@ describe('matchesRole', () => {
     expect(matchesRole('X')).toEqual({ passed: false, reasons: ['non-software role'] });
   });
 
-  it('GIVEN input is object WHEN matchesRole evaluates THEN matches via description', () => {
-    const result = matchesRole({ responsibilities: 'Build software' }, 'Senior Software Developer');
+  it('GIVEN input is string WHEN matchesRole evaluates THEN matches via description', () => {
+    const result = matchesRole('Build software', 'Senior Software Developer');
     expect(result.passed).toBe(true);
   });
 });

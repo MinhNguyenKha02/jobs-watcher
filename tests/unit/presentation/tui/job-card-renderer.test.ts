@@ -20,11 +20,8 @@ describe('JobCardRenderer', () => {
       salary: '$150k',
       matchScore: 85,
       matchedSkills: ['TypeScript', 'Node.js', 'React'],
-      details: {
-        responsibilities: 'Lead development',
-        requirements: '5+ years',
-        benefits: 'Health insurance',
-      },
+      details:
+        'Responsibilities:\nLead development\n\nRequirements:\n5+ years\n\nBenefits:\nHealth insurance',
     };
 
     it('GIVEN JobCardRenderer WHEN renderer.renderCard THEN renders card with job metadata', () => {

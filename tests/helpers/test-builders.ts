@@ -33,6 +33,7 @@ export function makeFullParsedDoc(overrides: Record<string, unknown> = {}): any 
     ...makeStage1Partial(),
     stage: JobStage.FULL_PARSED,
     status: JobStatus.ENRICHED,
+    details: '',
     ...overrides,
   };
 }

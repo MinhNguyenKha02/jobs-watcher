@@ -266,7 +266,7 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
         await failDaemon.apps.ingest.processIngest(
           JobSource.BROWSER_AUTO,
           JobStage.PARTIAL_PARSED,
-          topcvEmailHtmlMany([{ role: 'DevOps Engineer', company: 'ResilienceCo' }]),
+          topcvEmailHtmlMany([{ role: 'Software Engineer', company: 'ResilienceCo' }]),
           undefined,
           { messageId: 'asset-fail-1' }
         );

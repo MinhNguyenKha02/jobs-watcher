@@ -23,32 +23,16 @@ function toKey(s: string): string {
   return removeDiacritics(s).toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-type DetailsObject = Record<string, unknown> | JobDetails;
-
-function extractDetailsText(
-  details: DetailsObject | undefined | null,
-  description?: string
-): string {
+function extractDetailsText(details: JobDetails | undefined | null, description?: string): string {
   const parts: string[] = [];
-  if (details) {
-    for (const val of Object.values(details)) {
-      if (typeof val === 'string') parts.push(val);
-      if (typeof val === 'object' && val !== null) {
-        for (const v of Object.values(val as Record<string, unknown>)) {
-          if (typeof v === 'string') parts.push(v);
-        }
-      }
-    }
-  }
+  if (details) parts.push(details);
   if (description) parts.push(description);
   return parts.join(' ');
 }
 
-function normalizeText(
-  input: string | DetailsObject | undefined | null,
-  description?: string
-): string {
-  if (typeof input === 'string') return toKey(input);
+type DetailsInput = string | undefined | null;
+
+function normalizeText(input: DetailsInput, description?: string): string {
   return toKey(extractDetailsText(input, description));
 }
 
@@ -98,7 +82,7 @@ const ROLE_PATTERNS: RegExp[] = [
 ];
 
 export function matchesRole(
-  input: string | DetailsObject | undefined | null,
+  input: DetailsInput,
   description?: string
 ): JobFilterResult {
   if (!input) return { passed: false, reasons: ['No role information'] };
@@ -111,7 +95,7 @@ export function matchesRole(
 }
 
 export function matchesLang(
-  input: string | DetailsObject | undefined | null,
+  input: DetailsInput,
   description?: string
 ): JobFilterResult {
   if (!input) return { passed: false, reasons: ['No language information'] };
@@ -170,7 +154,7 @@ const EXPERIENCE_REJECT_PATTERNS = [
 ];
 
 export function matchesExperience(
-  input: string | DetailsObject | undefined | null,
+  input: DetailsInput,
   description?: string
 ): JobFilterResult {
   if (!input) return { passed: false, reasons: ['No experience information'] };
