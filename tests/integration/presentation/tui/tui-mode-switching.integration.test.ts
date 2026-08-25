@@ -26,12 +26,14 @@ const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 const TOKEN = `${process.pid}.${Date.now()}`;
 const EXCHANGE = `jobs.events.tui.itest.${TOKEN}`;
 const S1_QUEUE = `tui.itest.${TOKEN}.s1`;
-const S2_QUEUE = `tui.itest.${TOKEN}.s2`;
+const S2QUEUE = `tui.itest.${TOKEN}.s2`;
+const S2DIRECT = `tui.itest.${TOKEN}.s2direct`;
 const S34_QUEUE = `tui.itest.${TOKEN}.s3s4`;
 const READER_OPTS = {
   exchange: EXCHANGE,
   s1Queue: S1_QUEUE,
-  s2Queue: S2_QUEUE,
+  s2Queue: S2QUEUE,
+  s2DirectQueue: S2DIRECT,
   s34Queue: S34_QUEUE,
 };
 
@@ -52,10 +54,12 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
     ch = await conn.createChannel();
     await ch.assertExchange(EXCHANGE, 'topic', { durable: true });
     await ch.assertQueue(S1_QUEUE, { durable: true });
-    await ch.assertQueue(S2_QUEUE, { durable: true });
+    await ch.assertQueue(S2QUEUE, { durable: true });
+    await ch.assertQueue(S2DIRECT, { durable: true });
     await ch.assertQueue(S34_QUEUE, { durable: true });
     await ch.bindQueue(S1_QUEUE, EXCHANGE, ActionEvent.GENERATED);
-    await ch.bindQueue(S2_QUEUE, EXCHANGE, ActionEvent.PARSE_COMPLETED);
+    await ch.bindQueue(S2QUEUE, EXCHANGE, ActionEvent.PARSE_COMPLETED);
+    await ch.bindQueue(S2DIRECT, EXCHANGE, ActionEvent.PARSE_COMPLETED);
     await ch.bindQueue(S34_QUEUE, EXCHANGE, ActionEvent.QUEUED);
     await ch.bindQueue(S34_QUEUE, EXCHANGE, ActionEvent.TRASHED);
     await ch.bindQueue(S34_QUEUE, EXCHANGE, ActionEvent.ROUTE_FAILED);
@@ -68,7 +72,10 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
       await ch.purgeQueue(S1_QUEUE);
     } catch {}
     try {
-      await ch.purgeQueue(S2_QUEUE);
+      await ch.purgeQueue(S2QUEUE);
+    } catch {}
+    try {
+      await ch.purgeQueue(S2DIRECT);
     } catch {}
     try {
       await ch.purgeQueue(S34_QUEUE);
@@ -81,7 +88,10 @@ describe('PRC-005 — TUI mode switching ([b] queue/direct, [c]/[i] chain)', () 
       await ch.purgeQueue(S1_QUEUE);
     } catch {}
     try {
-      await ch.purgeQueue(S2_QUEUE);
+      await ch.purgeQueue(S2QUEUE);
+    } catch {}
+    try {
+      await ch.purgeQueue(S2DIRECT);
     } catch {}
     try {
       await ch.purgeQueue(S34_QUEUE);

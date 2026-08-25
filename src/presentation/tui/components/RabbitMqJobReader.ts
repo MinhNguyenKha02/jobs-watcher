@@ -16,7 +16,8 @@ const logger = createLogger('RMQReader');
 
 const EXCHANGE = 'jobs.events';
 const S1_QUEUE = 'tui.s1';
-const S2_QUEUE = 'tui.s2';
+const S2QUEUE = 'tui.s2';
+const S2DIRECT = 'tui.s2direct';
 const S34_QUEUE = 'tui.s3s4';
 const PREFETCH = 5;
 const DEFERRED_S2_MAX = 10;
@@ -26,6 +27,7 @@ export interface RabbitMqJobReaderOptions {
   exchange?: string;
   s1Queue?: string;
   s2Queue?: string;
+  s2DirectQueue?: string;
   s34Queue?: string;
 }
 
@@ -42,14 +44,16 @@ interface S2BufferEntry {
 
 export class RabbitMqJobReader implements JobEventReaderPort {
   private s1channel: Channel | null = null;
-  private s2channel: Channel | null = null;
+  private s2queueChannel: Channel | null = null;
+  private s2directChannel: Channel | null = null;
   private s34channel: Channel | null = null;
 
   private pendingJobs: PendingJob[] = [];
   private currentJobId: string | null = null;
   private deliveryTagsS1 = new Map<string, number[]>();
-  private deliveryTagsS2 = new Map<string, number[]>();
-  private deferredS2Buffer = new Map<string, S2BufferEntry>();
+  private deliveryTagsS2Queue = new Map<string, number[]>();
+  private deliveryTagsS2Direct = new Map<string, number[]>();
+  private deferredS2QueueBuffer = new Map<string, S2BufferEntry>();
 
   private connected = false;
   private evictTimer: ReturnType<typeof setInterval> | null = null;
@@ -60,13 +64,15 @@ export class RabbitMqJobReader implements JobEventReaderPort {
   ) {
     this.exchange = options.exchange ?? EXCHANGE;
     this.s1Queue = options.s1Queue ?? S1_QUEUE;
-    this.s2Queue = options.s2Queue ?? S2_QUEUE;
+    this.s2Queue = options.s2Queue ?? S2QUEUE;
+    this.s2DirectQueue = options.s2DirectQueue ?? S2DIRECT;
     this.s34Queue = options.s34Queue ?? S34_QUEUE;
   }
 
   private readonly exchange: string;
   private readonly s1Queue: string;
   private readonly s2Queue: string;
+  private readonly s2DirectQueue: string;
   private readonly s34Queue: string;
 
   getQueueDepth(): number {
@@ -89,14 +95,20 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         this.s1channel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, false);
       }
     }
-    for (const [, tags] of this.deliveryTagsS2) {
+    for (const [, tags] of this.deliveryTagsS2Queue) {
       for (const tag of tags) {
-        this.s2channel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, false);
+        this.s2queueChannel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, false);
+      }
+    }
+    for (const [, tags] of this.deliveryTagsS2Direct) {
+      for (const tag of tags) {
+        this.s2directChannel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, false);
       }
     }
     this.deliveryTagsS1.clear();
-    this.deliveryTagsS2.clear();
-    this.deferredS2Buffer.clear();
+    this.deliveryTagsS2Queue.clear();
+    this.deliveryTagsS2Direct.clear();
+    this.deferredS2QueueBuffer.clear();
     this.pendingJobs = [];
     if (this.currentJobId !== null) {
       this.currentJobId = null;
@@ -108,33 +120,41 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     try {
       const conn = await amqplib.connect(this.baseUrl);
       const s1 = await conn.createChannel();
-      const s2 = await conn.createChannel();
+      const s2q = await conn.createChannel();
+      const s2d = await conn.createChannel();
       const s34 = await conn.createChannel();
       this.s1channel = s1;
-      this.s2channel = s2;
+      this.s2queueChannel = s2q;
+      this.s2directChannel = s2d;
       this.s34channel = s34;
 
       await s1.assertExchange(this.exchange, 'topic', { durable: true });
       await s1.assertQueue(this.s1Queue, { durable: true });
-      await s2.assertQueue(this.s2Queue, { durable: true });
+      await s2q.assertQueue(this.s2Queue, { durable: true });
+      await s2d.assertQueue(this.s2DirectQueue, { durable: true });
       await s34.assertQueue(this.s34Queue, { durable: true });
 
       await s1.bindQueue(this.s1Queue, this.exchange, ActionEvent.GENERATED);
-      await s2.bindQueue(this.s2Queue, this.exchange, ActionEvent.PARSE_COMPLETED);
+      await s2q.bindQueue(this.s2Queue, this.exchange, ActionEvent.PARSE_COMPLETED);
+      await s2d.bindQueue(this.s2DirectQueue, this.exchange, ActionEvent.PARSE_COMPLETED);
       await s34.bindQueue(this.s34Queue, this.exchange, ActionEvent.QUEUED);
       await s34.bindQueue(this.s34Queue, this.exchange, ActionEvent.TRASHED);
       await s34.bindQueue(this.s34Queue, this.exchange, ActionEvent.ROUTE_FAILED);
       await s34.bindQueue(this.s34Queue, this.exchange, ActionEvent.PARSE_FAILED);
 
       await s1.prefetch(PREFETCH);
-      await s2.prefetch(PREFETCH);
+      await s2q.prefetch(PREFETCH);
+      await s2d.prefetch(1);
       await s34.prefetch(PREFETCH);
 
       await s1.consume(this.s1Queue, (msg) => {
         if (msg) this.onMessageS1(msg);
       });
-      await s2.consume(this.s2Queue, (msg) => {
-        if (msg) this.onMessageS2(msg);
+      await s2q.consume(this.s2Queue, (msg) => {
+        if (msg) this.onMessageS2Queue(msg);
+      });
+      await s2d.consume(this.s2DirectQueue, (msg) => {
+        if (msg) this.onMessageS2Direct(msg);
       });
       await s34.consume(this.s34Queue, (msg) => {
         if (msg) this.onMessageS3S4(msg);
@@ -142,7 +162,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
 
       this.evictTimer = setInterval(() => this.evictStaleDeferred(), 5000);
       this.connected = true;
-      logger.info('Started, 3 consumers active');
+      logger.info('Started, 4 consumers active');
     } catch (err) {
       logger.error('Start failed', { error: String(err) });
       this.connected = false;
@@ -153,7 +173,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     this.connected = false;
     if (this.evictTimer) clearInterval(this.evictTimer);
     this.nackAllPending();
-    [this.s1channel, this.s2channel, this.s34channel].forEach((ch) => {
+    [this.s1channel, this.s2queueChannel, this.s2directChannel, this.s34channel].forEach((ch) => {
       if (ch) ch.close().catch(() => {});
     });
     logger.info('Stopped');
@@ -194,21 +214,16 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     }
   }
 
-  /** Dispatches S2 by queue mode: direct ([i], no S1 array) vs queue (S1-then-S2). */
-  private onMessageS2(msg: ConsumeMessage): void {
-    if (this.getQueueMode() === false) {
-      this.onMessageS2Direct(msg);
-    } else {
-      this.onMessageS2Queue(msg);
-    }
-  }
-
   /**
    * Queue-mode S2 (the browser-auto happy path / `[c]` enrichment of an S1 job).
    * Delivery tag is recorded ONLY when the message is retained (merged/displayed/deferred),
    * so a later ack/nack never references an already-resolved tag.
    */
   private onMessageS2Queue(msg: ConsumeMessage): void {
+    if (this.getQueueMode() === false) {
+      this.s2queueChannel!.nack(msg, false, false);
+      return;
+    }
     try {
       const parsed = JSON.parse(msg.content.toString()) as Record<string, unknown>;
       const payload = (
@@ -216,13 +231,13 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       ) as Partial<JobLifecycleDocument>;
       const id = payload._id as string;
       if (!id) {
-        this.s2channel!.ack(msg);
+        this.s2queueChannel!.ack(msg);
         return;
       }
 
       const existingIdx = this.pendingJobs.findIndex((p) => p.job._id === id);
       if (existingIdx !== -1) {
-        this.recordS2Tag(id, msg.fields.deliveryTag);
+        this.recordS2TagQueue(id, msg.fields.deliveryTag);
         this.pendingJobs[existingIdx] = {
           ...this.pendingJobs[existingIdx],
           job: { ...this.pendingJobs[existingIdx].job, ...payload },
@@ -232,18 +247,18 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         return;
       }
       if (this.currentJobId === id) {
-        this.recordS2Tag(id, msg.fields.deliveryTag);
+        this.recordS2TagQueue(id, msg.fields.deliveryTag);
         setCurrentJob(id, { ...getCurrentJob().job, ...payload } as Job, JobStage.FULL_PARSED);
         logger.info('job.parse.completed — IPC enriched displayed job', { id });
         return;
       }
-      if (this.deferredS2Buffer.size >= DEFERRED_S2_MAX) {
+      if (this.deferredS2QueueBuffer.size >= DEFERRED_S2_MAX) {
         logger.warn('DeferredS2Buffer full, nacking', { id });
-        this.s2channel!.nack(msg, false, true);
+        this.s2queueChannel!.nack(msg, false, true);
         return;
       }
-      this.recordS2Tag(id, msg.fields.deliveryTag);
-      this.deferredS2Buffer.set(id, {
+      this.recordS2TagQueue(id, msg.fields.deliveryTag);
+      this.deferredS2QueueBuffer.set(id, {
         payload,
         deliveryTag: msg.fields.deliveryTag,
         timestamp: Date.now(),
@@ -251,16 +266,19 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       logger.debug('S2 deferred', { id });
     } catch (err) {
       logger.warn('C2 Error', { error: String(err) });
-      this.s2channel!.nack(msg, false, true);
+      this.s2queueChannel!.nack(msg, false, true);
     }
   }
 
   /**
-   * Direct-mode S2 ([i], no S1 array dependency): sets the current job immediately and
-   * acks THIS delivery right away — nothing recorded, nothing deferred, no prefetch
-   * accumulation, so the tag can never be double-resolved.
+   * Direct-mode S2 ([i], no S1 array dependency): sets the current job immediately;
+   * tag is recorded and ack deferred to s34 (prefetch 1, no pending accumulation).
    */
   private onMessageS2Direct(msg: ConsumeMessage): void {
+    if (this.getQueueMode() === true) {
+      this.s2directChannel!.nack(msg, false, false);
+      return;
+    }
     try {
       const parsed = JSON.parse(msg.content.toString()) as Record<string, unknown>;
       const payload = (
@@ -268,23 +286,29 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       ) as Partial<JobLifecycleDocument>;
       const id = payload._id as string;
       if (!id) {
-        this.ackS2TagDirectForJob(msg);
+        this.s2directChannel!.ack(msg);
         return;
       }
+      this.recordS2TagDirect(id, msg.fields.deliveryTag);
       setCurrentJob(id, payload as Job, JobStage.FULL_PARSED);
       this.currentJobId = id;
-      this.ackS2TagDirectForJob(msg);
       logger.info('job.parse.completed — direct mode set', { id });
     } catch (err) {
       logger.warn('C2 Direct Error', { error: String(err) });
-      this.s2channel!.nack(msg, false, true);
+      this.s2directChannel!.nack(msg, false, true);
     }
   }
 
-  private recordS2Tag(id: string, deliveryTag: number): void {
-    const tags = this.deliveryTagsS2.get(id) ?? [];
+  private recordS2TagQueue(id: string, deliveryTag: number): void {
+    const tags = this.deliveryTagsS2Queue.get(id) ?? [];
     tags.push(deliveryTag);
-    this.deliveryTagsS2.set(id, tags);
+    this.deliveryTagsS2Queue.set(id, tags);
+  }
+
+  private recordS2TagDirect(id: string, deliveryTag: number): void {
+    const tags = this.deliveryTagsS2Direct.get(id) ?? [];
+    tags.push(deliveryTag);
+    this.deliveryTagsS2Direct.set(id, tags);
   }
 
   private onMessageS3S4(msg: ConsumeMessage): void {
@@ -299,12 +323,10 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         return;
       }
 
-      // Queue mode has recorded S1/S2 tags for this job; direct mode records
-      // nothing, so ONLY queue mode ackS1S2. Each tag is resolved exactly once.
-      if (this.getQueueMode() === true) {
-        this.ackS1TagForJob(id);
-        this.ackS2TagQueueForJob(id);
-      }
+      // Ack tags per queue that recorded them; s2direct now also ack in s34 (prefetch 1).
+      this.ackS1TagForJob(id);
+      this.ackS2TagQueueForJob(id);
+      this.ackS2TagDirectForJobId(id);
       this.ackS3TagForJob(msg);
 
       this.removeFromPending(id);
@@ -345,18 +367,24 @@ export class RabbitMqJobReader implements JobEventReaderPort {
 
   /** Acks every recorded queue-mode S2 delivery tag for a job. The deferred buffer is NOT touched here. */
   private ackS2TagQueueForJob(id: string): void {
-    const tags = this.deliveryTagsS2.get(id);
-    if (tags && this.s2channel) {
+    const tags = this.deliveryTagsS2Queue.get(id);
+    if (tags && this.s2queueChannel) {
       for (const tag of tags) {
-        this.s2channel.ack({ fields: { deliveryTag: tag } } as ConsumeMessage, false);
+        this.s2queueChannel.ack({ fields: { deliveryTag: tag } } as ConsumeMessage, false);
       }
-      this.deliveryTagsS2.delete(id);
+      this.deliveryTagsS2Queue.delete(id);
     }
   }
 
-  /** Direct-mode S2 acks its own delivery immediately; nothing is recorded or deferred. */
-  private ackS2TagDirectForJob(msg: ConsumeMessage): void {
-    this.s2channel!.ack(msg);
+  /** Acks every recorded direct-mode S2 delivery tag for a job at s34. */
+  private ackS2TagDirectForJobId(id: string): void {
+    const tags = this.deliveryTagsS2Direct.get(id);
+    if (tags && this.s2directChannel) {
+      for (const tag of tags) {
+        this.s2directChannel.ack({ fields: { deliveryTag: tag } } as ConsumeMessage, false);
+      }
+      this.deliveryTagsS2Direct.delete(id);
+    }
   }
 
   /** Acks the S34 delivery itself. */
@@ -380,9 +408,9 @@ export class RabbitMqJobReader implements JobEventReaderPort {
   }
 
   private drainDeferredS2(id: string): void {
-    const entry = this.deferredS2Buffer.get(id);
+    const entry = this.deferredS2QueueBuffer.get(id);
     if (!entry) return;
-    this.deferredS2Buffer.delete(id);
+    this.deferredS2QueueBuffer.delete(id);
 
     const existingIdx = this.pendingJobs.findIndex((p) => p.job._id === id);
     if (existingIdx !== -1) {
@@ -399,24 +427,24 @@ export class RabbitMqJobReader implements JobEventReaderPort {
 
   private evictStaleDeferred(): void {
     const now = Date.now();
-    for (const [id, entry] of this.deferredS2Buffer) {
+    for (const [id, entry] of this.deferredS2QueueBuffer) {
       if (now - entry.timestamp > DEFERRED_S2_TTL) {
-        const tracked = (this.deliveryTagsS2.get(id) ?? []).includes(entry.deliveryTag);
+        const tracked = (this.deliveryTagsS2Queue.get(id) ?? []).includes(entry.deliveryTag);
         if (tracked) {
           // Truly stale (no S1 ever arrived): drop the outstanding delivery.
           logger.warn('Evicting stale deferred S2', { id });
-          this.s2channel?.nack(
+          this.s2queueChannel?.nack(
             { fields: { deliveryTag: entry.deliveryTag } } as ConsumeMessage,
             false,
             false
           );
-          const tags = this.deliveryTagsS2.get(id) ?? [];
+          const tags = this.deliveryTagsS2Queue.get(id) ?? [];
           const idx = tags.indexOf(entry.deliveryTag);
           if (idx !== -1) tags.splice(idx, 1);
-          if (tags.length === 0) this.deliveryTagsS2.delete(id);
+          if (tags.length === 0) this.deliveryTagsS2Queue.delete(id);
         }
         // Otherwise the tag was already resolved (acked by S34): drop the stale entry silently.
-        this.deferredS2Buffer.delete(id);
+        this.deferredS2QueueBuffer.delete(id);
       }
     }
   }
@@ -428,11 +456,17 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       }
     }
     this.deliveryTagsS1.clear();
-    for (const [, tags] of this.deliveryTagsS2) {
+    for (const [, tags] of this.deliveryTagsS2Queue) {
       for (const tag of tags) {
-        this.s2channel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, true);
+        this.s2queueChannel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, true);
       }
     }
-    this.deliveryTagsS2.clear();
+    this.deliveryTagsS2Queue.clear();
+    for (const [, tags] of this.deliveryTagsS2Direct) {
+      for (const tag of tags) {
+        this.s2directChannel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, true);
+      }
+    }
+    this.deliveryTagsS2Direct.clear();
   }
 }
