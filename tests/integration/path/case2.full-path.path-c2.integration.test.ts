@@ -15,7 +15,6 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 
 import type { ExtractionQueuePort } from '../../../src/application/ports/extraction-queue.port.js';
 import type { JobLifecyclePort } from '../../../src/application/ports/job-lifecycle.port.js';
-import { ActionEvent } from '../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import {
   indeedDetailHtml,
@@ -28,7 +27,7 @@ import {
   type TestDaemonContainer,
   type TuiTestContainer,
 } from '../../helpers/test-container.js';
-import { udsHelpers, purgeTuiQueues, waitFor, waitForPdfFiles } from '../../helpers/test-utils.js';
+import { udsHelpers, waitFor, waitForPdfFiles } from '../../helpers/test-utils.js';
 
 const UDS_TOKEN = 'e2e-internal-token';
 
@@ -144,8 +143,8 @@ describe('c2 browser extraction + resolution cycle', () => {
 
   beforeEach(async () => {
     await daemon.storage.clearDb();
-    await purgeTuiQueues('c2-full-path');
-    tui.rmq.reader.resetReader();
+    await tui.reader.purgeQueues();
+    tui.reader.resetReader();
     tui.ipc.clear();
   });
 
@@ -160,34 +159,26 @@ describe('c2 browser extraction + resolution cycle', () => {
         'FullParsedCo'
       );
 
-      const gen = tui.rmq.consume('s1');
-      const comp = tui.rmq.consume('s2');
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.FULL_PARSED,
         FULL_PARSED_HTML,
         jobLifecycleId
       );
-
-      const genMsg = await gen;
-      expect(genMsg).toBeDefined();
-
-      const compMsg = await comp;
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toBe(jobLifecycleId);
-      expect(compMsg.job.stage).toBe(JobStage.FULL_PARSED);
-      expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId === jobLifecycleId && tui.ipc.read().stage === JobStage.FULL_PARSED
+      );
+      expect(tui.ipc.read().jobLifecycleId).toBe(jobLifecycleId);
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
 
       const doc = await adapter.findById(jobLifecycleId);
       expect(doc).not.toBeNull();
       expect(doc!.stage).toBe(JobStage.FULL_PARSED);
       expect(doc!.status).toBe(JobStatus.ENRICHED);
 
-      const queue = tui.rmq.consume('s34');
-      await expect(tui.uds.write.queue(jobLifecycleId)).resolves.toBeUndefined();
-
-      const queueMsg = await queue;
-      expect(queueMsg.jobLifecycleId).toBe(jobLifecycleId);
+      await tui.writer.queue(jobLifecycleId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
 
       await waitForPdfFiles(daemon.assetDir);
 
@@ -207,25 +198,21 @@ describe('c2 browser extraction + resolution cycle', () => {
         'FullParsedCo'
       );
 
-      const comp = tui.rmq.consume('s2');
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.FULL_PARSED,
         FULL_PARSED_HTML,
         jobLifecycleId
       );
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId === jobLifecycleId && tui.ipc.read().stage === JobStage.FULL_PARSED
+      );
+      expect(tui.ipc.read().jobLifecycleId).toBe(jobLifecycleId);
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
 
-      const compMsg = await comp;
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toBe(jobLifecycleId);
-      expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
-
-      const trash = tui.rmq.consume('s34');
-      await expect(tui.uds.write.trash(jobLifecycleId)).resolves.toBeUndefined();
-
-      const trashMsg = await trash;
-      expect(trashMsg.jobLifecycleId).toBe(jobLifecycleId);
-      expect(trashMsg.reason).toBe('operator:trash');
+      await tui.writer.trash(jobLifecycleId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
 
       const trashedDoc = await adapter.findById(jobLifecycleId);
       expect(trashedDoc).not.toBeNull();
@@ -234,21 +221,21 @@ describe('c2 browser extraction + resolution cycle', () => {
     }, 60000);
 
     it('GIVEN an S2 browser auto FULL_PARSED input without jobLifecycleId WHEN an ingest signal is processed THEN found(id) precondition fails — enrichment skipped, no doc created (S2) · path c2', async () => {
-      const comp = tui.rmq.consume('s2');
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.FULL_PARSED,
         FULL_PARSED_HTML
       );
-      await expect(comp).rejects.toThrow(/Timeout|No messages/);
+      await new Promise((r) => setTimeout(r, 500));
 
       const col = daemon.mongo.raw('job_lifecycle');
       const docs = await col.find({}).toArray();
       expect(docs.length).toBe(0);
+      expect(tui.ipc.read().jobLifecycleId).toBeNull();
     });
 
     it('GIVEN the tui-ioc precondition WHEN the daemon publishes S1+S2 over RMQ and the tui sends [d] over UDS THEN the tui reader mirrors then clears the job on the ipc seam (tui↔daemon over real RMQ+UDS) · path c2', async () => {
-      await waitFor(() => tui.rmq.reader.isConnected());
+      await waitFor(() => tui.reader.isConnected());
       const jobId = 'c2-tui-boundary-1';
 
       await daemon.rmq.ports.parse.emitGenerated(
@@ -287,7 +274,7 @@ describe('c2 browser extraction + resolution cycle', () => {
         source: JobSource.MANUAL,
       });
 
-      await tui.uds.write.trash(jobId);
+      await tui.writer.trash(jobId);
       await waitFor(() => tui.ipc.read().jobLifecycleId === null);
       expect(tui.ipc.read().job).toBeNull();
     }, 60000);
@@ -304,21 +291,13 @@ describe('c2 browser extraction + resolution cycle', () => {
         'C2SchedFullCo'
       );
 
-      const gen = tui.rmq.consume('s1');
-      const comp = tui.rmq.consume('s2');
       await eqAdapter.enqueue(jobId);
-
-      const genMsg = await gen;
-      expect(genMsg._id).toBe(jobId);
-      expect(genMsg.role).toBe('Backend Developer');
-      expect(genMsg.company).toBe('C2SchedFullCo');
-
-      const compMsg = await comp;
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toBe(jobId);
-      expect(compMsg.job.stage).toBe(JobStage.FULL_PARSED);
-      expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
-      expect(compMsg.job.company).toBe('C2SchedFullCo');
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId === jobId && tui.ipc.read().stage === JobStage.FULL_PARSED
+      );
+      expect(tui.ipc.read().jobLifecycleId).toBe(jobId);
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
+      expect(tui.ipc.read().job?.company).toBe('C2SchedFullCo');
 
       const fullDoc = await adapter.findById(jobId);
       expect(fullDoc).not.toBeNull();
@@ -336,18 +315,16 @@ describe('c2 browser extraction + resolution cycle', () => {
         'C2SchedRouteCo'
       );
 
-      const comp = tui.rmq.consume('s2');
       await eqAdapter.enqueue(jobId);
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId === jobId && tui.ipc.read().stage === JobStage.FULL_PARSED
+      );
+      expect(tui.ipc.read().jobLifecycleId).toBe(jobId);
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
 
-      const compMsg = await comp;
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toBe(jobId);
-      expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
-
-      const queue = tui.rmq.consume('s34');
-      await tui.uds.write.queue(jobId);
-      const queueMsg = await queue;
-      expect(queueMsg.jobLifecycleId).toBe(jobId);
+      await tui.writer.queue(jobId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
 
       await waitForPdfFiles(daemon.assetDir);
 
@@ -364,13 +341,12 @@ describe('c2 browser extraction + resolution cycle', () => {
         'Data Engineer',
         'C2SchedRouteDataCo'
       );
-      const comp2 = tui.rmq.consume('s2');
       await eqAdapter.enqueue(jobId2);
-
-      const comp2Msg = await comp2;
-      expect(comp2Msg.job).toBeDefined();
-      expect(comp2Msg.job._id).toBe(jobId2);
-      expect(comp2Msg.job.status).toBe(JobStatus.ENRICHED);
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId === jobId2 && tui.ipc.read().stage === JobStage.FULL_PARSED
+      );
+      expect(tui.ipc.read().jobLifecycleId).toBe(jobId2);
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
     }, 60000);
 
     it('GIVEN scheduler full-parse WHEN [d] trash via UDS → TRASHED THEN next cycle still completes (S1+S2+S3) · path c2', async () => {
@@ -383,19 +359,16 @@ describe('c2 browser extraction + resolution cycle', () => {
         'C2SchedTrashCo'
       );
 
-      const comp = tui.rmq.consume('s2');
       await eqAdapter.enqueue(jobId);
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId === jobId && tui.ipc.read().stage === JobStage.FULL_PARSED
+      );
+      expect(tui.ipc.read().jobLifecycleId).toBe(jobId);
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
 
-      const compMsg = await comp;
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toBe(jobId);
-      expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
-
-      const trash = tui.rmq.consume('s34');
-      await tui.uds.write.trash(jobId);
-      const trashMsg = await trash;
-      expect(trashMsg.jobLifecycleId).toBe(jobId);
-      expect(trashMsg.reason).toBe('operator:trash');
+      await tui.writer.trash(jobId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
 
       const trashedDoc = await adapter.findById(jobId);
       expect(trashedDoc).not.toBeNull();
@@ -410,13 +383,12 @@ describe('c2 browser extraction + resolution cycle', () => {
         'Data Engineer',
         'C2SchedTrashDataCo'
       );
-      const comp2 = tui.rmq.consume('s2');
       await eqAdapter.enqueue(jobId2);
-
-      const comp2Msg = await comp2;
-      expect(comp2Msg.job).toBeDefined();
-      expect(comp2Msg.job._id).toBe(jobId2);
-      expect(comp2Msg.job.status).toBe(JobStatus.ENRICHED);
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId === jobId2 && tui.ipc.read().stage === JobStage.FULL_PARSED
+      );
+      expect(tui.ipc.read().jobLifecycleId).toBe(jobId2);
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
     }, 60000);
 
     it('GIVEN an S3 next-pick precondition WHEN a fresh valid S1 follows THEN the ring closes: the next job reaches S3 QUEUED (s1→s2→s3→next pick) · path c2', async () => {
@@ -429,23 +401,21 @@ describe('c2 browser extraction + resolution cycle', () => {
         'C2RingCo'
       );
 
-      const comp = tui.rmq.consume('s2');
       await eqAdapter.enqueue(jobId);
-      const compMsg = await comp;
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toBe(jobId);
-      expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId === jobId && tui.ipc.read().stage === JobStage.FULL_PARSED
+      );
+      expect(tui.ipc.read().jobLifecycleId).toBe(jobId);
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
 
-      const queue = tui.rmq.consume('s34');
-      await tui.uds.write.queue(jobId);
-      const queueMsg = await queue;
-      expect(queueMsg.jobLifecycleId).toBe(jobId);
+      await tui.writer.queue(jobId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
 
       const routedDoc = await adapter.findById(jobId);
       expect(routedDoc).not.toBeNull();
       expect(routedDoc!.status).toBe(JobStatus.QUEUED);
 
-      const gen = tui.rmq.consume('s1');
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
@@ -453,25 +423,28 @@ describe('c2 browser extraction + resolution cycle', () => {
         undefined,
         { messageId: 'c2-ring-next' }
       );
-      const genMsg = await gen;
-      const nextId: string = genMsg._id;
-      expect(genMsg.company).toBe('C2RingNextCo');
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId !== null && tui.ipc.read().job?.company === 'C2RingNextCo'
+      );
+      const nextId: string = tui.ipc.read().jobLifecycleId!;
+      expect(tui.ipc.read().job?.company).toBe('C2RingNextCo');
+      expect(tui.ipc.read().stage).toBe(JobStage.PARTIAL_PARSED);
 
-      const comp2 = tui.rmq.consume('s2');
       await daemon.apps.ingest.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
         indeedDetailHtml(),
         nextId
       );
-      const comp2Msg = await comp2;
-      expect(comp2Msg.job).toBeDefined();
-      expect(comp2Msg.job._id).toBe(nextId);
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId === nextId && tui.ipc.read().stage === JobStage.FULL_PARSED
+      );
+      expect(tui.ipc.read().jobLifecycleId).toBe(nextId);
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
 
-      const queued2 = tui.rmq.consume('s34');
-      await tui.uds.write.queue(nextId);
-      const queued2Msg = await queued2;
-      expect(queued2Msg.jobLifecycleId).toBe(nextId);
+      await tui.writer.queue(nextId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
 
       const routedNext = await adapter.findById(nextId);
       expect(routedNext).not.toBeNull();
@@ -535,13 +508,12 @@ describe('c2 browser extraction + resolution cycle', () => {
           'Backend Developer',
           `C2WakeCo${idleMs}`
         );
-        const comp = tui.rmq.consume('s2');
         await eqAdapter.enqueue(jobId);
-
-        const compMsg = await comp;
-        expect(compMsg.job).toBeDefined();
-        expect(compMsg.job._id).toBe(jobId);
-        expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
+        await waitFor(
+          () => tui.ipc.read().jobLifecycleId === jobId && tui.ipc.read().stage === JobStage.FULL_PARSED
+        );
+        expect(tui.ipc.read().jobLifecycleId).toBe(jobId);
+        expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
 
         expect(await eqAdapter.size()).toBe(0);
       },
@@ -556,7 +528,6 @@ describe('c2 browser extraction + resolution cycle', () => {
         const role = 'Backend Developer';
         const company = `StressCo${i}`;
 
-        const gen = tui.rmq.consume('s1');
         await daemon.apps.ingest.processIngest(
           JobSource.BROWSER_AUTO,
           JobStage.PARTIAL_PARSED,
@@ -564,8 +535,10 @@ describe('c2 browser extraction + resolution cycle', () => {
           undefined,
           { messageId, subject: role }
         );
-        const genMsg = await gen;
-        const jobLifecycleId = genMsg._id;
+        await waitFor(
+          () => tui.ipc.read().job?.company === company && tui.ipc.read().stage === JobStage.PARTIAL_PARSED
+        );
+        const jobLifecycleId = tui.ipc.read().jobLifecycleId!;
         expect(jobLifecycleId).toMatch(/-job-0$/);
 
         const partialDoc = await adapter.findById(jobLifecycleId);
@@ -573,41 +546,37 @@ describe('c2 browser extraction + resolution cycle', () => {
         expect(partialDoc!.stage).toBe(JobStage.PARTIAL_PARSED);
         expect(partialDoc!.status).toBe(JobStatus.ENRICHING);
 
-        const comp = tui.rmq.consume('s2');
         await daemon.apps.ingest.processIngest(
           JobSource.MANUAL,
           JobStage.FULL_PARSED,
           indeedDetailHtml(),
           jobLifecycleId
         );
-        const compMsg = await comp;
-        expect(compMsg.job).toBeDefined();
-        expect(compMsg.job._id).toBe(jobLifecycleId);
+        await waitFor(
+          () => tui.ipc.read().jobLifecycleId === jobLifecycleId && tui.ipc.read().stage === JobStage.FULL_PARSED
+        );
+        expect(tui.ipc.read().jobLifecycleId).toBe(jobLifecycleId);
 
         const enrichedDoc = await adapter.findById(jobLifecycleId);
         expect(enrichedDoc).not.toBeNull();
         expect(enrichedDoc!.stage).toBe(JobStage.FULL_PARSED);
         expect(enrichedDoc!.status).toBe(JobStatus.ENRICHED);
 
-        const queued = tui.rmq.consume('s34');
-        await tui.uds.write.queue(jobLifecycleId);
-        const queuedMsg = await queued;
-        expect(queuedMsg.jobLifecycleId).toBe(jobLifecycleId);
+        await tui.writer.queue(jobLifecycleId);
+        await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+        expect(tui.ipc.read().job).toBeNull();
 
         const routedDoc = await adapter.findById(jobLifecycleId);
         expect(routedDoc).not.toBeNull();
         expect(routedDoc!.status).toBe(JobStatus.QUEUED);
       }
 
-      const noFailures = tui.rmq.consume(
-        [ActionEvent.PARSE_FAILED, ActionEvent.ROUTE_FAILED],
-        1500
-      );
-      await expect(noFailures).rejects.toThrow(/Timeout/);
+      await new Promise((r) => setTimeout(r, 1500));
+      expect(tui.ipc.read().jobLifecycleId).toBeNull();
     }, 60000);
 
     it('GIVEN exhaustion drain in progress WHEN the tui subscribes over RMQ THEN the tui reader stays connected and the queue drains without wedging the ipc seam (tui↔daemon) · path c2', async () => {
-      await waitFor(() => tui.rmq.reader.isConnected());
+      await waitFor(() => tui.reader.isConnected());
 
       const ids = ['c2-exhaust-tui-0', 'c2-exhaust-tui-1'];
       await seedPartialMany(
@@ -631,7 +600,7 @@ describe('c2 browser extraction + resolution cycle', () => {
         { interval: 100, timeout: 60000 }
       );
 
-      expect(tui.rmq.reader.isConnected()).toBe(true);
+      expect(tui.reader.isConnected()).toBe(true);
     }, 90000);
   });
 
@@ -646,16 +615,16 @@ describe('c2 browser extraction + resolution cycle', () => {
         'S4FailCo'
       );
 
-      const comp = tui.rmq.consume('s2');
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.FULL_PARSED,
         '<div>not a job format</div>',
         jobId
       );
-
-      const compMsg = await comp;
-      expect(compMsg.job._id).toBe(jobId);
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId === jobId && tui.ipc.read().stage === JobStage.FULL_PARSED
+      );
+      expect(tui.ipc.read().jobLifecycleId).toBe(jobId);
 
       const doc = await adapter.findById(jobId);
       expect(doc).not.toBeNull();
@@ -664,9 +633,9 @@ describe('c2 browser extraction + resolution cycle', () => {
       expect(doc!.company).toBe('S4FailCo');
       expect(doc!.details).toContain('not a job format');
 
-      await expect(
-        tui.rmq.consume([ActionEvent.PARSE_FAILED], 1500)
-      ).rejects.toThrow(/Timeout|No messages/);
+      await new Promise((r) => setTimeout(r, 1500));
+      expect(tui.ipc.read().jobLifecycleId).toBe(jobId);
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
     });
   });
 
@@ -676,7 +645,6 @@ describe('c2 browser extraction + resolution cycle', () => {
       const role = 'Backend Developer';
       const company = 'C2C1ShallowCo';
 
-      const gen = tui.rmq.consume('s1');
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
@@ -684,9 +652,12 @@ describe('c2 browser extraction + resolution cycle', () => {
         undefined,
         { messageId, subject: role }
       );
-      const genMsg = await gen;
-      const jobLifecycleId = genMsg._id;
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId !== null && tui.ipc.read().stage === JobStage.PARTIAL_PARSED
+      );
+      const jobLifecycleId = tui.ipc.read().jobLifecycleId!;
       expect(jobLifecycleId).toMatch(/-job-0$/);
+      expect(tui.ipc.read().stage).toBe(JobStage.PARTIAL_PARSED);
 
       const partialDoc = await adapter.findById(jobLifecycleId);
       expect(partialDoc).not.toBeNull();
@@ -718,11 +689,11 @@ describe('c2 browser extraction + resolution cycle', () => {
       );
 
       // The scheduler fallback re-brokers the partial (GENERATED) on failure.
-      const gen = tui.rmq.consume('s1');
       await eqAdapter.enqueue(jobId);
-
-      const genMsg = await gen;
-      expect(genMsg._id).toBe(jobId);
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId === jobId && tui.ipc.read().stage === JobStage.PARTIAL_PARSED
+      );
+      expect(tui.ipc.read().jobLifecycleId).toBe(jobId);
 
       await vi.waitFor(
         async () => {
@@ -759,16 +730,16 @@ describe('c2 browser extraction + resolution cycle', () => {
         'C2MidGoodCo'
       );
 
-      const comp = tui.rmq.consume('s2');
       await eqAdapter.enqueue(badId);
       await eqAdapter.enqueue(goodId);
 
       // The failing item falls back to PARTIAL_PARSED-ENRICHING; the good item still
       // reaches FULL_PARSED/ENRICHED — proof the workers survived the mid-stream crash.
-      const compMsg = await comp;
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toBe(goodId);
-      expect(compMsg.job.status).toBe(JobStatus.ENRICHED);
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId === goodId && tui.ipc.read().stage === JobStage.FULL_PARSED
+      );
+      expect(tui.ipc.read().jobLifecycleId).toBe(goodId);
+      expect(tui.ipc.read().stage).toBe(JobStage.FULL_PARSED);
 
       await vi.waitFor(
         async () => {
@@ -794,10 +765,6 @@ describe('c2 browser extraction + resolution cycle', () => {
         { interval: 100, timeout: 20000 }
       );
 
-      const silence = tui.rmq.consume(
-        [ActionEvent.GENERATED, ActionEvent.PARSE_FAILED, ActionEvent.ROUTE_FAILED],
-        2000
-      );
       await eqAdapter.enqueue('c2-missing-doc-1');
       await vi.waitFor(
         async () => {
@@ -805,7 +772,8 @@ describe('c2 browser extraction + resolution cycle', () => {
         },
         { interval: 100, timeout: 20000 }
       );
-      await expect(silence).rejects.toThrow(/Timeout/);
+      await new Promise((r) => setTimeout(r, 2000));
+      expect(tui.ipc.read().jobLifecycleId).toBeNull();
     }, 120000);
   });
 

@@ -79,7 +79,8 @@ describe('C3 error e2e — s2 failure → s4 → next valid s2 recovers (prod bo
   describe('(c) ring closure — webhook S1 → [c] paste → [j] QUEUED + tui seam', () => {
     it('GIVEN a recovery ring WHEN a full webhook→paste→[j] cycle runs THEN QUEUED and the ipc seam mirrors then clears · e2e c3', async () => {
       await app.resetDb();
-      app.tui.rmq.reader.resetReader();
+      app.tui.reader.resetReader();
+      await app.tui.reader.purgeQueues();
       const jobId = 'c3-boundary-msg-job-0';
 
       const res = await app.webhook.post('c3-boundary-msg');

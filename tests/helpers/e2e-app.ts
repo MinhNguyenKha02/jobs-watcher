@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 
+import amqplib from 'amqplib';
+
 import type { JobLifecyclePort } from '../../src/application/ports/job-lifecycle.port.js';
 import { ActionEvent } from '../../src/domain/types/action-event.js';
 import {
@@ -21,10 +23,10 @@ export { ActionEvent };
 
 export interface E2eEvents {
   /**
-   * Register a consumer-leg waiter on the tui facade's pre-bound role queue
-   * (s1/s2/s34; fresh queue for cross-role arrays) and resolve with the first
-   * matching real event. Registration happens before triggering so the role
-   * queue holds any early publish for the awaited `msg()`.
+   * Register an ephemeral exclusive-queue waiter directly on the namespaced
+   * exchange (bypassing the TUI durable reader). Registration happens before
+   * triggering so the exclusive queue holds any early publish for the awaited
+   * `msg()`. Flat TUI surface has no `tui.rmq.consume`.
    */
   on(keys: ActionEvent[], timeoutMs?: number): Promise<{ msg(): Promise<any> }>;
 }
@@ -138,7 +140,7 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
     ingest: (html, jobLifecycleId) =>
       udsHelpers(daemon.uds.socket, token).ingest(html, jobLifecycleId),
     action: async (jobLifecycleId, action) => {
-      await tui.uds.write[action](jobLifecycleId);
+      await tui.writer[action](jobLifecycleId);
       return { statusCode: 200 };
     },
   };
@@ -168,8 +170,55 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
 
   return {
     events: {
+      // Flat TUI surface has no rmq.consume — open a fresh exclusive queue
+      // directly via amqplib for payload proof, bypassing the TUI durable reader.
       on: (keys, timeoutMs = 10000) => {
-        const pending = tui.rmq.consume(keys, timeoutMs);
+        const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
+        const exchange = `jobs.events.int.${opts.ns}`;
+        const pending: Promise<any> = (async () => {
+          const conn = await amqplib.connect(RMQ_URL);
+          const ch = await conn.createChannel();
+          await ch.assertExchange(exchange, 'topic', { durable: true });
+          const { queue } = await ch.assertQueue('', { exclusive: true, autoDelete: true });
+          for (const key of keys) await ch.bindQueue(queue, exchange, key);
+          try {
+            const msg = await new Promise<any>((resolve, reject) => {
+              const timer = setTimeout(
+                () => reject(new Error(`Timeout waiting for message on ${exchange}:${keys.join('|')}`)),
+                timeoutMs
+              );
+              ch.consume(
+                queue,
+                (m) => {
+                  if (!m) return;
+                  clearTimeout(timer);
+                  ch.ack(m);
+                  try {
+                    resolve(JSON.parse(m.content.toString()));
+                  } catch (e) {
+                    reject(e);
+                  }
+                },
+                { noAck: false }
+              ).catch((e) => {
+                clearTimeout(timer);
+                reject(e);
+              });
+            });
+            return msg;
+          } finally {
+            try {
+              await ch.close();
+            } catch {
+              /* best-effort */
+            }
+            try {
+              await (conn as any).close();
+            } catch {
+              /* best-effort */
+            }
+          }
+        })();
         return Promise.resolve({ msg: () => pending });
       },
     },

@@ -13,4 +13,6 @@ export interface JobEventReaderPort {
   getQueueDepth(): number;
   /** Drop all transient reader state so a fresh scenario starts clean. */
   resetReader(): void;
+  /** Aggregate purge of the 4 durable TUI queues (s1/s2/s2direct/s3s4); idempotent, best-effort. */
+  purgeQueues(): Promise<void>;
 }

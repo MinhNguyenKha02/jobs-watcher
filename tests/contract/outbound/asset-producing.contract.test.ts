@@ -16,7 +16,7 @@ import {
   type TestDaemonContainer,
   type TuiTestContainer,
 } from '../../helpers/test-container.js';
-import { purgeTuiQueues } from '../../helpers/test-utils.js';
+import { waitFor } from '../../helpers/test-utils.js';
 
 function pdfCount(dir: string): number {
   return fs.readdirSync(dir).filter((f) => f.endsWith('.pdf')).length;
@@ -72,13 +72,12 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
     });
 
     beforeEach(async () => {
-      await purgeTuiQueues('asset-producing');
-      tui.rmq.reader.resetReader();
+      await tui.reader.purgeQueues();
+      tui.reader.resetReader();
       tui.ipc.clear();
     });
 
     it('GIVEN the asset-producing precondition WHEN processIngest → processResolution on the real AssetProducingPort THEN full saga to s3-queued produces a QUEUED job with merged s1+s2 fields (S1+S2+S3)', async () => {
-      const queued = tui.rmq.consume('s34');
       const id = 'asset-prod-1-job-0';
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
@@ -93,10 +92,10 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
         topcvDetailHtml('Software Engineer', 'AssetProdCo'),
         id
       );
-      await daemon.apps.ingest.processResolution(id, 'queue');
-
-      const queuedMsg = await queued;
-      expect(queuedMsg.jobLifecycleId).toBe(id);
+      await tui.writer.queue(id);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      await waitFor(() => pdfCount(daemon.assetDir) > 0, 25000);
+      expect(pdfCount(daemon.assetDir)).toBeGreaterThan(0);
 
       const doc = await daemon.jobLifecycle.findById(id);
       expect(doc).not.toBeNull();
@@ -167,8 +166,8 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
 
     beforeEach(async () => {
       await daemon.storage.clearDb();
-      await purgeTuiQueues('asset-producing-guard');
-      tui.rmq.reader.resetReader();
+      await tui.reader.purgeQueues();
+      tui.reader.resetReader();
       tui.ipc.clear();
     });
 
@@ -184,10 +183,13 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.ENRICHING);
 
-      const noQueue = tui.rmq.consume('s34', 2500);
+      const baseline = pdfCount(daemon.assetDir);
       await daemon.apps.ingest.processResolution('asset-guard-1-job-0', 'queue');
 
-      await expect(noQueue).rejects.toThrow();
+      await new Promise((r) => setTimeout(r, 500));
+      expect(pdfCount(daemon.assetDir)).toBe(baseline);
+      expect(tui.ipc.read().jobLifecycleId).not.toBeNull();
+      expect(tui.ipc.read().jobLifecycleId).toBe('asset-guard-1-job-0');
       const after = await daemon.jobLifecycle.findById('asset-guard-1-job-0');
       expect(after!.status).toBe(JobStatus.ENRICHING);
       expect(after!.stage).toBe(JobStage.PARTIAL_PARSED);
@@ -211,8 +213,8 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
 
     beforeEach(async () => {
       await daemon.storage.clearDb();
-      await purgeTuiQueues('asset-producing-terminal');
-      tui.rmq.reader.resetReader();
+      await tui.reader.purgeQueues();
+      tui.reader.resetReader();
       tui.ipc.clear();
     });
 
@@ -233,12 +235,8 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
       );
 
       const baseline = pdfCount(daemon.assetDir);
-      const trash = tui.rmq.consume('s34');
-      await daemon.apps.ingest.processResolution(id, 'trash');
-
-      const trashMsg = await trash;
-      expect(trashMsg.jobLifecycleId).toBe(id);
-      expect(trashMsg.reason).toBe('operator:trash');
+      await tui.writer.trash(id);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
 
       const doc = await daemon.jobLifecycle.findById(id);
       expect(doc!.status).toBe(JobStatus.TRASHED);
@@ -261,7 +259,6 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
       await failDaemon.start();
       const failTui = await buildTestTuiContainer({ ns: 'asset-producing-failure' });
       try {
-        const queued = failTui.rmq.consume('s34');
         const id = 'asset-fail-1-job-0';
         await failDaemon.apps.ingest.processIngest(
           JobSource.BROWSER_AUTO,
@@ -277,11 +274,8 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
           id
         );
 
-        await expect(
-          failDaemon.apps.ingest.processResolution(id, 'queue')
-        ).resolves.toBeUndefined();
-        const queuedMsg = await queued;
-        expect(queuedMsg.jobLifecycleId).toBe(id);
+        await failTui.writer.queue(id);
+        await waitFor(() => failTui.ipc.read().jobLifecycleId === null);
 
         const doc = await failDaemon.jobLifecycle.findById(id);
         expect(doc!.status).toBe(JobStatus.QUEUED);

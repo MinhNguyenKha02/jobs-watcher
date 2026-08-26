@@ -2,7 +2,7 @@
  * e2e c1-canonical (P3 skeleton: 2 real containers, black-box, final-outcome asserts):
  *   root = path ring; nested describe = ONE checkpoint boundary.
  *   Inputs via app.webhook (fake gmail) + app.uds.ingest ([c] paste carrying the id);
- *   operator via app.uds.action (tui.uds.write). Assert ONLY final external outcomes:
+ *   operator via app.uds.action (tui.writer). Assert ONLY final external outcomes:
  *   daemon.mongo S3/S4 status + real asset PDF + the tui ipc seam mirror→clear folded
  *   into the needy checkpoints. No S1/S2 intermediate re-proving (integ owns that).
  */
@@ -52,7 +52,8 @@ describe('C1 canonical e2e — webhook msg → s1 → s2 full parse → [j] queu
     it('GIVEN webhook S1 WHEN [c] paste THEN [j] queue → QUEUED + real asset pdf and the tui mirror advances then clears · e2e c1', async () => {
       await app.resetDb();
       const jobId = 'c1-canonical-msg-job-0';
-      app.tui.rmq.reader.resetReader();
+      app.tui.reader.resetReader();
+      await app.tui.reader.purgeQueues();
 
       const res = await app.webhook.post('c1-canonical-msg');
       expect(res.status).toBe(202);
@@ -109,7 +110,8 @@ describe('C1 canonical e2e — webhook msg → s1 → s2 full parse → [j] queu
   describe('(c) ring closure — next pick after a completed cycle', () => {
     it('GIVEN a completed webhook→paste→[j] cycle WHEN a fresh S1 follows THEN the next job reaches QUEUED and the ipc seam is empty again · e2e c1', async () => {
       await app.resetDb();
-      app.tui.rmq.reader.resetReader();
+      app.tui.reader.resetReader();
+      await app.tui.reader.purgeQueues();
       const jobId = 'c1-ring-msg-job-0';
 
       const res = await app.webhook.post('c1-ring-msg');

@@ -116,6 +116,34 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     }
   }
 
+  /** Aggregate purge of the 4 durable TUI queues; idempotent, best-effort, separate from resetReader. */
+  async purgeQueues(): Promise<void> {
+    try {
+      const purges: Promise<unknown>[] = [];
+      if (this.s1channel) purges.push(this.s1channel.purgeQueue(this.s1Queue).catch(() => {}));
+      if (this.s2queueChannel) purges.push(this.s2queueChannel.purgeQueue(this.s2Queue).catch(() => {}));
+      if (this.s2directChannel)
+        purges.push(this.s2directChannel.purgeQueue(this.s2DirectQueue).catch(() => {}));
+      if (this.s34channel) purges.push(this.s34channel.purgeQueue(this.s34Queue).catch(() => {}));
+      if (purges.length > 0) {
+        await Promise.all(purges);
+        return;
+      }
+      const conn = await amqplib.connect(this.baseUrl);
+      const ch = await conn.createChannel();
+      for (const q of [this.s1Queue, this.s2Queue, this.s2DirectQueue, this.s34Queue]) {
+        try {
+          await ch.assertQueue(q, { durable: true });
+          await ch.purgeQueue(q);
+        } catch {}
+      }
+      await ch.close().catch(() => {});
+      await conn.close().catch(() => {});
+    } catch (err) {
+      logger.warn('purgeQueues failed', { error: String(err) });
+    }
+  }
+
   async start(): Promise<void> {
     try {
       const conn = await amqplib.connect(this.baseUrl);

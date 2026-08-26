@@ -11,7 +11,7 @@ import {
   type TestDaemonContainer,
   type TuiTestContainer,
 } from '../../helpers/test-container.js';
-import { purgeTuiQueues } from '../../helpers/test-utils.js';
+import { waitFor } from '../../helpers/test-utils.js';
 
 /**
  * DIP/LSP conformance: each application port is bound in the production
@@ -38,8 +38,8 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
 
   beforeEach(async () => {
     await daemon.storage.clearDb();
-    await purgeTuiQueues('dip-conformance');
-    tui.rmq.reader.resetReader();
+    await tui.reader.purgeQueues();
+    tui.reader.resetReader();
     tui.ipc.clear();
   });
 
@@ -77,7 +77,6 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
   });
 
   it('GIVEN the DIP precondition WHEN the port is exercised on the real DIP THEN parse port: emitGenerated publishes a GENERATED action reachable over real RMQ', async () => {
-    const handle = tui.rmq.consume('s1');
     const port = daemon.rmq.ports.parse;
 
     await port.emitGenerated(
@@ -92,29 +91,65 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
       { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
     );
 
-    const msg = await handle;
-    expect(msg._id).toBe('dip-gen-1');
-    expect(msg.company).toBe('GenCo');
+    await waitFor(() => tui.ipc.read().jobLifecycleId === 'dip-gen-1');
+    const cur = tui.ipc.read();
+    expect(cur.jobLifecycleId).toBe('dip-gen-1');
+    expect(cur.job?.company).toBe('GenCo');
+    expect(cur.stage).toBe(JobStage.PARTIAL_PARSED);
   }, 20000);
 
   it('GIVEN the DIP precondition WHEN the port is exercised on the real DIP THEN route port: emitJobQueued publishes a QUEUED action reachable over real RMQ', async () => {
-    const handle = tui.rmq.consume('s34');
-    const port = daemon.rmq.ports.route;
+    await daemon.jobLifecycle.upsert({
+      _id: 'dip-route-1',
+      company: 'RouteCo',
+      role: 'Engineer',
+      stage: JobStage.FULL_PARSED,
+      status: JobStatus.ENRICHED,
+      source: JobSource.MANUAL,
+      raw: '<html>dip-route</html>',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      stageTimestamp: new Date(),
+    });
+    await daemon.rmq.ports.parse.emitGenerated(
+      {
+        _id: 'dip-route-1',
+        role: 'Engineer',
+        company: 'RouteCo',
+        stage: JobStage.PARTIAL_PARSED,
+        status: JobStatus.ENRICHING,
+        source: JobSource.BROWSER_AUTO,
+      },
+      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+    );
+    await waitFor(() => tui.ipc.read().jobLifecycleId === 'dip-route-1');
 
-    await port.emitJobQueued('dip-route-1', { source: JobSource.MANUAL });
+    await tui.writer.queue('dip-route-1');
 
-    const msg = await handle;
-    expect(msg.jobLifecycleId).toBe('dip-route-1');
+    await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+    expect(tui.ipc.read().job).toBeNull();
+    const doc = await daemon.jobLifecycle.findById('dip-route-1');
+    expect(doc?.status).toBe(JobStatus.QUEUED);
   }, 20000);
 
   it('GIVEN the DIP precondition WHEN the port is exercised on the real DIP THEN ingestor composition: missing-job resolution emits ROUTE_FAILED over real RMQ', async () => {
-    const handle = tui.rmq.consume('s34');
+    await daemon.rmq.ports.parse.emitGenerated(
+      {
+        _id: 'dip-missing',
+        role: 'Engineer',
+        company: 'MissCo',
+        stage: JobStage.PARTIAL_PARSED,
+        status: JobStatus.ENRICHING,
+        source: JobSource.BROWSER_AUTO,
+      },
+      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+    );
+    await waitFor(() => tui.ipc.read().jobLifecycleId === 'dip-missing');
 
     await daemon.apps.ingest.processResolution('dip-missing', 'queue');
 
-    const msg = await handle;
-    expect(msg.jobLifecycleId).toBe('dip-missing');
-    expect(msg.reason).toContain('No existing job lifecycle');
+    await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+    expect(tui.ipc.read().job).toBeNull();
   }, 20000);
 
   it('GIVEN the DIP precondition WHEN the port is exercised on the real DIP THEN asset port: toAsset resolves a PDF into the container-configured temp dir → real chromium render', async () => {

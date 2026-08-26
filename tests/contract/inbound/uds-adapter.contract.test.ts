@@ -10,6 +10,7 @@ import { ActionEvent } from '../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import type { UdsAdapter } from '../../../src/infrastructure/inbound/uds/uds-adapter.js';
 import { postJsonOverUds } from '../../../src/infrastructure/utils/uds-http.js';
+import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
 import { linkedinSduiDetailHtml } from '../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
 import {
@@ -18,7 +19,7 @@ import {
   type TestDaemonContainer,
   type TuiTestContainer,
 } from '../../helpers/test-container.js';
-import { purgeTuiQueues } from '../../helpers/test-utils.js';
+import { waitFor } from '../../helpers/test-utils.js';
 
 const TOKEN = 'e2e-internal-token';
 const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
@@ -52,9 +53,10 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
 
   beforeEach(async () => {
     await daemon.storage.clearDb();
-    await purgeTuiQueues('uds-adapter');
-    tui.rmq.reader.resetReader();
+    await tui.reader.purgeQueues();
+    tui.reader.resetReader();
     tui.ipc.clear();
+    setQueueMode(true);
   });
 
   /** Real UdsAdapter on a temp socket bound to the real container ingestor. */
@@ -81,8 +83,9 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
   }
 
   async function expectNoEvent(key: ActionEvent, timeoutMs = 3000): Promise<void> {
-    const p = tui.rmq.consume([key], timeoutMs);
-    await expect(p).rejects.toThrow(/Timeout/);
+    await expect(waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED, timeoutMs)).rejects.toThrow(
+      /timed out/
+    );
   }
 
   function sendRaw(
@@ -174,8 +177,9 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
 
   describe('(b) POST /internal/ingest — real S2 forwarding (clip-* + PARSE_COMPLETED)', () => {
     it('GIVEN the UDS precondition WHEN a valid ingest is posted on the real UDS THEN 200 and a clip-* doc is persisted with PARSE_COMPLETED on the real bus (S2)', async () => {
+      const { setQueueMode } = await import('../../../src/presentation/tui/shared-tui-state.js');
+      setQueueMode(false);
       const html = linkedinSduiDetailHtml('Uds Ingest Role', 'UdsIngestCo');
-      const comp = tui.rmq.consume('s2');
 
       const res = await postJsonOverUds(
         {
@@ -188,18 +192,21 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
       expect(res.statusCode).toBe(200);
       expect(JSON.parse(res.body).status).toBe('ok');
 
-      const msg = await comp;
-      expect(msg.job._id).toMatch(/^clip-/);
-      expect(msg.job.role).toBe('Uds Ingest Role');
-      expect(msg.job.company).toBe('UdsIngestCo');
-      expect(msg.job.stage).toBe(JobStage.FULL_PARSED);
+      await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED);
+      const cur = tui.ipc.read();
+      expect(cur.jobLifecycleId).toMatch(/^clip-/);
+      expect(cur.job?.role).toBe('Uds Ingest Role');
+      expect(cur.job?.company).toBe('UdsIngestCo');
+      expect(cur.stage).toBe(JobStage.FULL_PARSED);
+      setQueueMode(true);
 
-      const doc = await daemon.jobLifecycle.findById(msg.job._id);
+      const doc = await daemon.jobLifecycle.findById(cur.jobLifecycleId!);
       expect(doc).not.toBeNull();
       expect(doc!.status).toBe(JobStatus.ENRICHED);
     });
 
     it('GIVEN a seeded stage-1 doc WHEN a webhook ingest with jobLifecycleId is posted on the real UDS THEN 200, s2a preserves s1 fields and PARSE_COMPLETED carries the given id (S2)', async () => {
+      await daemon.storage.clearDb();
       await daemon.jobLifecycle.upsert(
         makeStage1Partial({
           _id: 'uds-upgrade-1',
@@ -208,7 +215,6 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
         })
       );
       const html = linkedinSduiDetailHtml('Webhook Upgrade Role', 'WebhookUpgradeCo');
-      const comp = tui.rmq.consume('s2');
 
       const res = await postJsonOverUds(
         {
@@ -220,9 +226,19 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
       );
       expect(res.statusCode).toBe(200);
 
-      const msg = await comp;
-      expect(msg.job._id).toBe('uds-upgrade-1');
-      expect(msg.job.company).toBe('WebhookUpgradeCo');
+      // S2a via webhook is queue-mode deferred (no S1 pending for this id), so assert via DB, not ipc.
+      await new Promise<void>(async (resolve, reject) => {
+        const deadline = Date.now() + 5000;
+        while (Date.now() < deadline) {
+          const doc = await daemon.jobLifecycle.findById('uds-upgrade-1');
+          if (doc?.stage === JobStage.FULL_PARSED && doc?.company === 'WebhookUpgradeCo') return resolve();
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        reject(new Error('waitFor DB FULL_PARSED timed out'));
+      });
+      const doc = await daemon.jobLifecycle.findById('uds-upgrade-1');
+      expect(doc?.company).toBe('WebhookUpgradeCo');
+      expect(doc?.stage).toBe(JobStage.FULL_PARSED);
     });
 
     it('GIVEN the UDS precondition WHEN a webhook ingest with empty html is posted on the real UDS THEN 400 with Empty html payload', async () => {
@@ -254,19 +270,25 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
 
   describe('(c) POST /internal/action — real S3 resolution forwarding', () => {
     async function seedClip(role: string, company: string): Promise<string> {
-      const comp = tui.rmq.consume('s2');
+      setQueueMode(false);
       await daemon.apps.ingest.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
         linkedinSduiDetailHtml(role, company)
       );
-      const msg = await comp;
-      return msg.job._id as string;
+      await waitFor(
+        () =>
+          tui.ipc.read().stage === JobStage.FULL_PARSED &&
+          tui.ipc.read().jobLifecycleId !== null &&
+          tui.ipc.read().jobLifecycleId!.startsWith('clip-'),
+        20000
+      );
+      return tui.ipc.read().jobLifecycleId as string;
     }
 
     it('GIVEN the UDS precondition WHEN a queue action is posted on the real UDS THEN 200 and QUEUED is emitted with the job id (S3)', async () => {
       const id = await seedClip('Queue Role', 'QueueCo');
-      const queued = tui.rmq.consume('s34');
+      await waitFor(() => tui.ipc.read().jobLifecycleId === id);
 
       const res = await postJsonOverUds(
         {
@@ -279,15 +301,15 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
       expect(res.statusCode).toBe(200);
       expect(JSON.parse(res.body).status).toBe('ok');
 
-      const msg = await queued;
-      expect(msg.jobLifecycleId).toBe(id);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
       const doc = await daemon.jobLifecycle.findById(id);
       expect(doc!.status).toBe(JobStatus.QUEUED);
     });
 
     it('GIVEN the UDS precondition WHEN a trash action is posted on the real UDS THEN 200 and TRASHED is emitted with the job id (S3)', async () => {
       const id = await seedClip('Trash Role', 'TrashCo');
-      const trashed = tui.rmq.consume('s34');
+      await waitFor(() => tui.ipc.read().jobLifecycleId === id);
 
       const res = await postJsonOverUds(
         {
@@ -299,15 +321,15 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
       );
       expect(res.statusCode).toBe(200);
 
-      const msg = await trashed;
-      expect(msg.jobLifecycleId).toBe(id);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
       const doc = await daemon.jobLifecycle.findById(id);
       expect(doc!.status).toBe(JobStatus.TRASHED);
     });
 
     it('GIVEN the UDS precondition WHEN a queue action with editedKVs is posted on the real UDS THEN 200 and QUEUED is emitted', async () => {
       const id = await seedClip('Edited Role', 'EditedCo');
-      const queued = tui.rmq.consume('s34');
+      await waitFor(() => tui.ipc.read().jobLifecycleId === id);
 
       const res = await postJsonOverUds(
         {
@@ -323,8 +345,8 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
       );
       expect(res.statusCode).toBe(200);
 
-      const msg = await queued;
-      expect(msg.jobLifecycleId).toBe(id);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
     });
 
     it('GIVEN the UDS precondition WHEN an action missing jobLifecycleId is posted on the real UDS THEN 400 with Missing jobLifecycleId or action', async () => {

@@ -132,7 +132,8 @@ describe('C4 direct e2e — [i] clipboard ingest → fully job → [j] queue + p
   describe('(d) ring closure — webhook S1 → [c] paste → [j] QUEUED + tui seam', () => {
     it('GIVEN a recovery ring WHEN a full webhook→paste→[j] cycle runs THEN QUEUED and the ipc seam mirrors then clears · e2e c4', async () => {
       await app.resetDb();
-      app.tui.rmq.reader.resetReader();
+      app.tui.reader.resetReader();
+      await app.tui.reader.purgeQueues();
       const jobId = 'c4-boundary-msg-job-0';
 
       const res = await app.webhook.post('c4-boundary-msg');

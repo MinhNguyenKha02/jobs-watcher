@@ -1,27 +1,22 @@
 /**
- * Solid-Files Rework v2 — canonical 2-container test-IoC facade.
+ * TUI IoC prune — purgeQueues aggregate — 2-container test-IoC facade.
  *
- * Two composition roots, each exposing a **perfect, consolidated** surface:
+ * Two composition roots, flat writer/reader/ipc surface:
  *
  *   buildTestDaemonContainer(cfg, overrides?) →
  *     { rmq, jobLifecycle, extractQueue, browser, assetProducing,
  *       uds, webhook, mongo, assetDir, storage, apps, start, stop }
  *   buildTestTuiContainer(cfg, overrides?) →
- *     { rmq: { consume, reader }, uds: { write }, ipc: { path, read, clear },
- *       app, start, stop }
+ *     { reader, writer, ipc:{read,clear}, start, stop } + deprecated aliases
  *
- * The 2nd arg `{ports}` selects mock mode (production composition root, all
- * infra ports scripted with `vi.fn()` spies; NO Mongo/RMQ/UDS ever touched).
- * Absent (or carrying only the real-mode `assetProducing` seam) → real mode
- * (full mongod + namespaced live RMQ exchange + UDS socket, real adapters).
- * Publication is proven via `daemon.rmq.ports.parse|route` (spies or
- * real) and the consumer leg `tui.rmq.consume` (fresh exclusive queue, ack).
+ * The 2nd arg `{ports}` selects mock mode (vi.fn() spies; NO infra).
+ * Real mode uses mongod + namespaced `jobs.events.int.<ns>` + UDS socket.
+ * TUI asserts via durable reader → ipc file seam (no rmq.consume).
  */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import amqplib, { type Channel } from 'amqplib';
 import type { Collection } from 'mongodb';
 import { vi } from 'vitest';
 
@@ -38,14 +33,12 @@ import type { IngestorPort } from '../../src/application/ports/inbound/ingestor.
 import type { JobLifecyclePort } from '../../src/application/ports/job-lifecycle.port.js';
 import type { ParsePort } from '../../src/application/ports/parse.port.js';
 import type { RoutePort } from '../../src/application/ports/route.port.js';
-import { ActionEvent } from '../../src/domain/types/action-event.js';
 import type { UdsAdapter } from '../../src/infrastructure/inbound/uds/uds-adapter.js';
 import type {
   WebhookAdapter,
   GmailClient,
 } from '../../src/infrastructure/inbound/web/webhook-adapter.js';
 import { postJsonOverUds } from '../../src/infrastructure/utils/uds-http.js';
-import type { RabbitMqJobReader } from '../../src/presentation/tui/components/RabbitMqJobReader.js';
 import type { ActionWriterPort } from '../../src/presentation/tui/ports/action-writer.port.js';
 import type { JobEventReaderPort } from '../../src/presentation/tui/ports/job-event-reader.port.js';
 import {
@@ -80,21 +73,10 @@ function releaseRealNs(ns: string): void {
   else activeNs.set(ns, n - 1);
 }
 
-/** Shared consumed payload shape (mirrors what the real RabbitMqJobReader reads). */
+/** @deprecated rmq.consume removed — assert via ipc.read() downstream of durable reader */
 export type ConsumedJob = any;
-
-const ROLE_KEYS: Record<'s1' | 's2' | 's34', ActionEvent[]> = {
-  s1: [ActionEvent.GENERATED],
-  s2: [ActionEvent.PARSE_COMPLETED],
-  s34: [
-    ActionEvent.QUEUED,
-    ActionEvent.TRASHED,
-    ActionEvent.ROUTE_FAILED,
-    ActionEvent.PARSE_FAILED,
-  ],
-};
-
-export type ConsumeTarget = 's1' | 's2' | 's34' | ActionEvent[];
+/** @deprecated consume target removed — use ipc seam */
+export type ConsumeTarget = 's1' | 's2' | 's34' | string[];
 export type TestStorage = Awaited<ReturnType<typeof createTestStorage>>;
 /** Structural scheduler surface the facade exposes under `apps.scheduler`. */
 export type AppsScheduler = { start: () => Promise<void>; stop: () => Promise<void> };
@@ -246,6 +228,7 @@ export function mockJobEventReaderPort() {
     isConnected: vi.fn(() => false),
     getQueueDepth: vi.fn(() => 0),
     resetReader: vi.fn(),
+    purgeQueues: vi.fn(async () => {}),
   } satisfies JobEventReaderPort;
 }
 
@@ -490,30 +473,24 @@ export interface TuiPortOverrides {
 
 export interface TuiTestContainer {
   ns: string;
-  rmq: {
-    /**
-     * Bind a fresh exclusive queue to the given routing keys (role shorthand
-     * or explicit key set) and resolve with the first matching real payload
-     * (acked / removed). Call BEFORE triggering; await the returned promise
-     * AFTER. Kills the bind-vs-publish race via a channel established at build.
-     */
-    consume(target: ConsumeTarget, timeoutMs?: number): Promise<ConsumedJob>;
-    /** Cancel all pending consume waiters (G4 hygiene); returns flushed count. */
-    flushPending(reason?: string): number;
-    reader: JobEventReaderPort;
-  };
-  uds: { write: ActionWriterPort };
-  ipc: { path: string; read(): CurrentJobState; clear(): void };
-  app: TuiContainer;
+  reader: JobEventReaderPort;
+  writer: ActionWriterPort;
+  ipc: { read(): CurrentJobState; clear(): void };
   start: () => Promise<void>;
   stop: () => Promise<void>;
+  /** @deprecated use `reader` */
+  rmq: { reader: JobEventReaderPort };
+  /** @deprecated use `writer` */
+  uds: { write: ActionWriterPort };
+  /** @deprecated use container directly; kept for compatibility */
+  app: TuiContainer;
 }
 
 /**
  * TUI-process harness through the TUI composition root. Real mode: shares the
- * per-`ns` exchange + socket with the daemon harness; reader started at build.
- * Mock mode (`{ports}` overrides reader/writer): no RMQ/UDS — `consume`
- * rejects (no real exchange); ipc seam remains the real shared state file.
+ * per-`ns` exchange + socket with the daemon harness; reader auto-started via
+ * `container.start()` (durable 4 queues). Mock mode (`{ports}` overrides
+ * reader/writer): no RMQ/UDS — ipc seam remains the real shared state file.
  */
 export function buildTestTuiContainer(cfg: BuildTestTuiContainerOptions): Promise<TuiTestContainer>;
 export function buildTestTuiContainer(
@@ -535,192 +512,21 @@ export async function buildTestTuiContainer(
 
   const container = buildTuiContainer(
     {
-      rmq: {
-        url: opts.rmq?.url ?? RMQ_URL,
-        exchange,
-        s1Queue: `tui.${opts.ns}.s1`,
-        s2Queue: `tui.${opts.ns}.s2`,
-        s34Queue: `tui.${opts.ns}.s3s4`,
-      },
+      rmq: { url: opts.rmq?.url ?? RMQ_URL, exchange },
       uds: { socketPath: socket, token },
+      ns: opts.ns,
     },
     {
-      ...(readerPort ? { ports: { rmqReader: readerPort as unknown as RabbitMqJobReader } } : {}),
-      ...(writerPort && !isMock
-        ? {}
-        : writerPort
-          ? { ports: { udsWriter: writerPort as unknown as never } }
-          : {}),
+      ...(readerPort ? { ports: { rmqReader: readerPort } } : {}),
+      ...(writerPort ? { ports: { udsWriter: writerPort } } : {}),
     }
   );
 
   if (!isMock) {
-    // Purge leftover queues so a fresh reader never drains stale-run messages.
-    try {
-      const purgeConn = await amqplib.connect(opts.rmq?.url ?? RMQ_URL);
-      const purgeCh = await purgeConn.createChannel();
-      for (const suffix of ['s1', 's2', 's3s4']) {
-        try {
-          await purgeCh.assertQueue(`tui.${opts.ns}.${suffix}`);
-          await purgeCh.purgeQueue(`tui.${opts.ns}.${suffix}`);
-        } catch {
-          /* best-effort */
-        }
-      }
-      await purgeCh.close();
-      await purgeConn.close();
-    } catch {
-      /* best-effort — RMQ may be unavailable in this run */
-    }
     await container.start();
-    await container.rmqReader.start();
   }
 
-  // Consumer leg: a dedicated connection/channel with ONE pre-bound durable
-  // queue per role (s1/s2/s34), wired at build. Each `consume` call registers a
-  // FIFO waiter on the role queue and a drain consumer resolves the oldest
-  // waiter — binds happen at build (long before any publish), so the
-  // bind-vs-publish race is eliminated deterministically: a published message
-  // always routes into the pre-bound queue and waits for its waiter.
-  let consumeConn: Awaited<ReturnType<typeof amqplib.connect>> | null = null;
-  let consumeCh: Channel | null = null;
-
-  async function ensureConsumerChannel(): Promise<Channel> {
-    if (!consumeCh) {
-      consumeConn = await amqplib.connect(opts.rmq?.url ?? RMQ_URL);
-      consumeCh = await consumeConn.createChannel();
-      await consumeCh.assertExchange(exchange, 'topic', { durable: true });
-    }
-    return consumeCh;
-  }
-
-  const CONSUME_ROLES = ['s1', 's2', 's34'] as const;
-  const CONSUME_QUEUE = (role: string) => `tui.${opts.ns}.consume.${role}`;
-
-  interface ConsumeWaiter {
-    resolve: (v: ConsumedJob) => void;
-    timer: ReturnType<typeof setTimeout>;
-    cancelled: boolean;
-  }
-  const pending: Record<string, ConsumeWaiter[]> = { s1: [], s2: [], s34: [] };
-
-  async function startRoleConsumers(): Promise<void> {
-    const ch = await ensureConsumerChannel();
-    for (const role of CONSUME_ROLES) {
-      const queue = CONSUME_QUEUE(role);
-      await ch.assertQueue(queue, { durable: false });
-      await ch.purgeQueue(queue).catch(() => {});
-      for (const key of ROLE_KEYS[role]) {
-        await ch.bindQueue(queue, exchange, key);
-      }
-      ch.consume(
-        queue,
-        (msg) => {
-          if (!msg) return;
-          const waiter = pending[role].shift();
-          if (waiter) {
-            clearTimeout(waiter.timer);
-            if (waiter.cancelled) {
-              ch.ack(msg);
-              return;
-            }
-            ch.ack(msg);
-            waiter.resolve(JSON.parse(msg.content.toString()));
-          } else {
-            ch.ack(msg);
-          }
-        },
-        { noAck: false }
-      );
-    }
-  }
-
-  if (!isMock) {
-    await startRoleConsumers();
-  }
-
-  /** Map a consume target to its role queue (single-role subset) or null. */
-  function roleForTarget(target: ConsumeTarget): (typeof CONSUME_ROLES)[number] | null {
-    if (typeof target === 'string') return target;
-    const matches = CONSUME_ROLES.filter(
-      (role) =>
-        target.length > 0 && target.every((k) => (ROLE_KEYS[role] as ActionEvent[]).includes(k))
-    );
-    return matches.length === 1 ? matches[0] : null;
-  }
-
-  /** Fresh-exclusive-queue fallback for cross-role key arrays (racy; path suites use roles). */
-  async function consumeFresh(target: ActionEvent[], timeoutMs: number): Promise<ConsumedJob> {
-    const ch = await ensureConsumerChannel();
-    const { queue } = await ch.assertQueue('', { exclusive: true });
-    for (const key of target) {
-      await ch.bindQueue(queue, exchange, key);
-    }
-    return new Promise<ConsumedJob>((resolve, reject) => {
-      const timer = setTimeout(
-        () => reject(new Error(`Timeout waiting for message on ${exchange}:${target.join('|')}`)),
-        timeoutMs
-      );
-      ch.consume(
-        queue,
-        (msg) => {
-          if (msg) {
-            clearTimeout(timer);
-            ch.ack(msg);
-            void ch.deleteQueue(queue).catch(() => {});
-            resolve(JSON.parse(msg.content.toString()));
-          }
-        },
-        { noAck: false }
-      );
-    });
-  }
-
-  const consume = (target: ConsumeTarget, timeoutMs = 10000): Promise<ConsumedJob> => {
-    if (isMock) {
-      throw new Error('tui.rmq.consume requires real mode (no RMQ in mock-mode tui)');
-    }
-    const role = roleForTarget(target);
-    if (!role) {
-      return consumeFresh(target as ActionEvent[], timeoutMs);
-    }
-    const keys = typeof target === 'string' ? ROLE_KEYS[target] : (target as ActionEvent[]);
-    return new Promise<ConsumedJob>((resolve, reject) => {
-      const waiter: ConsumeWaiter = { resolve, timer: undefined as never, cancelled: false };
-      waiter.timer = setTimeout(() => {
-        const idx = pending[role].indexOf(waiter);
-        if (idx !== -1) {
-          pending[role].splice(idx, 1);
-        }
-        reject(new Error(`Timeout waiting for message on ${exchange}:${keys.join('|')}`));
-      }, timeoutMs);
-      pending[role].push(waiter);
-    });
-  };
-
-  /**
-   * Waiter hygiene (G4): cancel every pending consume waiter so a timed-out or
-   * un-awaited registration from one cell can never steal a later cell's
-   * message. Exposed for explicit per-cell cleanup and wired into `stop()`.
-   * Flushed waiters resolve with a `__flushed__` sentinel payload; the drain
-   * consumer acks their messages untouched (cancelled flag).
-   */
-  const flushPending = (reason = 'flushPending'): number => {
-    let flushed = 0;
-    for (const role of CONSUME_ROLES) {
-      for (const waiter of pending[role].splice(0)) {
-        clearTimeout(waiter.timer);
-        waiter.cancelled = true;
-        flushed++;
-        waiter.resolve({ flushedSentinel: true, reason, ns: opts.ns });
-      }
-    }
-    return flushed;
-  };
-
-  // TUI→daemon action-writer seam. Uses the raw UDS HTTP wire with a generous
-  // timeout: real-mode resolution renders the PDF before responding, which
-  // exceeds the prod UdsActionWriter's 10s client timeout.
+  // TUI→daemon action-writer seam (60s timeout for [j] pdf render).
   const facadeUdsWriter = (): ActionWriterPort => {
     const post = (path: string, body: unknown) =>
       postJsonOverUds(
@@ -755,35 +561,29 @@ export async function buildTestTuiContainer(
     };
   };
 
+  const reader = (readerPort ?? container.reader) as JobEventReaderPort;
+  const writer = (writerPort ?? facadeUdsWriter()) as ActionWriterPort;
+
   return {
     ns: opts.ns,
-    rmq: { consume, flushPending, reader: readerPort ?? container.rmqReader },
-    uds: { write: (writerPort ?? facadeUdsWriter()) as unknown as ActionWriterPort },
+    reader,
+    writer,
     ipc: {
-      path: process.env.TUI_SHARED_STATE_PATH ?? '',
       read: () => getCurrentJob(),
       clear: () => clearCurrentJob(),
+    },
+    // deprecated aliases
+    get rmq() {
+      return { reader };
+    },
+    get uds() {
+      return { write: writer };
     },
     app: container,
     start: () => container.start(),
     stop: async () => {
-      container.stop();
+      await container.stop();
       if (!isMock) releaseRealNs(`tui:${opts.ns}`);
-      flushPending('tui-stop');
-      if (consumeCh) {
-        try {
-          await consumeCh.close();
-        } catch {
-          /* best-effort */
-        }
-      }
-      if (consumeConn) {
-        try {
-          await consumeConn.close();
-        } catch {
-          /* best-effort */
-        }
-      }
     },
   };
 }

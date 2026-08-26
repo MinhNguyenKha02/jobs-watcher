@@ -14,7 +14,7 @@ import {
   type TestDaemonContainer,
   type TuiTestContainer,
 } from '../../helpers/test-container.js';
-import { purgeTuiQueues } from '../../helpers/test-utils.js';
+import { waitFor } from '../../helpers/test-utils.js';
 
 const S1_EMAIL_HTML = `<div data-source="topcv">
 <a class="job-item-link" href="/viec-lam/software-engineer">
@@ -99,8 +99,9 @@ describe('Webhook adapter contract — real PubSub push + real ingestor via test
   }
 
   async function expectNoGeneratedEvent(timeoutMs = 3000): Promise<void> {
-    const p = tui.rmq.consume('s1', timeoutMs);
-    await expect(p).rejects.toThrow(/Timeout/);
+    await expect(
+      waitFor(() => tui.ipc.read().stage === JobStage.PARTIAL_PARSED, timeoutMs)
+    ).rejects.toThrow(/timed out/);
   }
 
   beforeAll(async () => {
@@ -116,8 +117,8 @@ describe('Webhook adapter contract — real PubSub push + real ingestor via test
 
   beforeEach(async () => {
     await daemon.storage.clearDb();
-    await purgeTuiQueues('webhook-adapter');
-    tui.rmq.reader.resetReader();
+    await tui.reader.purgeQueues();
+    tui.reader.resetReader();
     tui.ipc.clear();
   });
 
@@ -155,7 +156,6 @@ describe('Webhook adapter contract — real PubSub push + real ingestor via test
       adapter = bootWebhook(makeGmail());
       await listen(port);
 
-      const gen = tui.rmq.consume('s1');
       const res = await postJson(port, {
         message: {
           data: Buffer.from(
@@ -166,11 +166,14 @@ describe('Webhook adapter contract — real PubSub push + real ingestor via test
       });
       expect(res.status).toBe(202);
 
-      const msg = await gen;
-      expect(msg._id).toMatch(/^msg-history-1-job-/);
-      expect(msg.role).toBe('Software Engineer');
-      expect(msg.company).toBe('TestCo');
-      expect(msg.stage).toBe(JobStage.PARTIAL_PARSED);
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId !== null && tui.ipc.read().stage === JobStage.PARTIAL_PARSED
+      );
+      const cur = tui.ipc.read();
+      expect(cur.jobLifecycleId).toMatch(/^msg-history-1-job-/);
+      expect(cur.job?.role).toBe('Software Engineer');
+      expect(cur.job?.company).toBe('TestCo');
+      expect(cur.stage).toBe(JobStage.PARTIAL_PARSED);
     });
 
     it('GIVEN a simulated push WHEN it carries a raw messageId THEN getMessage → GENERATED on the real bus (S1)', async () => {
@@ -178,13 +181,15 @@ describe('Webhook adapter contract — real PubSub push + real ingestor via test
       adapter = bootWebhook(makeGmail());
       await listen(port);
 
-      const gen = tui.rmq.consume('s1');
       const res = await postJson(port, { messageId: 'msg-history-1' });
       expect(res.status).toBe(202);
 
-      const msg = await gen;
-      expect(msg._id).toMatch(/^msg-history-1-job-/);
-      expect(msg.role).toBe('Software Engineer');
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId !== null && tui.ipc.read().stage === JobStage.PARTIAL_PARSED
+      );
+      const cur = tui.ipc.read();
+      expect(cur.jobLifecycleId).toMatch(/^msg-history-1-job-/);
+      expect(cur.job?.role).toBe('Software Engineer');
     });
 
     it('GIVEN the metadata precondition WHEN extractHeader supplies subject/from/to THEN the GENERATED doc carries them (S1)', async () => {
@@ -202,11 +207,13 @@ describe('Webhook adapter contract — real PubSub push + real ingestor via test
       );
       await listen(port);
 
-      const gen = tui.rmq.consume('s1');
       await postJson(port, { messageId: 'meta-msg' });
 
-      const msg = await gen;
-      const id = msg._id as string;
+      await waitFor(
+        () => tui.ipc.read().jobLifecycleId !== null && tui.ipc.read().stage === JobStage.PARTIAL_PARSED
+      );
+      const cur = tui.ipc.read();
+      const id = cur.jobLifecycleId as string;
       const doc = await daemon.jobLifecycle.findById(id);
       expect(doc).not.toBeNull();
       expect(doc!.gmailMeta).toMatchObject({

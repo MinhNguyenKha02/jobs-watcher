@@ -155,7 +155,8 @@ describe('C2 browser-auto e2e — webhook Indeed s1(url) → scheduler + Playwri
   describe('(c) ring closure — full [j] cycle + ipc seam + next pick', () => {
     it('GIVEN a completed auto cycle WHEN a fresh Indeed s1(url) follows THEN the next job reaches ENRICHED through the scheduler and the ipc seam stays empty · e2e c2', async () => {
       await app.resetDb();
-      app.tui.rmq.reader.resetReader();
+      app.tui.reader.resetReader();
+      await app.tui.reader.purgeQueues();
       const jobId = 'c2-indeed-ring-msg-job-0';
 
       const res = await app.webhook.post('c2-indeed-ring-msg');

@@ -16,9 +16,14 @@ import { RabbitMqParseAdapter } from '../infrastructure/outbound/rabbitmq/rabbit
 import { RabbitMqRoutingAdapter } from '../infrastructure/outbound/rabbitmq/rabbitmq-route-adapter.js';
 import { RabbitMqJobReader } from '../presentation/tui/components/RabbitMqJobReader.js';
 import { UdsActionWriter } from '../presentation/tui/components/UdsActionWriter.js';
-import { resetState } from '../presentation/tui/shared-tui-state.js';
-import { ActionController } from '../presentation/tui/tui-stdin-adapter.js';
-import { OpsTuiApp } from '../presentation/tui/tui-stdout-adapter.js';
+import {
+  clearCurrentJob,
+  getCurrentJob,
+  resetState,
+  type CurrentJobState,
+} from '../presentation/tui/shared-tui-state.js';
+import type { ActionWriterPort } from '../presentation/tui/ports/action-writer.port.js';
+import type { JobEventReaderPort } from '../presentation/tui/ports/job-event-reader.port.js';
 
 import { ExtractionScheduler } from './extraction-scheduler.js';
 import { JobIngestor } from './ingestor.js';
@@ -221,37 +226,37 @@ export function buildDaemonContainer(
 }
 
 /**
- * TUI process composition root. Mirrors the two-process wiring: the
- * action-controller process (`ActionController` + `UdsActionWriter`) and the
- * render-server process (`OpsTuiApp` + `RabbitMqJobReader`) both talking over
- * IPC — UDS req/res (`/internal/action`, `/internal/ingest`) and RMQ pub/sub
- * (`jobs.events`) — with the shared ipc file as the observable seam. Queue
- * names and the exchange are per-run so test namespaces never collide.
+ * TUI process composition root. Flat writer/reader/ipc surface; durable queues derived
+ * from `ns` (`tui.<ns>.s1/s2/s2direct/s3s4`). Auto-starts reader on `start()`.
+ * `rmq.consume` ephemeral helper deleted — asserts go via `ipc` file seam.
  */
 export interface TuiContainerConfig {
-  rmq: { url: string; exchange: string; s1Queue: string; s2Queue: string; s34Queue: string };
+  rmq: { url: string; exchange: string };
   uds: { socketPath: string; token?: string };
-  pollIntervalMs?: number;
+  ns?: string;
 }
 
 export interface TuiContainerOverrides {
   rmq?: Partial<TuiContainerConfig['rmq']>;
   uds?: Partial<TuiContainerConfig['uds']>;
-  pollIntervalMs?: number;
+  ns?: string;
   /** Binding profile: substitute reader/writer slots for tests. Absent → real adapter. */
   ports?: {
-    rmqReader?: RabbitMqJobReader;
-    udsWriter?: UdsActionWriter;
+    rmqReader?: JobEventReaderPort;
+    udsWriter?: ActionWriterPort;
   };
 }
 
 export interface TuiContainer {
-  udsWriter: UdsActionWriter;
-  actionController: ActionController;
-  rmqReader: RabbitMqJobReader;
-  opsTuiApp: OpsTuiApp;
+  writer: ActionWriterPort;
+  reader: JobEventReaderPort;
+  ipc: { read(): CurrentJobState; clear(): void };
   start: () => Promise<void>;
   stop: () => Promise<void>;
+  /** @deprecated use `writer` */
+  udsWriter: ActionWriterPort;
+  /** @deprecated use `reader` */
+  rmqReader: JobEventReaderPort;
 }
 
 export function buildTuiContainer(
@@ -260,37 +265,34 @@ export function buildTuiContainer(
 ): TuiContainer {
   const rmq = { ...cfg.rmq, ...overrides.rmq };
   const uds = { ...cfg.uds, ...overrides.uds };
+  const ns = overrides.ns ?? cfg.ns;
   const ports = overrides.ports ?? {};
 
-  const udsWriter = ports.udsWriter ?? new UdsActionWriter(uds.socketPath, uds.token);
+  const s1Queue = ns ? `tui.${ns}.s1` : 'tui.s1';
+  const s2Queue = ns ? `tui.${ns}.s2` : 'tui.s2';
+  const s2DirectQueue = ns ? `tui.${ns}.s2direct` : 'tui.s2direct';
+  const s34Queue = ns ? `tui.${ns}.s3s4` : 'tui.s3s4';
 
-  const actionController = new ActionController({
-    socketPath: uds.socketPath,
-    udsToken: uds.token,
-  });
+  const writer = (ports.udsWriter as ActionWriterPort) ?? new UdsActionWriter(uds.socketPath, uds.token);
 
-  const rmqReader =
-    ports.rmqReader ??
+  const reader =
+    (ports.rmqReader as JobEventReaderPort) ??
     new RabbitMqJobReader(rmq.url, {
       exchange: rmq.exchange,
-      s1Queue: rmq.s1Queue,
-      s2Queue: rmq.s2Queue,
-      s34Queue: rmq.s34Queue,
+      s1Queue,
+      s2Queue,
+      s2DirectQueue,
+      s34Queue,
     });
 
-  const opsTuiApp = new OpsTuiApp({
-    rmqUrl: rmq.url,
-    socketPath: uds.socketPath,
-    udsToken: uds.token,
-    pollIntervalMs: overrides.pollIntervalMs ?? cfg.pollIntervalMs,
-  });
+  const ipc = { read: getCurrentJob, clear: clearCurrentJob };
 
   let started = false;
 
   async function start(): Promise<void> {
     if (started) return;
-    // Initialize the shared ipc seam so both processes read/write the same file.
     resetState();
+    await reader.start();
     started = true;
     logger.info('TUI container started');
   }
@@ -298,7 +300,7 @@ export function buildTuiContainer(
   async function stop(): Promise<void> {
     if (!started) return;
     try {
-      rmqReader.stop();
+      reader.stop();
     } catch (e) {
       /* best-effort */
     }
@@ -307,10 +309,15 @@ export function buildTuiContainer(
   }
 
   return {
-    udsWriter,
-    actionController,
-    rmqReader,
-    opsTuiApp,
+    writer,
+    reader,
+    ipc,
+    get udsWriter() {
+      return writer;
+    },
+    get rmqReader() {
+      return reader;
+    },
     start,
     stop,
   };

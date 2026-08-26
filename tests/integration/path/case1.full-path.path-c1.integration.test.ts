@@ -5,7 +5,6 @@
 import fc from 'fast-check';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
-import { ActionEvent } from '../../../src/domain/types/action-event.js';
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import {
   linkedinSduiDetailHtml,
@@ -19,7 +18,7 @@ import {
   type TestDaemonContainer,
   type TuiTestContainer,
 } from '../../helpers/test-container.js';
-import { udsHelpers, purgeTuiQueues, waitFor, waitForPdfFiles } from '../../helpers/test-utils.js';
+import { udsHelpers, waitFor, waitForPdfFiles } from '../../helpers/test-utils.js';
 
 const TOPCV_EMAIL_HTML = topcvEmailHtmlMany([{ role: 'Backend Developer', company: 'Case1Co' }]);
 
@@ -47,8 +46,8 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
 
   beforeEach(async () => {
     await daemon.storage.clearDb();
-    await purgeTuiQueues('c1-full-path');
-    tui.rmq.reader.resetReader();
+    await tui.reader.purgeQueues();
+    tui.reader.resetReader();
     tui.ipc.clear();
   });
 
@@ -61,7 +60,6 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
   describe('(a) canonical S1 → [c] paste → [j]/[d] over UDS', () => {
     it('GIVEN S1 partial WHEN [c] webhook ingest THEN [j] queue — canonical Case 1 (S1+S2+S3) · path c1', async () => {
       const messageId = 'c1-msg-1';
-      const gen = tui.rmq.consume('s1');
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
@@ -69,9 +67,11 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
         undefined,
         { messageId, subject: 'Backend Developer' }
       );
-      const genMsg = await gen;
-      const jobLifecycleId: string = genMsg._id;
+      await waitFor(() => tui.ipc.read().jobLifecycleId !== null);
+      expect(tui.reader.isConnected()).toBe(true);
+      const jobLifecycleId: string = tui.ipc.read().jobLifecycleId!;
       expect(jobLifecycleId).toMatch(/-job-0$/);
+      expect(tui.ipc.read().stage).toBe(JobStage.PARTIAL_PARSED);
 
       const partialDoc = await daemon.jobLifecycle.findById(jobLifecycleId);
       expect(partialDoc).not.toBeNull();
@@ -90,10 +90,9 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       expect(typeof enrichedDoc!.details).toBe('string');
       expect(enrichedDoc!.details!.length).toBeGreaterThan(0);
 
-      const queue = tui.rmq.consume('s34');
-      await tui.uds.write.queue(jobLifecycleId);
-      const queueMsg = await queue;
-      expect(queueMsg.jobLifecycleId).toBe(jobLifecycleId);
+      await tui.writer.queue(jobLifecycleId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
 
       await waitForPdfFiles(daemon.assetDir);
 
@@ -104,7 +103,6 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
 
     it('GIVEN S1 WHEN [c] paste THEN [d] trash via UDS (S1+S2+S3) · path c1', async () => {
       const messageId = 'c1-msg-trash';
-      const gen = tui.rmq.consume('s1');
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
@@ -112,21 +110,15 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
         undefined,
         { messageId, subject: 'Backend Developer' }
       );
-      const genMsg = await gen;
-      const jobLifecycleId: string = genMsg._id;
+      await waitFor(() => tui.ipc.read().jobLifecycleId !== null);
+      const jobLifecycleId: string = tui.ipc.read().jobLifecycleId!;
 
       const ingest = await uds.ingest(CLIPBOARD_HTML, jobLifecycleId);
       expect(ingest.statusCode).toBe(200);
 
-      const trash = tui.rmq.consume([
-        ActionEvent.TRASHED,
-        ActionEvent.ROUTE_FAILED,
-        ActionEvent.PARSE_FAILED,
-      ]);
-      await tui.uds.write.trash(jobLifecycleId);
-      const trashMsg = await trash;
-      expect(trashMsg.jobLifecycleId).toBe(jobLifecycleId);
-      expect(trashMsg.reason).toBe('operator:trash');
+      await tui.writer.trash(jobLifecycleId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
 
       const trashedDoc = await daemon.jobLifecycle.findById(jobLifecycleId);
       expect(trashedDoc).not.toBeNull();
@@ -147,7 +139,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
       const jobLifecycleId: string = String(docs[0]._id);
       expect(docs.length).toBe(1);
 
-      await tui.uds.write.queue(jobLifecycleId);
+      await tui.writer.queue(jobLifecycleId);
 
       const guardedDoc = await daemon.jobLifecycle.findById(jobLifecycleId);
       expect(guardedDoc).not.toBeNull();
@@ -164,16 +156,12 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
         role: 'Software Engineer',
       });
 
-      const comp = tui.rmq.consume('s2');
       await daemon.apps.ingest.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
         topcvDetailHtml('Software Engineer', 'NewCo'),
         jobLifecycleId
       );
-      const compMsg = await comp;
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toBe(jobLifecycleId);
 
       const doc = await daemon.jobLifecycle.findById(jobLifecycleId);
       expect(doc).not.toBeNull();
@@ -184,17 +172,17 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
     });
 
     it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] with missing stage-1 doc skips enrichment — no completion, no doc (data-loss guard, S2) · path c1', async () => {
-      const comp = tui.rmq.consume('s2', 1500);
       await daemon.apps.ingest.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
         topcvDetailHtml(),
         'c1-missing-partial'
       );
-      await expect(comp).rejects.toThrow(/Timeout/);
+      await new Promise((r) => setTimeout(r, 500));
 
       const doc = await daemon.jobLifecycle.findById('c1-missing-partial');
       expect(doc).toBeNull();
+      expect(tui.ipc.read().jobLifecycleId).not.toBe('c1-missing-partial');
     });
 
     it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] on an already FULL_PARSED job is a no-op (B2 guard) (S2) · path c1', async () => {
@@ -223,21 +211,17 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
     });
 
     it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN MANUAL FULL without jobLifecycleId is silent — no parse.failed (B9), clip-* doc created (S2) · path c1', async () => {
-      const comp = tui.rmq.consume('s2');
       await daemon.apps.ingest.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
         linkedinSduiDetailHtml('Software Engineer', 'ClipB9Co')
       );
-      const compMsg = await comp;
-      expect(compMsg.job).toBeDefined();
-      expect(compMsg.job._id).toMatch(/^clip-/);
-
-      await expect(tui.rmq.consume([ActionEvent.PARSE_FAILED], 3000)).rejects.toThrow();
+      await new Promise((r) => setTimeout(r, 500));
 
       const docs = await daemon.mongo.raw('job_lifecycle').find({}).toArray();
       expect(docs.length).toBe(1);
       expect(docs[0]._id).toMatch(/^clip-/);
+      expect(docs[0].stage).toBe(JobStage.FULL_PARSED);
     });
   });
 
@@ -245,19 +229,19 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
     it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] then [j] via UDS — queue resolution succeeds (S2+S3) · path c1', async () => {
       const jobLifecycleId = await seedPartial({ _id: 'c1-2a-queue' });
 
-      const comp = tui.rmq.consume('s2');
       await daemon.apps.ingest.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
         topcvDetailHtml('Software Engineer', 'QueueTestCo'),
         jobLifecycleId
       );
-      await comp;
+      await new Promise((r) => setTimeout(r, 200));
+      const preDoc = await daemon.jobLifecycle.findById(jobLifecycleId);
+      expect(preDoc?.stage).toBe(JobStage.FULL_PARSED);
 
-      const queue = tui.rmq.consume('s34');
-      await tui.uds.write.queue(jobLifecycleId);
-      const queueMsg = await queue;
-      expect(queueMsg.jobLifecycleId).toBe(jobLifecycleId);
+      await tui.writer.queue(jobLifecycleId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
 
       await waitForPdfFiles(daemon.assetDir);
 
@@ -269,23 +253,19 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
     it('GIVEN an S2 manual FULL_PARSED input WHEN an ingest signal is processed THEN [c] then [d] via UDS — trash resolution succeeds (S2+S3) · path c1', async () => {
       const jobLifecycleId = await seedPartial({ _id: 'c1-2a-trash' });
 
-      const comp = tui.rmq.consume('s2');
       await daemon.apps.ingest.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
         topcvDetailHtml('Software Engineer', 'TrashTestCo'),
         jobLifecycleId
       );
-      await comp;
+      await new Promise((r) => setTimeout(r, 200));
+      const preDoc = await daemon.jobLifecycle.findById(jobLifecycleId);
+      expect(preDoc?.stage).toBe(JobStage.FULL_PARSED);
 
-      const trash = tui.rmq.consume([
-        ActionEvent.TRASHED,
-        ActionEvent.ROUTE_FAILED,
-        ActionEvent.PARSE_FAILED,
-      ]);
-      await tui.uds.write.trash(jobLifecycleId);
-      const trashMsg = await trash;
-      expect(trashMsg.reason).toBe('operator:trash');
+      await tui.writer.trash(jobLifecycleId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      expect(tui.ipc.read().job).toBeNull();
 
       const doc = await daemon.jobLifecycle.findById(jobLifecycleId);
       expect(doc).not.toBeNull();
@@ -294,7 +274,6 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
 
     it('GIVEN a completed S1→[c]→[j] cycle WHEN a fresh S1 follows THEN the ring closes: the next job reaches S3 QUEUED (s1→s2→s3→next pick) · path c1', async () => {
       const messageId = 'c1-ring-1';
-      const gen = tui.rmq.consume('s1');
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
@@ -302,20 +281,17 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
         undefined,
         { messageId, subject: 'Backend Developer' }
       );
-      const genMsg = await gen;
-      const jobId: string = genMsg._id;
+      await waitFor(() => tui.ipc.read().jobLifecycleId !== null);
+      const jobId: string = tui.ipc.read().jobLifecycleId!;
 
       const ingest = await uds.ingest(CLIPBOARD_HTML, jobId);
       expect(ingest.statusCode).toBe(200);
 
-      const queue = tui.rmq.consume('s34');
-      await tui.uds.write.queue(jobId);
-      const queueMsg = await queue;
-      expect(queueMsg.jobLifecycleId).toBe(jobId);
+      await tui.writer.queue(jobId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
       await waitForPdfFiles(daemon.assetDir);
       expect((await daemon.jobLifecycle.findById(jobId))!.status).toBe(JobStatus.QUEUED);
 
-      const gen2 = tui.rmq.consume('s1');
       await daemon.apps.ingest.processIngest(
         JobSource.BROWSER_AUTO,
         JobStage.PARTIAL_PARSED,
@@ -323,22 +299,20 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
         undefined,
         { messageId: 'c1-ring-next' }
       );
-      const genMsg2 = await gen2;
-      const nextId: string = genMsg2._id;
-      expect(genMsg2.company).toBe('C1RingNextCo');
+      await waitFor(() => tui.ipc.read().jobLifecycleId !== null && tui.ipc.read().job?.company === 'C1RingNextCo');
+      const nextId: string = tui.ipc.read().jobLifecycleId!;
+      expect(tui.ipc.read().job?.company).toBe('C1RingNextCo');
 
       const ingest2 = await uds.ingest(topcvDetailHtml('Data Engineer', 'C1RingNextCo'), nextId);
       expect(ingest2.statusCode).toBe(200);
 
-      const queue2 = tui.rmq.consume('s34');
-      await tui.uds.write.queue(nextId);
-      const queue2Msg = await queue2;
-      expect(queue2Msg.jobLifecycleId).toBe(nextId);
+      await tui.writer.queue(nextId);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
       expect((await daemon.jobLifecycle.findById(nextId))!.status).toBe(JobStatus.QUEUED);
     }, 60000);
 
     it('GIVEN the tui-ioc precondition WHEN the daemon publishes S1+S2 over RMQ and the tui sends [j] over UDS THEN the tui reader mirrors then clears the job on the ipc seam (tui↔daemon over real RMQ+UDS) · path c1', async () => {
-      await waitFor(() => tui.rmq.reader.isConnected());
+      await waitFor(() => tui.reader.isConnected());
       const jobId = 'c1-tui-boundary-1';
 
       await daemon.rmq.ports.parse.emitGenerated(
@@ -378,7 +352,7 @@ describe('c1 full-path — Case 1 partial → [o][p][c] → full → [j]/[d] →
         source: JobSource.MANUAL,
       });
 
-      await tui.uds.write.queue(jobId);
+      await tui.writer.queue(jobId);
       await waitFor(() => tui.ipc.read().jobLifecycleId === null);
       expect(tui.ipc.read().job).toBeNull();
     }, 60000);

@@ -122,7 +122,7 @@ describe('TUI × daemon 2-process boundary contract ([c]/[i]/[j]/[d] over UDS + 
       tui = await buildTestTuiContainer({ ns });
       uds = udsHelpers(base.uds.socket, 'e2e-internal-token');
       await base.start();
-      await waitFor(() => tui.rmq.reader.isConnected());
+      await waitFor(() => tui.reader.isConnected());
     }, 120000);
 
     afterAll(async () => {
@@ -147,7 +147,7 @@ describe('TUI × daemon 2-process boundary contract ([c]/[i]/[j]/[d] over UDS + 
       expect(cur.job?.company).toBe('SeedCo');
       expect(cur.job?.role).toBe('Software Engineer');
       expect(cur.stage).toBe(JobStage.PARTIAL_PARSED);
-      expect(tui.rmq.reader.getQueueDepth()).toBe(0);
+      expect(tui.reader.getQueueDepth()).toBe(0);
     });
 
     it('GIVEN a seeded stage-1 doc WHEN the TUI ingests clipboard HTML over UDS THEN s2a preserves s1 fields, details=htmlToText, republishes job.parse.completed and the seam shows the FULL job', async () => {
@@ -165,7 +165,7 @@ describe('TUI × daemon 2-process boundary contract ([c]/[i]/[j]/[d] over UDS + 
     });
 
     it('GIVEN the 2-process precondition WHEN the TUI sends [j] queue over UDS THEN the daemon publishes job.queue over RMQ and the seam clears the displayed job', async () => {
-      await tui.uds.write.queue('txd-1');
+      await tui.writer.queue('txd-1');
 
       await waitFor(() => tui.ipc.read().jobLifecycleId === null);
       expect(tui.ipc.read().job).toBeNull();
@@ -190,7 +190,7 @@ describe('TUI × daemon 2-process boundary contract ([c]/[i]/[j]/[d] over UDS + 
       await uds.ingest(TRASH_CO_HTML, 'txd-2');
       await waitFor(() => tui.ipc.read().job?.company === 'BinCo');
 
-      await tui.uds.write.trash('txd-2');
+      await tui.writer.trash('txd-2');
       await waitFor(() => tui.ipc.read().jobLifecycleId === null);
       expect(tui.ipc.read().job).toBeNull();
     });
@@ -206,9 +206,9 @@ describe('TUI × daemon 2-process boundary contract ([c]/[i]/[j]/[d] over UDS + 
       );
 
       await waitFor(() => tui.ipc.read().jobLifecycleId === 'q-1');
-      await waitFor(() => tui.rmq.reader.getQueueDepth() === 1);
+      await waitFor(() => tui.reader.getQueueDepth() === 1);
       expect(tui.ipc.read().job?.company).toBe('QCo1');
-      expect(tui.rmq.reader.getQueueDepth()).toBe(1);
+      expect(tui.reader.getQueueDepth()).toBe(1);
     });
 
     it('GIVEN the 2-process precondition WHEN the TUI ingests a standalone clipboard over UDS in direct mode THEN the daemon publishes job.parse.completed and the seam shows the standalone job', async () => {
