@@ -418,7 +418,7 @@ describe('Failure saga (b) — route failure (S3→S4) with S1 recovery ring', (
         );
         await new Promise((r) => setTimeout(r, 800));
         // clip via signal2bManual is direct-mode S2 — queue-mode defers, so verify via DB not ipc
-        const clipDocs = await daemon.mongo.raw('job_lifecycle').find({ _id: { $regex: /^clip-/ } }).toArray();
+        const clipDocs = await (daemon.mongo.raw('job_lifecycle') as unknown as { find: (q: unknown) => { toArray: () => Promise<unknown[]> } }).find({ _id: { $regex: /^clip-/ } }).toArray();
         expect(clipDocs.length).toBeGreaterThan(0);
         const matched = clipDocs.find((d: any) => String(d.company).includes(`RecoverCo-${token}`)) ?? clipDocs[clipDocs.length - 1];
         const clipId: string = String((matched as any)._id);

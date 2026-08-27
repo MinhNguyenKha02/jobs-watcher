@@ -227,6 +227,8 @@ export function mockJobEventReaderPort() {
     stop: vi.fn(),
     isConnected: vi.fn(() => false),
     getQueueDepth: vi.fn(() => 0),
+    peekPending: vi.fn(() => [] as string[]),
+    getQueueModeState: vi.fn(() => true),
     resetReader: vi.fn(),
     purgeQueues: vi.fn(async () => {}),
   } satisfies JobEventReaderPort;

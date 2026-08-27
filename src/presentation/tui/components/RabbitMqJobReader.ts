@@ -78,6 +78,12 @@ export class RabbitMqJobReader implements JobEventReaderPort {
   getQueueDepth(): number {
     return this.pendingJobs.length;
   }
+  peekPending(): string[] {
+    return this.pendingJobs.map((p) => String(p.job._id));
+  }
+  getQueueModeState(): boolean {
+    return this.getQueueMode();
+  }
   isConnected(): boolean {
     return this.connected;
   }

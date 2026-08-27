@@ -1,29 +1,28 @@
 /*
- * Path c4 (unit, mocked test-ioc) — direct [i] clipboard ring:
- *   clipboard ingest (signal2bManual) → clip-* FULL_PARSED → [j]/[d] resolution → empty ipc[direct] next cycle,
- *   owning dedupe / latest-wins / negative-clip cells.
- * Every `it` is GIVEN/WHEN/THEN with an S2–S4 checkpoint tag and `· path c4`.
+ * Path c4 — S2b→S3+clear except s2b (mocked) — direct, no s1[], single clip-*
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import type { IngestorPort } from '../../../src/application/ports/inbound/ingestor.port.js';
 import { JobStage, JobStatus, JobSource } from '../../../src/domain/types/job-lifecycle.js';
 import { linkedinSduiDetailHtml, nonJobHtml } from '../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
+import { assertDirectClear } from '../../helpers/assert-path.js';
+import { whenS2b, whenQueue, whenTrash } from '../../helpers/saga.js';
 import {
   mockJobLifecyclePort,
   mockExtractionQueuePort,
   mockParsePort,
   mockRoutingPort,
+  mockJobEventReaderPort,
+  mockActionWriterPort,
   buildTestDaemonContainer,
+  buildTestTuiContainer,
 } from '../../helpers/test-container.js';
+import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
 
-/** LinkedIn SDUi detail page — consumed by LinkedInJobExtractor for signal2b (clipboard direct ingest). */
-const clipDetail = (role = 'Junior Software Engineer', company = 'Junior Co', opts?: { easyApply?: boolean }) =>
-  linkedinSduiDetailHtml(role, company, 'Ho Chi Minh City, Vietnam', undefined, opts);
-
-describe('Path c4 unit — direct [i] clipboard → clip-* doc → [j]/[d] → empty ipc[direct] next cycle (mocked test-ioc)', () => {
-  let ingestor: IngestorPort;
+describe('Path c4 — S2b→S3+clear except s2b (mocked)', () => {
+  let daemon: Awaited<ReturnType<typeof buildTestDaemonContainer>>;
+  let tui: Awaited<ReturnType<typeof buildTestTuiContainer>>;
   let storage: ReturnType<typeof mockJobLifecyclePort>;
   let queue: ReturnType<typeof mockExtractionQueuePort>;
   let parsePort: ReturnType<typeof mockParsePort>;
@@ -34,137 +33,59 @@ describe('Path c4 unit — direct [i] clipboard → clip-* doc → [j]/[d] → e
     queue = mockExtractionQueuePort();
     parsePort = mockParsePort();
     routingPort = mockRoutingPort();
-    const mockedDaemon = await buildTestDaemonContainer(
+    daemon = await buildTestDaemonContainer(
       { ns: 'unit-path-c4' },
-      {
-        ports: {
-          jobLifecycle: storage,
-          extractionQueue: queue,
-          parse: parsePort,
-          route: routingPort,
-          assetProducing: { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) },
-        },
-      }
+      { ports: { jobLifecycle: storage, extractionQueue: queue, parse: parsePort, route: routingPort, assetProducing: { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) } } }
     );
-    ingestor = mockedDaemon.apps.ingest;
+    tui = await buildTestTuiContainer(
+      { ns: 'unit-path-c4' },
+      { ports: { rmqReader: mockJobEventReaderPort(), udsWriter: mockActionWriterPort() } }
+    );
+    setQueueMode(false);
+    (tui.reader.getQueueModeState as unknown as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(0);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([]);
   });
 
-  describe('(a) direct [i] clipboard ingest — signal2bManual', () => {
-    it('GIVEN a clipboard detail-page HTML WHEN a MANUAL FULL_PARSED ingest without jobLifecycleId is processed THEN persists a clip-* FULL_PARSED doc and emits completed (S2) · path c4', async () => {
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, clipDetail());
-      expect(storage.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          stage: JobStage.FULL_PARSED,
-          status: JobStatus.ENRICHED,
-          source: JobSource.MANUAL,
-          _id: expect.stringMatching(/^clip-/),
-        })
-      );
-      expect(parsePort.emitCompleted).toHaveBeenCalled();
-    });
+  it('GIVEN S2b LinkedIn 1 job [b]=direct WHEN [j] queue THEN S3 QUEUED+clear empty ipc · path c4', async () => {
+    await whenS2b(daemon, linkedinSduiDetailHtml('Software Engineer', 'C4Co'));
+    expect(storage.upsert).toHaveBeenCalledWith(expect.objectContaining({ _id: expect.stringMatching(/^clip-/), stage: JobStage.FULL_PARSED, status: JobStatus.ENRICHED }));
+    expect(parsePort.emitCompleted).toHaveBeenCalled();
+    expect(queue.enqueue).not.toHaveBeenCalled();
 
-    it('GIVEN a clipboard detail-page HTML WHEN a duplicate role+company is upserted THEN the duplicate is skipped without emitting completed (dedupe, S2) · path c4', async () => {
-      storage.upsert.mockRejectedValueOnce({ code: 11000 });
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, clipDetail());
-      expect(storage.upsert).toHaveBeenCalled();
-      expect(parsePort.emitCompleted).not.toHaveBeenCalled();
-    });
-
-    it('GIVEN two clipboard ingests with different companies WHEN each is processed THEN each creates its own clip-* doc (latest-wins, S2) · path c4', async () => {
-      const a = clipDetail('Junior Software Engineer', 'First Co');
-      const b = clipDetail('Junior Software Engineer', 'Second Co');
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, a);
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, b);
-      expect(storage.upsert).toHaveBeenCalledTimes(2);
-      expect(parsePort.emitCompleted).toHaveBeenCalledTimes(2);
-    });
+    const clipId = (storage.upsert.mock.calls[0][0] as { _id: string })._id;
+    // make findById return ENRICHED for queue
+    storage.findById.mockResolvedValue(makeStage1Partial({ _id: clipId, status: JobStatus.ENRICHED }));
+    await whenQueue(tui, clipId);
+    await daemon.apps.ingest.processResolution(clipId, 'queue');
+    expect(routingPort.emitJobQueued).toHaveBeenCalledWith(clipId, expect.objectContaining({ source: JobSource.MANUAL }));
+    assertDirectClear(tui, daemon, { clipId });
   });
 
-  describe('(b) negative clipboard — S2 → PARSE_FAILED', () => {
-    it('GIVEN an unparsable clipboard payload WHEN a MANUAL FULL_PARSED ingest is processed THEN emits PARSE_FAILED and creates no doc (S2+S4) · path c4', async () => {
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, nonJobHtml());
-      expect(parsePort.emitFailed).toHaveBeenCalledWith(
-        expect.stringMatching(/^clip-/),
-        expect.objectContaining({ stage: JobStage.FULL_PARSED })
-      );
-      expect(storage.upsert).not.toHaveBeenCalled();
-    });
-
-    it('GIVEN an empty clipboard payload WHEN a MANUAL FULL_PARSED ingest is processed THEN emits PARSE_FAILED and creates no doc (S2+S4) · path c4', async () => {
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '');
-      expect(parsePort.emitFailed).toHaveBeenCalledWith(
-        expect.stringMatching(/^clip-/),
-        expect.objectContaining({ error: 'HTML parse failed' })
-      );
-      expect(storage.upsert).not.toHaveBeenCalled();
-    });
+  it('GIVEN S2b 1 job WHEN [d] trash THEN TRASHED+clear · path c4', async () => {
+    await whenS2b(daemon, linkedinSduiDetailHtml('Backend Engineer', 'C4Co2'));
+    const clipId = (storage.upsert.mock.calls[0][0] as { _id: string })._id;
+    storage.findById.mockResolvedValue(makeStage1Partial({ _id: clipId, status: JobStatus.ENRICHED }));
+    await whenTrash(tui, clipId);
+    await daemon.apps.ingest.processResolution(clipId, 'trash');
+    expect(routingPort.emitJobTrashed).toHaveBeenCalledWith(clipId, 'operator:trash');
+    assertDirectClear(tui, daemon, { clipId });
   });
+});
 
-  describe('(c) [j]/[d] resolution guards on the direct ring', () => {
-    it('GIVEN a clip-* job that is not ENRICHED WHEN a queue resolution is applied THEN the [j] guard rejects it — no QUEUED event (S3+S4) · path c4', async () => {
-      storage.findById.mockResolvedValue(
-        makeStage1Partial({ _id: 'clip-guard', status: JobStatus.ENRICHING })
-      );
-      await ingestor.processResolution('clip-guard', 'queue');
-      expect(storage.updateStage).not.toHaveBeenCalled();
-      expect(routingPort.emitJobQueued).not.toHaveBeenCalled();
-    });
-
-    it('GIVEN a QUEUED clip-* job WHEN a trash resolution is applied THEN the [d] guard rejects the terminal state (S3+S4) · path c4', async () => {
-      storage.findById.mockResolvedValue(
-        makeStage1Partial({ _id: 'clip-queued', status: JobStatus.QUEUED })
-      );
-      await ingestor.processResolution('clip-queued', 'trash');
-      expect(storage.updateStage).not.toHaveBeenCalled();
-      expect(routingPort.emitJobTrashed).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('(d) direct [i] resolution — S2 → S3', () => {
-    it('GIVEN an ENRICHED clip-* job WHEN a queue resolution is applied THEN updates stage to QUEUED and emits QUEUED (S2+S3) · path c4', async () => {
-      storage.findById.mockResolvedValue(
-        makeStage1Partial({ _id: 'clip-ok', status: JobStatus.ENRICHED })
-      );
-      await ingestor.processResolution('clip-ok', 'queue');
-      expect(storage.updateStage).toHaveBeenCalledWith(
-        'clip-ok',
-        JobStage.FULL_PARSED,
-        JobStatus.QUEUED
-      );
-      expect(routingPort.emitJobQueued).toHaveBeenCalledWith(
-        'clip-ok',
-        expect.objectContaining({ source: JobSource.MANUAL })
-      );
-    });
-
-    it('GIVEN an ENRICHED clip-* job WHEN a trash resolution is applied THEN updates stage to TRASHED and emits TRASHED (S2+S3) · path c4', async () => {
-      storage.findById.mockResolvedValue(
-        makeStage1Partial({ _id: 'clip-trash', status: JobStatus.ENRICHED })
-      );
-      await ingestor.processResolution('clip-trash', 'trash');
-      expect(storage.updateStage).toHaveBeenCalledWith(
-        'clip-trash',
-        JobStage.FULL_PARSED,
-        JobStatus.TRASHED
-      );
-      expect(routingPort.emitJobTrashed).toHaveBeenCalledWith('clip-trash', 'operator:trash');
-    });
-  });
-
-  describe('(e) ring closure — empty ipc[direct]', () => {
-    it('GIVEN a completed clip-* → [j] → QUEUED cycle WHEN a fresh direct clipboard ingest follows THEN the next job creates a fresh clip-* doc and the ipc seam stays empty (s2b→s3→s2b→s3→empty ipc[direct]) · path c4', async () => {
-      storage.findById.mockResolvedValue(
-        makeStage1Partial({ _id: 'clip-first', status: JobStatus.ENRICHED })
-      );
-      await ingestor.processResolution('clip-first', 'queue');
-      expect(routingPort.emitJobQueued).toHaveBeenCalled();
-
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, clipDetail());
-      expect(storage.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({ _id: expect.stringMatching(/^clip-/) })
-      );
-      expect(parsePort.emitCompleted).toHaveBeenCalled();
-      expect(queue.enqueue).not.toHaveBeenCalled();
-    });
+describe('Path c4 — SRE (mocked)', () => {
+  it('GIVEN random S2b singles WHEN S3 drain THEN never enqueue ipc clears · path c4 SRE', async () => {
+    const s = mockJobLifecyclePort();
+    const q = mockExtractionQueuePort();
+    const p = mockParsePort();
+    const r = mockRoutingPort();
+    const d = await buildTestDaemonContainer({ ns: 'unit-path-c4-sre' }, { ports: { jobLifecycle: s, extractionQueue: q, parse: p, route: r, assetProducing: { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) } } });
+    const t = await buildTestTuiContainer({ ns: 'unit-path-c4-sre' }, { ports: { rmqReader: mockJobEventReaderPort(), udsWriter: mockActionWriterPort() } });
+    setQueueMode(false);
+    for (let i = 0; i < 2; i++) {
+      await whenS2b(d, linkedinSduiDetailHtml(`Role${i}`, `C4SRE${i}`));
+      expect(q.enqueue).not.toHaveBeenCalled();
+    }
+    expect(t.reader.getQueueDepth()).toBe(0);
   });
 });

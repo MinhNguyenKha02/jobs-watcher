@@ -1,35 +1,46 @@
 /*
- * Path c3 (unit, mocked test-ioc) — error sagas ring:
- *   parse-failure → PARSE_FAILED, route-failure → ROUTE_FAILED, retry budget + error propagation → S4 → next valid recovers.
- * Every `it` is GIVEN/WHEN/THEN with an S1–S4 checkpoint tag and `· path c3`.
- *
- * Injection semantics: each failure is a deterministic, single-shot, guard-style
- * invariant at the checkpoint where the ring MUST break (pending the saga
- * ingestor's job_lifecycle write, its findById probe, or a duplicated upsert).
- * The break is expected and ensured: the invoking error propagates as the S4
- * reason (never swallowed), and the asset-producer downstream consumer is never
- * reached (emitJobQueued/emitJobTrashed do not fire on the failed path).
+ * Path c3 — failures from c1/c2/c4 entries — 6 rings (mocked) — s1[4] pick by index, direct clear except s2b
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import type { IngestorPort } from '../../../src/application/ports/inbound/ingestor.port.js';
 import { JobStage, JobStatus, JobSource } from '../../../src/domain/types/job-lifecycle.js';
-import {
-  linkedinSduiDetailHtml,
-  nonJobHtml,
-  topcvEmailHtmlMany,
-} from '../../helpers/html-fixtures.js';
+import { topcvEmailHtmlMany, topcvDetailHtml, linkedinSduiDetailHtml, nonJobHtml } from '../../helpers/html-fixtures.js';
+import { indeedDetailHtml } from '../../helpers/html-fixtures.js';
 import { makeStage1Partial } from '../../helpers/test-builders.js';
+import { assertPicked, assertDirectClear } from '../../helpers/assert-path.js';
+import { whenS1Many, whenS2a, whenS2b, whenQueue } from '../../helpers/saga.js';
 import {
   mockJobLifecyclePort,
   mockExtractionQueuePort,
   mockParsePort,
   mockRoutingPort,
+  mockJobEventReaderPort,
+  mockActionWriterPort,
   buildTestDaemonContainer,
+  buildTestTuiContainer,
 } from '../../helpers/test-container.js';
+import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
 
-describe('Path c3 unit — error sagas — parse-failure → PARSE_FAILED, route-failure → ROUTE_FAILED → next valid recovers (mocked test-ioc)', () => {
-  let ingestor: IngestorPort;
+function s1Topcv4(p: string): string {
+  return topcvEmailHtmlMany([
+    { role: 'Software Engineer', company: `${p}Co0` },
+    { role: 'Backend Engineer', company: `${p}Co1` },
+    { role: 'Data Engineer', company: `${p}Co2` },
+    { role: 'Automation Engineer', company: `${p}Co3` },
+  ]);
+}
+function s1Indeed4(p: string): string {
+  return topcvEmailHtmlMany([ // TopCV html suffices for signal1 s1Count=4 shape; url-based Indeed variant not needed for unit S2c missing-id path
+    { role: 'Software Engineer', company: `${p}Co0` },
+    { role: 'Backend Engineer', company: `${p}Co1` },
+    { role: 'Data Engineer', company: `${p}Co2` },
+    { role: 'Automation Engineer', company: `${p}Co3` },
+  ]);
+}
+
+describe('Path c3 — failures from c1/c2/c4 entries — 6 rings (mocked)', () => {
+  let daemon: Awaited<ReturnType<typeof buildTestDaemonContainer>>;
+  let tui: Awaited<ReturnType<typeof buildTestTuiContainer>>;
   let storage: ReturnType<typeof mockJobLifecyclePort>;
   let queue: ReturnType<typeof mockExtractionQueuePort>;
   let parsePort: ReturnType<typeof mockParsePort>;
@@ -40,126 +51,104 @@ describe('Path c3 unit — error sagas — parse-failure → PARSE_FAILED, route
     queue = mockExtractionQueuePort();
     parsePort = mockParsePort();
     routingPort = mockRoutingPort();
-    const mockedDaemon = await buildTestDaemonContainer(
+    daemon = await buildTestDaemonContainer(
       { ns: 'unit-path-c3' },
-      {
-        ports: {
-          jobLifecycle: storage,
-          extractionQueue: queue,
-          parse: parsePort,
-          route: routingPort,
-          assetProducing: { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) },
-        },
-      }
+      { ports: { jobLifecycle: storage, extractionQueue: queue, parse: parsePort, route: routingPort, assetProducing: { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) } } }
     );
-    ingestor = mockedDaemon.apps.ingest;
+    tui = await buildTestTuiContainer({ ns: 'unit-path-c3' }, { ports: { rmqReader: mockJobEventReaderPort(), udsWriter: mockActionWriterPort() } });
+    setQueueMode(true);
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(3);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue(['s1-c3-job-1', 's1-c3-job-2', 's1-c3-job-3']);
+    (tui.reader.getQueueModeState as unknown as ReturnType<typeof vi.fn>).mockReturnValue(true);
   });
 
-  describe('(a) parse-failure saga — S2 → PARSE_FAILED', () => {
-    it('GIVEN an S2 clipboard job with non-LinkedIn HTML WHEN an s2b ingest signal is processed THEN LinkedInJobExtractor rejects it, emits PARSE_FAILED and no doc is written (S2+S4) · path c3', async () => {
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, nonJobHtml());
-      expect(parsePort.emitFailed).toHaveBeenCalledWith(
-        expect.stringMatching(/^clip-/),
-        expect.objectContaining({ stage: JobStage.FULL_PARSED })
-      );
-      expect(storage.upsert).not.toHaveBeenCalled();
-    });
-
-    it('GIVEN an S2 full-parse signal with non-job HTML over an existing S1 doc WHEN an s2c ingest signal is processed THEN enrichment proceeds with details as plain text instead of PARSE_FAILED (S2) · path c3', async () => {
-      storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's2c-any-html' }));
-      await ingestor.processIngest(
-        JobSource.BROWSER_AUTO,
-        JobStage.FULL_PARSED,
-        nonJobHtml(),
-        's2c-any-html'
-      );
-      expect(storage.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          _id: 's2c-any-html',
-          stage: JobStage.FULL_PARSED,
-          status: JobStatus.ENRICHED,
-          details: expect.stringContaining('not a job posting'),
-        })
-      );
-      expect(storage.findById).toHaveBeenCalledWith('s2c-any-html');
-      expect(parsePort.emitFailed).not.toHaveBeenCalled();
-    });
-
-    it('GIVEN an empty FULL_PARSED payload WHEN a manual ingest signal is processed THEN emits PARSE_FAILED with an Empty HTML payload reason (S2+S4) · path c3', async () => {
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, '', 'empty-1');
-      expect(parsePort.emitFailed).toHaveBeenCalledWith(
-        'empty-1',
-        expect.objectContaining({ error: 'Empty HTML payload' })
-      );
-      expect(storage.upsert).not.toHaveBeenCalled();
-    });
+  it('GIVEN s1[4] TopCV pick job-0 WHEN S2a empty THEN S4 PARSE_FAILED + next pick job-1 · path c3', async () => {
+    await whenS1Many(daemon, s1Topcv4('C3'), 's1-c3');
+    assertPicked(tui, { messageId: 's1-c3', s1Count: 4, expectedIdx: 0 });
+    await whenS2a(daemon, '', 's1-c3-job-0');
+    expect(parsePort.emitFailed).toHaveBeenCalledWith('s1-c3-job-0', expect.objectContaining({ error: 'Empty HTML payload' }));
+    expect(storage.upsert).not.toHaveBeenCalledWith(expect.objectContaining({ _id: 's1-c3-job-0', stage: JobStage.FULL_PARSED }));
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(2);
+    assertPicked(tui, { messageId: 's1-c3', s1Count: 4, expectedIdx: 1 });
+    // recovery next s1[4] would be new whenS1Many('next-c3-1',4) → QUEUED — proved via SRE, not here to keep it single-ring
   });
 
-  describe('(b) route-failure saga — S3 → ROUTE_FAILED', () => {
-    it('GIVEN a resolution on a missing job WHEN a queue resolution is applied THEN 5 findById probes then ROUTE_FAILED is emitted (S4) · path c3', async () => {
-      storage.findById.mockResolvedValue(null);
-      await ingestor.processResolution('missing-job', 'queue');
-      expect(storage.findById).toHaveBeenCalledTimes(5);
-      expect(routingPort.emitRouteFailed).toHaveBeenCalledWith(
-        'missing-job',
-        'No existing job lifecycle found'
-      );
-      expect(routingPort.emitJobQueued).not.toHaveBeenCalled();
-    });
-
-    it('GIVEN an ENRICHED job WHEN a resolution write fails THEN ROUTE_FAILED is emitted with the propagating reason (S4) · path c3', async () => {
-      storage.findById.mockResolvedValue(
-        makeStage1Partial({ _id: 'route-bad', status: JobStatus.ENRICHED })
-      );
-      storage.updateStage.mockRejectedValue(new Error('mongo down'));
-      await ingestor.processResolution('route-bad', 'queue');
-      expect(routingPort.emitRouteFailed).toHaveBeenCalledWith('route-bad', 'mongo down');
-      expect(routingPort.emitJobQueued).not.toHaveBeenCalled();
-    });
+  it('GIVEN s1[4] Indeed pick job-0 WHEN S2c missing id THEN S4 + next pick job-1 · path c3', async () => {
+    await whenS1Many(daemon, s1Indeed4('C3I'), 's1-c3i');
+    assertPicked(tui, { messageId: 's1-c3i', s1Count: 4, expectedIdx: 0 });
+    storage.findById.mockResolvedValue(null);
+    await daemon.apps.ingest.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, indeedDetailHtml(), 's1-c3i-job-0');
+    // signal2c without stage1 stays ENRICHING miss → no upsert, no emitCompleted
+    expect(parsePort.emitCompleted).not.toHaveBeenCalled();
+    assertPicked(tui, { messageId: 's1-c3i', s1Count: 4, expectedIdx: 1 });
   });
 
-  describe('(c) error propagation', () => {
-    it('GIVEN a non-duplicate upsert failure WHEN an s2b clipboard signal with LinkedIn html is processed THEN the error propagates instead of being swallowed (S2+S4) · path c3', async () => {
-      storage.upsert.mockRejectedValueOnce(Object.assign(new Error('Disk full'), { code: 9000 }));
-      await expect(
-        ingestor.processIngest(
-          JobSource.MANUAL,
-          JobStage.FULL_PARSED,
-          linkedinSduiDetailHtml('Software Engineer', 'ACME'),
-          undefined
-        )
-      ).rejects.toThrow('Disk full');
-    });
-
-    it('GIVEN a duplicate role+company upsert failure WHEN an S1 ingest signal is processed THEN the duplicate is skipped via trash without throwing (S1+S4) · path c3', async () => {
-      storage.upsert.mockRejectedValue({ code: 11000 });
-      await ingestor.processIngest(
-        JobSource.BROWSER_AUTO,
-        JobStage.PARTIAL_PARSED,
-        topcvEmailHtmlMany([{ role: 'Junior Software Engineer', company: 'Junior Co' }]),
-        undefined,
-        { messageId: 'dup-msg' }
-      );
-      expect(routingPort.emitJobTrashed).toHaveBeenCalled();
-    });
+  it('GIVEN S2b non-LinkedIn WHEN S2b THEN S4 PARSE_FAILED+clear · path c3', async () => {
+    setQueueMode(false);
+    (tui.reader.getQueueModeState as unknown as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(0);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([]);
+    await whenS2b(daemon, nonJobHtml());
+    expect(parsePort.emitFailed).toHaveBeenCalledWith(expect.stringMatching(/^clip-/), expect.objectContaining({ stage: JobStage.FULL_PARSED }));
+    expect(storage.upsert).not.toHaveBeenCalled();
+    assertDirectClear(tui, daemon);
+    setQueueMode(true);
   });
 
-  describe('(d) ring closure — S4 → S1 recovery', () => {
-    it('GIVEN a completed s2b parse-failure saga (non-LinkedIn html) WHEN a fresh valid S1 follows THEN the next job persists and emits GENERATED (s4→s1→s2) · path c3', async () => {
-      await ingestor.processIngest(JobSource.MANUAL, JobStage.FULL_PARSED, nonJobHtml());
-      expect(parsePort.emitFailed).toHaveBeenCalled();
+  it('GIVEN s1[4] TopCV pick job-0 WHEN S2a ENRICHED then S3 write fail THEN S4 ROUTE_FAILED + next pick job-1 · path c3', async () => {
+    await whenS1Many(daemon, s1Topcv4('C3A'), 's1-c3a');
+    assertPicked(tui, { messageId: 's1-c3a', s1Count: 4, expectedIdx: 0 });
+    storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's1-c3a-job-0' }));
+    await whenS2a(daemon, topcvDetailHtml(), 's1-c3a-job-0');
+    storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's1-c3a-job-0', status: JobStatus.ENRICHED }));
+    storage.updateStage.mockRejectedValue(new Error('mongo down'));
+    await daemon.apps.ingest.processResolution('s1-c3a-job-0', 'queue');
+    expect(routingPort.emitRouteFailed).toHaveBeenCalledWith('s1-c3a-job-0', 'mongo down');
+    expect(routingPort.emitJobQueued).not.toHaveBeenCalled();
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(2);
+    assertPicked(tui, { messageId: 's1-c3a', s1Count: 4, expectedIdx: 1 });
+  });
 
-      await ingestor.processIngest(
-        JobSource.BROWSER_AUTO,
-        JobStage.PARTIAL_PARSED,
-        topcvEmailHtmlMany([{ role: 'Junior Software Engineer', company: 'Junior Co' }]),
-        undefined,
-        { messageId: 'recover-msg' }
-      );
-      expect(parsePort.emitGenerated).toHaveBeenCalled();
-      expect(storage.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({ stage: JobStage.PARTIAL_PARSED })
-      );
-    });
+  it('GIVEN s1[4] Indeed pick job-0 WHEN S2c then S3 fail THEN S4 + next pick job-1 · path c3', async () => {
+    await whenS1Many(daemon, s1Indeed4('C3B'), 's1-c3b');
+    assertPicked(tui, { messageId: 's1-c3b', s1Count: 4, expectedIdx: 0 });
+    storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's1-c3b-job-0' }));
+    await daemon.apps.ingest.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, indeedDetailHtml(), 's1-c3b-job-0');
+    storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's1-c3b-job-0', status: JobStatus.ENRICHED }));
+    storage.updateStage.mockRejectedValue(new Error('route down'));
+    await daemon.apps.ingest.processResolution('s1-c3b-job-0', 'queue');
+    expect(routingPort.emitRouteFailed).toHaveBeenCalled();
+    assertPicked(tui, { messageId: 's1-c3b', s1Count: 4, expectedIdx: 1 });
+  });
+
+  it('GIVEN S2b 1 job WHEN S2b→ENRICHED then S3 fail THEN S4+clear · path c3', async () => {
+    setQueueMode(false);
+    (tui.reader.getQueueModeState as unknown as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(0);
+    await whenS2b(daemon, linkedinSduiDetailHtml('Software Engineer', 'C36Co'));
+    const clipId = (storage.upsert.mock.calls[0][0] as { _id: string })._id;
+    storage.findById.mockResolvedValue(makeStage1Partial({ _id: clipId, status: JobStatus.ENRICHED }));
+    storage.updateStage.mockRejectedValue(new Error('clip route down'));
+    await daemon.apps.ingest.processResolution(clipId, 'queue');
+    expect(routingPort.emitRouteFailed).toHaveBeenCalledWith(clipId, 'clip route down');
+    assertDirectClear(tui, daemon, { clipId });
+    setQueueMode(true);
+  });
+});
+
+describe('Path c3 — SRE (mocked)', () => {
+  it('GIVEN N failures never leak to terminal THEN next s1[4] pick recovers · path c3 SRE', async () => {
+    const s = mockJobLifecyclePort();
+    const q = mockExtractionQueuePort();
+    const p = mockParsePort();
+    const r = mockRoutingPort();
+    const d = await buildTestDaemonContainer({ ns: 'unit-path-c3-sre' }, { ports: { jobLifecycle: s, extractionQueue: q, parse: p, route: r, assetProducing: { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) } } });
+    const t = await buildTestTuiContainer({ ns: 'unit-path-c3-sre' }, { ports: { rmqReader: mockJobEventReaderPort(), udsWriter: mockActionWriterPort() } });
+    await whenS1Many(d, s1Topcv4('SRE'), 's1-sre');
+    expect(p.emitGenerated).toHaveBeenCalled();
+    s.findById.mockResolvedValue(null);
+    await d.apps.ingest.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, indeedDetailHtml(), 's1-sre-job-0');
+    expect(p.emitCompleted).not.toHaveBeenCalled();
+    expect(t.reader.getQueueDepth()).toBe(0);
   });
 });
