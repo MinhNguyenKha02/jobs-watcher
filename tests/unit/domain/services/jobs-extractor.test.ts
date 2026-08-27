@@ -1,27 +1,11 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-
 import { describe, it, expect } from 'vitest';
 
 import { JobsExtractor } from '../../../../src/domain/services/extractor/jobs-extractor.js';
 import type { Job } from '../../../../src/domain/types/job.js';
+import { loadGmailCorpusAll } from '../../../helpers/gmail-corpus.js';
 
-interface GmailMetaRecord {
-  messageId: string;
-  subject?: string;
-  body: string;
-}
-
-function loadCorpus(name: string): GmailMetaRecord[] {
-  const raw = readFileSync(
-    join(import.meta.dirname, '..', '..', '..', '..', 'tests', 'fixtures', `${name}-gmailmeta.json`),
-    'utf8'
-  );
-  return JSON.parse(raw) as GmailMetaRecord[];
-}
-
-const topcvCorpus = loadCorpus('topcv');
-const indeedCorpus = loadCorpus('indeed');
+const topcvCorpus = loadGmailCorpusAll('topcv');
+const indeedCorpus = loadGmailCorpusAll('indeed');
 
 describe('JobsExtractor', () => {
   let extractor: JobsExtractor;
