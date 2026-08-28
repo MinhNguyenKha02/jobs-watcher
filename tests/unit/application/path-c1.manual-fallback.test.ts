@@ -112,9 +112,15 @@ describe('Path c1 — S1→S2a TopCV next s1[4] (mocked)', () => {
   });
 
   it('GIVEN s1[4] TopCV pick job-0 WHEN S2a TopCV then [d] trash THEN S3 TRASHED + next pick job-1 · path c1', async () => {
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(3);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      's1-c1t-job-1',
+      's1-c1t-job-2',
+      's1-c1t-job-3',
+    ]);
     await whenS1Many(daemon, s1Html4('C1T'), 's1-c1t');
     expect(storage.upsert).toHaveBeenCalledTimes(4);
-    assertPicked(tui, { messageId: 's1-c1', s1Count: 4, expectedIdx: 0 });
+    assertPicked(tui, { messageId: 's1-c1t', s1Count: 4, expectedIdx: 0 });
 
     storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's1-c1t-job-0' }));
     await whenS2a(daemon, topcvDetailHtml(), 's1-c1t-job-0');
@@ -131,7 +137,12 @@ describe('Path c1 — S1→S2a TopCV next s1[4] (mocked)', () => {
       JobStatus.TRASHED
     );
     expect(routingPort.emitJobTrashed).toHaveBeenCalledWith('s1-c1t-job-0', 'operator:trash');
-    assertPicked(tui, { messageId: 's1-c1', s1Count: 4, expectedIdx: 1 });
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(2);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      's1-c1t-job-2',
+      's1-c1t-job-3',
+    ]);
+    assertPicked(tui, { messageId: 's1-c1t', s1Count: 4, expectedIdx: 1 });
   });
 
   it('GIVEN N sequential s1[4] TopCV→pick→S2a TopCV→S3 QUEUED cycles WHEN each converges THEN pending drains and dedupe ≤1 even asset · path c1 SRE', async () => {

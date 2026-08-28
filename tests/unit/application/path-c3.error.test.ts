@@ -94,11 +94,21 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
       expect.objectContaining({ _id: 's1-c3-job-0', stage: JobStage.FULL_PARSED })
     );
     (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(2);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      's1-c3-job-2',
+      's1-c3-job-3',
+    ]);
     assertPicked(tui, { messageId: 's1-c3', s1Count: 4, expectedIdx: 1 });
     // recovery next s1[4] would be new whenS1Many('next-c3-1',4) → QUEUED — proved via SRE, not here to keep it single-ring
   });
 
-  it('GIVEN s1[4] Indeed pick job-0 WHEN S2c missing id THEN S4 + next pick job-1 · path c3', async () => {
+  it('GIVEN s1[4] Indeed pick job-0 WHEN S2c missing id THEN no S4 stays job-0 depth3 · path c3', async () => {
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(3);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      's1-c3i-job-1',
+      's1-c3i-job-2',
+      's1-c3i-job-3',
+    ]);
     await whenS1Many(daemon, s1Indeed4('C3I'), 's1-c3i');
     assertPicked(tui, { messageId: 's1-c3i', s1Count: 4, expectedIdx: 0 });
     storage.findById.mockResolvedValue(null);
@@ -108,9 +118,10 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
       indeedDetailHtml(),
       's1-c3i-job-0'
     );
-    // signal2c without stage1 stays ENRICHING miss → no upsert, no emitCompleted
+    // signal2c without stage1 stays ENRICHING miss → no upsert, no emitCompleted, no S34 => no autoAdvance (RabbitMqJobReader:353 only S34 triggers)
     expect(parsePort.emitCompleted).not.toHaveBeenCalled();
-    assertPicked(tui, { messageId: 's1-c3i', s1Count: 4, expectedIdx: 1 });
+    // stays on job-0: depth 3, pending head job-1 (same as integ case3:79-91)
+    assertPicked(tui, { messageId: 's1-c3i', s1Count: 4, expectedIdx: 0 });
   });
 
   it('GIVEN S2b non-LinkedIn WHEN S2b THEN S4 PARSE_FAILED+clear · path c3', async () => {
@@ -129,6 +140,12 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
   });
 
   it('GIVEN s1[4] TopCV pick job-0 WHEN S2a ENRICHED then S3 write fail THEN S4 ROUTE_FAILED + next pick job-1 · path c3', async () => {
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(3);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      's1-c3a-job-1',
+      's1-c3a-job-2',
+      's1-c3a-job-3',
+    ]);
     await whenS1Many(daemon, s1Topcv4('C3A'), 's1-c3a');
     assertPicked(tui, { messageId: 's1-c3a', s1Count: 4, expectedIdx: 0 });
     storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's1-c3a-job-0' }));
@@ -141,10 +158,20 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     expect(routingPort.emitRouteFailed).toHaveBeenCalledWith('s1-c3a-job-0', 'mongo down');
     expect(routingPort.emitJobQueued).not.toHaveBeenCalled();
     (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(2);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      's1-c3a-job-2',
+      's1-c3a-job-3',
+    ]);
     assertPicked(tui, { messageId: 's1-c3a', s1Count: 4, expectedIdx: 1 });
   });
 
   it('GIVEN s1[4] Indeed pick job-0 WHEN S2c then S3 fail THEN S4 + next pick job-1 · path c3', async () => {
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(3);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      's1-c3b-job-1',
+      's1-c3b-job-2',
+      's1-c3b-job-3',
+    ]);
     await whenS1Many(daemon, s1Indeed4('C3B'), 's1-c3b');
     assertPicked(tui, { messageId: 's1-c3b', s1Count: 4, expectedIdx: 0 });
     storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's1-c3b-job-0' }));
@@ -160,6 +187,11 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     storage.updateStage.mockRejectedValue(new Error('route down'));
     await daemon.apps.ingest.processResolution('s1-c3b-job-0', 'queue');
     expect(routingPort.emitRouteFailed).toHaveBeenCalled();
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(2);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      's1-c3b-job-2',
+      's1-c3b-job-3',
+    ]);
     assertPicked(tui, { messageId: 's1-c3b', s1Count: 4, expectedIdx: 1 });
   });
 

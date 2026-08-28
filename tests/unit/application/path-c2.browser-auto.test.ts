@@ -113,12 +113,23 @@ describe('Path c2 — S1→S2c Indeed next s1[4] (mocked)', () => {
     await whenQueue(tui, 's1-c2-job-0');
     await daemon.apps.ingest.processResolution('s1-c2-job-0', 'queue');
     expect(routingPort.emitJobQueued).toHaveBeenCalled();
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(2);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      's1-c2-job-2',
+      's1-c2-job-3',
+    ]);
     assertPicked(tui, { messageId: 's1-c2', s1Count: 4, expectedIdx: 1 });
   });
 
   it('GIVEN s1[4] Indeed pick job-0 WHEN S2c Indeed then [d] trash THEN TRASHED + next pick job-1 · path c2', async () => {
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(3);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      's1-c2t-job-1',
+      's1-c2t-job-2',
+      's1-c2t-job-3',
+    ]);
     await whenS1Many(daemon, s1Indeed4('C2T'), 's1-c2t');
-    assertPicked(tui, { messageId: 's1-c2', s1Count: 4, expectedIdx: 0 });
+    assertPicked(tui, { messageId: 's1-c2t', s1Count: 4, expectedIdx: 0 });
     storage.findById.mockResolvedValue(
       makeStage1Partial({ _id: 's1-c2t-job-0', url: 'https://vn.indeed.com/viewjob?jk=1' })
     );
@@ -134,7 +145,12 @@ describe('Path c2 — S1→S2c Indeed next s1[4] (mocked)', () => {
     await whenTrash(tui, 's1-c2t-job-0');
     await daemon.apps.ingest.processResolution('s1-c2t-job-0', 'trash');
     expect(routingPort.emitJobTrashed).toHaveBeenCalledWith('s1-c2t-job-0', 'operator:trash');
-    assertPicked(tui, { messageId: 's1-c2', s1Count: 4, expectedIdx: 1 });
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(2);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      's1-c2t-job-2',
+      's1-c2t-job-3',
+    ]);
+    assertPicked(tui, { messageId: 's1-c2t', s1Count: 4, expectedIdx: 1 });
   });
 
   it('GIVEN N concurrent s1[4] Indeed enqueues WHEN S2c Indeed drain THEN queue 0 ENRICHED even asset · path c2 SRE', async () => {

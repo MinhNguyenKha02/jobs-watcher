@@ -23,23 +23,33 @@ export function assertPicked(
 ): void {
   const { messageId, s1Count, expectedIdx } = opts;
   const expectedId = `${messageId}-job-${expectedIdx}`;
-  // Integ (real reader) checks ipc + pending depth. Mock reader in unit skips ipc/pending — unit pick is proved via mock ports instead.
+  const expectedDepth = s1Count - expectedIdx - 1;
+  const expectedNextId = `${messageId}-job-${expectedIdx + 1}`;
   const isMockReader =
     typeof (tui.reader.getQueueDepth as unknown as { mock?: unknown })?.mock !== 'undefined' ||
     typeof (tui.reader.peekPending as unknown as { mock?: unknown })?.mock !== 'undefined';
   if (isMockReader) {
-    // Unit: prove via mock call counts is done in path file; here just ensure helper is callable.
+    // Unit: mock reader — verify queue seam matches RabbitMqJobReader pending/autoAdvance 51/52/78/81/434
+    // (pending excludes current, depth = s1Count-idx-1, peekPending[0] = next job). IPC not asserted — mock reader never drives shared-tui-state.
+    const depth = tui.reader.getQueueDepth();
+    expect(depth).toBe(expectedDepth);
+    const pending = tui.reader.peekPending();
+    expect(pending.length).toBe(expectedDepth < 0 ? 0 : expectedDepth);
+    if (expectedIdx + 1 < s1Count) {
+      expect(pending[0]).toBe(expectedNextId);
+    }
+    expect(tui.reader.getQueueModeState()).toBe(true);
     return;
   }
+  // Integ (real reader): ipc + pending depth must agree with RabbitMqJobReader currentJobId/pendingJobs
+  expect(tui.reader.getQueueModeState()).toBe(true);
   expect(tui.ipc.read().jobLifecycleId).toBe(expectedId);
   const depth = tui.reader.getQueueDepth();
-  expect(depth).toBe(s1Count - expectedIdx - 1);
+  expect(depth).toBe(expectedDepth);
   const pending = tui.reader.peekPending();
+  expect(pending.length).toBe(expectedDepth);
   if (expectedIdx + 1 < s1Count) {
-    expect(pending[0]).toBe(`${messageId}-job-${expectedIdx + 1}`);
-    expect(pending.length).toBe(s1Count - expectedIdx - 1);
-  } else {
-    expect(pending.length).toBe(0);
+    expect(pending[0]).toBe(expectedNextId);
   }
 }
 
