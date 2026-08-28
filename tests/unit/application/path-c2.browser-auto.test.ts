@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, vitest/expect-expect, no-async-promise-executor */
 /*
- * Path c2 — S1→S2c→S3 next s1[4] (mocked) — flat ring, s1Count 4
+ * Path c2 — S1→S2c auto→S3 next s1[4] (mocked) — flat ring, s1Count 4, whenS1Many only
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { JobStage, JobStatus, JobSource } from '../../../src/domain/types/job-lifecycle.js';
+import { JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
 import { assertPicked } from '../../helpers/assert-path.js';
 import { indeedEmailHtmlMany, indeedDetailHtml } from '../../helpers/html-fixtures.js';
@@ -16,7 +16,6 @@ import {
   mockParsePort,
   mockRoutingPort,
   mockBrowserPort,
-  mockIngestorPort,
   mockJobEventReaderPort,
   mockActionWriterPort,
   buildTestDaemonContainer,
@@ -48,7 +47,7 @@ function s1Indeed4(prefix: string): string {
   ]);
 }
 
-describe('Path c2 — S1→S2c Indeed next s1[4] (mocked)', () => {
+describe('Path c2 — S1→S2c auto Indeed next s1[4] (mocked)', () => {
   let daemon: Awaited<ReturnType<typeof buildTestDaemonContainer>>;
   let tui: Awaited<ReturnType<typeof buildTestTuiContainer>>;
   let storage: ReturnType<typeof mockJobLifecyclePort>;
@@ -63,6 +62,38 @@ describe('Path c2 — S1→S2c Indeed next s1[4] (mocked)', () => {
     parsePort = mockParsePort();
     routingPort = mockRoutingPort();
     browser = mockBrowserPort();
+
+    // mock scheduler queue with in-memory FIFO + onEnqueue wake
+    const pending: string[] = [];
+    let enqueueCb: (() => void) | null = null;
+    (queue.enqueue as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        pending.push(id);
+        enqueueCb?.();
+      }
+    );
+    (queue.dequeue as unknown as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      const id = pending.shift();
+      return id ? { jobLifecycleId: id } : null;
+    });
+    (queue.size as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      async () => pending.length
+    );
+    (queue.onEnqueue as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (cb: () => void) => {
+        enqueueCb = cb;
+      }
+    );
+    (browser.extract as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      html: indeedDetailHtml(),
+    });
+    (browser.start as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    (browser.stop as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    (storage.findById as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) =>
+        makeStage1Partial({ _id: id, url: `https://vn.indeed.com/viewjob?jk=${id}` })
+    );
+
     daemon = await buildTestDaemonContainer(
       { ns: 'unit-path-c2' },
       {
@@ -90,24 +121,24 @@ describe('Path c2 — S1→S2c Indeed next s1[4] (mocked)', () => {
     (tui.reader.getQueueModeState as unknown as ReturnType<typeof vi.fn>).mockReturnValue(true);
   });
 
-  it('GIVEN s1[4] Indeed pick job-0 url WHEN scheduler S2c Indeed then [j] queue THEN S3 QUEUED + next pick job-1 · path c2', async () => {
+  it('GIVEN s1[4] Indeed auto-enqueue pick job-0 WHEN [j] queue THEN S3 QUEUED + next pick job-1 · path c2', async () => {
+    await daemon.apps.scheduler.start();
     await whenS1Many(daemon, s1Indeed4('C2'), 's1-c2');
     expect(storage.upsert).toHaveBeenCalledTimes(4);
     expect(queue.enqueue).toHaveBeenCalledTimes(4);
     assertPicked(tui, { messageId: 's1-c2', s1Count: 4, expectedIdx: 0 });
 
-    storage.findById.mockResolvedValue(
-      makeStage1Partial({ _id: 's1-c2-job-0', url: 'https://vn.indeed.com/viewjob?jk=1' })
-    );
-    await daemon.apps.ingest.processIngest(
-      JobSource.BROWSER_AUTO,
-      JobStage.FULL_PARSED,
-      indeedDetailHtml(),
-      's1-c2-job-0'
+    await vi.waitUntil(
+      () => (parsePort.emitCompleted as unknown as ReturnType<typeof vi.fn>).mock.calls.length > 0,
+      {
+        timeout: 15000,
+        interval: 50,
+      }
     );
     expect(parsePort.emitCompleted).toHaveBeenCalled();
+    await daemon.apps.scheduler.stop();
 
-    storage.findById.mockResolvedValue(
+    (storage.findById as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeStage1Partial({ _id: 's1-c2-job-0', status: JobStatus.ENRICHED })
     );
     await whenQueue(tui, 's1-c2-job-0');
@@ -121,25 +152,25 @@ describe('Path c2 — S1→S2c Indeed next s1[4] (mocked)', () => {
     assertPicked(tui, { messageId: 's1-c2', s1Count: 4, expectedIdx: 1 });
   });
 
-  it('GIVEN s1[4] Indeed pick job-0 WHEN S2c Indeed then [d] trash THEN TRASHED + next pick job-1 · path c2', async () => {
+  it('GIVEN s1[4] Indeed auto-enqueue pick job-0 WHEN [d] trash THEN TRASHED + next pick job-1 · path c2', async () => {
     (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(3);
     (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
       's1-c2t-job-1',
       's1-c2t-job-2',
       's1-c2t-job-3',
     ]);
+    await daemon.apps.scheduler.start();
     await whenS1Many(daemon, s1Indeed4('C2T'), 's1-c2t');
     assertPicked(tui, { messageId: 's1-c2t', s1Count: 4, expectedIdx: 0 });
-    storage.findById.mockResolvedValue(
-      makeStage1Partial({ _id: 's1-c2t-job-0', url: 'https://vn.indeed.com/viewjob?jk=1' })
+    await vi.waitUntil(
+      () => (parsePort.emitCompleted as unknown as ReturnType<typeof vi.fn>).mock.calls.length > 0,
+      {
+        timeout: 15000,
+        interval: 50,
+      }
     );
-    await daemon.apps.ingest.processIngest(
-      JobSource.BROWSER_AUTO,
-      JobStage.FULL_PARSED,
-      indeedDetailHtml(),
-      's1-c2t-job-0'
-    );
-    storage.findById.mockResolvedValue(
+    await daemon.apps.scheduler.stop();
+    (storage.findById as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeStage1Partial({ _id: 's1-c2t-job-0', status: JobStatus.ENRICHED })
     );
     await whenTrash(tui, 's1-c2t-job-0');
@@ -153,10 +184,8 @@ describe('Path c2 — S1→S2c Indeed next s1[4] (mocked)', () => {
     assertPicked(tui, { messageId: 's1-c2t', s1Count: 4, expectedIdx: 1 });
   });
 
-  it('GIVEN N concurrent s1[4] Indeed enqueues WHEN S2c Indeed drain THEN queue 0 ENRICHED even asset · path c2 SRE', async () => {
-    queue.dequeue.mockResolvedValue(null);
-    browser.start.mockResolvedValue(undefined);
-    browser.stop.mockResolvedValue(undefined);
+  it('GIVEN scheduler idle WHEN start/stop THEN browser lifecycle · path c2 SRE', async () => {
+    (queue.dequeue as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     const scheduler = daemon.apps.scheduler;
     await scheduler.start();
     expect(browser.start).toHaveBeenCalledTimes(1);

@@ -5,26 +5,11 @@
  *   folded into the needy checkpoints + the next pick still completing. Each message maps
  *   to a distinct role/company (dedupe-safe) so the long-running scheduler never conflicts.
  */
-import http from 'node:http';
-
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 import { JobStatus } from '../../src/domain/types/job-lifecycle.js';
+import { CASES_C2 as CASES, startDetailServer } from '../helpers/detail-server.js';
 import { createE2eApp, type E2eApp } from '../helpers/e2e-app.js';
-import { indeedDetailHtml } from '../helpers/html-fixtures.js';
-
-const CASES = {
-  c2Auto: { role: 'Backend Developer', company: 'C2AutoCo' },
-  c2Data: { role: 'Data Engineer', company: 'C2DataCo' },
-  c2Trash: { role: 'Full Stack Developer', company: 'C2TrashCo' },
-  c2Qa: { role: 'Full-stack Developer', company: 'C2QaCo' },
-  c2Ring: { role: 'Software Engineer', company: 'C2RingCo' },
-  c2RingNext: { role: 'Automation Engineer', company: 'C2RingNextCo' },
-} as const;
-
-const KEY_BY_JOB: Record<string, string> = Object.fromEntries(
-  Object.entries(CASES).map(([key, job]) => [`${job.role}|${job.company}`, key])
-);
 
 function jobForMessage(messageId: string): { role: string; company: string } {
   if (messageId.includes('trash-msg-2')) return CASES['c2Qa'];
@@ -39,44 +24,6 @@ const waitForStatus = (app: E2eApp, jobId: string, status: JobStatus) =>
   vi.waitUntil(async () => (await app.jobLifecycle.findById(jobId))?.status === status, {
     timeout: 30000,
   });
-
-/**
- * URL must satisfy the ingestor's S1 enqueue heuristic (`indeed.com/viewjob?`)
- * while pointing at a local server the Scheduler/Playwright can actually fetch.
- * The query carries a single `src` token (no `&`, so cheerio keeps the href
- * intact) which the server maps back to role/company.
- */
-function startDetailServer(): Promise<{
-  srcUrl: (role: string, company: string) => string;
-  close: () => Promise<void>;
-}> {
-  return new Promise((resolve) => {
-    const server = http.createServer((req, res) => {
-      const parsed = new URL(req.url || '/', 'http://127.0.0.1');
-      const src = parsed.searchParams.get('src') || '';
-      const job =
-        (CASES as Record<string, { role: string; company: string }>)[src] ?? CASES['c2Auto'];
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(
-        indeedDetailHtml(
-          job.role,
-          job.company,
-          `http://127.0.0.1:${(server.address() as any).port}/indeed.com/viewjob?src=${src}`
-        )
-      );
-    });
-    server.listen(0, '127.0.0.1', () => {
-      const addr = server.address() as any;
-      resolve({
-        srcUrl: (role, company) => {
-          const key = KEY_BY_JOB[`${role}|${company}`] ?? 'c2Auto';
-          return `http://127.0.0.1:${addr.port}/indeed.com/viewjob?src=${key}`;
-        },
-        close: () => new Promise<void>((r) => server.close(() => r())),
-      });
-    });
-  });
-}
 
 describe('C2 browser-auto e2e — webhook Indeed s1(url) → scheduler + Playwright s2c → [j] queue + PDF / [d] trash (prod bootstrap)', () => {
   let app: E2eApp;
