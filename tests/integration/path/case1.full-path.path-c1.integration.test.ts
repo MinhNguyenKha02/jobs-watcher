@@ -92,46 +92,38 @@ describe('Path c1 — S1→S2a→S3 next s1[4] (real)', () => {
     expect(trashed?.status).toBe(JobStatus.TRASHED);
     assertPicked(tui, { messageId: 's1-c1t', s1Count: 4, expectedIdx: 1 });
   }, 60000);
-});
 
-describe('Path c1 — SRE (real)', () => {
   it('GIVEN N sequential s1[4]→pick→S2a→S3 cycles WHEN each converges THEN pending drains · path c1 SRE', async () => {
-    const daemon2 = await buildTestDaemonContainer({ ns: 'c1-sre' });
-    await daemon2.start();
-    const tui2 = await buildTestTuiContainer({ ns: 'c1-sre' });
-    setQueueMode(true);
     for (let i = 0; i < 2; i++) {
       const mid = `s1-c1-sre-${i}`;
-      await whenS1Many(daemon2, s1Html4(`SRE${i}`), mid);
-      await waitFor(() => tui2.ipc.read().jobLifecycleId === `${mid}-job-0`);
-      await whenS2a(daemon2, topcvDetailHtml(), `${mid}-job-0`);
-      await waitFor(() => tui2.ipc.read().stage === JobStage.FULL_PARSED);
-      await whenQueue(tui2, `${mid}-job-0`);
-      await waitFor(() => tui2.ipc.read().jobLifecycleId === `${mid}-job-1`);
+      await whenS1Many(daemon, s1Html4(`SRE${i}`), mid);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === `${mid}-job-0`);
+      await whenS2a(daemon, topcvDetailHtml(), `${mid}-job-0`);
+      await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED);
+      await whenQueue(tui, `${mid}-job-0`);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === `${mid}-job-1`);
       // drain remaining pending by queueing them quickly (prove no leak)
       for (let j = 1; j < 4; j++) {
         const pickId = `${mid}-job-${j}`;
-        await whenS2a(daemon2, topcvDetailHtml(), pickId);
+        await whenS2a(daemon, topcvDetailHtml(), pickId);
         await waitFor(
           () =>
-            tui2.ipc.read().jobLifecycleId === pickId &&
-            tui2.ipc.read().stage === JobStage.FULL_PARSED
+            tui.ipc.read().jobLifecycleId === pickId &&
+            tui.ipc.read().stage === JobStage.FULL_PARSED
         );
-        await whenQueue(tui2, pickId);
-        if (j < 3) await waitFor(() => tui2.ipc.read().jobLifecycleId === `${mid}-job-${j + 1}`);
+        await whenQueue(tui, pickId);
+        if (j < 3) await waitFor(() => tui.ipc.read().jobLifecycleId === `${mid}-job-${j + 1}`);
         else
           await waitFor(
-            () => tui2.ipc.read().jobLifecycleId === null || tui2.reader.getQueueDepth() === 0,
+            () => tui.ipc.read().jobLifecycleId === null || tui.reader.getQueueDepth() === 0,
             8000
           ).catch(() => {});
       }
-      await tui2.reader.purgeQueues();
-      tui2.reader.resetReader();
-      tui2.ipc.clear();
-      await daemon2.storage.clearDb();
+      await tui.reader.purgeQueues();
+      tui.reader.resetReader();
+      tui.ipc.clear();
+      await daemon.storage.clearDb();
     }
-    await tui2.stop();
-    await daemon2.stop();
-    expect(true).toBe(true);
+    expect(tui.reader.getQueueDepth()).toBe(0);
   }, 120000);
 });
