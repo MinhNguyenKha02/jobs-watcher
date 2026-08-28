@@ -9,7 +9,14 @@ import { EvidenceAttachmentValidator } from '../../src/domain/profile/retrieval/
 import type { MatchSignal } from '../../src/domain/profile/types/retrieval.types.js';
 
 export function assertRankBoundary(
-  ranker: { rank: (s: MatchSignal, d: Map<string, MatchSignal>, e: Map<string, MatchSignal>, ev: Map<string, unknown>) => { finalScore: number; resolutionStrength: string } },
+  ranker: {
+    rank: (
+      s: MatchSignal,
+      d: Map<string, MatchSignal>,
+      e: Map<string, MatchSignal>,
+      ev: Map<string, unknown>
+    ) => { finalScore: number; resolutionStrength: string };
+  },
   signal: MatchSignal,
   direct: Map<string, MatchSignal>,
   expanded: Map<string, MatchSignal>,
@@ -32,7 +39,11 @@ export function assertAttachmentValid(
   expect(result.valid).toBe(expectedValid);
 }
 
-export function assertCorpusHitRate(hitCount: number, total: number, opts: { min?: number } = {}): void {
+export function assertCorpusHitRate(
+  hitCount: number,
+  total: number,
+  opts: { min?: number } = {}
+): void {
   const min = opts.min ?? total;
   expect(hitCount).toBeGreaterThanOrEqual(min);
   expect(hitCount).toBeLessThanOrEqual(total);

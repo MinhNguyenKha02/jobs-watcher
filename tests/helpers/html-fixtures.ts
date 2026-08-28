@@ -175,11 +175,7 @@ export function indeedEmailHtmlMany(jobs: Array<IndeedEmailItem>): string {
  * (tests/__fixtures__/html/indeed-detail.html). Payload-only input for
  * htmlToText at s2c; args kept for call-site backward compatibility only.
  */
-export function indeedDetailHtml(
-  _role?: string,
-  _company?: string,
-  _url?: string
-): string {
+export function indeedDetailHtml(_role?: string, _company?: string, _url?: string): string {
   return indeedDetailFixture();
 }
 

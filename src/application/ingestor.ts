@@ -180,8 +180,7 @@ export class JobIngestor implements IngestorPort {
 
       // Real Indeed alerts carry rc/clk redirect urls (100% of gmailmeta corpus);
       // legacy table emails carry applystart/viewjob — both enqueue for browser s2c.
-      const hasUrl =
-      /indeed\.com\/(?:applystart|viewjob)\?|indeed\.com\/rc\/clk\//i.test(url);
+      const hasUrl = /indeed\.com\/(?:applystart|viewjob)\?|indeed\.com\/rc\/clk\//i.test(url);
 
       const doc: Partial<JobLifecycleDocument> = {
         _id: jobLifeCycleId,

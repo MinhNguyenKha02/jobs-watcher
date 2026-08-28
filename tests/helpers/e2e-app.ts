@@ -184,7 +184,8 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
           try {
             const msg = await new Promise<any>((resolve, reject) => {
               const timer = setTimeout(
-                () => reject(new Error(`Timeout waiting for message on ${exchange}:${keys.join('|')}`)),
+                () =>
+                  reject(new Error(`Timeout waiting for message on ${exchange}:${keys.join('|')}`)),
                 timeoutMs
               );
               ch.consume(

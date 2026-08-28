@@ -102,7 +102,8 @@ if (RECORD) {
         const resolutionMap: Record<string, string> = {};
         for (const t of result.traces) {
           const lastEntry = t.trace[t.trace.length - 1] as
-            { resolutionStrength?: string } | undefined;
+            | { resolutionStrength?: string }
+            | undefined;
           if (lastEntry?.resolutionStrength) {
             resolutionMap[t.anchorId] = lastEntry.resolutionStrength;
           }
@@ -171,7 +172,8 @@ if (RECORD) {
           const trace = result.traces.find((t) => t.anchorId === anchorId);
           expect(trace).toBeDefined();
           const lastTraceEntry = trace!.trace[trace!.trace.length - 1] as
-            { resolutionStrength?: string } | undefined;
+            | { resolutionStrength?: string }
+            | undefined;
           expect(lastTraceEntry?.resolutionStrength).toBe(expectedStrength);
         }
       });

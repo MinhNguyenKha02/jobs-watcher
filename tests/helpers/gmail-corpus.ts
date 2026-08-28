@@ -11,7 +11,10 @@ const corpusCache = new Map<string, GmailMetaRecord[]>();
 function loadCorpusRaw(name: string): GmailMetaRecord[] {
   const cached = corpusCache.get(name);
   if (cached) return cached;
-  const raw = readFileSync(join(import.meta.dirname, '..', 'fixtures', `${name}-gmailmeta.json`), 'utf8');
+  const raw = readFileSync(
+    join(import.meta.dirname, '..', 'fixtures', `${name}-gmailmeta.json`),
+    'utf8'
+  );
   const parsed = JSON.parse(raw) as GmailMetaRecord[];
   corpusCache.set(name, parsed);
   return parsed;
@@ -30,7 +33,11 @@ export function loadGmailCorpusAll(name: 'topcv' | 'indeed'): GmailMetaRecord[] 
   return loadCorpusRaw(name);
 }
 
-export function pickGmailBodyFew(messageId: string, topcvFew: GmailMetaRecord[], indeedFew: GmailMetaRecord[]): string {
+export function pickGmailBodyFew(
+  messageId: string,
+  topcvFew: GmailMetaRecord[],
+  indeedFew: GmailMetaRecord[]
+): string {
   if (/indeed/i.test(messageId)) return indeedFew[0]?.body ?? '';
   if (/topcv/i.test(messageId)) return topcvFew[0]?.body ?? '';
   const all = [...topcvFew, ...indeedFew];
@@ -41,6 +48,6 @@ export function pickGmailBodyFew(messageId: string, topcvFew: GmailMetaRecord[],
 
 function hashCode(s: string): number {
   let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h << 5) - h + s.charCodeAt(i) | 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
   return h;
 }

@@ -116,7 +116,9 @@ describe('C4 direct e2e — [i] clipboard ingest → fully job → [j] queue + p
       await expect(fail.msg()).rejects.toThrow();
 
       const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-      const okRes = await app.uds.ingest(linkedinSduiDetailHtml('Site Reliability Engineer', 'C4EmptyCo'));
+      const okRes = await app.uds.ingest(
+        linkedinSduiDetailHtml('Site Reliability Engineer', 'C4EmptyCo')
+      );
       expect(okRes.statusCode).toBe(200);
 
       const compMsg = await comp.msg();

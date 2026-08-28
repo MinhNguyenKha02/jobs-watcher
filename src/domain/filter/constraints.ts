@@ -81,10 +81,7 @@ const ROLE_PATTERNS: RegExp[] = [
   /\blap trinh vien\s+erp\b/,
 ];
 
-export function matchesRole(
-  input: DetailsInput,
-  description?: string
-): JobFilterResult {
+export function matchesRole(input: DetailsInput, description?: string): JobFilterResult {
   if (!input) return { passed: false, reasons: ['No role information'] };
   const text = normalizeText(input, description);
 
@@ -94,10 +91,7 @@ export function matchesRole(
   return { passed: false, reasons: ['non-software role'] };
 }
 
-export function matchesLang(
-  input: DetailsInput,
-  description?: string
-): JobFilterResult {
+export function matchesLang(input: DetailsInput, description?: string): JobFilterResult {
   if (!input) return { passed: false, reasons: ['No language information'] };
   const text = normalizeText(input, description);
 
@@ -153,10 +147,7 @@ const EXPERIENCE_REJECT_PATTERNS = [
   /\btruong nhom\b/,
 ];
 
-export function matchesExperience(
-  input: DetailsInput,
-  description?: string
-): JobFilterResult {
+export function matchesExperience(input: DetailsInput, description?: string): JobFilterResult {
   if (!input) return { passed: false, reasons: ['No experience information'] };
   const text = normalizeText(input, description);
   for (const rejectPattern of EXPERIENCE_REJECT_PATTERNS) {

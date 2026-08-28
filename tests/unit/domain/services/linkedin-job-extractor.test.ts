@@ -83,10 +83,13 @@ describe('LinkedInJobExtractor', () => {
     it.each([
       ['regular (external apply)', linkedinDetailFixture(), false],
       ['easy-apply', linkedinDetailEasyApplyFixture(), true],
-    ])('GIVEN %s fixture WHEN extract evaluates THEN detects easyApply=%s', (_name, html, expected) => {
-      const result = extractor.extract(html);
-      expect(result?.easyApply).toBe(expected);
-    });
+    ])(
+      'GIVEN %s fixture WHEN extract evaluates THEN detects easyApply=%s',
+      (_name, html, expected) => {
+        const result = extractor.extract(html);
+        expect(result?.easyApply).toBe(expected);
+      }
+    );
 
     it('GIVEN both SDUi fixtures WHEN extract evaluates THEN extracts jobType and workLocationType tags', () => {
       const axon = extractor.extract(linkedinDetailFixture());

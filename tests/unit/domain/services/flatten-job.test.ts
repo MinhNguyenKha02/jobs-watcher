@@ -59,7 +59,9 @@ describe('flattenJob', () => {
 
 describe('flattenJobDetails', () => {
   it('GIVEN flattenJobDetails input string with sections WHEN flattenJobDetails evaluates THEN returns the text as-is', () => {
-    const result = flattenJobDetails('Responsibilities:\nTask A\nTask B\n\nBenefits:\nHealth insurance');
+    const result = flattenJobDetails(
+      'Responsibilities:\nTask A\nTask B\n\nBenefits:\nHealth insurance'
+    );
 
     expect(result).toContain('Responsibilities:');
     expect(result).toContain('Task A');

@@ -167,7 +167,8 @@ describe('Webhook adapter contract — real PubSub push + real ingestor via test
       expect(res.status).toBe(202);
 
       await waitFor(
-        () => tui.ipc.read().jobLifecycleId !== null && tui.ipc.read().stage === JobStage.PARTIAL_PARSED
+        () =>
+          tui.ipc.read().jobLifecycleId !== null && tui.ipc.read().stage === JobStage.PARTIAL_PARSED
       );
       const cur = tui.ipc.read();
       expect(cur.jobLifecycleId).toMatch(/^msg-history-1-job-/);
@@ -185,7 +186,8 @@ describe('Webhook adapter contract — real PubSub push + real ingestor via test
       expect(res.status).toBe(202);
 
       await waitFor(
-        () => tui.ipc.read().jobLifecycleId !== null && tui.ipc.read().stage === JobStage.PARTIAL_PARSED
+        () =>
+          tui.ipc.read().jobLifecycleId !== null && tui.ipc.read().stage === JobStage.PARTIAL_PARSED
       );
       const cur = tui.ipc.read();
       expect(cur.jobLifecycleId).toMatch(/^msg-history-1-job-/);
@@ -210,7 +212,8 @@ describe('Webhook adapter contract — real PubSub push + real ingestor via test
       await postJson(port, { messageId: 'meta-msg' });
 
       await waitFor(
-        () => tui.ipc.read().jobLifecycleId !== null && tui.ipc.read().stage === JobStage.PARTIAL_PARSED
+        () =>
+          tui.ipc.read().jobLifecycleId !== null && tui.ipc.read().stage === JobStage.PARTIAL_PARSED
       );
       const cur = tui.ipc.read();
       const id = cur.jobLifecycleId as string;

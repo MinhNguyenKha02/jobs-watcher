@@ -16,14 +16,14 @@ import { RabbitMqParseAdapter } from '../infrastructure/outbound/rabbitmq/rabbit
 import { RabbitMqRoutingAdapter } from '../infrastructure/outbound/rabbitmq/rabbitmq-route-adapter.js';
 import { RabbitMqJobReader } from '../presentation/tui/components/RabbitMqJobReader.js';
 import { UdsActionWriter } from '../presentation/tui/components/UdsActionWriter.js';
+import type { ActionWriterPort } from '../presentation/tui/ports/action-writer.port.js';
+import type { JobEventReaderPort } from '../presentation/tui/ports/job-event-reader.port.js';
 import {
   clearCurrentJob,
   getCurrentJob,
   resetState,
   type CurrentJobState,
 } from '../presentation/tui/shared-tui-state.js';
-import type { ActionWriterPort } from '../presentation/tui/ports/action-writer.port.js';
-import type { JobEventReaderPort } from '../presentation/tui/ports/job-event-reader.port.js';
 
 import { ExtractionScheduler } from './extraction-scheduler.js';
 import { JobIngestor } from './ingestor.js';
@@ -273,7 +273,8 @@ export function buildTuiContainer(
   const s2DirectQueue = ns ? `tui.${ns}.s2direct` : 'tui.s2direct';
   const s34Queue = ns ? `tui.${ns}.s3s4` : 'tui.s3s4';
 
-  const writer = (ports.udsWriter as ActionWriterPort) ?? new UdsActionWriter(uds.socketPath, uds.token);
+  const writer =
+    (ports.udsWriter as ActionWriterPort) ?? new UdsActionWriter(uds.socketPath, uds.token);
 
   const reader =
     (ports.rmqReader as JobEventReaderPort) ??

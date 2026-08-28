@@ -10,7 +10,8 @@ export interface ExtractedJobData extends Partial<Job> {
 
 const JOB_TYPE_PATTERN = /^(Full-time|Part-time|Contract|Internship|Temporary|Freelance)$/;
 const WORK_LOCATION_TYPE_PATTERN = /^(On-site|Hybrid|Remote)$/;
-const TIME_AGO_PATTERN = /\b(\d+\s+(day|days|week|weeks|month|months|year|years)\s+ago|just\s+posted|reposted)/i;
+const TIME_AGO_PATTERN =
+  /\b(\d+\s+(day|days|week|weeks|month|months|year|years)\s+ago|just\s+posted|reposted)/i;
 const SALARY_PATTERN =
   /(\$[\d,]+(?:\.\d{2})?(?:\s*-\s*\$?[\d,]+(?:\.\d{2})?)?(?:\s*(?:a|per)\s*(?:month|year|hour|day|week))?|[\d,]+(?:\.\d{2})?\s*(?:triệu|vnđ|vnd|usd|đ)\s*(?:\s*-\s*[\d,]+(?:\.\d{2})?\s*(?:triệu|vnđ|vnd|usd|đ)?)?)/i;
 
@@ -75,9 +76,7 @@ export class LinkedInJobExtractor {
     $('span, div, p').each((_, el) => {
       if (salary) return;
       const text = cleanText($(el).text());
-      if (
-        salaryPatternMatches(text)
-      ) {
+      if (salaryPatternMatches(text)) {
         salary = text;
       }
     });
@@ -112,8 +111,6 @@ export class LinkedInJobExtractor {
 
 function salaryPatternMatches(text: string): boolean {
   return (
-    SALARY_PATTERN.test(text) &&
-    text.length < 100 &&
-    !text.toLowerCase().includes('about the job')
+    SALARY_PATTERN.test(text) && text.length < 100 && !text.toLowerCase().includes('about the job')
   );
 }

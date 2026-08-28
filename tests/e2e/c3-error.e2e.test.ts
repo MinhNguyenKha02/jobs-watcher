@@ -37,7 +37,9 @@ describe('C3 error e2e — s2 failure → s4 → next valid s2 recovers (prod bo
       expect(failMsg.jobLifecycleId).toMatch(/^clip-/);
 
       const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-      const okRes = await app.uds.ingest(linkedinSduiDetailHtml('Software Engineer', 'C3RecoveryCo'));
+      const okRes = await app.uds.ingest(
+        linkedinSduiDetailHtml('Software Engineer', 'C3RecoveryCo')
+      );
       expect(okRes.statusCode).toBe(200);
 
       const compMsg = await comp.msg();
@@ -62,7 +64,9 @@ describe('C3 error e2e — s2 failure → s4 → next valid s2 recovers (prod bo
       expect(failMsg.reason).toBe('No existing job lifecycle found');
 
       const comp = await app.events.on([ActionEvent.PARSE_COMPLETED]);
-      const okRes = await app.uds.ingest(linkedinSduiDetailHtml('Software Engineer', 'C3ResilientCo'));
+      const okRes = await app.uds.ingest(
+        linkedinSduiDetailHtml('Software Engineer', 'C3ResilientCo')
+      );
       expect(okRes.statusCode).toBe(200);
 
       const compMsg = await comp.msg();
