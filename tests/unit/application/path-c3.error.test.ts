@@ -4,11 +4,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { JobStage, JobStatus, JobSource } from '../../../src/domain/types/job-lifecycle.js';
-import { topcvEmailHtmlMany, topcvDetailHtml, linkedinSduiDetailHtml, nonJobHtml } from '../../helpers/html-fixtures.js';
-import { indeedDetailHtml } from '../../helpers/html-fixtures.js';
-import { makeStage1Partial } from '../../helpers/test-builders.js';
+import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
 import { assertPicked, assertDirectClear } from '../../helpers/assert-path.js';
-import { whenS1Many, whenS2a, whenS2b, whenQueue } from '../../helpers/saga.js';
+import {
+  topcvEmailHtmlMany,
+  topcvDetailHtml,
+  linkedinSduiDetailHtml,
+  nonJobHtml,
+  indeedDetailHtml,
+} from '../../helpers/html-fixtures.js';
+import { whenS1Many, whenS2a, whenS2b } from '../../helpers/saga.js';
+import { makeStage1Partial } from '../../helpers/test-builders.js';
 import {
   mockJobLifecyclePort,
   mockExtractionQueuePort,
@@ -19,7 +25,6 @@ import {
   buildTestDaemonContainer,
   buildTestTuiContainer,
 } from '../../helpers/test-container.js';
-import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
 
 function s1Topcv4(p: string): string {
   return topcvEmailHtmlMany([
@@ -30,7 +35,7 @@ function s1Topcv4(p: string): string {
   ]);
 }
 function s1Indeed4(p: string): string {
-  return topcvEmailHtmlMany([ // TopCV html suffices for signal1 s1Count=4 shape; url-based Indeed variant not needed for unit S2c missing-id path
+  return topcvEmailHtmlMany([
     { role: 'Software Engineer', company: `${p}Co0` },
     { role: 'Backend Engineer', company: `${p}Co1` },
     { role: 'Data Engineer', company: `${p}Co2` },
@@ -38,7 +43,7 @@ function s1Indeed4(p: string): string {
   ]);
 }
 
-describe('Path c3 — failures from c1/c2/c4 entries — 6 rings (mocked)', () => {
+describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S4 (mocked)', () => {
   let daemon: Awaited<ReturnType<typeof buildTestDaemonContainer>>;
   let tui: Awaited<ReturnType<typeof buildTestTuiContainer>>;
   let storage: ReturnType<typeof mockJobLifecyclePort>;
@@ -53,12 +58,27 @@ describe('Path c3 — failures from c1/c2/c4 entries — 6 rings (mocked)', () =
     routingPort = mockRoutingPort();
     daemon = await buildTestDaemonContainer(
       { ns: 'unit-path-c3' },
-      { ports: { jobLifecycle: storage, extractionQueue: queue, parse: parsePort, route: routingPort, assetProducing: { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) } } }
+      {
+        ports: {
+          jobLifecycle: storage,
+          extractionQueue: queue,
+          parse: parsePort,
+          route: routingPort,
+          assetProducing: { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) },
+        },
+      }
     );
-    tui = await buildTestTuiContainer({ ns: 'unit-path-c3' }, { ports: { rmqReader: mockJobEventReaderPort(), udsWriter: mockActionWriterPort() } });
+    tui = await buildTestTuiContainer(
+      { ns: 'unit-path-c3' },
+      { ports: { rmqReader: mockJobEventReaderPort(), udsWriter: mockActionWriterPort() } }
+    );
     setQueueMode(true);
     (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(3);
-    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue(['s1-c3-job-1', 's1-c3-job-2', 's1-c3-job-3']);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([
+      's1-c3-job-1',
+      's1-c3-job-2',
+      's1-c3-job-3',
+    ]);
     (tui.reader.getQueueModeState as unknown as ReturnType<typeof vi.fn>).mockReturnValue(true);
   });
 
@@ -66,8 +86,13 @@ describe('Path c3 — failures from c1/c2/c4 entries — 6 rings (mocked)', () =
     await whenS1Many(daemon, s1Topcv4('C3'), 's1-c3');
     assertPicked(tui, { messageId: 's1-c3', s1Count: 4, expectedIdx: 0 });
     await whenS2a(daemon, '', 's1-c3-job-0');
-    expect(parsePort.emitFailed).toHaveBeenCalledWith('s1-c3-job-0', expect.objectContaining({ error: 'Empty HTML payload' }));
-    expect(storage.upsert).not.toHaveBeenCalledWith(expect.objectContaining({ _id: 's1-c3-job-0', stage: JobStage.FULL_PARSED }));
+    expect(parsePort.emitFailed).toHaveBeenCalledWith(
+      's1-c3-job-0',
+      expect.objectContaining({ error: 'Empty HTML payload' })
+    );
+    expect(storage.upsert).not.toHaveBeenCalledWith(
+      expect.objectContaining({ _id: 's1-c3-job-0', stage: JobStage.FULL_PARSED })
+    );
     (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(2);
     assertPicked(tui, { messageId: 's1-c3', s1Count: 4, expectedIdx: 1 });
     // recovery next s1[4] would be new whenS1Many('next-c3-1',4) → QUEUED — proved via SRE, not here to keep it single-ring
@@ -77,7 +102,12 @@ describe('Path c3 — failures from c1/c2/c4 entries — 6 rings (mocked)', () =
     await whenS1Many(daemon, s1Indeed4('C3I'), 's1-c3i');
     assertPicked(tui, { messageId: 's1-c3i', s1Count: 4, expectedIdx: 0 });
     storage.findById.mockResolvedValue(null);
-    await daemon.apps.ingest.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, indeedDetailHtml(), 's1-c3i-job-0');
+    await daemon.apps.ingest.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.FULL_PARSED,
+      indeedDetailHtml(),
+      's1-c3i-job-0'
+    );
     // signal2c without stage1 stays ENRICHING miss → no upsert, no emitCompleted
     expect(parsePort.emitCompleted).not.toHaveBeenCalled();
     assertPicked(tui, { messageId: 's1-c3i', s1Count: 4, expectedIdx: 1 });
@@ -89,7 +119,10 @@ describe('Path c3 — failures from c1/c2/c4 entries — 6 rings (mocked)', () =
     (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(0);
     (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([]);
     await whenS2b(daemon, nonJobHtml());
-    expect(parsePort.emitFailed).toHaveBeenCalledWith(expect.stringMatching(/^clip-/), expect.objectContaining({ stage: JobStage.FULL_PARSED }));
+    expect(parsePort.emitFailed).toHaveBeenCalledWith(
+      expect.stringMatching(/^clip-/),
+      expect.objectContaining({ stage: JobStage.FULL_PARSED })
+    );
     expect(storage.upsert).not.toHaveBeenCalled();
     assertDirectClear(tui, daemon);
     setQueueMode(true);
@@ -100,7 +133,9 @@ describe('Path c3 — failures from c1/c2/c4 entries — 6 rings (mocked)', () =
     assertPicked(tui, { messageId: 's1-c3a', s1Count: 4, expectedIdx: 0 });
     storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's1-c3a-job-0' }));
     await whenS2a(daemon, topcvDetailHtml(), 's1-c3a-job-0');
-    storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's1-c3a-job-0', status: JobStatus.ENRICHED }));
+    storage.findById.mockResolvedValue(
+      makeStage1Partial({ _id: 's1-c3a-job-0', status: JobStatus.ENRICHED })
+    );
     storage.updateStage.mockRejectedValue(new Error('mongo down'));
     await daemon.apps.ingest.processResolution('s1-c3a-job-0', 'queue');
     expect(routingPort.emitRouteFailed).toHaveBeenCalledWith('s1-c3a-job-0', 'mongo down');
@@ -113,8 +148,15 @@ describe('Path c3 — failures from c1/c2/c4 entries — 6 rings (mocked)', () =
     await whenS1Many(daemon, s1Indeed4('C3B'), 's1-c3b');
     assertPicked(tui, { messageId: 's1-c3b', s1Count: 4, expectedIdx: 0 });
     storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's1-c3b-job-0' }));
-    await daemon.apps.ingest.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, indeedDetailHtml(), 's1-c3b-job-0');
-    storage.findById.mockResolvedValue(makeStage1Partial({ _id: 's1-c3b-job-0', status: JobStatus.ENRICHED }));
+    await daemon.apps.ingest.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.FULL_PARSED,
+      indeedDetailHtml(),
+      's1-c3b-job-0'
+    );
+    storage.findById.mockResolvedValue(
+      makeStage1Partial({ _id: 's1-c3b-job-0', status: JobStatus.ENRICHED })
+    );
     storage.updateStage.mockRejectedValue(new Error('route down'));
     await daemon.apps.ingest.processResolution('s1-c3b-job-0', 'queue');
     expect(routingPort.emitRouteFailed).toHaveBeenCalled();
@@ -127,28 +169,29 @@ describe('Path c3 — failures from c1/c2/c4 entries — 6 rings (mocked)', () =
     (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(0);
     await whenS2b(daemon, linkedinSduiDetailHtml('Software Engineer', 'C36Co'));
     const clipId = (storage.upsert.mock.calls[0][0] as { _id: string })._id;
-    storage.findById.mockResolvedValue(makeStage1Partial({ _id: clipId, status: JobStatus.ENRICHED }));
+    storage.findById.mockResolvedValue(
+      makeStage1Partial({ _id: clipId, status: JobStatus.ENRICHED })
+    );
     storage.updateStage.mockRejectedValue(new Error('clip route down'));
     await daemon.apps.ingest.processResolution(clipId, 'queue');
     expect(routingPort.emitRouteFailed).toHaveBeenCalledWith(clipId, 'clip route down');
     assertDirectClear(tui, daemon, { clipId });
     setQueueMode(true);
   });
-});
 
-describe('Path c3 — SRE (mocked)', () => {
-  it('GIVEN N failures never leak to terminal THEN next s1[4] pick recovers · path c3 SRE', async () => {
-    const s = mockJobLifecyclePort();
-    const q = mockExtractionQueuePort();
-    const p = mockParsePort();
-    const r = mockRoutingPort();
-    const d = await buildTestDaemonContainer({ ns: 'unit-path-c3-sre' }, { ports: { jobLifecycle: s, extractionQueue: q, parse: p, route: r, assetProducing: { toAsset: vi.fn().mockResolvedValue({ pdfPath: '' }) } } });
-    const t = await buildTestTuiContainer({ ns: 'unit-path-c3-sre' }, { ports: { rmqReader: mockJobEventReaderPort(), udsWriter: mockActionWriterPort() } });
-    await whenS1Many(d, s1Topcv4('SRE'), 's1-sre');
-    expect(p.emitGenerated).toHaveBeenCalled();
-    s.findById.mockResolvedValue(null);
-    await d.apps.ingest.processIngest(JobSource.BROWSER_AUTO, JobStage.FULL_PARSED, indeedDetailHtml(), 's1-sre-job-0');
-    expect(p.emitCompleted).not.toHaveBeenCalled();
-    expect(t.reader.getQueueDepth()).toBe(0);
+  it('GIVEN N failures never leak to terminal THEN next s1[4] pick recovers even asset · path c3 SRE', async () => {
+    vi.clearAllMocks();
+    (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(0);
+    await whenS1Many(daemon, s1Topcv4('SRE'), 's1-sre');
+    expect(parsePort.emitGenerated).toHaveBeenCalled();
+    storage.findById.mockResolvedValue(null);
+    await daemon.apps.ingest.processIngest(
+      JobSource.BROWSER_AUTO,
+      JobStage.FULL_PARSED,
+      indeedDetailHtml(),
+      's1-sre-job-0'
+    );
+    expect(parsePort.emitCompleted).not.toHaveBeenCalled();
+    expect(tui.reader.getQueueDepth()).toBe(0);
   });
 });

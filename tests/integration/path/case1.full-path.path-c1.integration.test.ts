@@ -1,13 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, vitest/expect-expect, no-async-promise-executor */
 /* Path c1 — S1→S2a→S3 next s1[4] (real) — flat ring, s1Count 4 */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
 import { JobStage, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
-import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
-import { assertPicked, assertDirectClear } from '../../helpers/assert-path.js';
-import { whenS1Many, whenS2a, whenQueue, whenTrash } from '../../helpers/saga.js';
-import { buildTestDaemonContainer, buildTestTuiContainer, type TestDaemonContainer, type TuiTestContainer } from '../../helpers/test-container.js';
-import { waitFor } from '../../helpers/test-utils.js';
 import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
+import { assertPicked, assertDirectClear } from '../../helpers/assert-path.js';
+import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
+import { whenS1Many, whenS2a, whenQueue, whenTrash } from '../../helpers/saga.js';
+import {
+  buildTestDaemonContainer,
+  buildTestTuiContainer,
+  type TestDaemonContainer,
+  type TuiTestContainer,
+} from '../../helpers/test-container.js';
+import { waitFor } from '../../helpers/test-utils.js';
 
 function s1Html4(prefix: string): string {
   return topcvEmailHtmlMany([
@@ -44,19 +50,27 @@ describe('Path c1 — S1→S2a→S3 next s1[4] (real)', () => {
 
   it('GIVEN s1[4] TopCV pick job-0 WHEN S2a htmlToText then [j] queue THEN S3 QUEUED + next pick job-1 depth 2 · path c1', async () => {
     await whenS1Many(daemon, s1Html4('C1'), 's1-c1');
-    await waitFor(() => tui.ipc.read().jobLifecycleId === 's1-c1-job-0' && tui.reader.getQueueDepth() === 3);
+    await waitFor(
+      () => tui.ipc.read().jobLifecycleId === 's1-c1-job-0' && tui.reader.getQueueDepth() === 3
+    );
     assertPicked(tui, { messageId: 's1-c1', s1Count: 4, expectedIdx: 0 });
     const doc0 = await daemon.jobLifecycle.findById('s1-c1-job-0');
     expect(doc0?.stage).toBe(JobStage.PARTIAL_PARSED);
 
     await whenS2a(daemon, topcvDetailHtml(), 's1-c1-job-0');
-    await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED && tui.ipc.read().jobLifecycleId === 's1-c1-job-0');
+    await waitFor(
+      () =>
+        tui.ipc.read().stage === JobStage.FULL_PARSED &&
+        tui.ipc.read().jobLifecycleId === 's1-c1-job-0'
+    );
     const enriched = await daemon.jobLifecycle.findById('s1-c1-job-0');
     expect(enriched?.stage).toBe(JobStage.FULL_PARSED);
     expect(enriched?.status).toBe(JobStatus.ENRICHED);
 
     await whenQueue(tui, 's1-c1-job-0');
-    await waitFor(() => tui.ipc.read().jobLifecycleId === 's1-c1-job-1' && tui.reader.getQueueDepth() === 2);
+    await waitFor(
+      () => tui.ipc.read().jobLifecycleId === 's1-c1-job-1' && tui.reader.getQueueDepth() === 2
+    );
     const queued = await daemon.jobLifecycle.findById('s1-c1-job-0');
     expect(queued?.status).toBe(JobStatus.QUEUED);
     assertPicked(tui, { messageId: 's1-c1', s1Count: 4, expectedIdx: 1 });
@@ -64,12 +78,16 @@ describe('Path c1 — S1→S2a→S3 next s1[4] (real)', () => {
 
   it('GIVEN s1[4] TopCV pick job-0 WHEN S2a then [d] trash THEN TRASHED + next pick job-1 · path c1', async () => {
     await whenS1Many(daemon, s1Html4('C1T'), 's1-c1t');
-    await waitFor(() => tui.ipc.read().jobLifecycleId === 's1-c1t-job-0' && tui.reader.getQueueDepth() === 3);
+    await waitFor(
+      () => tui.ipc.read().jobLifecycleId === 's1-c1t-job-0' && tui.reader.getQueueDepth() === 3
+    );
     assertPicked(tui, { messageId: 's1-c1t', s1Count: 4, expectedIdx: 0 });
     await whenS2a(daemon, topcvDetailHtml(), 's1-c1t-job-0');
     await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED);
     await whenTrash(tui, 's1-c1t-job-0');
-    await waitFor(() => tui.ipc.read().jobLifecycleId === 's1-c1t-job-1' && tui.reader.getQueueDepth() === 2);
+    await waitFor(
+      () => tui.ipc.read().jobLifecycleId === 's1-c1t-job-1' && tui.reader.getQueueDepth() === 2
+    );
     const trashed = await daemon.jobLifecycle.findById('s1-c1t-job-0');
     expect(trashed?.status).toBe(JobStatus.TRASHED);
     assertPicked(tui, { messageId: 's1-c1t', s1Count: 4, expectedIdx: 1 });
@@ -94,10 +112,18 @@ describe('Path c1 — SRE (real)', () => {
       for (let j = 1; j < 4; j++) {
         const pickId = `${mid}-job-${j}`;
         await whenS2a(daemon2, topcvDetailHtml(), pickId);
-        await waitFor(() => tui2.ipc.read().jobLifecycleId === pickId && tui2.ipc.read().stage === JobStage.FULL_PARSED);
+        await waitFor(
+          () =>
+            tui2.ipc.read().jobLifecycleId === pickId &&
+            tui2.ipc.read().stage === JobStage.FULL_PARSED
+        );
         await whenQueue(tui2, pickId);
         if (j < 3) await waitFor(() => tui2.ipc.read().jobLifecycleId === `${mid}-job-${j + 1}`);
-        else await waitFor(() => tui2.ipc.read().jobLifecycleId === null || tui2.reader.getQueueDepth() === 0, 8000).catch(() => {});
+        else
+          await waitFor(
+            () => tui2.ipc.read().jobLifecycleId === null || tui2.reader.getQueueDepth() === 0,
+            8000
+          ).catch(() => {});
       }
       await tui2.reader.purgeQueues();
       tui2.reader.resetReader();

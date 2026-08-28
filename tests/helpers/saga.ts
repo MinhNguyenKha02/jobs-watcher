@@ -3,11 +3,20 @@
  * Reused by `unit(app)` (mock) and `integ` (real) — caller passes the 2-IoC `daemon`/`tui`.
  */
 import { JobStage, JobSource } from '../../src/domain/types/job-lifecycle.js';
-import type { TestDaemonContainer, MockTestDaemonContainer, TuiTestContainer } from './test-container.js';
+
+import type {
+  TestDaemonContainer,
+  MockTestDaemonContainer,
+  TuiTestContainer,
+} from './test-container.js';
 
 type AnyDaemon = TestDaemonContainer | MockTestDaemonContainer;
 
-export async function whenS1Many(daemon: AnyDaemon, htmlMany: string, messageId: string): Promise<void> {
+export async function whenS1Many(
+  daemon: AnyDaemon,
+  htmlMany: string,
+  messageId: string
+): Promise<void> {
   await daemon.apps.ingest.processIngest(
     JobSource.BROWSER_AUTO,
     JobStage.PARTIAL_PARSED,

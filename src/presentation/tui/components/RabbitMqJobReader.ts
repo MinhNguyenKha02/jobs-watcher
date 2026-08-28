@@ -108,7 +108,11 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     }
     for (const [, tags] of this.deliveryTagsS2Direct) {
       for (const tag of tags) {
-        this.s2directChannel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, false);
+        this.s2directChannel?.nack(
+          { fields: { deliveryTag: tag } } as ConsumeMessage,
+          false,
+          false
+        );
       }
     }
     this.deliveryTagsS1.clear();
@@ -127,7 +131,8 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     try {
       const purges: Promise<unknown>[] = [];
       if (this.s1channel) purges.push(this.s1channel.purgeQueue(this.s1Queue).catch(() => {}));
-      if (this.s2queueChannel) purges.push(this.s2queueChannel.purgeQueue(this.s2Queue).catch(() => {}));
+      if (this.s2queueChannel)
+        purges.push(this.s2queueChannel.purgeQueue(this.s2Queue).catch(() => {}));
       if (this.s2directChannel)
         purges.push(this.s2directChannel.purgeQueue(this.s2DirectQueue).catch(() => {}));
       if (this.s34channel) purges.push(this.s34channel.purgeQueue(this.s34Queue).catch(() => {}));

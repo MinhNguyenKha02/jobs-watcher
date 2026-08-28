@@ -6,7 +6,12 @@
 import { expect } from 'vitest';
 
 import { JobStage, JobStatus } from '../../src/domain/types/job-lifecycle.js';
-import type { TuiTestContainer, TestDaemonContainer, MockTestDaemonContainer } from './test-container.js';
+
+import type {
+  TuiTestContainer,
+  TestDaemonContainer,
+  MockTestDaemonContainer,
+} from './test-container.js';
 
 type AnyDaemon = TestDaemonContainer | MockTestDaemonContainer;
 
@@ -86,11 +91,10 @@ export async function assertS1ManyEnriching(
   }
 }
 
-export async function assertS2Enriched(
-  daemon: AnyDaemon,
-  id: string
-): Promise<void> {
-  const doc = await (daemon as AnyDaemon & { jobLifecycle: { findById: (id: string) => Promise<unknown> } }).jobLifecycle.findById(id) as unknown as { stage: unknown; status: unknown } | null;
+export async function assertS2Enriched(daemon: AnyDaemon, id: string): Promise<void> {
+  const doc = (await (
+    daemon as AnyDaemon & { jobLifecycle: { findById: (id: string) => Promise<unknown> } }
+  ).jobLifecycle.findById(id)) as unknown as { stage: unknown; status: unknown } | null;
   if (doc) {
     expect(doc.stage).toBe(JobStage.FULL_PARSED);
     expect(doc.status).toBe(JobStatus.ENRICHED);
@@ -98,28 +102,38 @@ export async function assertS2Enriched(
 }
 
 export async function assertS3Queued(daemon: AnyDaemon, id: string): Promise<void> {
-  const doc = (await (daemon as TestDaemonContainer).jobLifecycle.findById(id)) as unknown as { status: unknown } | null;
+  const doc = (await (daemon as TestDaemonContainer).jobLifecycle.findById(id)) as unknown as {
+    status: unknown;
+  } | null;
   if (doc) expect(doc.status).toBe(JobStatus.QUEUED);
 }
 
 export async function assertS3Trashed(daemon: AnyDaemon, id: string): Promise<void> {
-  const doc = (await (daemon as TestDaemonContainer).jobLifecycle.findById(id)) as unknown as { status: unknown } | null;
+  const doc = (await (daemon as TestDaemonContainer).jobLifecycle.findById(id)) as unknown as {
+    status: unknown;
+  } | null;
   if (doc) expect(doc.status).toBe(JobStatus.TRASHED);
 }
 
-export async function assertS4RouteFailedStillEnriched(daemon: AnyDaemon, id: string): Promise<void> {
-  const doc = (await (daemon as TestDaemonContainer).jobLifecycle.findById(id)) as unknown as { status: unknown; stage: unknown } | null;
+export async function assertS4RouteFailedStillEnriched(
+  daemon: AnyDaemon,
+  id: string
+): Promise<void> {
+  const doc = (await (daemon as TestDaemonContainer).jobLifecycle.findById(id)) as unknown as {
+    status: unknown;
+    stage: unknown;
+  } | null;
   if (doc) {
     expect(doc.status).toBe(JobStatus.ENRICHED);
     expect(doc.stage).toBe(JobStage.FULL_PARSED);
   }
 }
 
-export async function assertS4PartialStillEnriching(
-  daemon: AnyDaemon,
-  id: string
-): Promise<void> {
-  const doc = (await (daemon as TestDaemonContainer).jobLifecycle.findById(id)) as unknown as { status: unknown; stage: unknown } | null;
+export async function assertS4PartialStillEnriching(daemon: AnyDaemon, id: string): Promise<void> {
+  const doc = (await (daemon as TestDaemonContainer).jobLifecycle.findById(id)) as unknown as {
+    status: unknown;
+    stage: unknown;
+  } | null;
   if (doc) {
     expect(doc.status).toBe(JobStatus.ENRICHING);
     expect(doc.stage).toBe(JobStage.PARTIAL_PARSED);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, vitest/expect-expect, no-async-promise-executor */
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -83,9 +84,9 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
   }
 
   async function expectNoEvent(key: ActionEvent, timeoutMs = 3000): Promise<void> {
-    await expect(waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED, timeoutMs)).rejects.toThrow(
-      /timed out/
-    );
+    await expect(
+      waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED, timeoutMs)
+    ).rejects.toThrow(/timed out/);
   }
 
   function sendRaw(
@@ -231,7 +232,8 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
         const deadline = Date.now() + 5000;
         while (Date.now() < deadline) {
           const doc = await daemon.jobLifecycle.findById('uds-upgrade-1');
-          if (doc?.stage === JobStage.FULL_PARSED && doc?.company === 'WebhookUpgradeCo') return resolve();
+          if (doc?.stage === JobStage.FULL_PARSED && doc?.company === 'WebhookUpgradeCo')
+            return resolve();
           await new Promise((r) => setTimeout(r, 100));
         }
         reject(new Error('waitFor DB FULL_PARSED timed out'));
