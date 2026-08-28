@@ -2,13 +2,14 @@
 /* Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S4 (real) — one describe 7 its */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
-import { JobStage, JobStatus, JobSource } from '../../../src/domain/types/job-lifecycle.js';
+import { JobStage, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
 import { assertPicked, assertDirectClear } from '../../helpers/assert-path.js';
+import { startDetailServer } from '../../helpers/detail-server.js';
 import {
   topcvEmailHtmlMany,
   topcvDetailHtml,
-  indeedDetailHtml,
+  indeedEmailHtmlMany,
   nonJobHtml,
   linkedinSduiDetailHtml,
 } from '../../helpers/html-fixtures.js';
@@ -29,20 +30,26 @@ function s1Topcv4(p: string): string {
     { role: 'Automation Engineer', company: `${p}Co3` },
   ]);
 }
-function s1Indeed4(p: string): string {
-  return topcvEmailHtmlMany([
-    { role: 'Software Engineer', company: `${p}Co0` },
-    { role: 'Backend Engineer', company: `${p}Co1` },
-    { role: 'Data Engineer', company: `${p}Co2` },
-    { role: 'Automation Engineer', company: `${p}Co3` },
+function s1Indeed4(p: string, srcUrl: (role: string, company: string) => string): string {
+  return indeedEmailHtmlMany([
+    { role: 'Software Engineer', company: `${p}Co0`, url: srcUrl('Software Engineer', `${p}Co0`) },
+    { role: 'Backend Engineer', company: `${p}Co1`, url: srcUrl('Backend Engineer', `${p}Co1`) },
+    { role: 'Data Engineer', company: `${p}Co2`, url: srcUrl('Data Engineer', `${p}Co2`) },
+    {
+      role: 'Automation Engineer',
+      company: `${p}Co3`,
+      url: srcUrl('Automation Engineer', `${p}Co3`),
+    },
   ]);
 }
 
 describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S4 (real)', () => {
   let daemon: TestDaemonContainer;
   let tui: TuiTestContainer;
+  let detail: Awaited<ReturnType<typeof startDetailServer>>;
 
   beforeAll(async () => {
+    detail = await startDetailServer();
     daemon = await buildTestDaemonContainer({ ns: 'c3-full-path' });
     await daemon.start();
     tui = await buildTestTuiContainer({ ns: 'c3-full-path' });
@@ -51,6 +58,11 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
   afterAll(async () => {
     await tui.stop();
     await daemon.stop();
+    try {
+      await detail.close();
+    } catch {
+      /* best-effort */
+    }
   });
   beforeEach(async () => {
     await daemon.storage.clearDb();
@@ -73,22 +85,30 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     assertPicked(tui, { messageId: 's1-c3', s1Count: 4, expectedIdx: 1 });
   }, 30000);
 
-  it('GIVEN s1[4] Indeed pick job-0 WHEN S2c missing id THEN S4 + next pick job-1 · path c3', async () => {
-    await whenS1Many(daemon, s1Indeed4('C3I'), 's1-c3i');
+  it('GIVEN s1[4] Indeed pick job-0 WHEN S2c missing job THEN no S4 stays job-0 depth3 · path c3', async () => {
+    await daemon.apps.scheduler.start();
+    // spy makes signal2c queryWithRetry miss while scheduler's first findById succeeds to get url
+    const originalFindById = daemon.jobLifecycle.findById.bind(daemon.jobLifecycle);
+    let callCount = 0;
+    const spy = vi.spyOn(daemon.jobLifecycle, 'findById').mockImplementation(async (id: string) => {
+      if (id !== 's1-c3i-job-0')
+        return originalFindById(id as unknown as string) as unknown as Promise<never>;
+      callCount += 1;
+      if (callCount === 1)
+        return originalFindById(id as unknown as string) as unknown as Promise<never>;
+      return null as unknown as never;
+    });
+    await whenS1Many(daemon, s1Indeed4('C3I', detail.srcUrl), 's1-c3i');
     await waitFor(
       () => tui.ipc.read().jobLifecycleId === 's1-c3i-job-0' && tui.reader.getQueueDepth() === 3
     );
     assertPicked(tui, { messageId: 's1-c3i', s1Count: 4, expectedIdx: 0 });
-    // S2c missing id: ingest without pickId should not enrich, ipc stays job-0, depth remains 3
-    await daemon.apps.ingest.processIngest(
-      JobSource.BROWSER_AUTO,
-      JobStage.FULL_PARSED,
-      indeedDetailHtml(),
-      undefined as unknown as string
-    );
-    await new Promise((r) => setTimeout(r, 500));
+    // let scheduler dequeue job-0 url -> browser.extract(detailServer) -> signal2c missing guard (ingestor.ts:408)
+    await new Promise((r) => setTimeout(r, 800));
     expect(tui.ipc.read().jobLifecycleId).toBe('s1-c3i-job-0');
     expect(tui.reader.getQueueDepth()).toBe(3);
+    spy.mockRestore();
+    await daemon.apps.scheduler.stop();
   }, 30000);
 
   it('GIVEN S2b non-LinkedIn WHEN S2b THEN S4 PARSE_FAILED+clear even asset · path c3', async () => {
@@ -117,18 +137,13 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     assertPicked(tui, { messageId: 's1-c3a', s1Count: 4, expectedIdx: 1 });
   }, 30000);
 
-  it('GIVEN s1[4] Indeed pick job-0 WHEN S2c Indeed then S3 fail THEN S4 + next pick job-1 · path c3', async () => {
-    await whenS1Many(daemon, s1Indeed4('C3B'), 's1-c3b');
+  it('GIVEN s1[4] Indeed auto-enqueue pick job-0 WHEN S2c then S3 fail THEN S4 ROUTE_FAILED + next pick job-1 · path c3', async () => {
+    await daemon.apps.scheduler.start();
+    await whenS1Many(daemon, s1Indeed4('C3B', detail.srcUrl), 's1-c3b');
     await waitFor(
       () => tui.ipc.read().jobLifecycleId === 's1-c3b-job-0' && tui.reader.getQueueDepth() === 3
     );
     assertPicked(tui, { messageId: 's1-c3b', s1Count: 4, expectedIdx: 0 });
-    await daemon.apps.ingest.processIngest(
-      JobSource.BROWSER_AUTO,
-      JobStage.FULL_PARSED,
-      indeedDetailHtml(),
-      's1-c3b-job-0'
-    );
     await waitFor(
       () =>
         tui.ipc.read().stage === JobStage.FULL_PARSED &&
@@ -140,6 +155,7 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     await waitFor(() => tui.ipc.read().jobLifecycleId === 's1-c3b-job-1', 15000);
     vi.restoreAllMocks();
     assertPicked(tui, { messageId: 's1-c3b', s1Count: 4, expectedIdx: 1 });
+    await daemon.apps.scheduler.stop();
   }, 45000);
 
   it('GIVEN S2b 1 job WHEN S2b→ENRICHED then S3 fail THEN S4+clear even asset · path c3', async () => {
