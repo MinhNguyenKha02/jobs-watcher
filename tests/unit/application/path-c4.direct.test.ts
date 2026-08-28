@@ -78,7 +78,7 @@ describe('Path c4 — S2b LinkedIn 1→S3+clear except s2b (mocked)', () => {
       clipId,
       expect.objectContaining({ source: JobSource.MANUAL })
     );
-    assertDirectClear(tui, daemon, { clipId });
+    await assertDirectClear(tui, daemon, { clipId });
   });
 
   it('GIVEN S2b 1 job WHEN [d] trash THEN TRASHED+clear · path c4', async () => {
@@ -90,7 +90,7 @@ describe('Path c4 — S2b LinkedIn 1→S3+clear except s2b (mocked)', () => {
     await whenTrash(tui, clipId);
     await daemon.apps.ingest.processResolution(clipId, 'trash');
     expect(routingPort.emitJobTrashed).toHaveBeenCalledWith(clipId, 'operator:trash');
-    assertDirectClear(tui, daemon, { clipId });
+    await assertDirectClear(tui, daemon, { clipId });
   });
 
   it('GIVEN random S2b LinkedIn 1 singles WHEN S3 drain THEN never enqueue ipc clears even asset · path c4 SRE', async () => {

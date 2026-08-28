@@ -50,7 +50,7 @@ describe('Path c4 — S2b LinkedIn 1→S3+clear except s2b (real)', () => {
     const doc = await daemon.jobLifecycle.findById(clipId);
     expect(doc?.status).toBe(JobStatus.QUEUED);
     await waitForPdfFiles(daemon.assetDir);
-    assertDirectClear(tui, daemon, { clipId });
+    await assertDirectClear(tui, daemon, { clipId });
   }, 60000);
 
   it('GIVEN S2b 1 job WHEN [d] trash THEN TRASHED+clear · path c4', async () => {
@@ -61,7 +61,7 @@ describe('Path c4 — S2b LinkedIn 1→S3+clear except s2b (real)', () => {
     await waitFor(() => tui.ipc.read().jobLifecycleId === null);
     const doc = await daemon.jobLifecycle.findById(clipId);
     expect(doc?.status).toBe(JobStatus.TRASHED);
-    assertDirectClear(tui, daemon, { clipId });
+    await assertDirectClear(tui, daemon, { clipId });
   }, 60000);
 
   it('GIVEN random S2b LinkedIn 1 singles WHEN S3 drain THEN never enqueue ipc clears even asset · path c4 SRE', async () => {

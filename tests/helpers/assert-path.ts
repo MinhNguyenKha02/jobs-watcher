@@ -55,33 +55,44 @@ export function assertPicked(
 
 // --- direct S2b→S3|S4→clear except s2b ---
 
-export function assertDirectClear(
+export async function assertDirectClear(
   tui: TuiTestContainer,
   daemon: AnyDaemon,
   opts: { clipId?: string } = {}
-): void {
+): Promise<void> {
   const isMockReader =
     typeof (tui.reader.getQueueDepth as unknown as { mock?: unknown })?.mock !== 'undefined';
   if (isMockReader) {
-    // Unit: mock reader — no pending/ipc to check; direct clear is proved via queue.enqueue never called in path file.
+    // Unit: mock reader — verify same seam as RabbitMqJobReader direct mode 316/353/408/434
+    // (no pending accumulation, prefetch 1 freed, tag acked at S34, extractQueue never enqueued)
+    expect(tui.reader.getQueueDepth()).toBe(0);
+    expect(tui.reader.peekPending().length).toBe(0);
+    expect(tui.reader.getQueueModeState()).toBe(false);
+    expect(tui.ipc.read().jobLifecycleId).toBeNull();
+    expect(tui.ipc.read().job).toBeNull();
+    // S2b never enqueues to extraction queue (hasUrl false, src/application/ingestor.ts:180)
+    // For mock, verify size 0 if exposed; real integ also checks below
+    const sizeMaybe = (daemon.extractQueue as unknown as { size?: () => Promise<number> }).size;
+    if (sizeMaybe) {
+      const size = await sizeMaybe.call(daemon.extractQueue);
+      expect(size).toBe(0);
+    }
     return;
   }
-  // tui side
+  // Integ (real reader): pending 0, ipc cleared, queueMode direct, isConnected not wedged, extractQueue size 0
+  // covers RabbitMqJobReader onMessageS2Direct 316 (currentJobId set) -> onMessageS3S4 353 ackS2TagDirect 418 + clearCurrentJob 375 + autoAdvance 434 no-op (getQueueMode false)
   expect(tui.reader.getQueueDepth()).toBe(0);
   expect(tui.reader.peekPending().length).toBe(0);
   expect(tui.ipc.read().jobLifecycleId).toBeNull();
   expect(tui.ipc.read().job).toBeNull();
-  // queue never used for S2b
-  // daemon extractQueue must be empty (mock or real)
-  const sizeMaybe = (daemon.extractQueue as unknown as { size?: () => Promise<number> }).size;
-  if (sizeMaybe) {
-    // fire-and-forget check: caller should await if needed; sync helper cannot await — assert via mock call
-    // For integ the caller awaits separately; here we just ensure mock not called as enqueue
-  }
-  // queueMode is direct
   expect(tui.reader.getQueueModeState()).toBe(false);
+  expect(tui.reader.isConnected()).toBe(true);
+  // S2b never uses extraction queue
+  const size = await (daemon.extractQueue as unknown as { size: () => Promise<number> }).size();
+  expect(size).toBe(0);
   if (opts.clipId) {
-    // delivery tag for direct S2 must have been acked at S34 (no leak) — pending tags empty is covered by depth 0
+    // clip-* tag for direct S2 must have been acked at S34 (ackS2TagDirectForJobId 418, prefetch1 186) — no leak, depth 0 already covers
+    expect(tui.ipc.read().jobLifecycleId).toBeNull();
   }
 }
 

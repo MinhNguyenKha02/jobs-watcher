@@ -135,7 +135,7 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
       expect.objectContaining({ stage: JobStage.FULL_PARSED })
     );
     expect(storage.upsert).not.toHaveBeenCalled();
-    assertDirectClear(tui, daemon);
+    await assertDirectClear(tui, daemon);
     setQueueMode(true);
   });
 
@@ -199,6 +199,8 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     setQueueMode(false);
     (tui.reader.getQueueModeState as unknown as ReturnType<typeof vi.fn>).mockReturnValue(false);
     (tui.reader.getQueueDepth as unknown as ReturnType<typeof vi.fn>).mockReturnValue(0);
+    (tui.reader.peekPending as unknown as ReturnType<typeof vi.fn>).mockReturnValue([]);
+    tui.ipc.clear();
     await whenS2b(daemon, linkedinSduiDetailHtml('Software Engineer', 'C36Co'));
     const clipId = (storage.upsert.mock.calls[0][0] as { _id: string })._id;
     storage.findById.mockResolvedValue(
@@ -207,7 +209,7 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     storage.updateStage.mockRejectedValue(new Error('clip route down'));
     await daemon.apps.ingest.processResolution(clipId, 'queue');
     expect(routingPort.emitRouteFailed).toHaveBeenCalledWith(clipId, 'clip route down');
-    assertDirectClear(tui, daemon, { clipId });
+    await assertDirectClear(tui, daemon, { clipId });
     setQueueMode(true);
   });
 

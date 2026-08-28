@@ -96,7 +96,7 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     await whenS2b(daemon, nonJobHtml());
     await new Promise((r) => setTimeout(r, 500));
     expect(tui.ipc.read().jobLifecycleId).toBeNull();
-    assertDirectClear(tui, daemon);
+    await assertDirectClear(tui, daemon);
     setQueueMode(true);
   }, 30000);
 
@@ -153,7 +153,7 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     await whenQueue(tui, clipId);
     await waitFor(() => tui.ipc.read().jobLifecycleId === null, 10000);
     vi.restoreAllMocks();
-    assertDirectClear(tui, daemon, { clipId });
+    await assertDirectClear(tui, daemon, { clipId });
     setQueueMode(true);
   }, 30000);
 
