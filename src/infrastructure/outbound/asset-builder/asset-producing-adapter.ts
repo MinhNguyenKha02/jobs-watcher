@@ -25,12 +25,18 @@ export class AssetProducingAdapter implements AssetProducingPort {
     this.profile = profileSource;
   }
 
-  async toAsset(resolved: ResolveOutput, outputDir?: string): Promise<BuildResult> {
+  async toAsset(
+    resolved: ResolveOutput,
+    outputDir?: string,
+    meta?: { jobId: string; role?: string; company?: string; location?: string }
+  ): Promise<BuildResult> {
     if (!resolved) {
       throw new Error('Resolved output is required to produce assets');
     }
     const asset = this.toPdf(resolved, this.profile);
-    this.result.pdfPath = await renderPdf(asset, outputDir ?? this.outputDir);
+    this.result.pdfPath = await renderPdf(asset, outputDir ?? this.outputDir, {
+      meta,
+    });
 
     logger.info('Generated PDF asset', { pdfPath: this.result.pdfPath });
 

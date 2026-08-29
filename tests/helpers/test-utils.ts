@@ -1,8 +1,10 @@
 import http from 'http';
-import { readdirSync } from 'node:fs';
+import fs, { readdirSync } from 'node:fs';
+import path from 'node:path';
 
 import amqplib from 'amqplib';
 
+import { buildPdfFilename } from '../../src/infrastructure/outbound/asset-builder/renderer/pdf-renderer.js';
 import { postJsonOverUds } from '../../src/infrastructure/utils/uds-http.js';
 
 export const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
@@ -68,6 +70,81 @@ export function waitForPdfFiles(dir: string, timeoutMs = 20000): Promise<void> {
     };
     poll();
   });
+}
+
+/** Poll until at least expectedCount PDFs exist. */
+export function waitForPdfCount(
+  dir: string,
+  expectedCount: number,
+  timeoutMs = 30000
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const poll = () => {
+      try {
+        const files = readdirSync(dir).filter((f) => f.endsWith('.pdf'));
+        if (files.length >= expectedCount) return resolve();
+      } catch {
+        /* dir may not exist yet */
+      }
+      if (Date.now() - start > timeoutMs)
+        return reject(new Error(`Timeout waiting for ${expectedCount} pdfs in ${dir}`));
+      setTimeout(poll, 250);
+    };
+    poll();
+  });
+}
+
+/** Build expected filename for a queued job (mirrors src sanitization). */
+export function expectedPdfFilename(meta: {
+  jobId: string;
+  role?: string;
+  company?: string;
+  location?: string;
+}): string {
+  return buildPdfFilename(meta);
+}
+
+/** Poll until the pdf for a specific job exists. */
+export function waitForPdfForJob(
+  dir: string,
+  meta: { jobId: string; role?: string; company?: string; location?: string },
+  timeoutMs = 25000
+): Promise<void> {
+  const expected = expectedPdfFilename(meta);
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const poll = () => {
+      try {
+        const p = path.join(dir, expected);
+        if (fs.existsSync(p)) return resolve();
+      } catch {
+        /* ignore */
+      }
+      if (Date.now() - start > timeoutMs)
+        return reject(new Error(`Timeout waiting for pdf ${expected} in ${dir}`));
+      setTimeout(poll, 250);
+    };
+    poll();
+  });
+}
+
+/** Best-effort purge of asset dir (for per-job isolation). */
+export function purgeAssetDir(dir: string): void {
+  try {
+    const files = readdirSync(dir);
+    for (const f of files) {
+      if (f.endsWith('.pdf') || f.endsWith('.html') || f.endsWith('.css')) {
+        try {
+          fs.unlinkSync(path.join(dir, f));
+        } catch {
+          /* best-effort */
+        }
+      }
+    }
+  } catch {
+    /* dir may not exist */
+  }
 }
 
 /**

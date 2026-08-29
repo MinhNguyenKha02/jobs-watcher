@@ -19,10 +19,12 @@ import {
   mockActionWriterPort,
   buildTestDaemonContainer,
   buildTestTuiContainer,
+  type TestDaemonContainer,
+  type MockTestDaemonContainer,
 } from '../../helpers/test-container.js';
 
 describe('Path c4 — S2b LinkedIn 1→S3+clear except s2b (mocked)', () => {
-  let daemon: Awaited<ReturnType<typeof buildTestDaemonContainer>>;
+  let daemon: TestDaemonContainer | MockTestDaemonContainer;
   let tui: Awaited<ReturnType<typeof buildTestTuiContainer>>;
   let storage: ReturnType<typeof mockJobLifecyclePort>;
   let queue: ReturnType<typeof mockExtractionQueuePort>;

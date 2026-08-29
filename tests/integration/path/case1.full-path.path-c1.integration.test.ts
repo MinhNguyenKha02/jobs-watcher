@@ -13,7 +13,12 @@ import {
   type TestDaemonContainer,
   type TuiTestContainer,
 } from '../../helpers/test-container.js';
-import { waitFor } from '../../helpers/test-utils.js';
+import {
+  waitFor,
+  waitForPdfForJob,
+  waitForPdfCount,
+  purgeAssetDir,
+} from '../../helpers/test-utils.js';
 
 function s1Html4(prefix: string): string {
   return topcvEmailHtmlMany([
@@ -94,15 +99,28 @@ describe('Path c1 — S1→S2a→S3 next s1[4] (real)', () => {
   }, 60000);
 
   it('GIVEN N sequential s1[4]→pick→S2a→S3 cycles WHEN each converges THEN pending drains · path c1 SRE', async () => {
+    purgeAssetDir(daemon.assetDir);
     for (let i = 0; i < 2; i++) {
       const mid = `s1-c1-sre-${i}`;
       await whenS1Many(daemon, s1Html4(`SRE${i}`), mid);
       await waitFor(() => tui.ipc.read().jobLifecycleId === `${mid}-job-0`);
       await whenS2a(daemon, topcvDetailHtml(), `${mid}-job-0`);
       await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED);
+      const pick0Doc = await daemon.jobLifecycle.findById(`${mid}-job-0`);
       await whenQueue(tui, `${mid}-job-0`);
+      if (pick0Doc)
+        await waitForPdfForJob(
+          daemon.assetDir,
+          {
+            jobId: `${mid}-job-0`,
+            role: pick0Doc.role,
+            company: pick0Doc.company,
+            location: pick0Doc.location,
+          },
+          30000
+        );
       await waitFor(() => tui.ipc.read().jobLifecycleId === `${mid}-job-1`);
-      // drain remaining pending by queueing them quickly (prove no leak)
+      // drain remaining pending by queueing them quickly (prove no leak) — per-queue pdf even asset
       for (let j = 1; j < 4; j++) {
         const pickId = `${mid}-job-${j}`;
         await whenS2a(daemon, topcvDetailHtml(), pickId);
@@ -111,7 +129,14 @@ describe('Path c1 — S1→S2a→S3 next s1[4] (real)', () => {
             tui.ipc.read().jobLifecycleId === pickId &&
             tui.ipc.read().stage === JobStage.FULL_PARSED
         );
+        const doc = await daemon.jobLifecycle.findById(pickId);
         await whenQueue(tui, pickId);
+        if (doc)
+          await waitForPdfForJob(
+            daemon.assetDir,
+            { jobId: pickId, role: doc.role, company: doc.company, location: doc.location },
+            30000
+          );
         if (j < 3) await waitFor(() => tui.ipc.read().jobLifecycleId === `${mid}-job-${j + 1}`);
         else
           await waitFor(
@@ -119,11 +144,13 @@ describe('Path c1 — S1→S2a→S3 next s1[4] (real)', () => {
             8000
           ).catch(() => {});
       }
+      await waitForPdfCount(daemon.assetDir, (i + 1) * 4, 10000).catch(() => {});
       await tui.reader.purgeQueues();
       tui.reader.resetReader();
       tui.ipc.clear();
       await daemon.storage.clearDb();
     }
     expect(tui.reader.getQueueDepth()).toBe(0);
+    await waitForPdfCount(daemon.assetDir, 8, 5000);
   }, 120000);
 });

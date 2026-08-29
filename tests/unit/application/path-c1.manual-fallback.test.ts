@@ -20,6 +20,8 @@ import {
   mockActionWriterPort,
   buildTestDaemonContainer,
   buildTestTuiContainer,
+  type TestDaemonContainer,
+  type MockTestDaemonContainer,
 } from '../../helpers/test-container.js';
 
 function s1Html4(prefix: string): string {
@@ -32,7 +34,7 @@ function s1Html4(prefix: string): string {
 }
 
 describe('Path c1 — S1→S2a TopCV next s1[4] (mocked)', () => {
-  let daemon: Awaited<ReturnType<typeof buildTestDaemonContainer>>;
+  let daemon: TestDaemonContainer | MockTestDaemonContainer;
   let tui: Awaited<ReturnType<typeof buildTestTuiContainer>>;
   let storage: ReturnType<typeof mockJobLifecyclePort>;
   let queue: ReturnType<typeof mockExtractionQueuePort>;

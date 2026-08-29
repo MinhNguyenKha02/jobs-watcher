@@ -26,6 +26,8 @@ import {
   mockActionWriterPort,
   buildTestDaemonContainer,
   buildTestTuiContainer,
+  type TestDaemonContainer,
+  type MockTestDaemonContainer,
 } from '../../helpers/test-container.js';
 
 function s1Topcv4(p: string): string {
@@ -54,7 +56,7 @@ function s1Indeed4(p: string): string {
 }
 
 describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S4 (mocked)', () => {
-  let daemon: Awaited<ReturnType<typeof buildTestDaemonContainer>>;
+  let daemon: TestDaemonContainer | MockTestDaemonContainer;
   let tui: Awaited<ReturnType<typeof buildTestTuiContainer>>;
   let storage: ReturnType<typeof mockJobLifecyclePort>;
   let queue: ReturnType<typeof mockExtractionQueuePort>;

@@ -105,10 +105,22 @@ export interface TestDaemonContainerOverrides {
 }
 
 /** 6-key discriminator — must stay in sync with runtime isMock (L272). */
-type MockDiscriminatorKeys = 'jobLifecycle' | 'extractionQueue' | 'parse' | 'route' | 'browser' | 'ingestor';
+type MockDiscriminatorKeys =
+  | 'jobLifecycle'
+  | 'extractionQueue'
+  | 'parse'
+  | 'route'
+  | 'browser'
+  | 'ingestor';
 
 type IsMockOverride<T> = T extends { ports: infer P }
-  ? P extends { jobLifecycle: JobLifecyclePort } | { extractionQueue: ExtractionQueuePort } | { parse: ParsePort } | { route: RoutePort } | { browser: BrowserPort } | { ingestor: IngestorPort }
+  ? P extends
+      | { jobLifecycle: JobLifecyclePort }
+      | { extractionQueue: ExtractionQueuePort }
+      | { parse: ParsePort }
+      | { route: RoutePort }
+      | { browser: BrowserPort }
+      | { ingestor: IngestorPort }
     ? true
     : false
   : false;
@@ -253,7 +265,9 @@ export function mockActionWriterPort() {
  * Mock mode: `ports` carries any of the 6 discriminator keys → production
  * composition root over `vi.fn()` spies, NO infra.
  */
-export function buildTestDaemonContainer<T extends TestDaemonContainerOverrides | undefined = undefined>(
+export function buildTestDaemonContainer<
+  T extends TestDaemonContainerOverrides | undefined = undefined,
+>(
   cfg: BuildTestDaemonContainerOptions,
   overrides?: T
 ): Promise<IsMockOverride<T> extends true ? MockTestDaemonContainer : TestDaemonContainer>;
@@ -263,7 +277,14 @@ export async function buildTestDaemonContainer(
 ): Promise<TestDaemonContainer | MockTestDaemonContainer> {
   const providedPorts = overrides.ports ?? {};
   const isMock = (
-    ['jobLifecycle', 'extractionQueue', 'parse', 'route', 'browser', 'ingestor'] as const satisfies readonly MockDiscriminatorKeys[]
+    [
+      'jobLifecycle',
+      'extractionQueue',
+      'parse',
+      'route',
+      'browser',
+      'ingestor',
+    ] as const satisfies readonly MockDiscriminatorKeys[]
   ).some((k) => k in providedPorts);
 
   const exchange = opts.rmq?.exchange ?? `jobs.events.int.${opts.ns}`;

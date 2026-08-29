@@ -92,7 +92,7 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     let callCount = 0;
     const spy = vi
       .spyOn(daemon.jobLifecycle, 'findById')
-      .mockImplementation(async (id: string): Promise<ReturnType<typeof originalFindById>> => {
+      .mockImplementation(async (id: string): ReturnType<typeof originalFindById> => {
         if (id !== 's1-c3i-job-0') return originalFindById(id);
         callCount += 1;
         if (callCount === 1) return originalFindById(id);

@@ -13,7 +13,13 @@ import {
   type TestDaemonContainer,
   type TuiTestContainer,
 } from '../../helpers/test-container.js';
-import { waitFor, waitForPdfFiles } from '../../helpers/test-utils.js';
+import {
+  waitFor,
+  waitForPdfFiles,
+  waitForPdfForJob,
+  waitForPdfCount,
+  purgeAssetDir,
+} from '../../helpers/test-utils.js';
 
 describe('Path c4 — S2b LinkedIn 1→S3+clear except s2b (real)', () => {
   let daemon: TestDaemonContainer;
@@ -65,18 +71,36 @@ describe('Path c4 — S2b LinkedIn 1→S3+clear except s2b (real)', () => {
   }, 60000);
 
   it('GIVEN random S2b LinkedIn 1 singles WHEN S3 drain THEN never enqueue ipc clears even asset · path c4 SRE', async () => {
+    purgeAssetDir(daemon.assetDir);
     for (let i = 0; i < 2; i++) {
       await whenS2b(daemon, linkedinSduiDetailHtml(`Automation Engineer`, `C4SRE${i}`));
       await waitFor(() => tui.ipc.read().jobLifecycleId?.startsWith('clip-') ?? false);
       const cid = tui.ipc.read().jobLifecycleId!;
+      const docBefore = await daemon.jobLifecycle.findById(cid);
       await whenQueue(tui, cid);
       await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      if (docBefore) {
+        await waitForPdfForJob(
+          daemon.assetDir,
+          {
+            jobId: cid,
+            role: docBefore.role,
+            company: docBefore.company,
+            location: docBefore.location,
+          },
+          30000
+        );
+      } else {
+        await waitForPdfFiles(daemon.assetDir, 30000);
+      }
       expect(await daemon.extractQueue.size()).toBe(0);
+      await waitForPdfCount(daemon.assetDir, i + 1, 5000).catch(() => {});
       await tui.reader.purgeQueues();
       tui.reader.resetReader();
       tui.ipc.clear();
       await daemon.storage.clearDb();
     }
     expect(tui.reader.getQueueDepth()).toBe(0);
+    await waitForPdfCount(daemon.assetDir, 2, 5000);
   }, 60000);
 });

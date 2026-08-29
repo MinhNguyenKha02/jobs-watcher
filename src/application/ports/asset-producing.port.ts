@@ -5,5 +5,9 @@ export interface BuildResult {
 }
 
 export interface AssetProducingPort {
-  toAsset(resolved: ResolveOutput, outputDir?: string): Promise<BuildResult>;
+  toAsset(
+    resolved: ResolveOutput,
+    outputDir?: string,
+    meta?: { jobId: string; role?: string; company?: string; location?: string }
+  ): Promise<BuildResult>;
 }

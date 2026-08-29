@@ -109,12 +109,19 @@ export class JobIngestor implements IngestorPort {
           await retriever.init();
           const retrieval = retriever.retrieve(flattened);
           const resolved = retriever.resolve(retrieval);
-          this.assetProducingPort.toAsset(resolved).catch((err: unknown) => {
-            logger.warn('Asset generation failed', {
-              jobLifecycleId: existing._id,
-              error: err instanceof Error ? err.message : String(err),
+          this.assetProducingPort
+            .toAsset(resolved, undefined, {
+              jobId: String(existing._id),
+              role: existing.role,
+              company: existing.company,
+              location: existing.location,
+            })
+            .catch((err: unknown) => {
+              logger.warn('Asset generation failed', {
+                jobLifecycleId: existing._id,
+                error: err instanceof Error ? err.message : String(err),
+              });
             });
-          });
         }
       } else if (action === 'trash') {
         if (

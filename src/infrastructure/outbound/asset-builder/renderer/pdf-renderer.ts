@@ -12,10 +12,51 @@ Handlebars.registerHelper('join', (arr: unknown, sep: string) => {
   return arr.join(sep);
 });
 
+export function sanitizeSnake(input: string): string {
+  return (
+    input
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .replace(/_+/g, '_')
+      .slice(0, 80) || 'unknown'
+  );
+}
+
+export function buildPdfFilename(meta?: {
+  jobId?: string;
+  role?: string;
+  company?: string;
+  location?: string;
+}): string {
+  const jobId = meta?.jobId?.trim();
+  const role = meta?.role?.trim();
+  const company = meta?.company?.trim();
+  const location = meta?.location?.trim();
+  const parts: string[] = [];
+  if (role) parts.push(sanitizeSnake(role));
+  if (company) parts.push(sanitizeSnake(company));
+  if (location) parts.push(sanitizeSnake(location));
+  if (parts.length === 0) {
+    return `${jobId ? sanitizeSnake(jobId) : 'unknown'}.pdf`;
+  }
+  const base = parts.join('_');
+  const suffix = jobId ? `_${sanitizeSnake(jobId)}` : '';
+  // limit total length to avoid filesystem limits
+  const filename = `${base}${suffix}.pdf`;
+  return filename.length > 200 ? `${filename.slice(0, 200)}.pdf` : filename;
+}
+
 export async function renderPdf(
   asset: PdfAsset,
   outputDir: string,
-  options?: { templatePath?: string; format?: 'A4' | 'Letter' }
+  options?: {
+    templatePath?: string;
+    format?: 'A4' | 'Letter';
+    filename?: string;
+    meta?: { jobId?: string; role?: string; company?: string; location?: string };
+  }
 ): Promise<string> {
   const pdfDir = path.join(config.templatesPath, 'pdf');
   const tmplPath = options?.templatePath || path.join(pdfDir, 'pdf.hbs');
@@ -46,7 +87,10 @@ export async function renderPdf(
     fs.copyFileSync(cssPath, path.join(outputDir, 'ats.css'));
   }
 
-  const htmlPath = path.join(outputDir, 'ats.html');
+  const pdfFilename =
+    options?.filename ?? (options?.meta ? buildPdfFilename(options.meta) : 'ats.pdf');
+  const htmlFilename = pdfFilename.replace(/\.pdf$/i, '.html');
+  const htmlPath = path.join(outputDir, pdfFilename === 'ats.pdf' ? 'ats.html' : htmlFilename);
   fs.writeFileSync(htmlPath, html, 'utf-8');
 
   const executablePath = process.env.CHROMIUM_EXECUTABLE_PATH || undefined;
@@ -59,7 +103,7 @@ export async function renderPdf(
   try {
     const page = await browser.newPage();
     await page.goto('file://' + path.resolve(htmlPath), { waitUntil: 'networkidle' });
-    const outputPath = path.join(outputDir, 'ats.pdf');
+    const outputPath = path.join(outputDir, pdfFilename);
     await page.pdf({
       path: outputPath,
       format: options?.format || 'A4',

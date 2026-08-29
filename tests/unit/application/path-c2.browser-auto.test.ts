@@ -20,6 +20,8 @@ import {
   mockActionWriterPort,
   buildTestDaemonContainer,
   buildTestTuiContainer,
+  type TestDaemonContainer,
+  type MockTestDaemonContainer,
 } from '../../helpers/test-container.js';
 
 function s1Indeed4(prefix: string): string {
@@ -48,7 +50,7 @@ function s1Indeed4(prefix: string): string {
 }
 
 describe('Path c2 — S1→S2c auto Indeed next s1[4] (mocked)', () => {
-  let daemon: Awaited<ReturnType<typeof buildTestDaemonContainer>>;
+  let daemon: TestDaemonContainer | MockTestDaemonContainer;
   let tui: Awaited<ReturnType<typeof buildTestTuiContainer>>;
   let storage: ReturnType<typeof mockJobLifecyclePort>;
   let queue: ReturnType<typeof mockExtractionQueuePort>;
