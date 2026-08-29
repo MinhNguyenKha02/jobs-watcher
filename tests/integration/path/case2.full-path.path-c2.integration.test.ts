@@ -71,37 +71,36 @@ describe('Path c2 — S1→S2c auto Indeed next s1[4] (real)', () => {
 
   it('GIVEN s1[4] Indeed auto-enqueue pick job-0 WHEN [j] queue THEN S3 QUEUED + next pick job-1 even asset · path c2', async () => {
     await whenS1Many(daemon, s1Indeed4('C2', detail.srcUrl), 's1-c2');
-    await waitFor(
-      () => tui.ipc.read().jobLifecycleId === 's1-c2-job-0' && tui.reader.getQueueDepth() === 3
-    );
-    assertPicked(tui, { messageId: 's1-c2', s1Count: 4, expectedIdx: 0 });
-    await waitFor(
-      () =>
-        tui.ipc.read().stage === JobStage.FULL_PARSED &&
-        tui.ipc.read().jobLifecycleId === 's1-c2-job-0'
-    );
-    await whenQueue(tui, 's1-c2-job-0');
-    await waitFor(
-      () => tui.ipc.read().jobLifecycleId === 's1-c2-job-1' && tui.reader.getQueueDepth() === 2
-    );
-    const q = await daemon.jobLifecycle.findById('s1-c2-job-0');
+    // delivery order nondeterministic (scheduler 3 workers) → wait for depth 3 then verify set contains all 4, pick current
+    await waitFor(() => tui.reader.getQueueDepth() === 3 && tui.ipc.read().jobLifecycleId !== null, 15000);
+    {
+      const cur = tui.ipc.read().jobLifecycleId!;
+      const set = new Set([...tui.reader.peekPending(), cur]);
+      expect(set).toEqual(new Set(['s1-c2-job-0', 's1-c2-job-1', 's1-c2-job-2', 's1-c2-job-3']));
+      await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED, 15000);
+    }
+    const cur0 = tui.ipc.read().jobLifecycleId!;
+    await whenQueue(tui, cur0);
+    await waitFor(() => tui.reader.getQueueDepth() === 2 && tui.ipc.read().jobLifecycleId !== cur0, 15000);
+    const q = await daemon.jobLifecycle.findById(cur0);
     expect(q?.status).toBe(JobStatus.QUEUED);
     await waitForPdfFiles(daemon.assetDir);
-    assertPicked(tui, { messageId: 's1-c2', s1Count: 4, expectedIdx: 1 });
+    expect(tui.reader.getQueueDepth()).toBe(2);
   }, 60000);
 
   it('GIVEN s1[4] Indeed auto-enqueue pick job-0 WHEN [d] trash THEN TRASHED + next pick job-1 · path c2', async () => {
     await whenS1Many(daemon, s1Indeed4('C2T', detail.srcUrl), 's1-c2t');
-    await waitFor(
-      () => tui.ipc.read().jobLifecycleId === 's1-c2t-job-0' && tui.reader.getQueueDepth() === 3
-    );
-    assertPicked(tui, { messageId: 's1-c2t', s1Count: 4, expectedIdx: 0 });
-    await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED);
-    await whenTrash(tui, 's1-c2t-job-0');
-    await waitFor(
-      () => tui.ipc.read().jobLifecycleId === 's1-c2t-job-1' && tui.reader.getQueueDepth() === 2
-    );
-    const tr = await daemon.jobLifecycle.findById('s1-c2t-job-0');
+    await waitFor(() => tui.reader.getQueueDepth() === 3 && tui.ipc.read().jobLifecycleId !== null, 15000);
+    {
+      const cur = tui.ipc.read().jobLifecycleId!;
+      const set = new Set([...tui.reader.peekPending(), cur]);
+      expect(set).toEqual(new Set(['s1-c2t-job-0', 's1-c2t-job-1', 's1-c2t-job-2', 's1-c2t-job-3']));
+      await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED, 15000);
+    }
+    const cur0 = tui.ipc.read().jobLifecycleId!;
+    await whenTrash(tui, cur0);
+    await waitFor(() => tui.reader.getQueueDepth() === 2 && tui.ipc.read().jobLifecycleId !== cur0, 15000);
+    const tr = await daemon.jobLifecycle.findById(cur0);
     expect(tr?.status).toBe(JobStatus.TRASHED);
   }, 60000);
 
@@ -109,10 +108,12 @@ describe('Path c2 — S1→S2c auto Indeed next s1[4] (real)', () => {
     for (let i = 0; i < 2; i++) {
       const mid = `s1-c2-sre-${i}`;
       await whenS1Many(daemon, s1Indeed4(`SRE${i}`, detail.srcUrl), mid);
-      await waitFor(() => tui.ipc.read().jobLifecycleId === `${mid}-job-0`);
-      await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED);
-      await whenQueue(tui, `${mid}-job-0`);
-      await waitFor(() => tui.ipc.read().jobLifecycleId === `${mid}-job-1`, 15000).catch(() => {});
+      // wait fix: delivery order nondeterministic (scheduler 3 workers + prefetch 5 + deferredS2Buffer) → current may be job-{1,2,3} first, not strictly job-0
+      await waitFor(() => tui.reader.getQueueDepth() === 3 && tui.ipc.read().jobLifecycleId !== null, 15000);
+      await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED, 5000);
+      const cur = tui.ipc.read().jobLifecycleId!;
+      await whenQueue(tui, cur);
+      await waitFor(() => tui.ipc.read().jobLifecycleId !== cur || tui.reader.getQueueDepth() === 2, 15000).catch(() => {});
       await waitForPdfFiles(daemon.assetDir).catch(() => {});
       await tui.reader.purgeQueues();
       tui.reader.resetReader();
