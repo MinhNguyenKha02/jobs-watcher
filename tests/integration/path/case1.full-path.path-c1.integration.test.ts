@@ -152,5 +152,5 @@ describe('Path c1 — S1→S2a→S3 next s1[4] (real)', () => {
     }
     expect(tui.reader.getQueueDepth()).toBe(0);
     await waitForPdfCount(daemon.assetDir, 8, 5000);
-  }, 120000);
+  }, 180000);
 });

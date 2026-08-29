@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
 import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
+import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
 import {
   topcvEmailHtmlMany,
   linkedinSduiDetailHtml,
@@ -43,6 +44,7 @@ describe('IngestorPort — inbound driving · contract ingestor', () => {
     await tui.reader.purgeQueues();
     tui.reader.resetReader();
     tui.ipc.clear();
+    setQueueMode(true);
   });
 
   describe('(a) processIngest dispatch table — source/stage matrix', () => {
@@ -119,6 +121,7 @@ describe('IngestorPort — inbound driving · contract ingestor', () => {
     });
 
     it('GIVEN MANUAL FULL without id WHEN signal2b evaluates THEN S2 clip-* enriched · contract ingestor', async () => {
+      setQueueMode(false);
       await daemon.apps.ingest.processIngest(
         JobSource.MANUAL,
         JobStage.FULL_PARSED,
@@ -132,6 +135,7 @@ describe('IngestorPort — inbound driving · contract ingestor', () => {
       const clipId = tui.ipc.read().jobLifecycleId!;
       const doc = await daemon.jobLifecycle.findById(clipId);
       assertIngestorS2Enriched(doc);
+      setQueueMode(true);
     });
   });
 

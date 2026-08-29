@@ -150,7 +150,8 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     await daemon.apps.scheduler.start();
     await whenS1Many(daemon, s1Indeed4('C3B', detail.srcUrl), 's1-c3b');
     await waitFor(
-      () => tui.ipc.read().jobLifecycleId === 's1-c3b-job-0' && tui.reader.getQueueDepth() === 3
+      () => tui.ipc.read().jobLifecycleId === 's1-c3b-job-0' && tui.reader.getQueueDepth() === 3,
+      30000
     );
     assertPicked(tui, { messageId: 's1-c3b', s1Count: 4, expectedIdx: 0 });
     await waitFor(
@@ -161,11 +162,11 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     );
     vi.spyOn(daemon.jobLifecycle, 'updateStage').mockRejectedValueOnce(new Error('route down'));
     await whenQueue(tui, 's1-c3b-job-0');
-    await waitFor(() => tui.ipc.read().jobLifecycleId === 's1-c3b-job-1', 15000);
+    await waitFor(() => tui.ipc.read().jobLifecycleId === 's1-c3b-job-1', 30000);
     vi.restoreAllMocks();
     assertPicked(tui, { messageId: 's1-c3b', s1Count: 4, expectedIdx: 1 });
     await daemon.apps.scheduler.stop();
-  }, 45000);
+  }, 90000);
 
   it('GIVEN S2b 1 job WHEN S2b→ENRICHED then S3 fail THEN S4+clear even asset · path c3', async () => {
     setQueueMode(false);

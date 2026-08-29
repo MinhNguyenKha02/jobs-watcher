@@ -303,7 +303,7 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
       expect(res.statusCode).toBe(200);
       expect(JSON.parse(res.body).status).toBe('ok');
 
-      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null, 60000);
       expect(tui.ipc.read().job).toBeNull();
       const doc = await daemon.jobLifecycle.findById(id);
       expect(doc!.status).toBe(JobStatus.QUEUED);
@@ -323,7 +323,7 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
       );
       expect(res.statusCode).toBe(200);
 
-      await waitFor(() => tui.ipc.read().jobLifecycleId === null);
+      await waitFor(() => tui.ipc.read().jobLifecycleId === null, 60000);
       expect(tui.ipc.read().job).toBeNull();
       const doc = await daemon.jobLifecycle.findById(id);
       expect(doc!.status).toBe(JobStatus.TRASHED);

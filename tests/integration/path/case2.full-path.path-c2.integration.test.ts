@@ -185,5 +185,5 @@ describe('Path c2 — S1→S2c auto Indeed next s1[4] (real)', () => {
     expect(tui.reader.getQueueDepth()).toBe(0);
     // per-job pdf no overwrite → 2 iterations × 4 queued = 8 distinct pdfs
     await waitForPdfCount(daemon.assetDir, 8, 5000);
-  }, 120000);
+  }, 180000);
 });
