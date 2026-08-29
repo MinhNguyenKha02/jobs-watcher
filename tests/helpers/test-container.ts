@@ -7,7 +7,7 @@
  *     { rmq, jobLifecycle, extractQueue, browser, assetProducing,
  *       uds, webhook, mongo, assetDir, storage, apps, start, stop }
  *   buildTestTuiContainer(cfg, overrides?) →
- *     { reader, writer, ipc:{read,clear}, start, stop } + deprecated aliases
+ *     { reader, writer, ipc:{read,clear}, start, stop }
  *
  * The 2nd arg `{ports}` selects mock mode (vi.fn() spies; NO infra).
  * Real mode uses mongod + namespaced `jobs.events.int.<ns>` + UDS socket.
@@ -23,7 +23,6 @@ import { vi } from 'vitest';
 import {
   buildTuiContainer,
   buildDaemonContainer,
-  type TuiContainer,
   type DaemonContainerOverrides,
 } from '../../src/application/container.js';
 import type { AssetProducingPort } from '../../src/application/ports/asset-producing.port.js';
@@ -73,10 +72,6 @@ function releaseRealNs(ns: string): void {
   else activeNs.set(ns, n - 1);
 }
 
-/** @deprecated rmq.consume removed — assert via ipc.read() downstream of durable reader */
-export type ConsumedJob = any;
-/** @deprecated consume target removed — use ipc seam */
-export type ConsumeTarget = 's1' | 's2' | 's34' | string[];
 export type TestStorage = Awaited<ReturnType<typeof createTestStorage>>;
 /** Structural scheduler surface the facade exposes under `apps.scheduler`. */
 export type AppsScheduler = { start: () => Promise<void>; stop: () => Promise<void> };
@@ -92,17 +87,6 @@ export interface BuildTestDaemonContainerOptions {
   asset?: { outputDir?: string };
 }
 
-/**
- * Real-mode overrides. `ports.assetProducing` substitutes the heavyweight
- * profile-artifact render (an external seam, not a boundary port) — permitted
- * in real mode so [j] resolution never needs chromium in boundary tests.
- * `gmail` substitutes the inbound webhook transport.
- */
-export interface TestDaemonContainerRealOverrides {
-  ports?: { assetProducing?: AssetProducingPort };
-  gmail?: GmailClient;
-}
-
 /** Mock-mode port set (LSP: each spy satisfies the app/dev port interface). */
 export interface MockPorts {
   jobLifecycle?: JobLifecyclePort;
@@ -113,6 +97,21 @@ export interface MockPorts {
   assetProducing?: AssetProducingPort;
   ingestor?: IngestorPort;
 }
+
+/** Single harness overrides — one interface for real + mock suites. */
+export interface TestDaemonContainerOverrides {
+  ports?: MockPorts;
+  gmail?: GmailClient;
+}
+
+/** 6-key discriminator — must stay in sync with runtime isMock (L272). */
+type MockDiscriminatorKeys = 'jobLifecycle' | 'extractionQueue' | 'parse' | 'route' | 'browser' | 'ingestor';
+
+type IsMockOverride<T> = T extends { ports: infer P }
+  ? P extends { jobLifecycle: JobLifecyclePort } | { extractionQueue: ExtractionQueuePort } | { parse: ParsePort } | { route: RoutePort } | { browser: BrowserPort } | { ingestor: IngestorPort }
+    ? true
+    : false
+  : false;
 
 interface TestDaemonContainerShared {
   ns: string;
@@ -248,36 +247,24 @@ export function mockActionWriterPort() {
  * ------------------------------------------------------------------ */
 
 /**
- * Real mode: full mongod + namespaced real RMQ exchange + UDS socket, all
- * production adapters. `{ overrides.ports.assetProducing }` alone substitutes
- * the asset render seam (real mode is preserved).
- *
- * Mock mode (`overrides.ports` carries app ports): production composition root
- * over `vi.fn()`-backed ports, NO infra ever touched — `start`/`stop` are
- * no-ops on infra; the app layer (JobIngestor/ExtractionScheduler) is real and
- * immediately usable.
+ * Single-interface harness: `overrides?: {ports?:MockPorts,gmail?}`.
+ * Real mode: full mongod + namespaced RMQ + UDS; `ports.assetProducing` alone
+ * substitutes the asset render seam (real mode preserved).
+ * Mock mode: `ports` carries any of the 6 discriminator keys → production
+ * composition root over `vi.fn()` spies, NO infra.
  */
-export function buildTestDaemonContainer(
-  cfg: BuildTestDaemonContainerOptions
-): Promise<TestDaemonContainer>;
-export function buildTestDaemonContainer(
+export function buildTestDaemonContainer<T extends TestDaemonContainerOverrides | undefined = undefined>(
   cfg: BuildTestDaemonContainerOptions,
-  overrides: TestDaemonContainerRealOverrides
-): Promise<TestDaemonContainer>;
-export function buildTestDaemonContainer(
-  cfg: BuildTestDaemonContainerOptions,
-  overrides: { ports: MockPorts }
-): Promise<MockTestDaemonContainer>;
+  overrides?: T
+): Promise<IsMockOverride<T> extends true ? MockTestDaemonContainer : TestDaemonContainer>;
 export async function buildTestDaemonContainer(
   opts: BuildTestDaemonContainerOptions,
-  overrides: (TestDaemonContainerRealOverrides | { ports: MockPorts }) & {
-    gmail?: GmailClient;
-  } = {}
+  overrides: TestDaemonContainerOverrides = {}
 ): Promise<TestDaemonContainer | MockTestDaemonContainer> {
-  const providedPorts = (overrides as { ports?: MockPorts }).ports ?? {};
-  const isMock = ['jobLifecycle', 'extractionQueue', 'parse', 'route', 'browser', 'ingestor'].some(
-    (k) => k in providedPorts
-  );
+  const providedPorts = overrides.ports ?? {};
+  const isMock = (
+    ['jobLifecycle', 'extractionQueue', 'parse', 'route', 'browser', 'ingestor'] as const satisfies readonly MockDiscriminatorKeys[]
+  ).some((k) => k in providedPorts);
 
   const exchange = opts.rmq?.exchange ?? `jobs.events.int.${opts.ns}`;
   const socket = opts.uds?.socketPath ?? `/tmp/jobs-watcher-${opts.ns}.sock`;
@@ -480,12 +467,6 @@ export interface TuiTestContainer {
   ipc: { read(): CurrentJobState; clear(): void };
   start: () => Promise<void>;
   stop: () => Promise<void>;
-  /** @deprecated use `reader` */
-  rmq: { reader: JobEventReaderPort };
-  /** @deprecated use `writer` */
-  uds: { write: ActionWriterPort };
-  /** @deprecated use container directly; kept for compatibility */
-  app: TuiContainer;
 }
 
 /**
@@ -574,14 +555,6 @@ export async function buildTestTuiContainer(
       read: () => getCurrentJob(),
       clear: () => clearCurrentJob(),
     },
-    // deprecated aliases
-    get rmq() {
-      return { reader };
-    },
-    get uds() {
-      return { write: writer };
-    },
-    app: container,
     start: () => container.start(),
     stop: async () => {
       await container.stop();
