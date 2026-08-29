@@ -378,13 +378,10 @@ export async function buildTestDaemonContainer(
   }
 
   async function stop(): Promise<void> {
-    releaseRealNs(opts.ns);
     try {
-      if (opts.startScheduler) {
-        await container.extractionScheduler.stop();
-      }
+      await container.extractionScheduler.stop();
     } catch {
-      /* best-effort */
+      /* best-effort — idempotent, also covers per-it apps.scheduler.start() leaked workers */
     }
     try {
       await container.udsAdapter.stop();
@@ -406,7 +403,13 @@ export async function buildTestDaemonContainer(
     } catch {
       /* best-effort */
     }
-    await storage.stop();
+    try {
+      await storage.stop();
+    } catch {
+      /* best-effort */
+    } finally {
+      releaseRealNs(opts.ns);
+    }
   }
 
   return {
