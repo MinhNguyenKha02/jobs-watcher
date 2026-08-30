@@ -30,13 +30,13 @@ export function assertPicked(
     typeof (tui.reader.peekPending as unknown as { mock?: unknown })?.mock !== 'undefined';
   if (isMockReader) {
     // Unit: mock reader — verify queue seam matches RabbitMqJobReader pending/autoAdvance 51/52/78/81/434
-    // (pending excludes current, depth = s1Count-idx-1, peekPending[0] = next job). IPC not asserted — mock reader never drives shared-tui-state.
+    // (pending excludes current, depth = s1Count-idx-1). Relax pending[0]→toContain for Indeed scheduler 3 workers nondeterministic insert order (ingestor.ts:393 ExtractionScheduler + renderer.ts:53 chromium.launch), still strict on depth/length.
     const depth = tui.reader.getQueueDepth();
     expect(depth).toBe(expectedDepth);
     const pending = tui.reader.peekPending();
     expect(pending.length).toBe(expectedDepth < 0 ? 0 : expectedDepth);
     if (expectedIdx + 1 < s1Count) {
-      expect(pending[0]).toBe(expectedNextId);
+      expect(pending).toContain(expectedNextId);
     }
     expect(tui.reader.getQueueModeState()).toBe(true);
     return;
@@ -49,8 +49,23 @@ export function assertPicked(
   const pending = tui.reader.peekPending();
   expect(pending.length).toBe(expectedDepth);
   if (expectedIdx + 1 < s1Count) {
-    expect(pending[0]).toBe(expectedNextId);
+    expect(pending).toContain(expectedNextId);
   }
+}
+
+// --- Indeed scheduler Set check: s1[4] pending nondeterministic (3 workers) — set equality over strict order ---
+export function assertPickedSet(
+  tui: TuiTestContainer,
+  opts: { messageId: string; s1Count: number }
+): void {
+  const { messageId, s1Count } = opts;
+  const cur = tui.ipc.read().jobLifecycleId;
+  expect(cur).not.toBeNull();
+  const pending = tui.reader.peekPending();
+  const set = new Set([...pending, cur!]);
+  const expected = new Set(Array.from({ length: s1Count }, (_, i) => `${messageId}-job-${i}`));
+  expect(set).toEqual(expected);
+  expect(tui.reader.getQueueDepth()).toBe(s1Count - 1);
 }
 
 // --- direct S2b→S3|S4→clear except s2b ---

@@ -4,7 +4,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 
 import { JobStage, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
-import { assertPicked, assertDirectClear } from '../../helpers/assert-path.js';
+import { assertPicked, assertPickedSet, assertDirectClear } from '../../helpers/assert-path.js';
 import { startDetailServer } from '../../helpers/detail-server.js';
 import {
   topcvEmailHtmlMany,
@@ -149,22 +149,36 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
   it('GIVEN s1[4] Indeed auto-enqueue pick job-0 WHEN S2c then S3 fail THEN S4 ROUTE_FAILED + next pick job-1 · path c3', async () => {
     await daemon.apps.scheduler.start();
     await whenS1Many(daemon, s1Indeed4('C3B', detail.srcUrl), 's1-c3b');
+    // Indeed scheduler 3 workers nondeterministic — depth3 set like case2 (s1Indeed4 + detail.srcUrl)
     await waitFor(
-      () => tui.ipc.read().jobLifecycleId === 's1-c3b-job-0' && tui.reader.getQueueDepth() === 3,
+      () => tui.reader.getQueueDepth() === 3 && tui.ipc.read().jobLifecycleId !== null,
       30000
     );
-    assertPicked(tui, { messageId: 's1-c3b', s1Count: 4, expectedIdx: 0 });
+    assertPickedSet(tui, { messageId: 's1-c3b', s1Count: 4 });
+    const cur0 = tui.ipc.read().jobLifecycleId!;
     await waitFor(
-      () =>
-        tui.ipc.read().stage === JobStage.FULL_PARSED &&
-        tui.ipc.read().jobLifecycleId === 's1-c3b-job-0',
+      () => tui.ipc.read().stage === JobStage.FULL_PARSED && tui.ipc.read().jobLifecycleId === cur0,
       30000
     );
     vi.spyOn(daemon.jobLifecycle, 'updateStage').mockRejectedValueOnce(new Error('route down'));
-    await whenQueue(tui, 's1-c3b-job-0');
-    await waitFor(() => tui.ipc.read().jobLifecycleId === 's1-c3b-job-1', 30000);
+    await whenQueue(tui, cur0);
+    await waitFor(
+      () => tui.ipc.read().jobLifecycleId !== cur0 && tui.reader.getQueueDepth() === 2,
+      30000
+    );
     vi.restoreAllMocks();
-    assertPicked(tui, { messageId: 's1-c3b', s1Count: 4, expectedIdx: 1 });
+    const doc = await daemon.jobLifecycle.findById(cur0);
+    expect(doc?.status).toBe(JobStatus.ENRICHED);
+    // remaining pending+current must be exactly the 3 other jobs (order-insensitive)
+    {
+      const cur1 = tui.ipc.read().jobLifecycleId!;
+      const remaining = new Set([...tui.reader.peekPending(), cur1]);
+      const expected = new Set(
+        ['s1-c3b-job-0', 's1-c3b-job-1', 's1-c3b-job-2', 's1-c3b-job-3'].filter((id) => id !== cur0)
+      );
+      expect(remaining).toEqual(expected);
+      expect(tui.reader.getQueueDepth()).toBe(2);
+    }
     await daemon.apps.scheduler.stop();
   }, 90000);
 

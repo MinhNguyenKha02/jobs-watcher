@@ -3,6 +3,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
 import { JobStage, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
+import { assertPickedSet } from '../../helpers/assert-path.js';
 import { startDetailServer } from '../../helpers/detail-server.js';
 import { indeedEmailHtmlMany } from '../../helpers/html-fixtures.js';
 import { whenS1Many, whenQueue, whenTrash } from '../../helpers/saga.js';
@@ -81,12 +82,8 @@ describe('Path c2 — S1→S2c auto Indeed next s1[4] (real)', () => {
       () => tui.reader.getQueueDepth() === 3 && tui.ipc.read().jobLifecycleId !== null,
       15000
     );
-    {
-      const cur = tui.ipc.read().jobLifecycleId!;
-      const set = new Set([...tui.reader.peekPending(), cur]);
-      expect(set).toEqual(new Set(['s1-c2-job-0', 's1-c2-job-1', 's1-c2-job-2', 's1-c2-job-3']));
-      await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED, 15000);
-    }
+    assertPickedSet(tui, { messageId: 's1-c2', s1Count: 4 });
+    await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED, 15000);
     const cur0 = tui.ipc.read().jobLifecycleId!;
     const docBefore = await daemon.jobLifecycle.findById(cur0);
     await whenQueue(tui, cur0);
@@ -119,14 +116,8 @@ describe('Path c2 — S1→S2c auto Indeed next s1[4] (real)', () => {
       () => tui.reader.getQueueDepth() === 3 && tui.ipc.read().jobLifecycleId !== null,
       15000
     );
-    {
-      const cur = tui.ipc.read().jobLifecycleId!;
-      const set = new Set([...tui.reader.peekPending(), cur]);
-      expect(set).toEqual(
-        new Set(['s1-c2t-job-0', 's1-c2t-job-1', 's1-c2t-job-2', 's1-c2t-job-3'])
-      );
-      await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED, 15000);
-    }
+    assertPickedSet(tui, { messageId: 's1-c2t', s1Count: 4 });
+    await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED, 15000);
     const cur0 = tui.ipc.read().jobLifecycleId!;
     await whenTrash(tui, cur0);
     await waitFor(
