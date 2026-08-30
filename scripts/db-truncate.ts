@@ -3,15 +3,9 @@ import { MongoClient } from 'mongodb';
 async function main() {
   const uri = process.env.MONGODB_URI ?? 'mongodb://localhost:27017';
   const dbName =
+    process.env.MONGODB_DB_NAME ??
     process.env.MONGODB_DB ??
-    (() => {
-      try {
-        const u = new URL(process.env.MONGODB_URI ?? 'http://localhost');
-        return u.pathname && u.pathname !== '/' ? u.pathname.replace(/^\//, '') : 'jobs-watcher';
-      } catch (e) {
-        return 'jobs-watcher';
-      }
-    })();
+    'jobs_watcher';
 
   const client = new MongoClient(uri);
   try {

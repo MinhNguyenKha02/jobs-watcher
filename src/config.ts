@@ -119,6 +119,18 @@ export function loadConfig(): Config {
     },
   };
 
+  // Guardrail: detect stray DB path in URI that conflicts with dbName (e.g. /jobs-watcher vs jobs_watcher)
+  try {
+    const uriPath = new URL(rawConfig.mongodb.uri).pathname.replace(/^\//, '');
+    if (uriPath && uriPath !== rawConfig.mongodb.dbName) {
+      console.warn(
+        `⚠️  MONGODB_URI path "/${uriPath}" differs from MONGODB_DB_NAME "${rawConfig.mongodb.dbName}" — using dbName "${rawConfig.mongodb.dbName}" (URI path ignored via client.db(dbName)). Remove path from URI to silence this warning.`
+      );
+    }
+  } catch {
+    // ignore malformed URI — zod will reject
+  }
+
   try {
     return configSchema.parse(rawConfig);
   } catch (error) {

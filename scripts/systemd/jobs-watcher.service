@@ -14,7 +14,7 @@ Group=jobs-watcher
 # Development: Load env from local path
 EnvironmentFile=/home/minh-nguyen/node_projects/jobs-watcher/.env
 Environment="NODE_ENV=development"
-Environment="MONGODB_URI=mongodb://localhost:27017/jobs-watcher"
+Environment="MONGODB_URI=mongodb://localhost:27017"
 Environment="PLAYWRIGHT_BROWSERS_PATH=/home/minh-nguyen/.cache/ms-playwright"
 
 # Development: Use local project directory
