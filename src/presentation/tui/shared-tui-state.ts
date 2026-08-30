@@ -74,9 +74,14 @@ const getStateDir = () => {
   return join(homedir(), '.cache');
 };
 
-const sharedStatePath =
-  process.env.TUI_SHARED_STATE_PATH || join(getStateDir(), 'jobs-watcher-tui-state.json');
+function getSharedStatePath(): string {
+  return process.env.TUI_SHARED_STATE_PATH || join(getStateDir(), 'jobs-watcher-tui-state.json');
+}
 const STATE_VERSION = 2;
+
+function resolveStatePath(): string {
+  return getSharedStatePath();
+}
 
 function createDefaultModeSubState(): ModeSubState {
   return {
@@ -103,8 +108,9 @@ function activeModeKey(queueMode: boolean): 'queue' | 'direct' {
 }
 
 function readSharedStateFromDisk(): TuiSharedState {
+  const p = resolveStatePath();
   try {
-    const raw = readFileSync(sharedStatePath, 'utf8');
+    const raw = readFileSync(p, 'utf8');
     const parsed = JSON.parse(raw) as Record<string, unknown>;
 
     // v1 → v2 migration
@@ -184,7 +190,7 @@ const LOCK_MAX_RETRIES = 50;
 const STALE_LOCK_MS = 30_000;
 
 function acquireExclusiveLock(): string {
-  const lockPath = `${sharedStatePath}.lock`;
+  const lockPath = `${resolveStatePath()}.lock`;
   for (let attempt = 0; attempt < LOCK_MAX_RETRIES; attempt++) {
     try {
       const fd = openSync(lockPath, 'wx');
@@ -224,16 +230,17 @@ function withExclusiveLock<T>(fn: () => T): T {
 }
 
 function writeSharedStateToDisk(nextState: TuiSharedState): void {
-  mkdirSync(dirname(sharedStatePath), { recursive: true });
-  const tempPath = `${sharedStatePath}.tmp`;
+  const sp = resolveStatePath();
+  mkdirSync(dirname(sp), { recursive: true });
+  const tempPath = `${sp}.tmp`;
   const jsonStr = JSON.stringify(nextState, null, 2);
   writeFileSync(tempPath, jsonStr, 'utf8');
-  renameSync(tempPath, sharedStatePath);
+  renameSync(tempPath, sp);
   const active = activeModeKey(nextState.queueMode);
   logger.info('[STATE] ✅ File written successfully (atomic)', {
     jobLifecycleId: nextState[active].jobLifecycleId,
     mode: active,
-    filePath: sharedStatePath,
+    filePath: sp,
     stateSize: jsonStr.length,
   });
 }
@@ -377,8 +384,8 @@ export function watchStateFile(callback: (state: CurrentJobState) => void): () =
   };
 
   try {
-    stateWatcher = watch(sharedStatePath, { persistent: false }, handler);
-    logger.info('[STATE] Watching state file', { filePath: sharedStatePath });
+    stateWatcher = watch(resolveStatePath(), { persistent: false }, handler);
+    logger.info('[STATE] Watching state file', { filePath: resolveStatePath() });
   } catch (err) {
     logger.error('[STATE] Failed to watch state file', { error: String(err) });
   }

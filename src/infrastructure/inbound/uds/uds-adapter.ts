@@ -28,6 +28,9 @@ export class UdsAdapter {
       await fs.promises.unlink(this.config.socketPath);
     } catch {}
     this.server = http.createServer((req, res) => this.handleRequest(req, res));
+    this.server.timeout = 10000;
+    this.server.keepAliveTimeout = 5000;
+    this.server.headersTimeout = 11000;
     return new Promise<void>((resolve, reject) => {
       this.server!.listen(this.config.socketPath, () => {
         logger.info('Listening', { socketPath: this.config.socketPath });
@@ -55,6 +58,17 @@ export class UdsAdapter {
   }
 
   private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    // Guard slow clients / stalled ingest: if not handled in 10s, surface 503.
+    req.setTimeout(10000, () => {
+      if (!res.writableEnded) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Request timeout' }));
+        req.destroy();
+      }
+    });
+    req.on('close', () => {
+      // best-effort drain on client abort
+    });
     if (!this.authenticate(req)) {
       await this.drain(req);
       res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -76,16 +90,39 @@ export class UdsAdapter {
   }
 
   private async readBody(req: http.IncomingMessage): Promise<string> {
+    const MAX_BYTES = 5_242_880;
     const bufs: Buffer[] = [];
+    let total = 0;
     for await (const chunk of req) {
-      bufs.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string));
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string);
+      total += buf.length;
+      if (total > MAX_BYTES) {
+        // Drain remainder and surface 413 at caller.
+        for await (const _c of req) {
+          /* discard */
+        }
+        throw new Error('Payload Too Large');
+      }
+      bufs.push(buf);
     }
     return Buffer.concat(bufs).toString();
   }
 
   private async handleAction(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    let bodyStr: string;
     try {
-      const body = JSON.parse(await this.readBody(req)) as {
+      bodyStr = await this.readBody(req);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg === 'Payload Too Large') {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Payload Too Large' }));
+        return;
+      }
+      throw err;
+    }
+    try {
+      const body = JSON.parse(bodyStr) as {
         jobLifecycleId?: string;
         action?: string;
       };
@@ -96,11 +133,21 @@ export class UdsAdapter {
         res.end(JSON.stringify({ error: 'Missing jobLifecycleId or action' }));
         return;
       }
-      await this.ingestor.processResolution(jobLifecycleId, action);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok' }));
+      // Decouple HTTP from ingestor: validate sync, respond 202, process async.
+      res.writeHead(202, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'accepted' }));
+      void this.ingestor.processResolution(jobLifecycleId, action).catch((e) => {
+        logger.error('Action async failed', { error: e instanceof Error ? e.message : String(e) });
+      });
     } catch (err) {
-      logger.error('Action failed', { error: err instanceof Error ? err.message : String(err) });
+      if (res.writableEnded) return;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('Payload Too Large')) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Payload Too Large' }));
+        return;
+      }
+      logger.error('Action failed', { error: msg });
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal server error' }));
     }
@@ -111,8 +158,20 @@ export class UdsAdapter {
     res: http.ServerResponse,
     isWebhook: boolean
   ): Promise<void> {
+    let bodyStr: string;
     try {
-      const body = JSON.parse(await this.readBody(req)) as {
+      bodyStr = await this.readBody(req);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg === 'Payload Too Large') {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Payload Too Large' }));
+        return;
+      }
+      throw err;
+    }
+    try {
+      const body = JSON.parse(bodyStr) as {
         html?: string;
         jobLifecycleId?: string;
       };
@@ -123,16 +182,30 @@ export class UdsAdapter {
         return;
       }
 
-      await this.ingestor.processIngest(
-        JobSource.MANUAL,
-        JobStage.FULL_PARSED,
-        html,
-        isWebhook ? body.jobLifecycleId : undefined
-      );
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok' }));
+      // Decouple: validate html sync, respond 202, ingest async.
+      res.writeHead(202, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'accepted' }));
+      void this.ingestor
+        .processIngest(
+          JobSource.MANUAL,
+          JobStage.FULL_PARSED,
+          html,
+          isWebhook ? body.jobLifecycleId : undefined
+        )
+        .catch((e) => {
+          logger.error('Ingest async failed', {
+            error: e instanceof Error ? e.message : String(e),
+          });
+        });
     } catch (err) {
-      logger.error('Ingest failed', { error: err instanceof Error ? err.message : String(err) });
+      if (res.writableEnded) return;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('Payload Too Large')) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Payload Too Large' }));
+        return;
+      }
+      logger.error('Ingest failed', { error: msg });
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal server error' }));
     }

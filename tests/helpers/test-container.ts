@@ -513,6 +513,11 @@ export async function buildTestTuiContainer(
   const token = opts.uds?.token ?? 'e2e-internal-token';
   const isMock = Boolean(overrides.ports);
   if (!isMock) claimRealNs(`tui:${opts.ns}`);
+  // Per-ns IPC file: each ns gets its own TUI_SHARED_STATE_PATH so no-file-parallelism suites don't share the global /run/user/<uid>/jobs-watcher-tui-state.json file.
+  // All contracts use per-ns, including tui-x-daemon pid-ts ns (no collide via ns uniqueness).
+  const perNsStatePath = path.join(os.tmpdir(), `jobs-watcher-${opts.ns}-tui-state.json`);
+  const prevStatePath = process.env.TUI_SHARED_STATE_PATH;
+  process.env.TUI_SHARED_STATE_PATH = perNsStatePath;
 
   const readerPort = overrides.ports?.rmqReader;
   const writerPort = overrides.ports?.udsWriter;
@@ -583,6 +588,16 @@ export async function buildTestTuiContainer(
     stop: async () => {
       await container.stop();
       if (!isMock) releaseRealNs(`tui:${opts.ns}`);
+      // Restore env and best-effort clean per-ns state file so next suite in same process doesn't read stale state.
+      if (perNsStatePath) {
+        if (prevStatePath === undefined) delete process.env.TUI_SHARED_STATE_PATH;
+        else process.env.TUI_SHARED_STATE_PATH = prevStatePath;
+        try {
+          fs.rmSync(perNsStatePath, { force: true });
+          fs.rmSync(`${perNsStatePath}.lock`, { force: true });
+          fs.rmSync(`${perNsStatePath}.tmp`, { force: true });
+        } catch {}
+      }
     },
   };
 }

@@ -68,73 +68,66 @@ describe('BrowserPort — playwright adapter contract · contract browser', { ti
 
   let adapter: PlaywrightBrowserAdapter;
 
-  describe('(a) lifecycle — start → extract → stop on the real browser', () => {
-    it('GIVEN a reachable fixture url WHEN start → extract on the real BrowserPort THEN the page HTML is returned', async () => {
-      adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 5000 });
-      await adapter.start();
-      const result = await adapter.extract(server.url);
-      expect(result).toBeDefined();
-      expect(typeof result.html).toBe('string');
-      expect(result.html).toContain('Integration Test');
-    }, 60000);
+  // — (a) lifecycle —
+  it('GIVEN a reachable fixture url WHEN start → extract on the real BrowserPort THEN the page HTML is returned', async () => {
+    adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 5000 });
+    await adapter.start();
+    const result = await adapter.extract(server.url);
+    expect(result).toBeDefined();
+    expect(typeof result.html).toBe('string');
+    expect(result.html).toContain('Integration Test');
+  }, 60000);
 
-    it('GIVEN the browser extracted page WHEN extract runs twice on the real BrowserPort THEN multiple extractions return consistent content', async () => {
-      adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 5000 });
-      await adapter.start();
-      const [r1, r2] = await Promise.all([
-        adapter.extract(server.url),
-        adapter.extract(server.url),
-      ]);
-      expect(r1.html).toContain('Integration Test');
-      expect(r2.html).toContain('Integration Test');
-    }, 60000);
+  it('GIVEN the browser extracted page WHEN extract runs twice on the real BrowserPort THEN multiple extractions return consistent content', async () => {
+    adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 5000 });
+    await adapter.start();
+    const [r1, r2] = await Promise.all([adapter.extract(server.url), adapter.extract(server.url)]);
+    expect(r1.html).toContain('Integration Test');
+    expect(r2.html).toContain('Integration Test');
+  }, 60000);
 
-    it('GIVEN a browser lifecycle WHEN stop → start → extract on the real BrowserPort THEN the adapter is reusable after a clean stop', async () => {
-      adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 5000 });
-      await adapter.start();
-      await adapter.stop();
-      await adapter.start();
-      const result = await adapter.extract(server.url);
-      expect(result.html).toContain('Integration Test');
-    }, 60000);
-  });
+  it('GIVEN a browser lifecycle WHEN stop → start → extract on the real BrowserPort THEN the adapter is reusable after a clean stop', async () => {
+    adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 5000 });
+    await adapter.start();
+    await adapter.stop();
+    await adapter.start();
+    const result = await adapter.extract(server.url);
+    expect(result.html).toContain('Integration Test');
+  }, 60000);
 
-  describe('(b) contract shape — BrowserPort return surface on the real browser', () => {
-    it('GIVEN a reachable fixture url WHEN extract on the real BrowserPort THEN the return shape matches the { html } BrowserPort contract', async () => {
-      adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 5000 });
-      await adapter.start();
-      const result = await adapter.extract(server.url);
-      expect(Object.keys(result)).toEqual(['html']);
-    }, 60000);
-  });
+  // — (b) contract shape —
+  it('GIVEN a reachable fixture url WHEN extract on the real BrowserPort THEN the return shape matches the { html } BrowserPort contract', async () => {
+    adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 5000 });
+    await adapter.start();
+    const result = await adapter.extract(server.url);
+    expect(Object.keys(result)).toEqual(['html']);
+  }, 60000);
 
-  describe('(c) failure — extract surfaces failures on the real browser', () => {
-    it('GIVEN a stopped browser WHEN extract on the real BrowserPort THEN an explicit error is thrown (no silent hang)', async () => {
-      adapter = new PlaywrightBrowserAdapter({ headless: true });
-      await expect(adapter.extract(server.url)).rejects.toThrow(/not started|Browser not started/);
-    }, 30000);
+  // — (c) failure —
+  it('GIVEN a stopped browser WHEN extract on the real BrowserPort THEN an explicit error is thrown (no silent hang)', async () => {
+    adapter = new PlaywrightBrowserAdapter({ headless: true });
+    await expect(adapter.extract(server.url)).rejects.toThrow(/not started|Browser not started/);
+  }, 30000);
 
-    it('GIVEN an unreachable host WHEN extract on the real BrowserPort THEN the adapter surfaces the failure (goto rejects)', async () => {
-      adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 2000 });
-      await adapter.start();
-      await expect(adapter.extract('http://127.0.0.1:1/unreachable')).rejects.toBeTruthy();
-    }, 60000);
-  });
+  it('GIVEN an unreachable host WHEN extract on the real BrowserPort THEN the adapter surfaces the failure (goto rejects)', async () => {
+    adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 2000 });
+    await adapter.start();
+    await expect(adapter.extract('http://127.0.0.1:1/unreachable')).rejects.toBeTruthy();
+  }, 60000);
 
-  describe('(d) stop idempotence + recovery on the real browser', () => {
-    it('GIVEN a started browser WHEN stop twice on the real BrowserPort THEN double-stop is idempotent (no throw on the second stop)', async () => {
-      adapter = new PlaywrightBrowserAdapter({ headless: true });
-      await adapter.start();
-      await adapter.stop();
-      await expect(adapter.stop()).resolves.toBeUndefined();
-    }, 30000);
+  // — (d) stop idempotence —
+  it('GIVEN a started browser WHEN stop twice on the real BrowserPort THEN double-stop is idempotent (no throw on the second stop)', async () => {
+    adapter = new PlaywrightBrowserAdapter({ headless: true });
+    await adapter.start();
+    await adapter.stop();
+    await expect(adapter.stop()).resolves.toBeUndefined();
+  }, 30000);
 
-    it('GIVEN a failed extraction WHEN the port is exercised again on the real BrowserPort THEN the adapter recovers (context recreated, next extract succeeds)', async () => {
-      adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 2000 });
-      await adapter.start();
-      await adapter.extract('http://127.0.0.1:1/unreachable').catch(() => {});
-      const ok = await adapter.extract(server.url);
-      expect(ok.html).toContain('Integration Test');
-    }, 60000);
-  });
+  it('GIVEN a failed extraction WHEN the port is exercised again on the real BrowserPort THEN the adapter recovers (context recreated, next extract succeeds)', async () => {
+    adapter = new PlaywrightBrowserAdapter({ headless: true, timeout: 2000 });
+    await adapter.start();
+    await adapter.extract('http://127.0.0.1:1/unreachable').catch(() => {});
+    const ok = await adapter.extract(server.url);
+    expect(ok.html).toContain('Integration Test');
+  }, 60000);
 });
