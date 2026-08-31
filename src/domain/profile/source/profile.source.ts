@@ -150,6 +150,7 @@ export const profileSource: ProfileSource = {
       protocolTech.rpc,
       protocolTech.abi_interface,
       protocolTech.rabbitmq,
+      protocolTech.kafka,
     ],
     security: [securityTech.oauth, securityTech.jwt],
     language: [
@@ -304,7 +305,7 @@ export const profileSource: ProfileSource = {
           infrastructure: [infrastructureTech.ubuntu, infrastructureTech.git],
           database: [databaseTech.mongodb],
           third_party: ['Gmail API'],
-          testing: [testingTech.vitest, testingTech.jest, testingTech.playwright],
+          testing: [testingTech.vitest, testingTech.playwright],
         },
       },
       key_contributions: [
@@ -645,46 +646,6 @@ export const profileSource: ProfileSource = {
         },
       },
     },
-    {
-      company: 'Mevivu Co., Ltd',
-      position: 'Web Developer',
-      location: 'Ho Chi Minh City, Vietnam',
-      startDate: '2023-08',
-      endDate: '2023-11',
-      responsibilities: [
-        'Maintained and customized WordPress websites in production.',
-        'Designed responsive UI layouts in Figma across devices.',
-        'Participated in early-stage web application specification planning and requirement scoping.',
-      ],
-      outcomes: [
-        'Delivered stable client-facing websites with consistent UI behavior',
-        'Improved alignment between design and implementation through iterative feedback and refinement',
-      ],
-      anchors: {
-        cap: {
-          foundation: [],
-          communication: [],
-        },
-
-        comp: {
-          engineering: [engineeringCompetency.maintainable_system_design],
-          execution: [executionCompetency.attention_to_detail],
-          collaboration: [collaborationCompetency.technical_communication],
-        },
-
-        beh: {
-          ownership: [ownershipBehavior.initiative_taking],
-          engineering: [engineeringBehavior.iterative_refinement],
-        },
-
-        tech: {
-          language: [],
-          backend_framework: [],
-          infrastructure: [],
-          database: [],
-        },
-      },
-    },
   ],
   education: [
     {
@@ -692,7 +653,7 @@ export const profileSource: ProfileSource = {
       degree: 'Bachelor of Information Technology',
       startDate: '2021',
       endDate: '2025',
-      grade: 'good',
+      grade: 'Good',
     },
   ],
   links: {

@@ -110,6 +110,7 @@ export enum engineeringBehavior {
   iterative_refinement = 'iterative-refinement',
   engineering_discipline = 'engineering-discipline',
 }
+
 // enums for technologies
 export enum protocolTech {
   websocket = 'websocket',
@@ -122,6 +123,7 @@ export enum protocolTech {
   rpc = 'rpc',
   abi_interface = 'abi interface',
   rabbitmq = 'rabbitmq',
+  kafka = 'kafka',
 }
 
 export enum languageTech {
@@ -151,6 +153,7 @@ export enum testingTech {
   gotesting = 'go testing',
   ctesting = 'c testing',
 }
+
 export enum infrastructureTech {
   docker = 'docker',
   ubuntu = 'ubuntu',
@@ -178,6 +181,7 @@ export enum securityTech {
   jwt = 'jwt',
   oauth = 'oauth 2.0',
 }
+
 export enum foundationCapability {
   data_structures = 'data-structures',
   algorithms = 'algorithms',

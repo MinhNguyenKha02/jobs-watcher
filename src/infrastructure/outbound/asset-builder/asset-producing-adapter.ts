@@ -52,9 +52,8 @@ export class AssetProducingAdapter implements AssetProducingPort {
     const experiences = resolved.experiences.map((item) => {
       const bullets = item.evidence?.bullets || [];
       return {
-        title: item.evidence?.title || '',
-        position: item.evidence?.position || '',
         company: item.evidence?.company || '',
+        position: item.evidence?.position || '',
         startDate: item.evidence?.startDate || '',
         endDate: item.evidence?.endDate || 'Present',
         responsibilities: bullets.filter((b) => b.kind === 'responsibility').map((b) => b.text),

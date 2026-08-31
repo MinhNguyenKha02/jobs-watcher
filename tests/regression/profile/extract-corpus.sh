@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CORPUS_DIR="src/services/profile/tests/regression/corpus"
+CORPUS_DIR="tests/regression/profile/corpus"
 mkdir -p "$CORPUS_DIR"
 
 mongosh --quiet --eval '

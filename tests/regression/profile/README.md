@@ -31,11 +31,17 @@ The `.copy.ts` provides the raw baseline before curation. The `.b.ts` intermedia
 ## Running
 
 ```bash
-# Normal run (validate against expected/)
-npm run test:jobIR:corpus
+# Corpus repopulation (bash + mongosh) — required before RECORD if corpus/ empty
+bash tests/regression/profile/extract-corpus.sh
+# or: mongosh tests/regression/profile/extract-corpus.mongosh.js
+# (needs mongod jobs_watcher.job_lifecycle with stage:full_parsed)
 
-# Record mode (snapshot pipeline output to expected/)
-RECORD=true npm run test:jobIR:corpus
+# Normal run (validate against expected/)
+npm run test:regression
+
+# Record mode (snapshot pipeline output to expected/ + generated/)
+RECORD=true npm run test:regression
+# if corpus empty, spec fails CR-000 (no --passWithNoTests), run repopulation above first
 ```
 
 ## Coverage

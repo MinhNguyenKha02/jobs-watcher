@@ -2884,6 +2884,8 @@ export enum foundationCapability {
   operating_systems_fundamentals = 'operating-systems-fundamentals',
   sdlc = 'sdlc',
 }
+// relations.source.draft.ts
+
 import {
   foundationCapability,
   backendCapability,

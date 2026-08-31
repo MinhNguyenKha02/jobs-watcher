@@ -5,7 +5,7 @@
 // Usage: mongosh --quiet src/services/profile/tests/extract-corpus.mongosh.js [-- --limit 20]
 
 const LIMIT = typeof limit !== 'undefined' ? parseInt(limit) : 20;
-const OUT_DIR = typeof outdir !== 'undefined' ? outdir : 'src/services/profile/tests/regression/corpus';
+const OUT_DIR = typeof outdir !== 'undefined' ? outdir : 'tests/regression/profile/corpus';
 
 const fs = require('fs');
 const path = require('path');

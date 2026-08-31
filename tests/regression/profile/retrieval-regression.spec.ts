@@ -88,7 +88,14 @@ beforeAll(async () => {
   pipeline = await createPipeline();
 }, 120000);
 
-if (RECORD) {
+if (corpusFiles.length === 0) {
+  const mode = RECORD ? 'Record Mode' : 'Retrieval Regression Corpus';
+  describe(`${mode} — corpus must be populated`, () => {
+    it('CR-000: corpus empty — run bash tests/regression/profile/extract-corpus.sh or mongosh tests/regression/profile/extract-corpus.mongosh.js to repopulate tests/regression/profile/corpus/*.json before RECORD=true', () => {
+      expect(corpusFiles.length).toBeGreaterThan(0);
+    });
+  });
+} else if (RECORD) {
   describe('Record Mode — generate expected JSONs', () => {
     corpusFiles.forEach(({ file, stem, entry }) => {
       it(`records expected output for ${stem}`, () => {

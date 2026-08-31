@@ -5404,7 +5404,12 @@ export const relationsSource: RelationsSource = {
   tech: {
     protocol: {
       [protocolTech.websocket]: r(
-        [protocolTech.restful_api, protocolTech.graphql, protocolTech.pubsub],
+        [
+          protocolTech.restful_api,
+          protocolTech.graphql,
+          protocolTech.pubsub,
+          protocolTech.rabbitmq,
+        ],
         [
           'WebSocket communication',
           'real-time WebSocket communication',
@@ -5478,7 +5483,7 @@ export const relationsSource: RelationsSource = {
         ]
       ),
       [protocolTech.restful_api]: r(
-        [protocolTech.graphql, protocolTech.pubsub, protocolTech.webhooks],
+        [protocolTech.graphql, protocolTech.pubsub, protocolTech.webhooks, protocolTech.rabbitmq],
         [
           'REST API',
           'HTTP REST API',
@@ -5546,7 +5551,12 @@ export const relationsSource: RelationsSource = {
         ]
       ),
       [protocolTech.graphql]: r(
-        [protocolTech.pubsub, protocolTech.webhooks, protocolTech.unix_domain_socket],
+        [
+          protocolTech.pubsub,
+          protocolTech.webhooks,
+          protocolTech.unix_domain_socket,
+          protocolTech.rabbitmq,
+        ],
         [
           'GraphQL API',
           'typed GraphQL API',
@@ -5618,7 +5628,13 @@ export const relationsSource: RelationsSource = {
         ]
       ),
       [protocolTech.pubsub]: r(
-        [protocolTech.webhooks, protocolTech.unix_domain_socket, protocolTech.grpc],
+        [
+          protocolTech.webhooks,
+          protocolTech.unix_domain_socket,
+          protocolTech.grpc,
+          protocolTech.rabbitmq,
+          protocolTech.kafka,
+        ],
         [
           'pub/sub messaging',
           'event-driven pub/sub messaging',
