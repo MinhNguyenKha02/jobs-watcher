@@ -206,8 +206,6 @@ describe('shared-tui-state', () => {
   });
 
   describe('flock exclusive lock', () => {
-    beforeEach(cleanState);
-
     it('GIVEN shared WHEN exercised THEN creates lock file before write and removes it after (S2)', () => {
       const lockPath = TEST_STATE_PATH + '.lock';
       const job = { _id: 'job-lock', company: 'LockCo', role: 'Engineer' } as any;
