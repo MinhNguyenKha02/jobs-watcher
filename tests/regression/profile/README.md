@@ -31,10 +31,9 @@ The `.copy.ts` provides the raw baseline before curation. The `.b.ts` intermedia
 ## Running
 
 ```bash
-# Corpus repopulation (bash + mongosh) — required before RECORD if corpus/ empty
+# Corpus repopulation — required before RECORD if corpus/ empty
 bash tests/regression/profile/extract-corpus.sh
-# or: mongosh tests/regression/profile/extract-corpus.mongosh.js
-# (needs mongod jobs_watcher.job_lifecycle with stage:full_parsed)
+# (needs mongod jobs_watcher.job_lifecycle with stage:full_parsed + status:enriched)
 
 # Normal run (validate against expected/)
 npm run test:regression

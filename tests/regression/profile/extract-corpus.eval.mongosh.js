@@ -18,9 +18,9 @@ byStage.forEach(s => print(`  ${s._id}: ${s.count}`));
 print('\nBy Status:');
 byStatus.forEach(s => print(`  ${s._id}: ${s.count}`));
 
-// full_parsed docs with company + role (candidates for corpus)
+// enriched docs with company + role (candidates for corpus) — enriched-only
 const candidates = coll.aggregate([
-  { $match: { stage: 'full_parsed', company: { $ne: '' }, role: { $ne: '' } } },
+  { $match: { stage: 'full_parsed', status: 'enriched', company: { $ne: '' }, role: { $ne: '' } } },
   { $sort: { createdAt: -1 } },
   { $group: { _id: '$role', doc: { $first: '$$ROOT' } } },
   { $replaceRoot: { newRoot: '$doc' } },
@@ -30,8 +30,8 @@ const candidates = coll.aggregate([
   } }
 ]).toArray();
 
-print(`\n=== Corpus Candidates (full_parsed, deduped by role, latest createdAt) ===`);
-print(`Total unique roles: ${candidates.length}`);
+print(`\n=== Corpus Candidates (full_parsed + enriched, deduped by role, latest createdAt) ===`);
+print(`Total unique enriched roles: ${candidates.length}`);
 
 let hasDetailsCount = 0;
 candidates.forEach((doc, i) => {
@@ -52,7 +52,7 @@ candidates.forEach((doc, i) => {
 });
 
 print(`\n=== Summary ===`);
-print(`Total full_parsed with company+role: ${candidates.length}`);
+print(`Total enriched (full_parsed+enriched) with company+role: ${candidates.length}`);
 print(`With populated details: ${hasDetailsCount}`);
 print(`Without details: ${candidates.length - hasDetailsCount}`);
-print('\nRecommendation: use all candidates as corpus entries.');
+print('\nRecommendation: use all enriched candidates as corpus entries.');

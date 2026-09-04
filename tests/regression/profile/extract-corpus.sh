@@ -11,7 +11,7 @@ const fs = require("fs");
 const path = require("path");
 
 const docs = coll.aggregate([
-  { $match: { stage: "full_parsed", company: { $ne: "" }, role: { $ne: "" } } },
+  { $match: { stage: "full_parsed", status: "enriched", company: { $ne: "" }, role: { $ne: "" } } },
   { $sort: { createdAt: -1 } },
   { $group: { _id: "$role", doc: { $first: "$$ROOT" } } },
   { $replaceRoot: { newRoot: "$doc" } },
