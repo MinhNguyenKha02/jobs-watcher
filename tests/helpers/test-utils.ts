@@ -4,7 +4,10 @@ import path from 'node:path';
 
 import amqplib from 'amqplib';
 
-import { buildPdfFilename } from '../../src/infrastructure/outbound/asset-builder/renderer/pdf-renderer.js';
+import {
+  buildPdfFilename,
+  sanitizeSnake,
+} from '../../src/infrastructure/outbound/asset-builder/renderer/pdf-renderer.js';
 import { postJsonOverUds } from '../../src/infrastructure/utils/uds-http.js';
 
 export const RMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
@@ -53,17 +56,26 @@ export async function purgeTuiQueues(ns: string): Promise<void> {
   await conn.close();
 }
 
-/** Poll an asset output dir until it contains at least one PDF. */
+function countPdfsRecursive(dir: string): number {
+  let count = 0;
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const e of entries) {
+      if (e.isFile() && e.name.endsWith('.pdf')) count++;
+      else if (e.isDirectory()) count += countPdfsRecursive(path.join(dir, e.name));
+    }
+  } catch {
+    /* dir may not exist yet */
+  }
+  return count;
+}
+
+/** Poll an asset output dir until it contains at least one PDF (recursive). */
 export function waitForPdfFiles(dir: string, timeoutMs = 20000): Promise<void> {
   return new Promise((resolve, reject) => {
     const start = Date.now();
     const poll = () => {
-      try {
-        const files = readdirSync(dir).filter((f) => f.endsWith('.pdf'));
-        if (files.length > 0) return resolve();
-      } catch {
-        /* dir may not be created yet */
-      }
+      if (countPdfsRecursive(dir) > 0) return resolve();
       if (Date.now() - start > timeoutMs)
         return reject(new Error(`Timeout waiting for pdf asset in ${dir}`));
       setTimeout(poll, 250);
@@ -72,7 +84,7 @@ export function waitForPdfFiles(dir: string, timeoutMs = 20000): Promise<void> {
   });
 }
 
-/** Poll until at least expectedCount PDFs exist. */
+/** Poll until at least expectedCount PDFs exist (recursive). */
 export function waitForPdfCount(
   dir: string,
   expectedCount: number,
@@ -81,12 +93,7 @@ export function waitForPdfCount(
   return new Promise((resolve, reject) => {
     const start = Date.now();
     const poll = () => {
-      try {
-        const files = readdirSync(dir).filter((f) => f.endsWith('.pdf'));
-        if (files.length >= expectedCount) return resolve();
-      } catch {
-        /* dir may not exist yet */
-      }
+      if (countPdfsRecursive(dir) >= expectedCount) return resolve();
       if (Date.now() - start > timeoutMs)
         return reject(new Error(`Timeout waiting for ${expectedCount} pdfs in ${dir}`));
       setTimeout(poll, 250);
@@ -105,41 +112,49 @@ export function expectedPdfFilename(meta: {
   return buildPdfFilename(meta);
 }
 
-/** Poll until the pdf for a specific job exists. */
+/** Poll until the pdf for a specific job exists (per-job subdir assets/<jobId>/). */
 export function waitForPdfForJob(
   dir: string,
   meta: { jobId: string; role?: string; company?: string; location?: string },
   timeoutMs = 25000
 ): Promise<void> {
   const expected = expectedPdfFilename(meta);
+  const perJobDir = meta.jobId ? path.join(dir, sanitizeSnake(meta.jobId)) : dir;
   return new Promise((resolve, reject) => {
     const start = Date.now();
     const poll = () => {
       try {
-        const p = path.join(dir, expected);
+        const p = path.join(perJobDir, expected);
         if (fs.existsSync(p)) return resolve();
+        // fallback flat for backward compat (ats.pdf)
+        if (fs.existsSync(path.join(dir, expected))) return resolve();
       } catch {
         /* ignore */
       }
       if (Date.now() - start > timeoutMs)
-        return reject(new Error(`Timeout waiting for pdf ${expected} in ${dir}`));
+        return reject(
+          new Error(`Timeout waiting for pdf ${expected} in ${dir}/${sanitizeSnake(meta.jobId)}`)
+        );
       setTimeout(poll, 250);
     };
     poll();
   });
 }
 
-/** Best-effort purge of asset dir (for per-job isolation). */
+/** Best-effort purge of asset dir (for per-job isolation, recursive). */
 export function purgeAssetDir(dir: string): void {
   try {
-    const files = readdirSync(dir);
-    for (const f of files) {
-      if (f.endsWith('.pdf') || f.endsWith('.html') || f.endsWith('.css')) {
-        try {
-          fs.unlinkSync(path.join(dir, f));
-        } catch {
-          /* best-effort */
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const e of entries) {
+      const p = path.join(dir, e.name);
+      try {
+        if (e.isDirectory()) {
+          fs.rmSync(p, { recursive: true, force: true });
+        } else if (e.name.endsWith('.pdf') || e.name.endsWith('.html') || e.name.endsWith('.css')) {
+          fs.unlinkSync(p);
         }
+      } catch {
+        /* best-effort */
       }
     }
   } catch {

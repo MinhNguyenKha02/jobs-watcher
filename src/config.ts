@@ -43,6 +43,7 @@ const configSchema = z.object({
   resourcesPath: z.string(),
   templatesPath: z.string(),
   generatedPath: z.string(),
+  assetPath: z.string(),
   logsPath: z.string(),
 
   // Gmail
@@ -93,6 +94,7 @@ export function loadConfig(): Config {
     resourcesPath: path.join(projectRoot, 'resources'),
     templatesPath: path.join(projectRoot, 'templates'),
     generatedPath: path.join(projectRoot, 'generated'),
+    assetPath: path.join(projectRoot, 'assets'),
     logsPath: path.join(projectRoot, 'logs'),
 
     gmail: {

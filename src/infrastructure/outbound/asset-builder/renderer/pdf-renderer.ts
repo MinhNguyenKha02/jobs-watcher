@@ -78,19 +78,35 @@ export async function renderPdf(
   const compiled = Handlebars.compile(template);
   const html = compiled(asset);
 
-  if (!fs.existsSync(outputDir)) {
+  const perJobDir = options?.meta?.jobId?.trim()
+    ? path.join(outputDir, sanitizeSnake(options.meta.jobId))
+    : outputDir;
+  if (!fs.existsSync(perJobDir)) {
+    fs.mkdirSync(perJobDir, { recursive: true });
+  }
+  if (perJobDir !== outputDir && !fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
   const cssPath = path.join(pdfDir, 'ats.css');
   if (fs.existsSync(cssPath)) {
-    fs.copyFileSync(cssPath, path.join(outputDir, 'ats.css'));
+    const cssTarget = path.join(perJobDir, 'ats.css');
+    if (!fs.existsSync(cssTarget)) {
+      fs.copyFileSync(cssPath, cssTarget);
+    }
+    // also ensure shared root has css for legacy perJobDir !== outputDir
+    const rootCss = path.join(outputDir, 'ats.css');
+    if (perJobDir !== outputDir && !fs.existsSync(rootCss)) {
+      try {
+        fs.copyFileSync(cssPath, rootCss);
+      } catch {}
+    }
   }
 
   const pdfFilename =
     options?.filename ?? (options?.meta ? buildPdfFilename(options.meta) : 'ats.pdf');
   const htmlFilename = pdfFilename.replace(/\.pdf$/i, '.html');
-  const htmlPath = path.join(outputDir, pdfFilename === 'ats.pdf' ? 'ats.html' : htmlFilename);
+  const htmlPath = path.join(perJobDir, pdfFilename === 'ats.pdf' ? 'ats.html' : htmlFilename);
   fs.writeFileSync(htmlPath, html, 'utf-8');
 
   const executablePath = process.env.CHROMIUM_EXECUTABLE_PATH || undefined;
@@ -103,7 +119,7 @@ export async function renderPdf(
   try {
     const page = await browser.newPage();
     await page.goto('file://' + path.resolve(htmlPath), { waitUntil: 'networkidle' });
-    const outputPath = path.join(outputDir, pdfFilename);
+    const outputPath = path.join(perJobDir, pdfFilename);
     await page.pdf({
       path: outputPath,
       format: options?.format || 'A4',

@@ -19,7 +19,18 @@ import {
 import { waitFor } from '../../helpers/test-utils.js';
 
 function pdfCount(dir: string): number {
-  return fs.readdirSync(dir).filter((f) => f.endsWith('.pdf')).length;
+  const walk = (d: string): number => {
+    let c = 0;
+    try {
+      const ents = fs.readdirSync(d, { withFileTypes: true });
+      for (const en of ents) {
+        if (en.isFile() && en.name.endsWith('.pdf')) c++;
+        else if (en.isDirectory()) c += walk(path.join(d, en.name));
+      }
+    } catch {}
+    return c;
+  };
+  return walk(dir);
 }
 
 function makeAsset(overrides?: Partial<PdfAsset>): PdfAsset {

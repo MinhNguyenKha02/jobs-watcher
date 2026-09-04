@@ -2,10 +2,7 @@ import { MongoClient } from 'mongodb';
 
 async function main() {
   const uri = process.env.MONGODB_URI ?? 'mongodb://localhost:27017';
-  const dbName =
-    process.env.MONGODB_DB_NAME ??
-    process.env.MONGODB_DB ??
-    'jobs_watcher';
+  const dbName = process.env.MONGODB_DB_NAME ?? process.env.MONGODB_DB ?? 'jobs_watcher';
 
   const client = new MongoClient(uri);
   try {
