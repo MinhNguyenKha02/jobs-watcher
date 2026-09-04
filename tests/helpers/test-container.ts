@@ -240,6 +240,17 @@ export function mockJobEventReaderPort() {
     getQueueDepth: vi.fn(() => 0),
     peekPending: vi.fn(() => [] as string[]),
     getQueueModeState: vi.fn(() => true),
+    getPendingSnapshot: vi.fn(() => ({
+      depth: 0,
+      partial: 0,
+      full: 0,
+      deferred: 0,
+      deferredIds: [] as string[],
+      peekIds: [] as string[],
+      peekStages: [] as Array<'partial' | 'full'>,
+      connected: false,
+      queueMode: true,
+    })),
     resetReader: vi.fn(),
     purgeQueues: vi.fn(async () => {}),
   } satisfies JobEventReaderPort;

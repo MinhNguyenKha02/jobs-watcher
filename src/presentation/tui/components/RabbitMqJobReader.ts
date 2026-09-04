@@ -88,6 +88,24 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     return this.connected;
   }
 
+  getPendingSnapshot(): import('../ports/job-event-reader.port.js').PendingSnapshot {
+    const partial = this.pendingJobs.filter((p) => p.stage === JobStage.PARTIAL_PARSED).length;
+    const full = this.pendingJobs.length - partial;
+    return {
+      depth: this.pendingJobs.length,
+      partial,
+      full,
+      deferred: this.deferredS2QueueBuffer.size,
+      deferredIds: [...this.deferredS2QueueBuffer.keys()].map(String),
+      peekIds: this.pendingJobs.map((p) => String(p.job._id)),
+      peekStages: this.pendingJobs.map((p) =>
+        p.stage === JobStage.PARTIAL_PARSED ? 'partial' : 'full'
+      ),
+      connected: this.connected,
+      queueMode: this.getQueueMode(),
+    };
+  }
+
   /**
    * Test seam: drop ALL transient reader state so a fresh scenario starts clean.
    * Outstanding tracked deliveries are nacked with requeue=false (discarded) —

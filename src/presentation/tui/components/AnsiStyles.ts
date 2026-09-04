@@ -2,33 +2,34 @@
  * ANSI Styling Component - Color codes and theme definitions for TUI modals
  */
 
-// ANSI color codes
+// GitHub Dark palette (truecolor) + ANSI fallbacks
+// bg #0d1117 fg #c9d1d9 muted #8b949e border #30363d blue #58a6ff green #3fb950 red #ff7b72 yellow #d29922 purple #d2a8ff cyan #39d2c0
 export const ANSI = {
-  // Foreground colors
-  RED: '\x1b[31m',
-  GREEN: '\x1b[32m',
-  YELLOW: '\x1b[33m',
-  BLUE: '\x1b[34m',
-  MAGENTA: '\x1b[35m',
-  CYAN: '\x1b[36m',
-  WHITE: '\x1b[37m',
-  GRAY: '\x1b[90m',
-  BRIGHT_RED: '\x1b[91m',
-  BRIGHT_GREEN: '\x1b[92m',
-  BRIGHT_YELLOW: '\x1b[93m',
-  BRIGHT_BLUE: '\x1b[94m',
-  BRIGHT_MAGENTA: '\x1b[95m',
-  BRIGHT_CYAN: '\x1b[96m',
-  BRIGHT_WHITE: '\x1b[97m',
+  // Foreground colors — GitHub Dark truecolor
+  RED: '\x1b[38;2;255;123;114m',
+  GREEN: '\x1b[38;2;63;185;80m',
+  YELLOW: '\x1b[38;2;210;153;34m',
+  BLUE: '\x1b[38;2;88;166;255m',
+  MAGENTA: '\x1b[38;2;210;168;255m',
+  CYAN: '\x1b[38;2;57;210;192m',
+  WHITE: '\x1b[38;2;230;237;243m',
+  GRAY: '\x1b[38;2;139;148;158m',
+  BRIGHT_RED: '\x1b[38;2;248;81;73m',
+  BRIGHT_GREEN: '\x1b[38;2;63;185;80m',
+  BRIGHT_YELLOW: '\x1b[38;2;210;153;34m',
+  BRIGHT_BLUE: '\x1b[38;2;88;166;255m',
+  BRIGHT_MAGENTA: '\x1b[38;2;210;168;255m',
+  BRIGHT_CYAN: '\x1b[38;2;57;210;192m',
+  BRIGHT_WHITE: '\x1b[38;2;230;237;243m',
 
-  // Background colors
-  BG_RED: '\x1b[41m',
-  BG_GREEN: '\x1b[42m',
-  BG_YELLOW: '\x1b[43m',
-  BG_BLUE: '\x1b[44m',
-  BG_MAGENTA: '\x1b[45m',
-  BG_CYAN: '\x1b[46m',
-  BG_WHITE: '\x1b[47m',
+  // Background colors — GitHub Dark
+  BG_RED: '\x1b[48;2;255;123;114m',
+  BG_GREEN: '\x1b[48;2;63;185;80m',
+  BG_YELLOW: '\x1b[48;2;210;153;34m',
+  BG_BLUE: '\x1b[48;2;13;17;23m',
+  BG_MAGENTA: '\x1b[48;2;210;168;255m',
+  BG_CYAN: '\x1b[48;2;57;210;192m',
+  BG_WHITE: '\x1b[48;2;48;54;61m',
 
   // Text styles
   RESET: '\x1b[0m',

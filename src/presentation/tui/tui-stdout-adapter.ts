@@ -135,12 +135,19 @@ export class OpsTuiApp {
       return;
     }
 
+    const snap = this.rmqReader.getPendingSnapshot();
     const cardStatus: CardStatus = {
       sseConnected: this.rmqReader.isConnected(),
       udsReady: true,
       state: this.state,
       message: '',
       queueMode: getQueueMode(),
+      pendingDepth: snap.depth,
+      pendingPartial: snap.partial,
+      pendingFull: snap.full,
+      deferredCount: snap.deferred,
+      currentJobId: state.jobLifecycleId,
+      currentStage: state.stage,
     };
 
     const frame = this.renderer.renderCard(job, cardStatus);

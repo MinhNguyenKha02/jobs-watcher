@@ -16,6 +16,12 @@ export interface CardStatus {
   state?: 'IDLE' | 'DISPLAY' | 'WAITING_ACTION' | 'ACTION_DISPATCH';
   message?: string;
   queueMode?: boolean;
+  pendingDepth?: number;
+  pendingPartial?: number;
+  pendingFull?: number;
+  deferredCount?: number;
+  currentJobId?: string | null;
+  currentStage?: string | null;
 }
 
 export class JobCardRenderer {
@@ -79,8 +85,35 @@ export class JobCardRenderer {
       titleLine += ` • ${status.message}`;
     }
 
+    // New line in current job — Q/P/F/D badge in header
+    if (
+      status.pendingDepth !== undefined ||
+      status.pendingPartial !== undefined ||
+      status.deferredCount !== undefined
+    ) {
+      const q = status.pendingDepth ?? 0;
+      const p = status.pendingPartial ?? 0;
+      const f = status.pendingFull ?? 0;
+      const d = status.deferredCount ?? 0;
+      titleLine += ` Q:${q} P:${p} F:${f} D:${d}`;
+    }
+
+    if (status.currentJobId) {
+      const shortId = this.midTruncateId(status.currentJobId, 13);
+      const stageLabel = status.currentStage ? ` ${status.currentStage}` : '';
+      titleLine += ` cur:${shortId}${stageLabel}`;
+    }
+
     const padding = Math.max(0, this.terminalWidth - titleLine.length - 3);
     return `╔ ${titleLine}${' '.repeat(padding)}╗`;
+  }
+
+  private midTruncateId(id: string, maxLen = 13): string {
+    if (id.length <= maxLen) return id;
+    const dash = id.lastIndexOf('-');
+    const suffix = dash !== -1 ? id.slice(dash) : id.slice(-6);
+    const head = id.slice(0, 4);
+    return `${head}…${suffix.replace(/^-/, 'job-')}`;
   }
 
   /**
@@ -111,6 +144,12 @@ export class JobCardRenderer {
   private renderMetadata(job: Job): string {
     const lines: string[] = [];
     const hasDetails = job.details !== undefined && job.details !== null;
+    // PA new line — job identity + stage badge
+    const idLine = (job as unknown as Record<string, unknown>)._id as string | undefined;
+    if (idLine) {
+      const stageBadge = hasDetails ? 'FULL' : 'PARTIAL';
+      lines.push(`╟─ Job # ${this.midTruncateId(idLine, 18)} [${stageBadge}]`);
+    }
     lines.push('╟─ Job Details (as-is from SSE):');
 
     const excludeKeys = new Set([

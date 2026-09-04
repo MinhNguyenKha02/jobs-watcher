@@ -4,6 +4,7 @@ import { JobStage } from '../../domain/types/job-lifecycle.js';
 import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 
 import { KeyboardHandler, KeyAction } from './components/KeyboardHandler.js';
+import { renderStdinStatusPane } from './components/StdinStatusPane.js';
 import { UdsActionWriter } from './components/UdsActionWriter.js';
 import { clipboardGetter } from './services/clipboard-getter.js';
 import {
@@ -34,6 +35,10 @@ export class ActionController {
 
   private isRunning = false;
   private processedJobLifecycleIds = new Set<string>();
+  private lastAction: string | null = null;
+  private lastUdsTookMs: number | null = null;
+  private lastError: string | null = null;
+  private stdinPollTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(config: ActionControllerConfig) {
     this.udsWriter = new UdsActionWriter(config.socketPath, config.udsToken);
@@ -51,6 +56,10 @@ export class ActionController {
       await this.keyboard.attach();
       logger.info(' ✓ Keyboard attached');
 
+      // PB 2-line poll — local-only 1s render to stdout of PB pane
+      this.stdinPollTimer = setInterval(() => this.renderStdinPane(), 1000);
+      this.renderStdinPane();
+
       // Main event loop
       this.isRunning = true;
       await this.mainLoop();
@@ -65,11 +74,34 @@ export class ActionController {
   /**
    * Stop the action controller gracefully.
    */
+  private renderStdinPane(): void {
+    const state = getCurrentJob();
+    const queueMode = getQueueMode();
+    const frame = renderStdinStatusPane(
+      {
+        lastAction: this.lastAction,
+        jobLifecycleId: state.jobLifecycleId,
+        queueMode,
+        processedCount: this.processedJobLifecycleIds.size,
+        udsTookMs: this.lastUdsTookMs,
+        modalActive: !!state.modal,
+        lastError: this.lastError,
+      },
+      process.stdout.columns || 96
+    );
+    try {
+      process.stdout.write('\x1b[2J\x1b[H' + frame + '\n');
+    } catch {}
+  }
+
   stop(): void {
     if (!this.isRunning) return;
 
     logger.info(' Shutting down...');
     this.isRunning = false;
+
+    if (this.stdinPollTimer) clearInterval(this.stdinPollTimer);
+    this.stdinPollTimer = null;
 
     try {
       this.keyboard.detach();
@@ -94,7 +126,10 @@ export class ActionController {
 
         // Dispatch the action
         logger.info(' Action received', { action });
+        this.lastAction = action;
+        this.lastError = null;
         await this.dispatchAction(action);
+        this.renderStdinPane();
       } catch (err) {
         logger.error(' Error in main loop', { error: String(err) });
         await this.sleep(500);
@@ -255,6 +290,7 @@ export class ActionController {
       const udsStart = Date.now();
       await this.udsWriter.queue(state.jobLifecycleId);
       const udsTook = Date.now() - udsStart;
+      this.lastUdsTookMs = udsTook;
 
       this.addProcessedId(state.jobLifecycleId);
 
@@ -266,6 +302,7 @@ export class ActionController {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      this.lastError = message;
       logger.error('Action failed', { action: 'queue', error: message });
       console.log(`[ROUTE] Action failed (queue): ${message}`);
     }
@@ -292,6 +329,7 @@ export class ActionController {
       const udsStart = Date.now();
       await this.udsWriter.trash(state.jobLifecycleId);
       const udsTook = Date.now() - udsStart;
+      this.lastUdsTookMs = udsTook;
 
       this.addProcessedId(state.jobLifecycleId);
 
@@ -303,6 +341,7 @@ export class ActionController {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      this.lastError = message;
       logger.error('Action failed', { action: 'trash', error: message });
       console.log(`[ROUTE] Action failed (trash): ${message}`);
     }
