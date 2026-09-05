@@ -138,7 +138,11 @@ export class ResumeResolver {
         trace: [],
       };
 
-      const acceptance = this.acceptance.accept(signal, finalScore);
+      const acceptance = this.acceptance.accept(
+        signal,
+        finalScore,
+        retrievalPolicy.resolver.minUnmatchedAcceptedScore
+      );
       if (acceptance.accepted) {
         unmatchedRankedSignals.push({
           signal,

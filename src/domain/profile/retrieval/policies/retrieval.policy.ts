@@ -28,6 +28,12 @@ export interface RetrievalPolicy {
   resolver: {
     minAcceptedScore: number;
 
+    /**
+     * Tiered threshold for unmatched tech fallback (single-evidence 0.40 passes).
+     * Matched uses minAcceptedScore (0.55), unmatched uses minUnmatchedAcceptedScore (0.35) for spec consistency.
+     */
+    minUnmatchedAcceptedScore: number;
+
     maxSkills: number;
 
     maxProjects: number;
@@ -107,6 +113,8 @@ export const retrievalPolicy: RetrievalPolicy = {
 
   resolver: {
     minAcceptedScore: 0.55,
+
+    minUnmatchedAcceptedScore: 0.35,
 
     maxSkills: 18,
 

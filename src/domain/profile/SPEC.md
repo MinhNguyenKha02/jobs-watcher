@@ -516,7 +516,7 @@ interface DebugSnapshot {
 - **File:** `resume/resolve/resume-resolver.ts`
 - **Method:**
   - `resolve(retrieval, artifacts, jobId?)` — ranks → validates → accepts → enumerates unmatched tech anchors → compiles skills → filters experience/projects → builds traces
-  - **Unmatched tech anchor logic:** Iterates all artifact anchors; for tech-kind anchors NOT in expanded map that have evidence: computes `finalScore = min(evidenceCount/2, 1) * 0.6 + maxEvidenceBaseScore * 0.4`, creates synthetic MatchSignal, checks acceptance; appends to compiler input
+  - **Unmatched tech anchor logic:** Iterates all artifact anchors; for tech-kind anchors NOT in expanded map that have evidence: computes `finalScore = min(evidenceCount/2, 1) * 0.6 + maxEvidenceBaseScore * 0.4`, creates synthetic MatchSignal, checks tiered acceptance (`matched 0.55 / unmatched 0.35`); appends to compiler input
   - Returns `ResolveOutput`
 
 ### BulletSelector
@@ -658,7 +658,8 @@ interface DebugSnapshot {
 | `propagation` | `decayFactor` | `0.72` | Score multiplier applied per hop (compounds) |
 | `propagation` | `maxExpandedAnchors` | `32` | Cap on unique anchor entries in expanded map |
 | `propagation.blockedKinds` | — | `['beh']` | Anchor kinds that never propagate |
-| `resolver` | `minAcceptedScore` | `0.55` | Minimum `finalScore` to accept a signal for resume output |
+| `resolver` | `minAcceptedScore` | `0.55` | Minimum `finalScore` to accept a matched signal (tiered: matched `0.55`) |
+| `resolver` | `minUnmatchedAcceptedScore` | `0.35` | Minimum `finalScore` to accept an unmatched tech fallback signal (tiered: unmatched `0.35`, `≥partial` `0.4` threshold aligned) |
 | `resolver` | `maxSkills` | `18` | Maximum skills in output (not implemented in compiler) |
 | `resolver` | `maxProjects` | `2` | Maximum project evidence entries |
 | `resolver` | `maxExperience` | `2` | Maximum experience evidence entries |
@@ -817,11 +818,12 @@ For each signal:
 Return sorted by score descending
 ```
 
-### ResumeResolver — Unmatched Tech Anchor Score
+### ResumeResolver — Unmatched Tech Anchor Score (tiered `0.35`)
 ```
 normalizedCount = min(evidenceCount / 2, 1)
 finalScore = normalizedCount * 0.6 + maxEvidenceBaseScore * 0.4
 // maxEvidenceBaseScore is max of EvidenceRanker.scoreEvidence across linked evidence
+// Tiered acceptance: matched signals require finalScore ≥ 0.55, unmatched synth require ≥ 0.35 (cnt1 0.40 passes, cnt≥2 0.64 passes)
 ```
 
 ---
@@ -867,12 +869,12 @@ missing -> 'Required signal not found in retrieval'
 
 ## 8. Acceptance Rules
 
-### RetrievalAcceptanceResolver.accept(signal, scoreToUse?)
+### RetrievalAcceptanceResolver.accept(signal, scoreToUse?, threshold?)
 
 ```
 score = scoreToUse ?? signal.score
-
-if score < policy.resolver.minAcceptedScore (0.55):
+threshold = threshold ?? policy.resolver.minAcceptedScore // tiered: matched 0.55, unmatched 0.35 (SPEC 0.35 aligned)
+if score < threshold:
     -> { accepted: false, reason: 'below-min-score', score }
 
 if policy.resolver.requireEvidenceForSkills (true)
@@ -883,7 +885,7 @@ if policy.resolver.requireEvidenceForSkills (true)
 -> { accepted: true, reason: 'accepted', score }
 ```
 
-Decision table:
+Decision table (matched threshold `0.55`, unmatched `0.35`; table shows unmatched tier):
 
 | Score >= 0.35? | Has evidenceIds? | Propagation-only? | Result |
 |---|---|---|---|

@@ -6,11 +6,13 @@ export class RetrievalAcceptanceResolver {
 
   accept(
     signal: MatchSignal,
-    scoreToUse?: number // If provided, use this score for acceptance instead of signal.score
+    scoreToUse?: number, // If provided, use this score for acceptance instead of signal.score
+    threshold?: number // Tiered threshold: matched 0.55, unmatched 0.35
   ): RetrievalAcceptance {
     const score = scoreToUse ?? signal.score;
+    const minScore = threshold ?? this.policy.resolver.minAcceptedScore;
 
-    if (score < this.policy.resolver.minAcceptedScore) {
+    if (score < minScore) {
       return {
         accepted: false,
 
