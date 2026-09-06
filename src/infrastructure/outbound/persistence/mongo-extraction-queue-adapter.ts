@@ -1,5 +1,4 @@
 import { Collection, type Db } from 'mongodb';
-import { Counter } from 'prom-client';
 
 import type { ExtractionQueuePort } from '../../../application/ports/extraction-queue.port.js';
 import {
@@ -7,34 +6,20 @@ import {
   COLLECTIONS,
 } from '../../../infrastructure/outbound/persistence/schemas.js';
 import { createLogger } from '../logging/logger.js';
-import type { MetricsRegistry } from '../monitoring/metrics-registry.js';
+import type { DaemonMetricsRegistry } from '../monitoring/metrics-registry.js';
 import type { TraceContext } from '../monitoring/trace-context.js';
 
 const logger = createLogger('MongoExtractionQueueAdapter');
 
 export class MongoExtractionQueueAdapter implements ExtractionQueuePort {
   private _onEnqueue: (() => void) | null = null;
-  private enqueueCounter: Counter<string>;
-  private dequeueCounter: Counter<string>;
+  private metricsRegistry: DaemonMetricsRegistry;
 
   private collection: Collection<ExtractionQueueDocument>;
 
-  constructor(metricsRegistry: MetricsRegistry, db: Db) {
+  constructor(metricsRegistry: DaemonMetricsRegistry, db: Db) {
     this.collection = db.collection<ExtractionQueueDocument>(COLLECTIONS.EXTRACTION_QUEUE);
-    const register = metricsRegistry.register;
-    const ensureCounter = (name: string, help: string): Counter<string> => {
-      const existing = register.getSingleMetric(name);
-      if (existing) return existing as Counter<string>;
-      return new Counter({ name, help, registers: [register] });
-    };
-    this.enqueueCounter = ensureCounter(
-      'extraction_queue_enqueue_total',
-      'Number of jobs enqueued to extraction queue'
-    );
-    this.dequeueCounter = ensureCounter(
-      'extraction_queue_dequeue_total',
-      'Number of jobs dequeued from extraction queue'
-    );
+    this.metricsRegistry = metricsRegistry;
     logger.info('MongoExtractionQueueAdapter initialized', {
       collection: COLLECTIONS.EXTRACTION_QUEUE,
     });
@@ -50,13 +35,13 @@ export class MongoExtractionQueueAdapter implements ExtractionQueuePort {
       { $setOnInsert: { _id: jobLifecycleId, jobLifecycleId, createdAt: new Date() } },
       { upsert: true }
     );
-    this.enqueueCounter.inc();
+    this.metricsRegistry.extractionQueueEnqueueTotal.inc();
     this._onEnqueue?.();
   }
 
   async dequeue(_traceCtx?: TraceContext): Promise<ExtractionQueueDocument | null> {
     const doc = await this.collection.findOneAndDelete({}, { sort: { createdAt: 1 } });
-    if (doc) this.dequeueCounter.inc();
+    if (doc) this.metricsRegistry.extractionQueueDequeueTotal.inc();
     return doc;
   }
 

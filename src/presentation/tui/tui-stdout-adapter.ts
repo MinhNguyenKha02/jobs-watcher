@@ -1,5 +1,6 @@
 import type { Job } from '../../domain/types/job.js';
 import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
+import { TuiMetricsRegistry } from '../../infrastructure/outbound/monitoring/metrics-registry.js';
 
 import { AnsiTerminal } from './components/AnsiTerminal.js';
 import { JobCardRenderer, type CardStatus } from './components/JobCardRenderer.js';
@@ -35,7 +36,8 @@ export class OpsTuiApp {
 
   constructor(config: OpsTuiConfig) {
     this.config = config;
-    this.rmqReader = new RabbitMqJobReader(config.rmqUrl);
+    const tuiMetrics = new TuiMetricsRegistry();
+    this.rmqReader = new RabbitMqJobReader(config.rmqUrl, { metricsRegistry: tuiMetrics });
     this.renderer = new JobCardRenderer();
     this.ansiTerminal = new AnsiTerminal();
   }
@@ -115,11 +117,6 @@ export class OpsTuiApp {
           continue;
         }
 
-        if (this.rmqReader.getQueueDepth() === 0) {
-          await this.sleep(200);
-          continue;
-        }
-
         await this.sleep(100);
       } catch (err) {
         logger.error('Error in main loop', { error: String(err) });
@@ -135,17 +132,17 @@ export class OpsTuiApp {
       return;
     }
 
-    const snap = this.rmqReader.getPendingSnapshot();
+    // pending metrics now via TuiMetricsRegistry (health port), fallback 0 for PA standalone
     const cardStatus: CardStatus = {
       sseConnected: this.rmqReader.isConnected(),
       udsReady: true,
       state: this.state,
       message: '',
       queueMode: getQueueMode(),
-      pendingDepth: snap.depth,
-      pendingPartial: snap.partial,
-      pendingFull: snap.full,
-      deferredCount: snap.deferred,
+      pendingDepth: 0,
+      pendingPartial: 0,
+      pendingFull: 0,
+      deferredCount: 0,
       currentJobId: state.jobLifecycleId,
       currentStage: state.stage,
     };

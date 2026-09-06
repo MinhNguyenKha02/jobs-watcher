@@ -85,6 +85,7 @@ export interface BuildTestDaemonContainerOptions {
   uds?: { socketPath?: string; token?: string };
   mongodb?: { uri?: string; dbName?: string };
   asset?: { outputDir?: string };
+  health?: { port?: number };
 }
 
 /** Mock-mode port set (LSP: each spy satisfies the app/dev port interface). */
@@ -135,6 +136,8 @@ interface TestDaemonContainerShared {
   uds: { socket: string; adapter: UdsAdapter };
   webhook: { adapter: WebhookAdapter };
   assetDir: string;
+  healthPort: number;
+  metricsRegistry: import('../../src/infrastructure/outbound/monitoring/metrics-registry.js').DaemonMetricsRegistry;
   apps: {
     ingest: {
       processIngest: IngestorPort['processIngest'];
@@ -240,17 +243,6 @@ export function mockJobEventReaderPort() {
     getQueueDepth: vi.fn(() => 0),
     peekPending: vi.fn(() => [] as string[]),
     getQueueModeState: vi.fn(() => true),
-    getPendingSnapshot: vi.fn(() => ({
-      depth: 0,
-      partial: 0,
-      full: 0,
-      deferred: 0,
-      deferredIds: [] as string[],
-      peekIds: [] as string[],
-      peekStages: [] as Array<'partial' | 'full'>,
-      connected: false,
-      queueMode: true,
-    })),
     resetReader: vi.fn(),
     purgeQueues: vi.fn(async () => {}),
   } satisfies JobEventReaderPort;
@@ -313,13 +305,14 @@ export async function buildTestDaemonContainer(
       ...(providedPorts.ingestor ? { ingestor: providedPorts.ingestor } : {}),
     };
 
+    const healthPort = opts.health?.port ?? 0;
     const container = buildDaemonContainer(
       {
         nodeEnv: 'test',
         mongodb: { uri: 'mongodb://localhost/jw-unit', dbName: 'unit' },
         rabbitmq: { url: RMQ_URL, exchange },
         uds: { socketPath: socket, token },
-        health: { port: 0 },
+        health: { port: healthPort },
         asset: { outputDir: '/tmp/jobs-watcher-unit-assets' },
       },
       { ports }
@@ -338,6 +331,8 @@ export async function buildTestDaemonContainer(
       uds: { socket, adapter: container.udsAdapter },
       webhook: { adapter: container.webhookAdapter },
       assetDir: opts.asset?.outputDir ?? '/tmp/jobs-watcher-unit-assets',
+      healthPort: container.healthPort,
+      metricsRegistry: container.metricsRegistry,
       apps: {
         ingest: {
           processIngest: container.ingestor.processIngest.bind(container.ingestor),
@@ -372,7 +367,7 @@ export async function buildTestDaemonContainer(
           throw new Error('daemon.mongo.raw is real-mode only');
         },
       },
-    } satisfies MockTestDaemonContainer;
+    } as unknown as MockTestDaemonContainer;
   }
 
   // ---- real mode ----
@@ -384,13 +379,14 @@ export async function buildTestDaemonContainer(
     fs.mkdtempSync(path.join(os.tmpdir(), `jobs-watcher-${opts.ns}-assets-`));
 
   const ports = { assetProducing: providedPorts.assetProducing };
+  const healthPort = opts.health?.port ?? 0;
   const container = buildDaemonContainer(
     {
       nodeEnv: 'test',
       mongodb: { uri: opts.mongodb?.uri ?? storage.uri, dbName },
       rabbitmq: { url: opts.rmq?.url ?? RMQ_URL, exchange },
       uds: { socketPath: socket, token },
-      health: { port: 0 },
+      health: { port: healthPort },
       asset: { outputDir: assetDir },
     },
     {
@@ -400,33 +396,16 @@ export async function buildTestDaemonContainer(
   );
 
   async function start({ startScheduler }: { startScheduler?: boolean } = {}): Promise<void> {
-    await container.mongoConnector.connect();
-    await container.mongoInitializer.init();
-    await container.rmq.connect();
+    await container.start();
     if (startScheduler ?? opts.startScheduler) {
-      await container.extractionScheduler.start();
+      // container.start already started scheduler; ensure extra start if needed (idempotent)
+      try { await container.extractionScheduler.start(); } catch {}
     }
-    await container.udsAdapter.start();
   }
 
   async function stop(): Promise<void> {
     try {
-      await container.extractionScheduler.stop();
-    } catch {
-      /* best-effort — idempotent, also covers per-it apps.scheduler.start() leaked workers */
-    }
-    try {
-      await container.udsAdapter.stop();
-    } catch {
-      /* best-effort */
-    }
-    try {
-      await container.rmq.disconnect();
-    } catch {
-      /* best-effort */
-    }
-    try {
-      await container.mongoConnector.disconnect();
+      await container.stop();
     } catch {
       /* best-effort */
     }
@@ -456,6 +435,8 @@ export async function buildTestDaemonContainer(
     assetProducing: container.assetProducingAdapter,
     uds: { socket, adapter: container.udsAdapter },
     webhook: { adapter: container.webhookAdapter },
+    healthPort: container.healthPort,
+    metricsRegistry: container.metricsRegistry,
     mongo: {
       jobLifecycle: container.mongoJobLifecycleAdapter,
       extractionQueue: container.extractionQueueAdapter,
@@ -475,7 +456,7 @@ export async function buildTestDaemonContainer(
     },
     start,
     stop,
-  } satisfies TestDaemonContainer;
+  } as unknown as TestDaemonContainer;
 }
 
 /* ------------------------------------------------------------------ *
@@ -487,6 +468,7 @@ export interface BuildTestTuiContainerOptions {
   ns: string;
   rmq?: { url?: string; exchange?: string };
   uds?: { socketPath?: string; token?: string };
+  health?: { port?: number };
 }
 
 /** Mock-mode tui port overrides (reader/writer scripted with spies). */
@@ -499,6 +481,8 @@ export interface TuiTestContainer {
   ns: string;
   reader: JobEventReaderPort;
   writer: ActionWriterPort;
+  metricsRegistry: import('../../src/infrastructure/outbound/monitoring/metrics-registry.js').TuiMetricsRegistry;
+  healthPort: number;
   ipc: { read(): CurrentJobState; clear(): void };
   start: () => Promise<void>;
   stop: () => Promise<void>;
@@ -533,11 +517,13 @@ export async function buildTestTuiContainer(
   const readerPort = overrides.ports?.rmqReader;
   const writerPort = overrides.ports?.udsWriter;
 
+  const healthPort = opts.health?.port ?? 0;
   const container = buildTuiContainer(
     {
       rmq: { url: opts.rmq?.url ?? RMQ_URL, exchange },
       uds: { socketPath: socket, token },
       ns: opts.ns,
+      health: { port: healthPort },
     },
     {
       ...(readerPort ? { ports: { rmqReader: readerPort } } : {}),
@@ -591,6 +577,8 @@ export async function buildTestTuiContainer(
     ns: opts.ns,
     reader,
     writer,
+    metricsRegistry: container.metricsRegistry,
+    healthPort: container.healthPort,
     ipc: {
       read: () => getCurrentJob(),
       clear: () => clearCurrentJob(),

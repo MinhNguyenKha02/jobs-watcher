@@ -4,6 +4,7 @@ import { ActionEvent } from '../../../domain/types/action-event.js';
 import { JobStage, JobLifecycleDocument } from '../../../domain/types/job-lifecycle.js';
 import type { Job } from '../../../domain/types/job.js';
 import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
+import type { TuiMetricsRegistry } from '../../../infrastructure/outbound/monitoring/metrics-registry.js';
 import type { JobEventReaderPort } from '../ports/job-event-reader.port.js';
 import {
   setCurrentJob,
@@ -29,6 +30,7 @@ export interface RabbitMqJobReaderOptions {
   s2Queue?: string;
   s2DirectQueue?: string;
   s34Queue?: string;
+  metricsRegistry?: TuiMetricsRegistry;
 }
 
 interface PendingJob {
@@ -57,6 +59,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
 
   private connected = false;
   private evictTimer: ReturnType<typeof setInterval> | null = null;
+  private metricsRegistry?: TuiMetricsRegistry;
 
   constructor(
     private baseUrl: string,
@@ -67,6 +70,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     this.s2Queue = options.s2Queue ?? S2QUEUE;
     this.s2DirectQueue = options.s2DirectQueue ?? S2DIRECT;
     this.s34Queue = options.s34Queue ?? S34_QUEUE;
+    this.metricsRegistry = options.metricsRegistry;
   }
 
   private readonly exchange: string;
@@ -75,35 +79,34 @@ export class RabbitMqJobReader implements JobEventReaderPort {
   private readonly s2DirectQueue: string;
   private readonly s34Queue: string;
 
-  getQueueDepth(): number {
-    return this.pendingJobs.length;
-  }
-  peekPending(): string[] {
-    return this.pendingJobs.map((p) => String(p.job._id));
-  }
-  getQueueModeState(): boolean {
-    return this.getQueueMode();
-  }
   isConnected(): boolean {
     return this.connected;
   }
 
-  getPendingSnapshot(): import('../ports/job-event-reader.port.js').PendingSnapshot {
+  getQueueDepth(): number {
+    return this.pendingJobs.length;
+  }
+
+  peekPending(): string[] {
+    return this.pendingJobs.map((p) => String(p.job._id));
+  }
+
+  getQueueModeState(): boolean {
+    return this.getQueueMode();
+  }
+
+  private syncMetrics(): void {
+    if (!this.metricsRegistry) return;
     const partial = this.pendingJobs.filter((p) => p.stage === JobStage.PARTIAL_PARSED).length;
     const full = this.pendingJobs.length - partial;
-    return {
+    this.metricsRegistry.syncSnapshot({
       depth: this.pendingJobs.length,
       partial,
       full,
       deferred: this.deferredS2QueueBuffer.size,
-      deferredIds: [...this.deferredS2QueueBuffer.keys()].map(String),
-      peekIds: this.pendingJobs.map((p) => String(p.job._id)),
-      peekStages: this.pendingJobs.map((p) =>
-        p.stage === JobStage.PARTIAL_PARSED ? 'partial' : 'full'
-      ),
       connected: this.connected,
       queueMode: this.getQueueMode(),
-    };
+    });
   }
 
   /**
@@ -142,6 +145,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       this.currentJobId = null;
       clearCurrentJob();
     }
+    this.syncMetrics();
   }
 
   /** Aggregate purge of the 4 durable TUI queues; idempotent, best-effort, separate from resetReader. */
@@ -219,15 +223,18 @@ export class RabbitMqJobReader implements JobEventReaderPort {
 
       this.evictTimer = setInterval(() => this.evictStaleDeferred(), 5000);
       this.connected = true;
+      this.syncMetrics();
       logger.info('Started, 4 consumers active');
     } catch (err) {
       logger.error('Start failed', { error: String(err) });
       this.connected = false;
+      this.syncMetrics();
     }
   }
 
   stop(): void {
     this.connected = false;
+    this.syncMetrics();
     if (this.evictTimer) clearInterval(this.evictTimer);
     this.nackAllPending();
     [this.s1channel, this.s2queueChannel, this.s2directChannel, this.s34channel].forEach((ch) => {
@@ -264,7 +271,9 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         company: payload.company,
         stage: JobStage.PARTIAL_PARSED,
       });
+      this.metricsRegistry?.incConsumed(this.s1Queue, ActionEvent.GENERATED);
       this.autoAdvance();
+      this.syncMetrics();
     } catch (err) {
       logger.warn('C1 Error', { error: String(err) });
       this.s1channel!.nack(msg, false, true);
@@ -301,12 +310,16 @@ export class RabbitMqJobReader implements JobEventReaderPort {
           stage: JobStage.FULL_PARSED,
         };
         logger.info('job.parse.completed — merged in pending', { id });
+        this.metricsRegistry?.incConsumed(this.s2Queue, ActionEvent.PARSE_COMPLETED);
+        this.syncMetrics();
         return;
       }
       if (this.currentJobId === id) {
         this.recordS2TagQueue(id, msg.fields.deliveryTag);
         setCurrentJob(id, { ...getCurrentJob().job, ...payload } as Job, JobStage.FULL_PARSED);
         logger.info('job.parse.completed — IPC enriched displayed job', { id });
+        this.metricsRegistry?.incConsumed(this.s2Queue, ActionEvent.PARSE_COMPLETED);
+        this.syncMetrics();
         return;
       }
       if (this.deferredS2QueueBuffer.size >= DEFERRED_S2_MAX) {
@@ -321,6 +334,8 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         timestamp: Date.now(),
       });
       logger.debug('S2 deferred', { id });
+      this.metricsRegistry?.incConsumed(this.s2Queue, ActionEvent.PARSE_COMPLETED);
+      this.syncMetrics();
     } catch (err) {
       logger.warn('C2 Error', { error: String(err) });
       this.s2queueChannel!.nack(msg, false, true);
@@ -350,6 +365,8 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       setCurrentJob(id, payload as Job, JobStage.FULL_PARSED);
       this.currentJobId = id;
       logger.info('job.parse.completed — direct mode set', { id });
+      this.metricsRegistry?.incConsumed(this.s2DirectQueue, ActionEvent.PARSE_COMPLETED);
+      this.syncMetrics();
     } catch (err) {
       logger.warn('C2 Direct Error', { error: String(err) });
       this.s2directChannel!.nack(msg, false, true);
@@ -404,7 +421,9 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         }
       }
 
+      this.metricsRegistry?.incConsumed(this.s34Queue, msg.fields.routingKey);
       this.autoAdvance();
+      this.syncMetrics();
     } catch (err) {
       logger.warn('C3 Error', { error: String(err) });
       this.s34channel!.nack(msg, false, true);
@@ -457,6 +476,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     this.currentJobId = next.job._id as string;
     setCurrentJob(next.job._id as string, next.job as Job, next.stage);
     logger.info('Auto-advanced to next job', { id: next.job._id, stage: next.stage });
+    this.syncMetrics();
   }
 
   private removeFromPending(id: string): void {
@@ -480,6 +500,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       this.pendingJobs.push({ job: entry.payload, stage: JobStage.FULL_PARSED });
     }
     logger.info('Deferred S2 drained', { id });
+    this.syncMetrics();
   }
 
   private evictStaleDeferred(): void {
@@ -502,6 +523,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         }
         // Otherwise the tag was already resolved (acked by S34): drop the stale entry silently.
         this.deferredS2QueueBuffer.delete(id);
+        this.syncMetrics();
       }
     }
   }
@@ -525,5 +547,6 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       }
     }
     this.deliveryTagsS2Direct.clear();
+    this.syncMetrics();
   }
 }

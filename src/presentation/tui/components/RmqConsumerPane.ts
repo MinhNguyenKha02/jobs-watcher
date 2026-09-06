@@ -1,9 +1,7 @@
 /**
  * RmqConsumerPane — 4-line compact local-only RMQ consumer strip for PC pane (60% w).
- * Full labels, mid-truncate _id `19ee…job-1` (head4…job-N), 5× prefetch no overflow.
+ * Registry-driven: renders from TuiMetricsRegistry metrics (rmq_* gauges).
  */
-
-import type { PendingSnapshot } from '../ports/job-event-reader.port.js';
 
 export function midTruncateId(id: string, maxLen = 11): string {
   if (id.length <= maxLen) return id;
@@ -17,7 +15,48 @@ export function midTruncateId(id: string, maxLen = 11): string {
   return `${head}…${id.slice(-6)}`;
 }
 
-export function renderRmqConsumerPane(snapshot: PendingSnapshot, width = 96): string {
+export interface RmqMetricsSnapshot {
+  depth: number;
+  partial: number;
+  full: number;
+  deferred: number;
+  connected: boolean;
+  queueMode: boolean;
+}
+
+function sumMetric(metrics: Record<string, Array<{ labels: Record<string, string>; value: number }>> | undefined, key: string): number {
+  const arr = metrics?.[key];
+  if (!arr) return 0;
+  return arr.reduce((a, v) => a + Number(v.value), 0);
+}
+
+function findMetric(metrics: Record<string, Array<{ labels: Record<string, string>; value: number }>> | undefined, key: string, labels: Record<string, string>): number | undefined {
+  const arr = metrics?.[key];
+  if (!arr) return undefined;
+  const found = arr.find((v) => Object.entries(labels).every(([k, val]) => String(v.labels[k]) === String(val)));
+  return found ? Number(found.value) : undefined;
+}
+
+export function toRmqSnapshot(metrics?: Record<string, Array<{ labels: Record<string, string>; value: number }>>): RmqMetricsSnapshot {
+  if (!metrics) return { depth: 0, partial: 0, full: 0, deferred: 0, connected: false, queueMode: true };
+  const depth = findMetric(metrics, 'rmqPendingDepth', { queue: 'total' }) ?? sumMetric(metrics, 'rmqPendingDepth');
+  const partial = sumMetric(metrics, 'rmqPendingPartial');
+  const full = sumMetric(metrics, 'rmqPendingFull');
+  const deferred = sumMetric(metrics, 'rmqDeferredCount');
+  const connected = (sumMetric(metrics, 'rmqConnected') ?? 0) > 0;
+  const queueMode = (sumMetric(metrics, 'rmqQueueMode') ?? 1) > 0;
+  return { depth, partial, full, deferred, connected, queueMode };
+}
+
+export function renderRmqConsumerPaneFromMetrics(
+  metrics: Record<string, Array<{ labels: Record<string, string>; value: number }>> | undefined,
+  width = 96
+): string {
+  const snap = toRmqSnapshot(metrics);
+  return renderRmqConsumerPane(snap, width);
+}
+
+export function renderRmqConsumerPane(snapshot: RmqMetricsSnapshot, width = 96): string {
   const inner = Math.max(10, width - 2);
   const lines: string[] = [];
   const border = '─'.repeat(inner);
@@ -28,37 +67,20 @@ export function renderRmqConsumerPane(snapshot: PendingSnapshot, width = 96): st
   const line1 = ` Q:${snapshot.depth} P:${snapshot.partial} F:${snapshot.full} D:${snapshot.deferred} · tui.jobs.s1/s2/s2d/s3s4 · ${snapshot.connected ? '🟢' : '🔴'} pref 5/5/1/5 queue:${snapshot.queueMode ? 'ON' : 'OFF'}`;
   lines.push(`│${truncateMid(line1, inner).padEnd(inner)}│`);
 
-  // Line2 cur (first pending if any)
-  const curId = snapshot.peekIds[0];
-  const curStage = snapshot.peekStages[0];
-  const curLine = curId
-    ? ` cur: ${midTruncateId(curId)} ${curStage === 'partial' ? 'PARTIAL' : 'FULL'}`
-    : ' cur: —';
+  // Line2 cur — registry has no peekIds, show placeholder
+  const curLine = ' cur: —';
   lines.push(`│${truncateMid(curLine, inner).padEnd(inner)}│`);
 
-  // Line3 pend: up to 5 ids, each mid-truncated + (P/F), overflow +N
-  const pendCap = 5;
-  const pendIds = snapshot.peekIds.slice(0, pendCap);
-  const pendStages = snapshot.peekStages.slice(0, pendCap);
+  // Line3 pend: depth only (ids not in metrics)
   let pendLine = ' pend: ';
-  if (pendIds.length === 0) pendLine += '—';
-  else {
-    const parts = pendIds.map(
-      (id, i) => `${midTruncateId(id)}(${pendStages[i] === 'partial' ? 'P' : 'F'})`
-    );
-    let joined = parts.join(' ');
-    if (snapshot.depth > pendCap) joined += ` +${snapshot.depth - pendCap} more`;
-    pendLine += joined;
-  }
+  if (snapshot.depth === 0) pendLine += '—';
+  else pendLine += `${snapshot.depth} pending (P:${snapshot.partial} F:${snapshot.full})`;
   lines.push(`│${truncateMid(pendLine, inner).padEnd(inner)}│`);
 
   // Line4 def
   let defLine = ' def: ';
   if (snapshot.deferred === 0) defLine += '—';
-  else {
-    const dIds = snapshot.deferredIds.slice(0, 5).map(midTruncateId);
-    defLine += dIds.join(' ') + ` TTL 30s`;
-  }
+  else defLine += `${snapshot.deferred} deferred TTL 30s`;
   lines.push(`│${truncateMid(defLine, inner).padEnd(inner)}│`);
 
   lines.push(`└${border}┘`);

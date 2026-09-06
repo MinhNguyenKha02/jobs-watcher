@@ -6,31 +6,13 @@
  * Implemented by `RabbitMqJobReader`.
  */
 
-export interface PendingSnapshot {
-  depth: number;
-  partial: number;
-  full: number;
-  deferred: number;
-  deferredIds: string[];
-  peekIds: string[];
-  peekStages: Array<'partial' | 'full'>;
-  connected: boolean;
-  queueMode: boolean;
-}
-
 export interface JobEventReaderPort {
   start(): Promise<void>;
   stop(): void;
   isConnected(): boolean;
   getQueueDepth(): number;
-  /** Read-only peek of pending job ids (oldest-first), for saga-ring assertions. */
   peekPending(): string[];
-  /** Current queue/direct mode (shared-tui-state). */
   getQueueModeState(): boolean;
-  /** Local-only snapshot of pending partial/full + deferred (no amqplib checkQueue). */
-  getPendingSnapshot(): PendingSnapshot;
-  /** Drop all transient reader state so a fresh scenario starts clean. */
   resetReader(): void;
-  /** Aggregate purge of the 4 durable TUI queues (s1/s2/s2direct/s3s4); idempotent, best-effort. */
   purgeQueues(): Promise<void>;
 }

@@ -12,7 +12,7 @@ import {
 } from '../domain/types/job-lifecycle.js';
 import type { Job } from '../domain/types/job.js';
 import { createLogger } from '../infrastructure/outbound/logging/logger.js';
-import type { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
+import type { DaemonMetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
 
 import type { AssetProducingPort } from './ports/asset-producing.port.js';
 import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
@@ -36,7 +36,7 @@ export class JobIngestor implements IngestorPort {
     private routePublishingPort: RoutePort,
     private extractionQueueColPort: ExtractionQueuePort,
     private assetProducingPort: AssetProducingPort,
-    private metricsRegistry: MetricsRegistry
+    private metricsRegistry: DaemonMetricsRegistry
   ) {}
 
   async processIngest(

@@ -1,6 +1,7 @@
 import type { ParsePort } from '../../../application/ports/parse.port.js';
 import { ActionEvent } from '../../../domain/types/action-event.js';
 import type { JobLifecycleDocument } from '../../outbound/persistence/schemas.js';
+import type { DaemonMetricsRegistry } from '../monitoring/metrics-registry.js';
 import { traceContextToHeaders, type TraceContext } from '../monitoring/trace-context.js';
 
 import type { RabbitMqConnection } from './rabbitmq-connection.js';
@@ -8,6 +9,7 @@ import type { RabbitMqConnection } from './rabbitmq-connection.js';
 export class RabbitMqParseAdapter implements ParsePort {
   constructor(
     private rmq: RabbitMqConnection,
+    private metricsRegistry?: DaemonMetricsRegistry,
     private traceCtx?: TraceContext
   ) {}
 
@@ -23,6 +25,7 @@ export class RabbitMqParseAdapter implements ParsePort {
         persistent: true,
       }
     );
+    this.metricsRegistry?.rmqPublishedTotal.inc({ routingKey: ActionEvent.GENERATED });
   }
 
   async emitCompleted(job: Partial<JobLifecycleDocument>, _context: unknown): Promise<void> {
@@ -37,6 +40,7 @@ export class RabbitMqParseAdapter implements ParsePort {
         persistent: true,
       }
     );
+    this.metricsRegistry?.rmqPublishedTotal.inc({ routingKey: ActionEvent.PARSE_COMPLETED });
   }
 
   async emitFailed(jobLifecycleId: string, _context: unknown): Promise<void> {
@@ -51,5 +55,6 @@ export class RabbitMqParseAdapter implements ParsePort {
         persistent: true,
       }
     );
+    this.metricsRegistry?.rmqPublishedTotal.inc({ routingKey: ActionEvent.PARSE_FAILED });
   }
 }

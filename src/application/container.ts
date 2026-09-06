@@ -5,7 +5,7 @@ import { AssetProducingAdapter } from '../infrastructure/outbound/asset-builder/
 import { PlaywrightBrowserAdapter } from '../infrastructure/outbound/browser/browser-adapter.js';
 import { GmailService } from '../infrastructure/outbound/gmail.js';
 import { createLogger } from '../infrastructure/outbound/logging/logger.js';
-import { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
+import { DaemonMetricsRegistry, TuiMetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
 import { SystemMonitor } from '../infrastructure/outbound/monitoring/system-monitor.js';
 import { MongoConnector } from '../infrastructure/outbound/persistence/mongo-connection.js';
 import { MongoExtractionQueueAdapter } from '../infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
@@ -83,7 +83,8 @@ export interface DaemonContainerOverrides {
 export interface DaemonContainer {
   mongoConnector: MongoConnector;
   mongoInitializer: MongoInitializer;
-  metricsRegistry: MetricsRegistry;
+  metricsRegistry: DaemonMetricsRegistry;
+  healthPort: number;
   systemMonitor: SystemMonitor;
   rmq: RabbitMqConnection;
   parseAdapter: ParsePort;
@@ -113,7 +114,7 @@ export function buildDaemonContainer(
   const mongoConnector = new MongoConnector(mongodb.uri);
   const mongoInitializer = new MongoInitializer(mongoConnector.clientInstance, mongodb.dbName);
 
-  const metricsRegistry = new MetricsRegistry();
+  const metricsRegistry = new DaemonMetricsRegistry();
   const systemMonitor = new SystemMonitor();
 
   const rmq = new RabbitMqConnection({
@@ -123,8 +124,8 @@ export function buildDaemonContainer(
 
   const ports = overrides.ports ?? {};
 
-  const parseAdapter = ports.parse ?? new RabbitMqParseAdapter(rmq);
-  const routeAdapter = ports.route ?? new RabbitMqRoutingAdapter(rmq);
+  const parseAdapter = ports.parse ?? new RabbitMqParseAdapter(rmq, metricsRegistry);
+  const routeAdapter = ports.route ?? new RabbitMqRoutingAdapter(rmq, metricsRegistry);
   const assetProducingAdapter = ports.assetProducing ?? new AssetProducingAdapter(asset.outputDir);
   const mongoJobLifecycleAdapter =
     ports.jobLifecycle ?? new MongoJobLifecycleAdapter(mongoInitializer.dbInstance);
@@ -161,6 +162,7 @@ export function buildDaemonContainer(
   const webhookAdapter = new WebhookAdapter(ingestor, overrides.gmail ?? new GmailService());
 
   let started = false;
+  let healthServer: { close: (cb?: () => void) => void } | null = null;
 
   async function start(): Promise<void> {
     if (started) return;
@@ -168,10 +170,20 @@ export function buildDaemonContainer(
     await mongoInitializer.init();
     await rmq.connect();
     await extractionScheduler.start();
-    startHealthServer({
+    healthServer = startHealthServer({
       port: health.port,
       metricsRegistry,
       systemMonitor,
+      containers: {
+        daemon: {
+          nodeEnv: cfg.nodeEnv,
+          healthPort: health.port,
+          rabbitmq: { exchange: rabbitmq.exchange },
+          uds: { socketPath: uds.socketPath },
+          asset: { outputDir: asset.outputDir },
+          ports: Object.keys(ports).length ? Object.keys(ports) : ['jobLifecycle','extractionQueue','parse','route','assetProducing','browser','ingestor'],
+        },
+      },
     });
     await udsAdapter.start();
     started = true;
@@ -187,6 +199,11 @@ export function buildDaemonContainer(
     }
     try {
       await extractionScheduler.stop();
+    } catch (e) {
+      /* best-effort */
+    }
+    try {
+      healthServer?.close();
     } catch (e) {
       /* best-effort */
     }
@@ -208,6 +225,7 @@ export function buildDaemonContainer(
     mongoConnector,
     mongoInitializer,
     metricsRegistry,
+    healthPort: health.port,
     systemMonitor,
     rmq,
     parseAdapter,
@@ -234,11 +252,13 @@ export interface TuiContainerConfig {
   rmq: { url: string; exchange: string };
   uds: { socketPath: string; token?: string };
   ns?: string;
+  health?: { port: number };
 }
 
 export interface TuiContainerOverrides {
   rmq?: Partial<TuiContainerConfig['rmq']>;
   uds?: Partial<TuiContainerConfig['uds']>;
+  health?: Partial<TuiContainerConfig['health']>;
   ns?: string;
   /** Binding profile: substitute reader/writer slots for tests. Absent → real adapter. */
   ports?: {
@@ -250,6 +270,8 @@ export interface TuiContainerOverrides {
 export interface TuiContainer {
   writer: ActionWriterPort;
   reader: JobEventReaderPort;
+  metricsRegistry: TuiMetricsRegistry;
+  healthPort: number;
   ipc: { read(): CurrentJobState; clear(): void };
   start: () => Promise<void>;
   stop: () => Promise<void>;
@@ -265,6 +287,7 @@ export function buildTuiContainer(
 ): TuiContainer {
   const rmq = { ...cfg.rmq, ...overrides.rmq };
   const uds = { ...cfg.uds, ...overrides.uds };
+  const health = { port: 9091, ...cfg.health, ...overrides.health };
   const ns = overrides.ns ?? cfg.ns;
   const ports = overrides.ports ?? {};
 
@@ -272,6 +295,8 @@ export function buildTuiContainer(
   const s2Queue = ns ? `tui.${ns}.s2` : 'tui.s2';
   const s2DirectQueue = ns ? `tui.${ns}.s2direct` : 'tui.s2direct';
   const s34Queue = ns ? `tui.${ns}.s3s4` : 'tui.s3s4';
+
+  const metricsRegistry = new TuiMetricsRegistry();
 
   const writer =
     (ports.udsWriter as ActionWriterPort) ?? new UdsActionWriter(uds.socketPath, uds.token);
@@ -284,22 +309,41 @@ export function buildTuiContainer(
       s2Queue,
       s2DirectQueue,
       s34Queue,
+      metricsRegistry,
     });
 
   const ipc = { read: getCurrentJob, clear: clearCurrentJob };
 
   let started = false;
+  let healthServer: { close: (cb?: () => void) => void } | null = null;
 
   async function start(): Promise<void> {
     if (started) return;
     resetState();
     await reader.start();
+    healthServer = startHealthServer({
+      port: health.port,
+      metricsRegistry,
+      containers: {
+        tui: {
+          ns: ns ?? 'default',
+          healthPort: health.port,
+          rmq: { exchange: rmq.exchange, queues: { s1: s1Queue, s2: s2Queue, s2direct: s2DirectQueue, s34: s34Queue } },
+          uds: { socketPath: uds.socketPath },
+        },
+      },
+    });
     started = true;
     logger.info('TUI container started');
   }
 
   async function stop(): Promise<void> {
     if (!started) return;
+    try {
+      healthServer?.close();
+    } catch (e) {
+      /* best-effort */
+    }
     try {
       reader.stop();
     } catch (e) {
@@ -312,6 +356,8 @@ export function buildTuiContainer(
   return {
     writer,
     reader,
+    metricsRegistry,
+    healthPort: health.port,
     ipc,
     get udsWriter() {
       return writer;

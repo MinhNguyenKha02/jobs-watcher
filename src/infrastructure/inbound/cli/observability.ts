@@ -1,5 +1,5 @@
 const POLL_INTERVAL_MS = 5000;
-const OBSERVABILITY_URL = 'http://localhost:9090/health/observability';
+const OBSERVABILITY_URL = process.env.OBSERVABILITY_URL || 'http://localhost:9090/health/observability';
 
 function clearAndMoveTop(): void {
   process.stdout.write('\x1b[2J\x1b[H');
@@ -27,7 +27,7 @@ export async function startObservabilityPolling(): Promise<void> {
       clearAndMoveTop();
       if (compact) {
         const width = process.stdout.columns || 64;
-        const frame = renderObserveCompactPane(data as Record<string, unknown> as never, width);
+        const frame = renderObserveCompactPane(data as never, width);
         process.stdout.write(frame + '\n');
       } else {
         process.stdout.write(JSON.stringify(data, null, 2) + '\n');

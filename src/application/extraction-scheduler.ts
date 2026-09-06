@@ -1,6 +1,6 @@
 import { JobSource, JobStage } from '../domain/types/job-lifecycle.js';
 import { createLogger } from '../infrastructure/outbound/logging/logger.js';
-import type { MetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
+import type { DaemonMetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
 
 import type { BrowserPort } from './ports/browser.port.js';
 import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
@@ -21,7 +21,7 @@ export class ExtractionScheduler {
     private browser: BrowserPort,
     private jobLifecycleColPort: JobLifecyclePort,
     private ingestor: IngestorPort,
-    private metricsRegistry?: MetricsRegistry
+    private metricsRegistry?: DaemonMetricsRegistry
   ) {}
 
   async start(): Promise<void> {

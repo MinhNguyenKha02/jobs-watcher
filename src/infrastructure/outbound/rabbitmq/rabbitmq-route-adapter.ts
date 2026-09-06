@@ -1,5 +1,6 @@
 import type { RoutePort } from '../../../application/ports/route.port.js';
 import { ActionEvent } from '../../../domain/types/action-event.js';
+import type { DaemonMetricsRegistry } from '../monitoring/metrics-registry.js';
 import { traceContextToHeaders, type TraceContext } from '../monitoring/trace-context.js';
 
 import type { RabbitMqConnection } from './rabbitmq-connection.js';
@@ -7,6 +8,7 @@ import type { RabbitMqConnection } from './rabbitmq-connection.js';
 export class RabbitMqRoutingAdapter implements RoutePort {
   constructor(
     private rmq: RabbitMqConnection,
+    private metricsRegistry?: DaemonMetricsRegistry,
     private traceCtx?: TraceContext
   ) {}
 
@@ -22,6 +24,7 @@ export class RabbitMqRoutingAdapter implements RoutePort {
         persistent: true,
       }
     );
+    this.metricsRegistry?.rmqPublishedTotal.inc({ routingKey: ActionEvent.QUEUED });
   }
 
   async emitJobTrashed(jobLifecycleId: string, reason: string, context?: unknown): Promise<void> {
@@ -36,6 +39,7 @@ export class RabbitMqRoutingAdapter implements RoutePort {
         persistent: true,
       }
     );
+    this.metricsRegistry?.rmqPublishedTotal.inc({ routingKey: ActionEvent.TRASHED });
   }
 
   async emitRouteFailed(jobLifecycleId: string, reason: string, context?: unknown): Promise<void> {
@@ -50,5 +54,6 @@ export class RabbitMqRoutingAdapter implements RoutePort {
         persistent: true,
       }
     );
+    this.metricsRegistry?.rmqPublishedTotal.inc({ routingKey: ActionEvent.ROUTE_FAILED });
   }
 }
