@@ -184,9 +184,8 @@ export class ResumeResolver {
     unmatchedRankedSignals: RankedSignal[],
     anchorMap: Map<string, AnchorNode>
   ): AtsSkillSection {
-    const matchedSignals = acceptedRankedSignals.map((rs) => rs.signal);
-    const unmatchedSignals = unmatchedRankedSignals.map((rs) => rs.signal);
-    return this.skillCompiler.compile(matchedSignals, unmatchedSignals, anchorMap);
+    // Pass RankedSignal to preserve maxScore for strict 3 / maxScore DESC (compiler handles both branches)
+    return this.skillCompiler.compile(acceptedRankedSignals, unmatchedRankedSignals, anchorMap);
   }
 
   private experiences(evidences: RetrievalEvidenceScore[]) {

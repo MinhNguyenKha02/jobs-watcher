@@ -17,28 +17,32 @@ export class AtsSkillGroupMapper {
     // Normalize the category to lowercase for comparison
     const normalizedCategory = category.toLowerCase();
 
-    // Define the mapping from category to group label
+    // Strict 6-label mapping (Q1: frontend→Frontend 6th, third_party hidden elsewhere)
     const categoryToGroupMap: Record<string, string> = {
-      // Capabilities (cap)
-      backend: 'Backend',
-      architecture: 'Architecture',
-      observability: 'Observability',
-      infrastructure: 'Infrastructure',
-      security: 'Security',
-      communication: 'Communication',
-      foundation: 'Fundamentals',
-      testing: 'Testing',
-      // Technology (tech)
+      // 1) Languages
       language: 'Languages',
-      backend_framework: 'Frameworks',
-      frontend_framework: 'Frameworks',
-      protocol: 'Protocols',
+      // 2) Backend hub (cap+tech collapsed)
+      backend: 'Backend',
+      backend_framework: 'Backend',
+      protocol: 'Backend',
+      security: 'Backend',
+      communication: 'Backend',
+      // 3) Frontend (6th label, separate from Backend)
+      frontend_framework: 'Frontend',
+      // 4) Databases
       database: 'Databases',
-      // Note: We don't have a direct mapping for comp and beh because they are not in the primary section.
-      // However, we will handle comp and beh separately in the compiler.
+      // 5) Infrastructure (observability collapsed)
+      infrastructure: 'Infrastructure',
+      observability: 'Infrastructure',
+      // 6) Testing
+      testing: 'Testing',
+      // Note: architecture/foundation dropped (no label); third_party is hidden in compiler (not mapped)
+      // comp/beh not in primary; handled separately.
     };
 
-    return categoryToGroupMap[normalizedCategory] || normalizedCategory;
+    // third_party ad-hoc anchors (Gmail API, Whisper.cpp) are hidden — return empty sentinel
+    if (normalizedCategory === 'third_party') return '';
+    return categoryToGroupMap[normalizedCategory] || '';
   }
 
   /**

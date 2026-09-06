@@ -539,16 +539,17 @@ interface DebugSnapshot {
 ### AtsSkillGroupCompiler
 - **File:** `resume/compiler/ats-skill-group.compiler.ts`
 - **Method:**
-  - `compile(matchedSignals: MatchSignal[], unmatchedSignals: MatchSignal[], anchorMap: Map<string, AnchorNode>): AtsSkillSection`
-  - Groups by category via `AtsSkillGroupMapper.mapCategoryToGroupLabel()`
+  - `compile(matched: RankedSignal[]|MatchSignal[], unmatched: RankedSignal[]|MatchSignal[], anchorMap: Map<string, AnchorNode>): AtsSkillSection`
+  - Groups by category via `AtsSkillGroupMapper.mapCategoryToGroupLabel()` → 6-label `Languages,Backend,Frontend,Databases,Infrastructure,Testing` `third_party` hidden
   - Only `'tech'` anchors → `'primary'` section; `'cap'`/`'comp'` → `'secondary'` → skipped; `'beh'` → explicitly excluded
-  - Matched signals appear before unmatched within each group; groups sorted alphabetically by label
+  - Per-label strict `3` hard: `matched` sorted `DESC` `slice(0,3)` first, `unmatched` sorted `DESC` fill `need=3-len` `slice(0,need)` → `skills:[...takeMatched,...takeUnmatched]` `≤3`; groups sorted `maxScore DESC` (no alpha)
+  - `resolutionStrength` `strong→weak` redundant — ATS gating via resolver tiered `0.55/0.35` only (traces kept)
   - Canonicalizes names via `SkillClusterResolver`
 
 ### AtsSkillGroupMapper
 - **File:** `resume/compiler/ats-skill-group.mapper.ts`
 - **Static methods:**
-  - `mapCategoryToGroupLabel(category): string` — maps e.g., `'backend'` → `'Backend'`, `'language'` → `'Languages'`, `'backend_framework'` → `'Frameworks'`
+  - `mapCategoryToGroupLabel(category): string` — maps `language→Languages` `backend/backend_framework/protocol/security/communication→Backend` `frontend_framework→Frontend` `database→Databases` `infrastructure/observability→Infrastructure` `testing→Testing` `third_party→''` hidden `architecture/foundation` dropped → 6-label; `getCategoryOrder` not used
   - `getSectionKind(kind): 'primary' | 'secondary'` — `'tech'` → `'primary'`, all others → `'secondary'`
 
 ### bootstrapRetrieval
@@ -1101,25 +1102,25 @@ getArtifacts() called
 
 Resolution: `SkillClusterResolver.resolve()` -> `normalizeAnchor(anchorNode)` -> lookup in `canonicalSkillMap` -> return mapped value or original.
 
-### ATS Group Label Map (`resume/compiler/ats-skill-group.mapper.ts` — `mapCategoryToGroupLabel()`)
+### ATS Group Label Map (`resume/compiler/ats-skill-group.mapper.ts` — `mapCategoryToGroupLabel()`) — strict 6-label
 
 | Category | Group Label |
 |---|---|
-| `backend` | `Backend` |
-| `architecture` | `Architecture` |
-| `observability` | `Observability` |
-| `infrastructure` | `Infrastructure` |
-| `security` | `Security` |
-| `communication` | `Communication` |
-| `foundation` | `Fundamentals` |
-| `testing` | `Testing` |
 | `language` | `Languages` |
-| `backend_framework` | `Frameworks` |
-| `frontend_framework` | `Frameworks` |
-| `protocol` | `Protocols` |
+| `backend` | `Backend` |
+| `backend_framework` | `Backend` |
+| `protocol` | `Backend` |
+| `security` | `Backend` |
+| `communication` | `Backend` |
+| `frontend_framework` | `Frontend` |
 | `database` | `Databases` |
+| `infrastructure` | `Infrastructure` |
+| `observability` | `Infrastructure` |
+| `testing` | `Testing` |
 
-Unmapped categories fall through to their raw string value.
+Dropped: `architecture`/`foundation` → no label (hidden); `third_party` → hidden sentinel `''` (not mapped, filtered in compiler). Unmapped `''` filtered, not raw.
+
+**Note:** 6-label strict: `Languages,Backend,Frontend,Databases,Infrastructure,Testing` (`Frontend` empty → 5 rows).
 
 **Note:** `SkillKeyNormalizer.mapCategoryToLabel()` has a separate mapping used by `getCategoryOrder()`:
 - `backend_framework` -> `'Backend'`
@@ -1141,7 +1142,16 @@ Note: The compiler only collects `'primary'` signals into its group map. Since `
 
 Returns labels in order: `Backend`, `Languages`, `Databases`, `Infrastructure`, `Protocols`, `Testing`, `Frontend`, `Third Party`, `Architecture`, `Observability`, `Security`, `Fundamentals`, `Communication`.
 
-Note: `getCategoryOrder()` is not used by the compiler. The compiler sorts groups alphabetically by label.
+Note: `getCategoryOrder()` is not used by the compiler. The compiler sorts groups by `maxScore DESC` (no `localeCompare`), not alphabetically; per-label `matched` `DESC` then `unmatched` `DESC`, strict `3` hard `slice(0,3)` `matched first`.
+
+### Strict 3 per label (`ats-skill-group.compiler.ts`)
+
+```
+primaryGroups Map<label,{matched:{name,score}[],unmatched:{name,score}[],maxScore}>
+takeMatched = matched.sort DESC slice(0,3); need = 3 - len; takeUnmatched = unmatched.sort DESC slice(0,need)
+skills = [...takeMatched,...takeUnmatched] ≤3; groups sort b.maxScore-a.maxScore; remaining lower as-is (not rendered, no cross-label steal)
+resolutionStrength strong→weak redundant — ATS gating uses resolver tiered 0.55/0.35 only (traces logging kept)
+```
 
 ---
 
