@@ -40,9 +40,7 @@ const configSchema = z.object({
 
   // Paths
   projectRoot: z.string(),
-  resourcesPath: z.string(),
   templatesPath: z.string(),
-  generatedPath: z.string(),
   assetPath: z.string(),
   logsPath: z.string(),
 
@@ -91,9 +89,7 @@ export function loadConfig(): Config {
     isProd: nodeEnv === 'production',
 
     projectRoot,
-    resourcesPath: path.join(projectRoot, 'resources'),
     templatesPath: path.join(projectRoot, 'templates'),
-    generatedPath: path.join(projectRoot, 'generated'),
     assetPath: path.join(projectRoot, 'assets'),
     logsPath: path.join(projectRoot, 'logs'),
 

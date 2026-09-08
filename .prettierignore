@@ -3,12 +3,10 @@ dist
 coverage
 logs
 test-output
-generated
 bored-cv-refinement
 cv
 docs
 plans
-resources
 assets
 beta
 templates
