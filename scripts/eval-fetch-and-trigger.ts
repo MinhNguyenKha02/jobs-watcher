@@ -1,51 +1,50 @@
-// scripts/eval-fetch-and-trigger.ts
-// Node.js/TS eval: fetch Gmail messageIds (since 7 days by default), POST to webhook for ingestion.
-import { GmailService } from '../src/services/gmail.js';
+// scripts/eval-fetch-and-trigger.ts — fetcher (msgs assigned) direct to processed json
+import { GmailService } from '../src/infrastructure/outbound/gmail.js';
 import { config } from '../src/config.js';
 import fetch from 'node-fetch';
 import fs from 'fs';
-import { getLogger } from '../src/services/logger.js';
 
-const WEBHOOK_URL = process.env.WEBHOOK_URL || 'http://127.0.0.1:PORT/webhook'; // Set PORT/env as needed
+const WEBHOOK_URL = process.env.WEBHOOK_URL || `http://127.0.0.1:${process.env.WEBHOOK_PORT || '3000'}${process.env.WEBHOOK_PATH || '/webhook/gmail'}`;
 const LABEL_NAME = process.env.LABEL_NAME || config.gmail.labelName;
-const FETCH_LIMIT = parseInt(process.env.FETCH_LIMIT || '20', 10);
-const SINCE =
-  process.env.FETCH_SINCE || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-const TMP_MSGIDS = process.env.TMP_MSGIDS || 'logs/eval-messageids.json';
+const FETCH_LIMIT = parseInt(process.env.FETCH_LIMIT || '500', 10);
+const SINCE = process.env.FETCH_SINCE || new Date(Date.now() - parseInt(process.env.SINCE_DAYS || '7', 10) * 864e5).toISOString();
+const UNTIL = process.env.FETCH_UNTIL || (process.env.UNTIL_DAYS ? new Date(Date.now() - parseInt(process.env.UNTIL_DAYS, 10) * 864e5).toISOString() : undefined);
+const PROCESSED = process.env.PROCESSED || 'logs/eval-messageids.json';
 
 async function main() {
   const gmail = new GmailService();
   await gmail.authenticate();
   const labelId = await gmail.getLabelId(LABEL_NAME);
-  const msgs = await gmail.listMessagesByLabel(labelId, FETCH_LIMIT, SINCE);
-
-  fs.writeFileSync(
-    TMP_MSGIDS,
-    JSON.stringify(
-      msgs.map((m) => ({ messageId: m.id })),
-      null,
-      2
-    )
-  );
-  getLogger().info(`[eval-fetch-and-trigger] Saved messageIds: ${msgs.length}`);
-
-  // Batch POST messageIds to webhook in Pub/Sub-compatible format
-  for (const entry of msgs) {
-    const payload = {
-      message: {
-        data: Buffer.from(JSON.stringify({ messageId: entry.id })).toString('base64'),
-      },
-    };
+  const msgs = await gmail.listMessagesByLabel(labelId, FETCH_LIMIT, SINCE, UNTIL);
+  let processed: { messageId: string }[];
+  try {
+    processed = JSON.parse(fs.readFileSync(PROCESSED, 'utf8'));
+  } catch {
+    processed = [];
+    fs.writeFileSync(PROCESSED, JSON.stringify(processed, null, 2));
+  }
+  for (const m of msgs) {
+    const messageId = m.id!;
+    if (processed.find((p) => p.messageId === messageId)) {
+      console.log(`\x1b[31m[eval] POST ${messageId} 400 already processed\x1b[0m`);
+      continue;
+    }
     const res = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ messageId }),
     });
-    getLogger().info(`[eval-fetch-and-trigger] POST ${entry.id} status=${res.status}`);
+    if (res.status === 200 || res.status === 202) {
+      console.log(`\x1b[32m[eval] POST ${messageId} ${res.status}\x1b[0m`);
+      processed.push({ messageId });
+      fs.writeFileSync(PROCESSED, JSON.stringify(processed, null, 2));
+    } else {
+      console.log(`\x1b[31m[eval] POST ${messageId} ${res.status}\x1b[0m`);
+    }
   }
 }
 
 main().catch((err) => {
-  getLogger().error(`[eval-fetch-and-trigger] Error:`, err);
+  console.error('[eval-fetch-and-trigger] Error:', err);
   process.exit(1);
 });

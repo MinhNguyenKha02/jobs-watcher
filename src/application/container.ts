@@ -48,6 +48,7 @@ export interface DaemonContainerConfig {
   rabbitmq: { url: string; exchange: string };
   uds: { socketPath: string; token?: string };
   health: { port: number };
+  webhook: { port: number; path: string };
   asset: { outputDir: string };
 }
 
@@ -64,6 +65,7 @@ export interface DaemonContainerOverrides {
   rabbitmq?: { url?: string; exchange?: string };
   uds?: { socketPath?: string; token?: string };
   health?: { port?: number };
+  webhook?: { port?: number; path?: string };
   browser?: { headless?: boolean; timeout?: number };
   asset?: { outputDir?: string };
   /** Gmail transport for the inbound webhook adapter (substituted in tests). */
@@ -109,6 +111,7 @@ export function buildDaemonContainer(
   const rabbitmq = { ...cfg.rabbitmq, ...overrides.rabbitmq };
   const uds = { ...cfg.uds, ...overrides.uds };
   const health = { ...cfg.health, ...overrides.health };
+  const webhook = { ...cfg.webhook, ...overrides.webhook };
   const asset = { ...cfg.asset, ...overrides.asset };
 
   const mongoConnector = new MongoConnector(mongodb.uri);
@@ -186,6 +189,7 @@ export function buildDaemonContainer(
       },
     });
     await udsAdapter.start();
+    await webhookAdapter.start(webhook.port, webhook.path);
     started = true;
     logger.info('Daemon container started');
   }
@@ -194,6 +198,11 @@ export function buildDaemonContainer(
     if (!started) return;
     try {
       await udsAdapter.stop();
+    } catch (e) {
+      /* best-effort */
+    }
+    try {
+      await webhookAdapter.stop();
     } catch (e) {
       /* best-effort */
     }

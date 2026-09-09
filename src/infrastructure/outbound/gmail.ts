@@ -115,22 +115,31 @@ export class GmailService {
    */
   async listMessagesByLabel(
     labelId: string,
-    maxResults = 10,
-    since?: string
+    maxResults = 500,
+    since?: string,
+    until?: string
   ): Promise<gmail_v1.Schema$Message[]> {
     const gmail = this.ensureClient();
-    let q = undefined;
+    let qs: string[] = [];
     if (since) {
-      // Gmail API does not support direct ISO date, so use newer_than:1d or after:YYYY/MM/DD
-      // Try to parse since as YYYY-MM-DD or ISO string
       const date = new Date(since);
       if (!isNaN(date.getTime())) {
         const y = date.getFullYear();
         const m = (date.getMonth() + 1).toString().padStart(2, '0');
         const d = date.getDate().toString().padStart(2, '0');
-        q = `after:${y}/${m}/${d}`;
+        qs.push(`after:${y}/${m}/${d}`);
       }
     }
+    if (until) {
+      const date = new Date(until);
+      if (!isNaN(date.getTime())) {
+        const y = date.getFullYear();
+        const m = (date.getMonth() + 1).toString().padStart(2, '0');
+        const d = date.getDate().toString().padStart(2, '0');
+        qs.push(`before:${y}/${m}/${d}`);
+      }
+    }
+    let q = qs.join(' ') || undefined;
     const res = await gmail.users.messages.list({
       userId: 'me',
       labelIds: [labelId],

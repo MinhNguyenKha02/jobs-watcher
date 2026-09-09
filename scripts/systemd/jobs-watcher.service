@@ -1,6 +1,7 @@
 [Unit]
-Description=Jobs Watcher webhook + worker (Development)
-After=network.target mongod.service
+Description=Jobs Watcher webhook + worker
+After=network.target mongod.service rabbitmq-server.service
+Wants=network-online.target rabbitmq-server.service mongod.service
 StartLimitIntervalSec=60
 StartLimitBurst=3
 
@@ -10,38 +11,17 @@ StandardOutput=journal
 StandardError=journal
 User=jobs-watcher
 Group=jobs-watcher
-
-# Development: Load env from local path
-EnvironmentFile=/home/minh-nguyen/node_projects/jobs-watcher/.env
-Environment="NODE_ENV=development"
-Environment="MONGODB_URI=mongodb://localhost:27017"
-Environment="PLAYWRIGHT_BROWSERS_PATH=/home/minh-nguyen/.cache/ms-playwright"
-
-# Development: Use local project directory
-WorkingDirectory=/home/minh-nguyen/node_projects/jobs-watcher
-# Use v22 Node.js from nvm for ES2020+ syntax support (lru-cache, optional chaining)
-ExecStart=/home/minh-nguyen/.nvm/versions/node/v22.12.0/bin/node /home/minh-nguyen/node_projects/jobs-watcher/dist/src/index.js
-
-Restart=on-failure
+EnvironmentFile=/etc/jobs-watcher.env
+Environment="NODE_ENV=production"
+WorkingDirectory=/opt/jobs-watcher
+ExecStart=/opt/jobs-watcher/.nvm/versions/node/v22.12.0/bin/node /opt/jobs-watcher/dist/src/index.js
+Restart=always
 RestartSec=5
+TimeoutStopSec=30
 UMask=0027
-
-# Socket directory: Use XDG_RUNTIME_DIR for dev (typically /run/user/UID)
 RuntimeDirectory=jobs-watcher
 RuntimeDirectoryMode=0770
 RuntimeDirectoryPreserve=restart
 
 [Install]
 WantedBy=multi-user.target
-
-# ============================================================================
-# DEVELOPMENT NOTES:
-# ============================================================================
-# This is a development configuration. For production:
-# 1. Update User/Group to jobs-watcher (system user)
-# 2. Use /srv/jobs-watcher for WorkingDirectory
-# 3. Use system Node.js binary or absolute path to v22+
-# 4. Use /etc/jobs-watcher.env for EnvironmentFile
-# 5. Consider using socket activation for better security
-# 6. Run: sudo systemctl daemon-reload && sudo systemctl restart jobs-watcher
-# ============================================================================

@@ -10,7 +10,7 @@ async function main() {
     await client.connect();
     const db = client.db(dbName);
 
-    const collections = ['job_queue', 'job_trash', 'parse_log', 'action_log', 'raw_ingest'];
+    const collections = ['job_lifecycle', 'extraction_queue'];
 
     const skipConfirm = !!process.env.SKIP_CONFIRM;
     if (!skipConfirm) {

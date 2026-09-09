@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly fetch timer
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+RandomizedDelaySec=3600
+AccuracySec=1m
+
+[Install]
+WantedBy=timers.target

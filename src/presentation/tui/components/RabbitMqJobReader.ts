@@ -190,7 +190,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       this.s34channel = s34;
 
       await s1.assertExchange(this.exchange, 'topic', { durable: true });
-      await s1.assertQueue(this.s1Queue, { durable: true });
+      await s1.assertQueue(this.s1Queue, { durable: true, arguments: { 'x-max-length': 5000, 'x-overflow': 'reject-publish', 'x-message-ttl': 604800000 } });
       await s2q.assertQueue(this.s2Queue, { durable: true });
       await s2d.assertQueue(this.s2DirectQueue, { durable: true });
       await s34.assertQueue(this.s34Queue, { durable: true });

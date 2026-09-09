@@ -5,10 +5,8 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "prebuild": "npx tsx scripts/prebuild-profile.ts",
     "build": "rm -rf dist && tsc",
-    "start": "node dist/index.js",
+    "daemon": "/home/minh-nguyen/.nvm/versions/node/v22.12.0/bin/node dist/src/index.js",
     "test": "npm run test:unit && npm run test:contract && npm run test:integration && npm run test:regression",
     "test:full": "npm run test && npm run test:e2e",
     "test:preflight": "tsx scripts/ci-ioc-preflight.ts",
@@ -32,9 +30,7 @@
     "pubsub:unsubscribe": "tsx src/cli/pubsub-unsubscribe.ts",
     "render-server": "tsx src/presentation/tui/tui-stdout-adapter.ts",
     "action-controller": "tsx src/presentation/tui/tui-stdin-adapter.ts",
-    "eval:fetch-and-trigger": "bash scripts/eval-fetch-and-trigger.sh",
-    "db:truncate": "SKIP_CONFIRM=1 tsx scripts/db-truncate.ts",
-    "build:artifacts": "tsx src/artifacts/build-artifacts.ts"
+    "db:truncate": "SKIP_CONFIRM=1 tsx scripts/db-truncate.ts"
   },
   "keywords": [
     "gmail",

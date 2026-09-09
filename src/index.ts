@@ -20,6 +20,10 @@ async function main(): Promise<void> {
       health: {
         port: Number(process.env.HEALTH_PORT || '9090'),
       },
+      webhook: {
+        port: Number(process.env.WEBHOOK_PORT || '3000'),
+        path: process.env.WEBHOOK_PATH || '/webhook/gmail',
+      },
       asset: {
         outputDir: process.env.ASSET_OUTPUT_DIR || config.assetPath || './assets',
       },
@@ -30,6 +34,13 @@ async function main(): Promise<void> {
   await app.start();
 
   logger.info('Startup complete');
+
+  process.on('SIGTERM', () => {
+    app.stop().then(() => process.exit(0));
+  });
+  process.on('SIGINT', () => {
+    app.stop().then(() => process.exit(0));
+  });
 }
 
 main().catch((err) => {

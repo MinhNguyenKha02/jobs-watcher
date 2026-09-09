@@ -1,0 +1,11 @@
+[Unit]
+Description=Jobs Watcher fetch weekly 500/7d
+After=jobs-watcher.service network-online.target rabbitmq-server.service mongod.service
+Wants=jobs-watcher.service network-online.target
+
+[Service]
+Type=oneshot
+User=jobs-watcher
+Group=jobs-watcher
+EnvironmentFile=/etc/jobs-watcher.env
+ExecStart=/bin/bash /opt/jobs-watcher/scripts/eval-fetch-and-trigger.sh 500 7
