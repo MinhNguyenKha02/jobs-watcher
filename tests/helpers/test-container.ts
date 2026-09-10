@@ -30,6 +30,7 @@ import type { BrowserPort } from '../../src/application/ports/browser.port.js';
 import type { ExtractionQueuePort } from '../../src/application/ports/extraction-queue.port.js';
 import type { IngestorPort } from '../../src/application/ports/inbound/ingestor.port.js';
 import type { JobLifecyclePort } from '../../src/application/ports/job-lifecycle.port.js';
+import type { DaemonMetricsPort } from '../../src/application/ports/metrics.port.js';
 import type { ParsePort } from '../../src/application/ports/parse.port.js';
 import type { RoutePort } from '../../src/application/ports/route.port.js';
 import type { UdsAdapter } from '../../src/infrastructure/inbound/uds/uds-adapter.js';
@@ -40,6 +41,7 @@ import type {
 import { postJsonOverUds } from '../../src/infrastructure/utils/uds-http.js';
 import type { ActionWriterPort } from '../../src/presentation/tui/ports/action-writer.port.js';
 import type { JobEventReaderPort } from '../../src/presentation/tui/ports/job-event-reader.port.js';
+import type { TuiMetricsPort } from '../../src/presentation/tui/ports/metrics.port.js';
 import {
   clearCurrentJob,
   getCurrentJob,
@@ -137,7 +139,7 @@ interface TestDaemonContainerShared {
   webhook: { adapter: WebhookAdapter };
   assetDir: string;
   healthPort: number;
-  metricsRegistry: import('../../src/infrastructure/outbound/monitoring/metrics-registry.js').DaemonMetricsRegistry;
+  metricsRegistry: DaemonMetricsPort;
   apps: {
     ingest: {
       processIngest: IngestorPort['processIngest'];
@@ -483,7 +485,7 @@ export interface TuiTestContainer {
   ns: string;
   reader: JobEventReaderPort;
   writer: ActionWriterPort;
-  metricsRegistry: import('../../src/infrastructure/outbound/monitoring/metrics-registry.js').TuiMetricsRegistry;
+  metricsRegistry: TuiMetricsPort;
   healthPort: number;
   ipc: { read(): CurrentJobState; clear(): void };
   start: () => Promise<void>;

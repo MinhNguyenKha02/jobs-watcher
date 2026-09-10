@@ -32,7 +32,7 @@ tmux split-window -h -t "$SESSION_NAME:0.1" -p 40
 tmux send-keys -t "$SESSION_NAME:0.0" "$RUN_AS bash -c 'cd $PROJECT_ROOT && npm run render-server 2>$LOG_FILE_RENDER'" C-m
 tmux send-keys -t "$SESSION_NAME:0.2" "$RUN_AS bash -c 'tail -f -n +1 $LOG_FILE_RENDER $LOG_FILE_ACTION 2>/dev/null | pino-pretty 2>/dev/null || cat'" C-m
 tmux send-keys -t "$SESSION_NAME:0.3" "$RUN_AS bash -c 'cd $PROJECT_ROOT && npm run action-controller 2>$LOG_FILE_ACTION'" C-m
-tmux send-keys -t "$SESSION_NAME:0.1" "$RUN_AS bash -c 'cd $PROJECT_ROOT && npx tsx scripts/poll-rmq-pane.ts --width 96'" C-m
+tmux send-keys -t "$SESSION_NAME:0.1" "$RUN_AS bash -c 'cd $PROJECT_ROOT && npx tsx src/infrastructure/inbound/cli/poll-rmq-pane.ts --width 96'" C-m
 tmux send-keys -t "$SESSION_NAME:0.4" "$RUN_AS bash -c 'cd $PROJECT_ROOT && npx tsx src/infrastructure/inbound/cli/observability.ts --compact'" C-m
 tmux set-window-option -t "$SESSION_NAME:0" mode-keys vi
 tmux select-pane -t "$SESSION_NAME:0.3"

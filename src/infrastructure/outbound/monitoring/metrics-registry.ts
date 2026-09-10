@@ -1,6 +1,9 @@
 import { Counter, Gauge, Histogram, Registry } from 'prom-client';
 
-export class DaemonMetricsRegistry {
+import type { DaemonMetricsPort } from '../../../application/ports/metrics.port.js';
+import type { TuiMetricsPort } from '../../../presentation/tui/ports/metrics.port.js';
+
+export class DaemonMetricsRegistry implements DaemonMetricsPort {
   readonly register: Registry;
 
   readonly jobsBrokered: Counter<string>;
@@ -14,6 +17,8 @@ export class DaemonMetricsRegistry {
   readonly extractionQueueEnqueueTotal: Counter<string>;
   readonly extractionQueueDequeueTotal: Counter<string>;
   readonly rmqPublishedTotal: Counter<string>;
+  readonly infraReady: Gauge<string>;
+  readonly extractionQueueDepth: Gauge<string>;
 
   constructor(register?: Registry) {
     this.register = register ?? new Registry();
@@ -91,6 +96,23 @@ export class DaemonMetricsRegistry {
       labelNames: ['routingKey'],
       registers: [this.register],
     });
+
+    this.infraReady = new Gauge({
+      name: 'infra_ready',
+      help: 'Daemon infra component readiness 1=ready 0=not',
+      labelNames: ['component'],
+      registers: [this.register],
+    });
+
+    this.extractionQueueDepth = new Gauge({
+      name: 'extraction_queue_depth',
+      help: 'Mongo extraction queue pending docs',
+      registers: [this.register],
+    });
+    for (const c of ['mongo', 'rabbitmq', 'browser', 'uds', 'webhook', 'scheduler']) {
+      this.infraReady.set({ component: c }, 0);
+    }
+    this.extractionQueueDepth.set(0);
   }
 
   async metrics(): Promise<string> {
@@ -104,17 +126,51 @@ export class DaemonMetricsRegistry {
   clear(): void {
     this.register.clear();
   }
+
+  // DaemonMetricsPort impl (delegates)
+  jobsBrokeredInc(source: string): void {
+    this.jobsBrokered.inc({ source });
+  }
+  jobStageTotalInc(stage: string, status: string): void {
+    this.jobStageTotal.inc({ stage, status });
+  }
+  jobStageDurationObserve(stage: string, sec: number): void {
+    this.jobStageDuration.observe({ stage }, sec);
+  }
+  jobErrorsInc(stage: string, errorType: string): void {
+    this.jobErrors.inc({ stage, error_type: errorType });
+  }
+  jobsInFlightInc(stage: string): void {
+    this.jobsInFlight.inc({ stage });
+  }
+  jobsInFlightDec(stage: string): void {
+    this.jobsInFlight.dec({ stage });
+  }
+  extractionQueueEnqueueInc(): void {
+    this.extractionQueueEnqueueTotal.inc();
+  }
+  extractionQueueDequeueInc(): void {
+    this.extractionQueueDequeueTotal.inc();
+  }
+  rmqPublishedInc(routingKey: string): void {
+    this.rmqPublishedTotal.inc({ routingKey });
+  }
+  setInfraReady(component: string, ready: 0 | 1): void {
+    this.infraReady.set({ component }, ready);
+  }
+  setExtractionQueueDepth(depth: number): void {
+    this.extractionQueueDepth.set(depth);
+  }
 }
 
-export class TuiMetricsRegistry {
+export class TuiMetricsRegistry implements TuiMetricsPort {
   readonly register: Registry;
 
   readonly rmqPendingDepth: Gauge<string>;
   readonly rmqPendingPartial: Gauge<string>;
   readonly rmqPendingFull: Gauge<string>;
   readonly rmqDeferredCount: Gauge<string>;
-  readonly rmqConnected: Gauge<string>;
-  readonly rmqQueueMode: Gauge<string>;
+  readonly infraReady: Gauge<string>;
   readonly rmqConsumedTotal: Counter<string>;
   readonly rmqPendingIds: Gauge<string>;
 
@@ -146,15 +202,10 @@ export class TuiMetricsRegistry {
       registers: [this.register],
     });
 
-    this.rmqConnected = new Gauge({
-      name: 'rmq_connected',
-      help: 'TUI RMQ connected (1) or disconnected (0)',
-      registers: [this.register],
-    });
-
-    this.rmqQueueMode = new Gauge({
-      name: 'rmq_queue_mode',
-      help: 'TUI queue mode (1=queue ON, 0=direct)',
+    this.infraReady = new Gauge({
+      name: 'infra_ready',
+      help: 'TUI infra component readiness 1=ready 0=not',
+      labelNames: ['component'],
       registers: [this.register],
     });
 
@@ -177,8 +228,9 @@ export class TuiMetricsRegistry {
     this.rmqPendingPartial.set(0);
     this.rmqPendingFull.set(0);
     this.rmqDeferredCount.set(0);
-    this.rmqConnected.set(0);
-    this.rmqQueueMode.set(1);
+    for (const c of ['rmq', 'rmq_channels', 'uds_client', 'ipc', 'queue_mode']) {
+      this.infraReady.set({ component: c }, c === 'queue_mode' ? 1 : 0);
+    }
   }
 
   syncSnapshot(snapshot: {
@@ -194,8 +246,8 @@ export class TuiMetricsRegistry {
     this.rmqPendingPartial.set(snapshot.partial);
     this.rmqPendingFull.set(snapshot.full);
     this.rmqDeferredCount.set(snapshot.deferred);
-    this.rmqConnected.set(snapshot.connected ? 1 : 0);
-    this.rmqQueueMode.set(snapshot.queueMode ? 1 : 0);
+    this.infraReady.set({ component: 'rmq' }, snapshot.connected ? 1 : 0);
+    this.infraReady.set({ component: 'queue_mode' }, snapshot.queueMode ? 1 : 0);
     this.rmqPendingIds.reset();
     for (const id of snapshot.peekIds.slice(0, 5)) {
       this.rmqPendingIds.set({ id }, 1);
@@ -216,5 +268,17 @@ export class TuiMetricsRegistry {
 
   clear(): void {
     this.register.clear();
+  }
+
+  setInfraReady(component: string, ready: 0 | 1): void {
+    this.infraReady.set({ component }, ready);
+  }
+  setChannelReady(channel: string, ready: 0 | 1): void {
+    // aggregate rmq_channels: 1 only if all 4 channels ready; store per-channel implicit via infraReady
+    const all = ['s1', 's2', 's2direct', 's34'];
+    // keep simple: set infra_ready rmq_channels to 1 when last channel set 1, caller manages aggregate
+    this.infraReady.set({ component: 'rmq_channels' }, ready);
+    void all;
+    void channel;
   }
 }

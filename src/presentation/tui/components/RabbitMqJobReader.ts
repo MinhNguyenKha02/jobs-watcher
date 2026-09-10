@@ -4,8 +4,8 @@ import { ActionEvent } from '../../../domain/types/action-event.js';
 import { JobStage, JobLifecycleDocument } from '../../../domain/types/job-lifecycle.js';
 import type { Job } from '../../../domain/types/job.js';
 import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
-import type { TuiMetricsRegistry } from '../../../infrastructure/outbound/monitoring/metrics-registry.js';
 import type { JobEventReaderPort } from '../ports/job-event-reader.port.js';
+import type { TuiMetricsPort } from '../ports/metrics.port.js';
 import {
   setCurrentJob,
   clearCurrentJob,
@@ -30,7 +30,7 @@ export interface RabbitMqJobReaderOptions {
   s2Queue?: string;
   s2DirectQueue?: string;
   s34Queue?: string;
-  metricsRegistry?: TuiMetricsRegistry;
+  metricsRegistry?: TuiMetricsPort;
 }
 
 interface PendingJob {
@@ -59,7 +59,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
 
   private connected = false;
   private evictTimer: ReturnType<typeof setInterval> | null = null;
-  private metricsRegistry?: TuiMetricsRegistry;
+  private metricsRegistry?: TuiMetricsPort;
 
   constructor(
     private baseUrl: string,
@@ -119,6 +119,8 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       queueMode: this.getQueueMode(),
       peekIds,
     });
+    // rmq_channels liveness: 1 when connected else 0
+    this.metricsRegistry.setInfraReady('rmq_channels', this.connected ? 1 : 0);
   }
 
   /**

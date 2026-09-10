@@ -1,4 +1,3 @@
-import { createLogger } from '../../../../infrastructure/outbound/logging/logger.js';
 import { profileSource } from '../../source/profile.source.js';
 import { relationsSource } from '../../source/relations.source.js';
 import { ARTIFACT_VERSION } from '../constants/artifact.constants.js';
@@ -48,7 +47,6 @@ export async function buildArtifacts(): Promise<void> {
     }),
   ]);
 
-  createLogger('ArtifactBuilder').info('Artifacts built successfully');
 }
 
 // Run directly when invoked as CLI script
@@ -60,7 +58,7 @@ const isMainModule =
     process.argv[1].endsWith('/artifact.builder.js'));
 if (isMainModule) {
   buildArtifacts().catch((error) => {
-    createLogger('ArtifactBuilder').error('Build failed', { error: String(error) });
+    console.error('Build failed', String(error));
     process.exit(1);
   });
 }

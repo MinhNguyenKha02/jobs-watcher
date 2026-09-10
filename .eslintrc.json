@@ -59,6 +59,38 @@
     ],
     "import/no-duplicates": "error",
     "import/no-cycle": "error",
+    "import/no-restricted-paths": [
+      "error",
+      {
+        "zones": [
+          { "target": "src/domain/**", "from": "src/infrastructure/**", "message": "domain must not import infra" },
+          { "target": "src/domain/**", "from": "src/presentation/**", "message": "domain must not import presentation" },
+          { "target": "src/domain/**", "from": "src/application/**", "message": "domain must not import application" },
+          { "target": "src/application/**", "from": "src/infrastructure/**", "message": "application must not import infra (ports only)" },
+          { "target": "src/application/**", "from": "src/presentation/**", "message": "application must not import presentation" },
+          { "target": "src/application/ports/**", "from": "src/infrastructure/**", "message": "ports must not import infra" },
+          { "target": "src/infrastructure/**", "from": "src/domain/profile/source/**", "message": "infra must not import profile source" },
+          { "target": "src/presentation/**", "from": "src/infrastructure/outbound/persistence/**", "message": "presentation must not import persistence" },
+          { "target": "src/presentation/**", "from": "src/application/**", "message": "presentation must not import application impl (use TUI ports + state); container wires" }
+        ]
+      }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["**/metrics-registry"],
+            "importNames": ["DaemonMetricsRegistry", "TuiMetricsRegistry"],
+            "message": "use MetricPort from src/application/ports/metrics.port.ts / src/presentation/tui/ports/metrics.port.ts (DIP)"
+          },
+          {
+            "group": ["**/shared-tui-state"],
+            "message": "only presentation/tui/components may import shared-tui-state; daemon must not"
+          }
+        ]
+      }
+    ],
     "no-var": "error",
     "vitest/no-conditional-expect": "warn",
     "@typescript-eslint/naming-convention": [
@@ -144,6 +176,13 @@
     ]
   },
   "overrides": [
+    {
+      "files": ["src/application/container.ts"],
+      "rules": {
+        "import/no-restricted-paths": "off",
+        "no-restricted-imports": "off"
+      }
+    },
     {
       "files": [
         "src/**/*.{ts,tsx}"

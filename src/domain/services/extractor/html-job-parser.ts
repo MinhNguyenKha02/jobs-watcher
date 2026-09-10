@@ -2,12 +2,6 @@ import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import type { Element } from 'domhandler';
 
-/**
- * @deprecated Frozen legacy artifact — unused in production. Superseded by
- * `extractor/linkedin-job-extractor.ts` (s2b) and `htmlToText` details:string
- * (s2a/s2c). Kept only for the historical parser regression test.
- */
-import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
 import type { Job } from '../../types/job.js';
 
 /**
@@ -27,8 +21,6 @@ interface LegacyJobDetails {
   jobType?: string;
   extraSections?: Record<string, string>;
 }
-
-const logger = createLogger('HtmlParser');
 
 export type ParsedJobData = Omit<Partial<Job>, 'details'> & { details?: LegacyJobDetails };
 
@@ -278,61 +270,25 @@ export class HtmlJobParser {
 
       const topcvJob = this.parseTopCV($);
       if (topcvJob) {
-        logger.debug('TopCV format detected', {
-          title: topcvJob.role,
-          company: topcvJob.company,
-          location: topcvJob.location,
-          salary: topcvJob.salary,
-          hasUrl: !!topcvJob.url,
-          hasDescription: !!topcvJob.description,
-        });
         return topcvJob;
       }
 
       const indeedJob = this.parseIndeed($);
       if (indeedJob) {
-        logger.debug('Indeed format detected', {
-          title: indeedJob.role,
-          company: indeedJob.company,
-          location: indeedJob.location,
-          salary: indeedJob.salary,
-          hasUrl: !!indeedJob.url,
-          hasDescription: !!indeedJob.description,
-        });
         return indeedJob;
       }
 
       const linkedInJob = this.parseLinkedIn($);
       if (linkedInJob) {
-        logger.debug('LinkedIn format detected', {
-          title: linkedInJob.role,
-          company: linkedInJob.company,
-          location: linkedInJob.location,
-          salary: linkedInJob.salary,
-          hasUrl: !!linkedInJob.url,
-          hasDescription: !!linkedInJob.description,
-        });
         return linkedInJob;
       }
 
       const linkedInSduiJob = this.parseLinkedInSdui($);
       if (linkedInSduiJob) {
-        logger.debug('LinkedIn SDUi format detected', {
-          title: linkedInSduiJob.role,
-          company: linkedInSduiJob.company,
-          location: linkedInSduiJob.location,
-          deadline: linkedInSduiJob.deadline,
-          easyApply: linkedInSduiJob.easyApply,
-          hasUrl: !!linkedInSduiJob.url,
-          hasDescription: !!linkedInSduiJob.description,
-        });
         return linkedInSduiJob;
       }
-
-      logger.debug('No supported job format detected');
       return null;
     } catch (err) {
-      logger.warn('HTML parse error', { error: err instanceof Error ? err.message : String(err) });
       return null;
     }
   }

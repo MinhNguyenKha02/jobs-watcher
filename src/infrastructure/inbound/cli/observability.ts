@@ -5,41 +5,66 @@ function clearAndMoveTop(): void {
   process.stdout.write('\x1b[2J\x1b[H');
 }
 
-import { renderObserveCompactPane } from '../../../presentation/tui/components/ObserveCompactPane.js';
+import {
+  renderObserveCompactPane,
+  renderObserveErrorFrame,
+} from '../../../presentation/tui/components/ObserveCompactPane.js';
+
+async function fetchWithTimeout(url: string, ms = 2000): Promise<Response> {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), ms);
+  try {
+    return await fetch(url, { signal: ac.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
 
 export async function startObservabilityPolling(): Promise<void> {
   const compact = process.argv.includes('--compact');
-  clearAndMoveTop();
-  process.stdout.write(
-    compact
-      ? 'Observe PD compact — polling /health/observability every 5s (4-line)\n\n'
-      : 'Observability pane started — polling /health/observability every 5s\n\n'
-  );
 
   const poll = async (): Promise<void> => {
+    const width = process.stdout.columns || 64;
     try {
-      const res = await fetch(OBSERVABILITY_URL);
+      const res = await fetchWithTimeout(OBSERVABILITY_URL);
       if (!res.ok) {
-        process.stdout.write(`HTTP ${res.status}\n`);
+        clearAndMoveTop();
+        process.stdout.write(renderObserveErrorFrame(width, 9090, `HTTP ${res.status}`) + '\n');
         return;
       }
       const data: unknown = await res.json();
       clearAndMoveTop();
       if (compact) {
-        const width = process.stdout.columns || 64;
+        const { renderObserveCompactPane: fn } = await import('../../../presentation/tui/components/ObserveCompactPane.js');
+        void fn;
         const frame = renderObserveCompactPane(data as never, width);
-        process.stdout.write(frame + '\n');
+        const inner = Math.max(10, width - 2);
+        const title = ` daemon 9090 `;
+        const left = Math.floor((inner - title.length) / 2);
+        const right = inner - title.length - left;
+        const titleLine = `┌${'─'.repeat(left)}${title}${'─'.repeat(right)}┐`;
+        const lines = frame.split('\n');
+        lines[0] = titleLine;
+        process.stdout.write(lines.join('\n') + '\n');
       } else {
         process.stdout.write(JSON.stringify(data, null, 2) + '\n');
       }
     } catch (err) {
       clearAndMoveTop();
-      process.stdout.write(`Poll error: ${err instanceof Error ? err.message : String(err)}\n`);
+      const width2 = process.stdout.columns || 64;
+      const msg = err instanceof Error ? (err.name === 'AbortError' ? 'timeout 2s' : err.message) : String(err);
+      process.stdout.write(renderObserveErrorFrame(width2, 9090, msg) + '\n');
     }
   };
 
   await poll();
   setInterval(poll, POLL_INTERVAL_MS);
+  process.stdout.on('resize', () => {
+    void poll();
+  });
+  process.on('SIGWINCH', () => {
+    void poll();
+  });
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

@@ -1,4 +1,7 @@
+import type { ProfileSource } from '../../domain/profile/source/source.types.js';
 import { ResolveOutput } from '../../domain/profile/types/resolve.types.js';
+
+export type { ProfileSource };
 
 export interface BuildResult {
   pdfPath?: string;

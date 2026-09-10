@@ -1,10 +1,8 @@
 import path from 'node:path';
 
-import type { AssetProducingPort } from '../../../application/ports/asset-producing.port.js';
+import type { AssetProducingPort, ProfileSource } from '../../../application/ports/asset-producing.port.js';
 import { AtsSkillGroup } from '../../../domain/profile/resume/compiler/ats-skill-group.compiler.js';
 import { SkillKeyNormalizer } from '../../../domain/profile/resume/normalization/skill-key-normalizer.js';
-import { profileSource } from '../../../domain/profile/source/profile.source.js';
-import { ProfileSource } from '../../../domain/profile/source/source.types.js';
 import { ResolveOutput } from '../../../domain/profile/types/resolve.types.js';
 import { BuildResult, PdfAsset } from '../../../domain/types/asset.js';
 import { createLogger } from '../logging/logger.js';
@@ -20,9 +18,9 @@ export class AssetProducingAdapter implements AssetProducingPort {
 
   private result: BuildResult = {};
 
-  constructor(outputDir?: string) {
+  constructor(outputDir?: string, profile?: ProfileSource) {
     this.outputDir = outputDir ?? path.resolve(process.cwd(), 'assets');
-    this.profile = profileSource;
+    this.profile = profile ?? { name: 'Unknown', email: '', phone: '', location: '', education: [], links: {} };
   }
 
   async toAsset(

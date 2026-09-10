@@ -1,3 +1,4 @@
+import { profileSource } from '../domain/profile/source/profile.source.js';
 import { startHealthServer } from '../infrastructure/inbound/health/health-adapter.js';
 import { UdsAdapter } from '../infrastructure/inbound/uds/uds-adapter.js';
 import { WebhookAdapter, type GmailClient } from '../infrastructure/inbound/web/webhook-adapter.js';
@@ -5,7 +6,10 @@ import { AssetProducingAdapter } from '../infrastructure/outbound/asset-builder/
 import { PlaywrightBrowserAdapter } from '../infrastructure/outbound/browser/browser-adapter.js';
 import { GmailService } from '../infrastructure/outbound/gmail.js';
 import { createLogger } from '../infrastructure/outbound/logging/logger.js';
-import { DaemonMetricsRegistry, TuiMetricsRegistry } from '../infrastructure/outbound/monitoring/metrics-registry.js';
+import {
+  DaemonMetricsRegistry,
+  TuiMetricsRegistry,
+} from '../infrastructure/outbound/monitoring/metrics-registry.js';
 import { SystemMonitor } from '../infrastructure/outbound/monitoring/system-monitor.js';
 import { MongoConnector } from '../infrastructure/outbound/persistence/mongo-connection.js';
 import { MongoExtractionQueueAdapter } from '../infrastructure/outbound/persistence/mongo-extraction-queue-adapter.js';
@@ -18,6 +22,7 @@ import { RabbitMqJobReader } from '../presentation/tui/components/RabbitMqJobRea
 import { UdsActionWriter } from '../presentation/tui/components/UdsActionWriter.js';
 import type { ActionWriterPort } from '../presentation/tui/ports/action-writer.port.js';
 import type { JobEventReaderPort } from '../presentation/tui/ports/job-event-reader.port.js';
+import type { TuiMetricsPort } from '../presentation/tui/ports/metrics.port.js';
 import {
   clearCurrentJob,
   getCurrentJob,
@@ -32,6 +37,7 @@ import type { BrowserPort } from './ports/browser.port.js';
 import type { ExtractionQueuePort } from './ports/extraction-queue.port.js';
 import type { IngestorPort } from './ports/inbound/ingestor.port.js';
 import type { JobLifecyclePort } from './ports/job-lifecycle.port.js';
+import type { DaemonMetricsPort } from './ports/metrics.port.js';
 import type { ParsePort } from './ports/parse.port.js';
 import type { RoutePort } from './ports/route.port.js';
 
@@ -85,7 +91,7 @@ export interface DaemonContainerOverrides {
 export interface DaemonContainer {
   mongoConnector: MongoConnector;
   mongoInitializer: MongoInitializer;
-  metricsRegistry: DaemonMetricsRegistry;
+  metricsRegistry: DaemonMetricsPort;
   healthPort: number;
   systemMonitor: SystemMonitor;
   rmq: RabbitMqConnection;
@@ -129,13 +135,15 @@ export function buildDaemonContainer(
 
   const parseAdapter = ports.parse ?? new RabbitMqParseAdapter(rmq, metricsRegistry);
   const routeAdapter = ports.route ?? new RabbitMqRoutingAdapter(rmq, metricsRegistry);
-  const assetProducingAdapter = ports.assetProducing ?? new AssetProducingAdapter(asset.outputDir);
+  const assetProducingAdapter = ports.assetProducing ?? new AssetProducingAdapter(asset.outputDir, profileSource);
   const mongoJobLifecycleAdapter =
     ports.jobLifecycle ?? new MongoJobLifecycleAdapter(mongoInitializer.dbInstance);
   const extractionQueueAdapter =
     ports.extractionQueue ??
     new MongoExtractionQueueAdapter(metricsRegistry, mongoInitializer.dbInstance);
 
+  const ingestorLogger = createLogger('Ingestor');
+  const schedulerLogger = createLogger('ExtractionScheduler');
   const ingestor =
     ports.ingestor ??
     new JobIngestor(
@@ -144,7 +152,8 @@ export function buildDaemonContainer(
       routeAdapter,
       extractionQueueAdapter,
       assetProducingAdapter,
-      metricsRegistry
+      metricsRegistry,
+      ingestorLogger,
     );
 
   const browserAdapter = ports.browser ?? new PlaywrightBrowserAdapter(overrides.browser);
@@ -154,7 +163,8 @@ export function buildDaemonContainer(
     browserAdapter,
     mongoJobLifecycleAdapter,
     ingestor,
-    metricsRegistry
+    metricsRegistry,
+    schedulerLogger,
   );
 
   const udsAdapter = new UdsAdapter(ingestor, {
@@ -166,13 +176,43 @@ export function buildDaemonContainer(
 
   let started = false;
   let healthServer: { close: (cb?: () => void) => void } | null = null;
+  let depthInterval: ReturnType<typeof setInterval> | null = null;
+
+  function setInfra(c: string, v: 0 | 1): void {
+    metricsRegistry.setInfraReady(c, v);
+  }
 
   async function start(): Promise<void> {
     if (started) return;
-    await mongoConnector.connect();
-    await mongoInitializer.init();
-    await rmq.connect();
-    await extractionScheduler.start();
+    try {
+      await mongoConnector.connect();
+      setInfra('mongo', 1);
+    } catch (e) {
+      setInfra('mongo', 0);
+      throw e;
+    }
+    try {
+      await mongoInitializer.init();
+    } catch (e) {
+      setInfra('mongo', 0);
+      throw e;
+    }
+    try {
+      await rmq.connect();
+      setInfra('rabbitmq', 1);
+    } catch (e) {
+      setInfra('rabbitmq', 0);
+      throw e;
+    }
+    try {
+      await extractionScheduler.start();
+      setInfra('browser', 1);
+      setInfra('scheduler', 1);
+    } catch (e) {
+      setInfra('browser', 0);
+      setInfra('scheduler', 0);
+      throw e;
+    }
     healthServer = startHealthServer({
       port: health.port,
       metricsRegistry,
@@ -188,14 +228,39 @@ export function buildDaemonContainer(
         },
       },
     });
-    await udsAdapter.start();
-    await webhookAdapter.start(webhook.port, webhook.path);
+    try {
+      await udsAdapter.start();
+      setInfra('uds', 1);
+    } catch (e) {
+      setInfra('uds', 0);
+      throw e;
+    }
+    try {
+      await webhookAdapter.start(webhook.port, webhook.path);
+      setInfra('webhook', 1);
+    } catch (e) {
+      setInfra('webhook', 0);
+      throw e;
+    }
+    depthInterval = setInterval(async () => {
+      try {
+        const sz = await extractionQueueAdapter.size();
+        metricsRegistry.setExtractionQueueDepth(sz);
+      } catch {}
+    }, 2000);
+    // initial depth
+    try {
+      metricsRegistry.setExtractionQueueDepth(await extractionQueueAdapter.size());
+    } catch {}
     started = true;
     logger.info('Daemon container started');
   }
 
   async function stop(): Promise<void> {
     if (!started) return;
+    if (depthInterval) clearInterval(depthInterval);
+    depthInterval = null;
+    for (const c of ['uds', 'webhook', 'browser', 'scheduler', 'rabbitmq', 'mongo'] as const) setInfra(c, 0);
     try {
       await udsAdapter.stop();
     } catch (e) {
@@ -279,7 +344,7 @@ export interface TuiContainerOverrides {
 export interface TuiContainer {
   writer: ActionWriterPort;
   reader: JobEventReaderPort;
-  metricsRegistry: TuiMetricsRegistry;
+  metricsRegistry: TuiMetricsPort;
   healthPort: number;
   ipc: { read(): CurrentJobState; clear(): void };
   start: () => Promise<void>;
@@ -330,6 +395,19 @@ export function buildTuiContainer(
     if (started) return;
     resetState();
     await reader.start();
+    // infraReady: rmq already via syncSnapshot rmq=0/1; enhance channels/queue_mode via reader state
+    const connected = reader.isConnected();
+    metricsRegistry.setInfraReady('rmq', connected ? 1 : 0);
+    metricsRegistry.setInfraReady('rmq_channels', connected ? 1 : 0);
+    try {
+      const fs = await import('node:fs');
+      metricsRegistry.setInfraReady('uds_client', fs.existsSync(uds.socketPath) ? 1 : 0);
+      const statePath = process.env.TUI_SHARED_STATE_PATH || '';
+      const ipcReady = statePath ? fs.existsSync(statePath) : true;
+      metricsRegistry.setInfraReady('ipc', ipcReady ? 1 : 0);
+    } catch {
+      metricsRegistry.setInfraReady('ipc', 0);
+    }
     healthServer = startHealthServer({
       port: health.port,
       metricsRegistry,
@@ -348,6 +426,7 @@ export function buildTuiContainer(
 
   async function stop(): Promise<void> {
     if (!started) return;
+    for (const c of ['rmq', 'rmq_channels', 'uds_client', 'ipc'] as const) metricsRegistry.setInfraReady(c, 0);
     try {
       healthServer?.close();
     } catch (e) {
