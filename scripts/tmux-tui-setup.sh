@@ -25,17 +25,17 @@ tmux set -g xterm-keys on 2>/dev/null || true
 tmux set -g focus-events on 2>/dev/null || true
 tmux set -gs escape-time 0 2>/dev/null || true
 tmux new-session -d -s "$SESSION_NAME" -x 160 -y 48
+tmux split-window -v -t "$SESSION_NAME:0" -p 25
 tmux split-window -h -t "$SESSION_NAME:0.0" -p 40
 tmux split-window -v -t "$SESSION_NAME:0.0" -p 22
-tmux split-window -v -t "$SESSION_NAME:0.1" -p 30
-tmux split-window -h -t "$SESSION_NAME:0.3" -p 50
+tmux split-window -h -t "$SESSION_NAME:0.1" -p 40
 tmux send-keys -t "$SESSION_NAME:0.0" "$RUN_AS bash -c 'cd $PROJECT_ROOT && npm run render-server 2>$LOG_FILE_RENDER'" C-m
-tmux send-keys -t "$SESSION_NAME:0.1" "$RUN_AS bash -c 'tail -f -n +1 $LOG_FILE_RENDER $LOG_FILE_ACTION 2>/dev/null | pino-pretty 2>/dev/null || cat'" C-m
-tmux send-keys -t "$SESSION_NAME:0.2" "$RUN_AS bash -c 'cd $PROJECT_ROOT && npm run action-controller 2>$LOG_FILE_ACTION'" C-m
-tmux send-keys -t "$SESSION_NAME:0.3" "$RUN_AS bash -c 'cd $PROJECT_ROOT && npx tsx scripts/poll-rmq-pane.ts --width 96'" C-m
+tmux send-keys -t "$SESSION_NAME:0.2" "$RUN_AS bash -c 'tail -f -n +1 $LOG_FILE_RENDER $LOG_FILE_ACTION 2>/dev/null | pino-pretty 2>/dev/null || cat'" C-m
+tmux send-keys -t "$SESSION_NAME:0.3" "$RUN_AS bash -c 'cd $PROJECT_ROOT && npm run action-controller 2>$LOG_FILE_ACTION'" C-m
+tmux send-keys -t "$SESSION_NAME:0.1" "$RUN_AS bash -c 'cd $PROJECT_ROOT && npx tsx scripts/poll-rmq-pane.ts --width 96'" C-m
 tmux send-keys -t "$SESSION_NAME:0.4" "$RUN_AS bash -c 'cd $PROJECT_ROOT && npx tsx src/infrastructure/inbound/cli/observability.ts --compact'" C-m
 tmux set-window-option -t "$SESSION_NAME:0" mode-keys vi
-tmux select-pane -t "$SESSION_NAME:0.2"
+tmux select-pane -t "$SESSION_NAME:0.3"
 sleep 3
-PANE_OWNER=$(ps -o user= -p $(tmux list-panes -t "$SESSION_NAME:0.2" -F "#{pane_pid}" 2>/dev/null | head -1) 2>/dev/null | tr -d ' '); if [ "$PANE_OWNER" != "jobs-watcher" ]; then echo -e "\x1b[38;2;248;81;73m[TMUX] unexpected $PANE_OWNER expected jobs-watcher 997/1004\x1b[0m"; fi
+PANE_OWNER=$(ps -o user= -p $(tmux list-panes -t "$SESSION_NAME:0.3" -F "#{pane_pid}" 2>/dev/null | head -1) 2>/dev/null | tr -d ' '); if [ "$PANE_OWNER" != "jobs-watcher" ]; then echo -e "\x1b[38;2;248;81;73m[TMUX] unexpected $PANE_OWNER expected jobs-watcher 997/1004\x1b[0m"; fi
 tmux attach-session -t "$SESSION_NAME"

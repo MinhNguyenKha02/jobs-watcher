@@ -99,6 +99,17 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     if (!this.metricsRegistry) return;
     const partial = this.pendingJobs.filter((p) => p.stage === JobStage.PARTIAL_PARSED).length;
     const full = this.pendingJobs.length - partial;
+    const peekIds = this.peekPending()
+      .slice(0, 5)
+      .map((id) => {
+        if (id.length <= 11) return id;
+        const dashIdx = id.lastIndexOf('-');
+        const suffix = dashIdx !== -1 ? id.slice(dashIdx) : id.slice(-6);
+        const head = id.slice(0, 4);
+        const candidate = `${head}…${suffix.replace(/^-/, 'job-')}`;
+        if (candidate.length <= 11) return candidate;
+        return `${head}…${id.slice(-6)}`;
+      });
     this.metricsRegistry.syncSnapshot({
       depth: this.pendingJobs.length,
       partial,
@@ -106,6 +117,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       deferred: this.deferredS2QueueBuffer.size,
       connected: this.connected,
       queueMode: this.getQueueMode(),
+      peekIds,
     });
   }
 

@@ -313,6 +313,7 @@ export async function buildTestDaemonContainer(
         rabbitmq: { url: RMQ_URL, exchange },
         uds: { socketPath: socket, token },
         health: { port: healthPort },
+        webhook: { port: 0, path: '/webhook/gmail' },
         asset: { outputDir: '/tmp/jobs-watcher-unit-assets' },
       },
       { ports }
@@ -387,6 +388,7 @@ export async function buildTestDaemonContainer(
       rabbitmq: { url: opts.rmq?.url ?? RMQ_URL, exchange },
       uds: { socketPath: socket, token },
       health: { port: healthPort },
+      webhook: { port: 0, path: '/webhook/gmail' },
       asset: { outputDir: assetDir },
     },
     {

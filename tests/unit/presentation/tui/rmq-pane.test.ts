@@ -18,11 +18,13 @@ describe('RmqConsumerPane', () => {
       deferred: 1,
       connected: true,
       queueMode: true,
+      peekIds: ['19ee…job-1', '19ea…job-7', '19ef…job-1', '19f0…job-0', '19f1…job-2'],
     };
     const frame = renderRmqConsumerPane(snap, 96);
     expect(frame).toContain('Q:5');
     expect(frame).toContain('P:2');
     expect(frame).toContain('D:1');
+    expect(frame).toContain('19ee…job-1');
   });
 
   it('GIVEN 6 depth WHEN render THEN overflow +N more same line', () => {
@@ -33,10 +35,12 @@ describe('RmqConsumerPane', () => {
       deferred: 0,
       connected: true,
       queueMode: true,
+      peekIds: ['19ee…job-1', '19ea…job-7', '19ef…job-1', '19f0…job-0', '19f1…job-2'],
     };
     const frame = renderRmqConsumerPane(snap, 96);
-    // pend line shows counts
+    // pend line shows truncated ids +N more
     expect(frame).toContain('pend:');
-    expect(frame).toContain('6 pending');
+    expect(frame).toContain('19ee…job-1');
+    expect(frame).toContain('+1 more');
   });
 });

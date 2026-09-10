@@ -22,6 +22,7 @@ export interface RmqMetricsSnapshot {
   deferred: number;
   connected: boolean;
   queueMode: boolean;
+  peekIds: string[];
 }
 
 function sumMetric(metrics: Record<string, Array<{ labels: Record<string, string>; value: number }>> | undefined, key: string): number {
@@ -38,14 +39,17 @@ function findMetric(metrics: Record<string, Array<{ labels: Record<string, strin
 }
 
 export function toRmqSnapshot(metrics?: Record<string, Array<{ labels: Record<string, string>; value: number }>>): RmqMetricsSnapshot {
-  if (!metrics) return { depth: 0, partial: 0, full: 0, deferred: 0, connected: false, queueMode: true };
+  if (!metrics) return { depth: 0, partial: 0, full: 0, deferred: 0, connected: false, queueMode: true, peekIds: [] };
   const depth = findMetric(metrics, 'rmqPendingDepth', { queue: 'total' }) ?? sumMetric(metrics, 'rmqPendingDepth');
   const partial = sumMetric(metrics, 'rmqPendingPartial');
   const full = sumMetric(metrics, 'rmqPendingFull');
   const deferred = sumMetric(metrics, 'rmqDeferredCount');
   const connected = (sumMetric(metrics, 'rmqConnected') ?? 0) > 0;
   const queueMode = (sumMetric(metrics, 'rmqQueueMode') ?? 1) > 0;
-  return { depth, partial, full, deferred, connected, queueMode };
+  const peekIds = (metrics?.rmqPendingIds ?? [])
+    .map((v) => String(v.labels.id))
+    .slice(0, 5);
+  return { depth, partial, full, deferred, connected, queueMode, peekIds };
 }
 
 export function renderRmqConsumerPaneFromMetrics(
@@ -67,14 +71,23 @@ export function renderRmqConsumerPane(snapshot: RmqMetricsSnapshot, width = 96):
   const line1 = ` Q:${snapshot.depth} P:${snapshot.partial} F:${snapshot.full} D:${snapshot.deferred} · tui.jobs.s1/s2/s2d/s3s4 · ${snapshot.connected ? '🟢' : '🔴'} pref 5/5/1/5 queue:${snapshot.queueMode ? 'ON' : 'OFF'}`;
   lines.push(`│${truncateMid(line1, inner).padEnd(inner)}│`);
 
-  // Line2 cur — registry has no peekIds, show placeholder
-  const curLine = ' cur: —';
+  // Line2 cur — first peekId 19ee…job-N
+  let curLine = ' cur: —';
+  if (snapshot.peekIds.length > 0) {
+    const first = snapshot.peekIds[0];
+    const stageLabel = snapshot.full > 0 && snapshot.partial === 0 ? 'FULL' : snapshot.partial > 0 && snapshot.full === 0 ? 'PARTIAL' : snapshot.depth > 0 ? 'mixed' : '';
+    curLine = stageLabel ? ` cur: ${first} ${stageLabel}` : ` cur: ${first}`;
+  }
   lines.push(`│${truncateMid(curLine, inner).padEnd(inner)}│`);
 
-  // Line3 pend: depth only (ids not in metrics)
+  // Line3 pend: 5× midTruncate 19ee…job-N +N more on 96 cols
   let pendLine = ' pend: ';
   if (snapshot.depth === 0) pendLine += '—';
-  else pendLine += `${snapshot.depth} pending (P:${snapshot.partial} F:${snapshot.full})`;
+  else if (snapshot.peekIds.length > 0) {
+    const shown = snapshot.peekIds.slice(0, 5).join(' ');
+    pendLine += shown;
+    if (snapshot.depth > snapshot.peekIds.length) pendLine += ` +${snapshot.depth - snapshot.peekIds.length} more`;
+  } else pendLine += `${snapshot.depth} pending (P:${snapshot.partial} F:${snapshot.full})`;
   lines.push(`│${truncateMid(pendLine, inner).padEnd(inner)}│`);
 
   // Line4 def

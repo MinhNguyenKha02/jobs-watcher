@@ -29,6 +29,7 @@ describe('Container conformance — IoC composition root', () => {
         rabbitmq: { url: process.env.RABBITMQ_URL || 'amqp://localhost', exchange },
         uds: { socketPath: `/tmp/jobs-watcher-composition-root.sock`, token: 'test-token' },
         health: { port: 0 },
+        webhook: { port: 0, path: '/webhook/gmail' },
         asset: { outputDir: assetDir },
       },
       {}

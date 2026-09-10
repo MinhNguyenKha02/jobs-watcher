@@ -80,6 +80,7 @@ describe('UdsAdapter contract — real UDS endpoint over testdaemoncontainer (re
         rabbitmq: { url: RMQ_URL, exchange: daemon.rmq.exchange },
         uds: { socketPath: socket, token: TOKEN },
         health: { port: 0 },
+        webhook: { port: 0, path: '/webhook/gmail' },
         asset: { outputDir: '/tmp/jobs-watcher-uds-assets' },
       },
       {

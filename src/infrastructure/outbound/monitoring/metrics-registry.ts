@@ -116,6 +116,7 @@ export class TuiMetricsRegistry {
   readonly rmqConnected: Gauge<string>;
   readonly rmqQueueMode: Gauge<string>;
   readonly rmqConsumedTotal: Counter<string>;
+  readonly rmqPendingIds: Gauge<string>;
 
   constructor(register?: Registry) {
     this.register = register ?? new Registry();
@@ -164,6 +165,13 @@ export class TuiMetricsRegistry {
       registers: [this.register],
     });
 
+    this.rmqPendingIds = new Gauge({
+      name: 'rmq_pending_ids',
+      help: 'TUI RMQ pending ids (midTruncate 11, max 5)',
+      labelNames: ['id'],
+      registers: [this.register],
+    });
+
     // initialize gauges to 0
     this.rmqPendingDepth.set({ queue: 'total' }, 0);
     this.rmqPendingPartial.set(0);
@@ -180,6 +188,7 @@ export class TuiMetricsRegistry {
     deferred: number;
     connected: boolean;
     queueMode: boolean;
+    peekIds: string[];
   }): void {
     this.rmqPendingDepth.set({ queue: 'total' }, snapshot.depth);
     this.rmqPendingPartial.set(snapshot.partial);
@@ -187,6 +196,10 @@ export class TuiMetricsRegistry {
     this.rmqDeferredCount.set(snapshot.deferred);
     this.rmqConnected.set(snapshot.connected ? 1 : 0);
     this.rmqQueueMode.set(snapshot.queueMode ? 1 : 0);
+    this.rmqPendingIds.reset();
+    for (const id of snapshot.peekIds.slice(0, 5)) {
+      this.rmqPendingIds.set({ id }, 1);
+    }
   }
 
   incConsumed(queue: string, routingKey: string): void {

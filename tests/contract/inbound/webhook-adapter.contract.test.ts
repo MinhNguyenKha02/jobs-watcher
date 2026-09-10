@@ -135,6 +135,7 @@ describe('Webhook adapter contract — real PubSub push + real ingestor via test
         rabbitmq: { url: daemon.rmq.exchange, exchange: daemon.rmq.exchange },
         uds: { socketPath: `/tmp/jobs-watcher-webhook-${Date.now()}.sock`, token: 'ct-token' },
         health: { port: 0 },
+        webhook: { port: 0, path: '/webhook/gmail' },
         asset: { outputDir: '/tmp/jobs-watcher-webhook-assets' },
       },
       {

@@ -120,7 +120,7 @@ export class GmailService {
     until?: string
   ): Promise<gmail_v1.Schema$Message[]> {
     const gmail = this.ensureClient();
-    let qs: string[] = [];
+    const qs: string[] = [];
     if (since) {
       const date = new Date(since);
       if (!isNaN(date.getTime())) {
@@ -139,7 +139,7 @@ export class GmailService {
         qs.push(`before:${y}/${m}/${d}`);
       }
     }
-    let q = qs.join(' ') || undefined;
+    const q = qs.join(' ') || undefined;
     const res = await gmail.users.messages.list({
       userId: 'me',
       labelIds: [labelId],
