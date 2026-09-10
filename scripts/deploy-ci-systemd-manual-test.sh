@@ -27,7 +27,9 @@ cleanup_process_artifacts() {
   if systemctl is-active --quiet jobs-watcher 2>/dev/null; then sudo systemctl stop jobs-watcher 2>/dev/null || true; fi
   pid=$(systemctl show -p MainPID --value jobs-watcher 2>/dev/null || echo 0); if [ -n "$pid" ] && [ "$pid" -gt 0 ] 2>/dev/null && ps -p "$pid" >/dev/null 2>&1; then sudo kill "$pid" 2>/dev/null || true; fi
   pkill -u jobs-watcher -f "node.*dist/src/index" 2>/dev/null || true
-  rm -f /run/jobs-watcher/ingest.sock 2>/dev/null || true
+  # UDS path from sourced env — no inline fallback
+  rm -f "${UDS_SOCKET_PATH:-}" 2>/dev/null || true
+  [ -n "${TUI_SHARED_STATE_PATH:-}" ] && rm -f "$TUI_SHARED_STATE_PATH" 2>/dev/null || true
 }
 systemctl_daemon_reload() { sudo systemctl daemon-reload 2>&1 | tee -a "$LOG_FILE"; }
 systemctl_restart_service() { sudo systemctl restart jobs-watcher 2>&1 | tee -a "$LOG_FILE"; }
@@ -43,10 +45,12 @@ log_info "Env file: $ENV_FILE"
 if ! grep -qE '^(MONGODB_URI|GMAIL_CLIENT_ID|GMAIL_CLIENT_SECRET|RABBITMQ_URL)=' "$ENV_FILE" 2>/dev/null; then
   log_warn "Env missing at least one required key (MONGODB_URI/GMAIL_CLIENT_ID/GMAIL_CLIENT_SECRET/RABBITMQ_URL) — will fail at config validation"
 fi
-# source ports for strict health gate (fallback 9090/3000)
+# source env — single source, no inline UDS/IPC defaults
 set -a; source "$ENV_FILE" 2>/dev/null || true; set +a
 HEALTH_PORT="${HEALTH_PORT:-9090}"
 WEBHOOK_PORT="${WEBHOOK_PORT:-3000}"
+# UDS/IPC explicitly from env file — fail fast if missing
+if [ -z "${UDS_SOCKET_PATH:-}" ] || [ -z "${TUI_SHARED_STATE_PATH:-}" ]; then log_error "Missing UDS_SOCKET_PATH or TUI_SHARED_STATE_PATH in $ENV_FILE"; exit 1; fi
 log_complete "STEP 1 Validate Env"
 # STEP 1.5 MongoDB Cleanup
 if [[ "$CLEAN_MONGODB" == "true" ]]; then
@@ -78,8 +82,8 @@ if ! systemctl is-active --quiet mongod 2>/dev/null; then log_warn "mongod not a
 if ! systemctl is-active --quiet rabbitmq-server 2>/dev/null; then log_warn "rabbitmq-server not active"; fi
 if systemctl is-active --quiet jobs-watcher; then log_complete "jobs-watcher active"; else log_error "jobs-watcher not active"; sudo systemctl status jobs-watcher 2>&1 | tee -a "$LOG_FILE"; exit 1; fi
 pid=$(systemctl show -p MainPID --value jobs-watcher); if [ "$pid" -gt 0 ] && ps -p "$pid" >/dev/null 2>&1; then log_complete "pid $pid"; else log_error "pid not found"; exit 1; fi
-if [ -S /run/jobs-watcher/ingest.sock ]; then log_complete "UDS /run/jobs-watcher/ingest.sock"; else log_error "UDS not found"; exit 1; fi
-if curl --fail --unix-socket /run/jobs-watcher/ingest.sock -s http://localhost/health 2>&1 | grep -q ok; then log_complete "UDS curl green"; else log_error "UDS curl failed"; exit 1; fi
+if [ -S "$UDS_SOCKET_PATH" ]; then log_complete "UDS $UDS_SOCKET_PATH"; else log_error "UDS not found ($UDS_SOCKET_PATH)"; exit 1; fi
+if curl --fail --unix-socket "$UDS_SOCKET_PATH" -s http://localhost/health 2>&1 | grep -q ok; then log_complete "UDS curl green ($UDS_SOCKET_PATH)"; else log_error "UDS curl failed ($UDS_SOCKET_PATH)"; exit 1; fi
 if curl --fail -s "http://127.0.0.1:${HEALTH_PORT}/health" 2>&1 | grep -q ok; then log_complete "health:${HEALTH_PORT} green"; else log_error "health:${HEALTH_PORT} failed"; exit 1; fi
 if curl --fail -s "http://127.0.0.1:${WEBHOOK_PORT}/health" 2>&1 | grep -q ok; then log_complete "webhook:${WEBHOOK_PORT} green"; else log_error "webhook:${WEBHOOK_PORT} failed"; exit 1; fi
 log_complete "STEP 4 Verify"
