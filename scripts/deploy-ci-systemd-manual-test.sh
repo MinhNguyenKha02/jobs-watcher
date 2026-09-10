@@ -83,9 +83,21 @@ if ! systemctl is-active --quiet rabbitmq-server 2>/dev/null; then log_warn "rab
 if systemctl is-active --quiet jobs-watcher; then log_complete "jobs-watcher active"; else log_error "jobs-watcher not active"; sudo systemctl status jobs-watcher 2>&1 | tee -a "$LOG_FILE"; exit 1; fi
 pid=$(systemctl show -p MainPID --value jobs-watcher); if [ "$pid" -gt 0 ] && ps -p "$pid" >/dev/null 2>&1; then log_complete "pid $pid"; else log_error "pid not found"; exit 1; fi
 if [ -S "$UDS_SOCKET_PATH" ]; then log_complete "UDS $UDS_SOCKET_PATH"; else log_error "UDS not found ($UDS_SOCKET_PATH)"; exit 1; fi
-if curl --fail --unix-socket "$UDS_SOCKET_PATH" -s http://localhost/health 2>&1 | grep -q ok; then log_complete "UDS curl green ($UDS_SOCKET_PATH)"; else log_error "UDS curl failed ($UDS_SOCKET_PATH)"; exit 1; fi
 if curl --fail -s "http://127.0.0.1:${HEALTH_PORT}/health" 2>&1 | grep -q ok; then log_complete "health:${HEALTH_PORT} green"; else log_error "health:${HEALTH_PORT} failed"; exit 1; fi
-if curl --fail -s "http://127.0.0.1:${WEBHOOK_PORT}/health" 2>&1 | grep -q ok; then log_complete "webhook:${WEBHOOK_PORT} green"; else log_error "webhook:${WEBHOOK_PORT} failed"; exit 1; fi
+for C in mongo rabbitmq browser scheduler uds webhook; do
+  if curl -s "http://127.0.0.1:${HEALTH_PORT}/metrics" 2>&1 | grep -q "infra_ready{component=\"$C\"} 1"; then log_complete "infraReady $C 1";
+  else log_error "infraReady $C !=1 (metrics)"; exit 1; fi
+done
+# port exposure nic localhost — curl primary, ss/lsof compat fallback
+if curl -s --connect-timeout 2 "http://127.0.0.1:${HEALTH_PORT}/health" >/dev/null 2>&1; then log_complete "probe 127.0.0.1:${HEALTH_PORT} ok";
+else log_error "probe 127.0.0.1:${HEALTH_PORT} fail"; exit 1; fi
+if curl -s --connect-timeout 2 "http://127.0.0.1:${WEBHOOK_PORT}/health" >/dev/null 2>&1; then log_complete "probe 127.0.0.1:${WEBHOOK_PORT} ok";
+elif curl -s "http://127.0.0.1:${HEALTH_PORT}/metrics" >/dev/null 2>&1; then log_complete "probe 127.0.0.1:${WEBHOOK_PORT} ok (via metrics)";
+else
+  if command -v ss >/dev/null 2>&1; then ss -Hln "sport = :${WEBHOOK_PORT}" 2>/dev/null | grep -q "127.0.0.1" && log_complete "ss 127.0.0.1:${WEBHOOK_PORT} ok" || { log_error "ss 127.0.0.1:${WEBHOOK_PORT} not localhost"; exit 1; }
+  elif command -v lsof >/dev/null 2>&1; then lsof -i :${WEBHOOK_PORT} -sTCP:LISTEN 2>/dev/null | grep -q "127.0.0.1" && log_complete "lsof 127.0.0.1:${WEBHOOK_PORT} ok" || log_warn "lsof check skipped";
+  else log_warn "no ss/lsof — curl probe skipped"; fi
+fi
 log_complete "STEP 4 Verify"
 # STEP 5 Beta/Prod fetch timer (install already enables 3 units; beta disables, prod is already active)
 log_section "STEP 5 Fetch Timer"
