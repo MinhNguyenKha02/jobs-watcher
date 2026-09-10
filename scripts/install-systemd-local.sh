@@ -39,17 +39,21 @@ ${SUDO} chown jobs-watcher:jobs-watcher "$OPT_DST" "$SRV_ASSET" || true
 ${SUDO} chmod 0750 "$OPT_DST"; ${SUDO} chmod 0755 "$SRV_ASSET" || true
 echo -e "${GREEN}[complete]${NC} /opt /srv isolated" | tee -a "$LOG_FILE"
 echo -e "${BLUE}▶ git archive HEAD → $OPT_DST ${GRAY}[incomplete]${NC}" | tee -a "$LOG_FILE"
+STAGE_DIR=$(mktemp -d /tmp/jobs-watcher.XXXX); trap 'rm -rf "$STAGE_DIR" 2>/dev/null || true' EXIT
+if ! ${SUDO} -u jobs-watcher bash -c "git -C $ROOT_DIR archive --format=tar HEAD | tar -x -C $STAGE_DIR" 2>&1 | tee -a "$LOG_FILE"; then echo -e "${RED}[ERROR] git archive failed${NC}" | tee -a "$LOG_FILE"; rm -rf "$STAGE_DIR" 2>/dev/null || true; trap - EXIT; exit 1; fi
 ${SUDO} rm -rf "${OPT_DST:?}"/* 2>/dev/null || true; ${SUDO} mkdir -p "$OPT_DST"
-${SUDO} -u jobs-watcher bash -c "git -C $ROOT_DIR archive --format=tar HEAD | tar -x -C $OPT_DST" 2>&1 | tee -a "$LOG_FILE" || true
+${SUDO} cp -a "$STAGE_DIR"/. "$OPT_DST"/ 2>&1 | tee -a "$LOG_FILE" || { echo -e "${RED}[ERROR] stage copy failed${NC}" | tee -a "$LOG_FILE"; rm -rf "$STAGE_DIR" 2>/dev/null || true; trap - EXIT; exit 1; }
+rm -rf "$STAGE_DIR" 2>/dev/null || true; trap - EXIT
 echo -e "${BLUE}▶ nvm 22.12 @ $OPT_DST/.nvm ${GRAY}[incomplete]${NC}" | tee -a "$LOG_FILE"
 if [ ! -x "$OPT_DST/.nvm/versions/node/v22.12.0/bin/node" ]; then
-  ${SUDO} -u jobs-watcher bash -c "export NVM_DIR=$OPT_DST/.nvm; curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash" 2>&1 | tee -a "$LOG_FILE" || true
-  ${SUDO} -u jobs-watcher bash -c "export NVM_DIR=$OPT_DST/.nvm; [ -s \$NVM_DIR/nvm.sh ] && . \$NVM_DIR/nvm.sh; nvm install 22.12.0" 2>&1 | tee -a "$LOG_FILE" || true
+  if ! ${SUDO} -u jobs-watcher bash -c "export NVM_DIR=$OPT_DST/.nvm; curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash" 2>&1 | tee -a "$LOG_FILE"; then echo -e "${RED}[ERROR] nvm install script failed${NC}" | tee -a "$LOG_FILE"; exit 1; fi
+  if ! ${SUDO} -u jobs-watcher bash -c "export NVM_DIR=$OPT_DST/.nvm; [ -s \$NVM_DIR/nvm.sh ] && . \$NVM_DIR/nvm.sh; nvm install 22.12.0" 2>&1 | tee -a "$LOG_FILE"; then echo -e "${RED}[ERROR] nvm 22.12.0 install failed${NC}" | tee -a "$LOG_FILE"; exit 1; fi
 fi
 echo -e "${GREEN}[complete]${NC} nvm 22.12" | tee -a "$LOG_FILE"
 echo -e "${BLUE}▶ npm ci + build @ $OPT_DST ${GRAY}[incomplete]${NC}" | tee -a "$LOG_FILE"
-${SUDO} -u jobs-watcher bash -c "cd $OPT_DST && export NVM_DIR=$OPT_DST/.nvm; [ -s \$NVM_DIR/nvm.sh ] && . \$NVM_DIR/nvm.sh; npm ci --omit=dev" 2>&1 | tee -a "$LOG_FILE" || true
-${SUDO} -u jobs-watcher bash -c "cd $OPT_DST && export NVM_DIR=$OPT_DST/.nvm; [ -s \$NVM_DIR/nvm.sh ] && . \$NVM_DIR/nvm.sh; npm run build" 2>&1 | tee -a "$LOG_FILE" || true
+if ! ${SUDO} -u jobs-watcher bash -c "cd $OPT_DST && export NVM_DIR=$OPT_DST/.nvm; [ -s \$NVM_DIR/nvm.sh ] && . \$NVM_DIR/nvm.sh; npm ci --omit=dev" 2>&1 | tee -a "$LOG_FILE"; then echo -e "${RED}[ERROR] npm ci failed${NC}" | tee -a "$LOG_FILE"; exit 1; fi
+if ! ${SUDO} -u jobs-watcher bash -c "cd $OPT_DST && export NVM_DIR=$OPT_DST/.nvm; [ -s \$NVM_DIR/nvm.sh ] && . \$NVM_DIR/nvm.sh; npm run build" 2>&1 | tee -a "$LOG_FILE"; then echo -e "${RED}[ERROR] npm build failed${NC}" | tee -a "$LOG_FILE"; exit 1; fi
+if [ ! -f "$OPT_DST/dist/src/index.js" ]; then echo -e "${RED}[ERROR] Build artifact missing: $OPT_DST/dist/src/index.js${NC}" | tee -a "$LOG_FILE"; exit 1; fi
 ${SUDO} chmod 0750 "$OPT_DST" || true
 ${SUDO} chown -R jobs-watcher:jobs-watcher "$OPT_DST/dist" "$OPT_DST/node_modules" 2>/dev/null || true
 echo -e "${GREEN}[complete]${NC} npm ci + build" | tee -a "$LOG_FILE"
@@ -64,9 +68,9 @@ TMPFILE=$(mktemp /tmp/jobs-watcher.env.XXXX); cp "$ENV_FILE" "$TMPFILE"; ${SUDO}
 if ${SUDO} chown root:jobs-watcher "$ENV_DST" 2>/dev/null; then echo -e "${GREEN}[complete]${NC} env $ENV_DST root:jobs-watcher" | tee -a "$LOG_FILE"; else ${SUDO} chown root:root "$ENV_DST" || true; fi
 ${SUDO} chmod 0640 "$ENV_DST" || true
 echo -e "${BLUE}▶ daemon-reload + enable ${GRAY}[incomplete]${NC}" | tee -a "$LOG_FILE"
-${SUDO} systemctl daemon-reload 2>&1 | tee -a "$LOG_FILE" || true
-${SUDO} systemctl enable --now jobs-watcher.service 2>&1 | tee -a "$LOG_FILE" || true
-${SUDO} systemctl enable --now jobs-watcher-fetch.service 2>&1 | tee -a "$LOG_FILE" || true
-${SUDO} systemctl enable --now jobs-watcher-fetch.timer 2>&1 | tee -a "$LOG_FILE" || true
-${SUDO} systemctl restart jobs-watcher.service 2>&1 | tee -a "$LOG_FILE" || true
+if ! ${SUDO} systemctl daemon-reload 2>&1 | tee -a "$LOG_FILE"; then echo -e "${RED}[ERROR] daemon-reload failed${NC}" | tee -a "$LOG_FILE"; exit 1; fi
+if ! ${SUDO} systemctl enable --now jobs-watcher.service 2>&1 | tee -a "$LOG_FILE"; then echo -e "${RED}[ERROR] enable jobs-watcher failed${NC}" | tee -a "$LOG_FILE"; exit 1; fi
+if ! ${SUDO} systemctl enable jobs-watcher-fetch.service 2>&1 | tee -a "$LOG_FILE"; then echo -e "${RED}[ERROR] enable fetch.service failed${NC}" | tee -a "$LOG_FILE"; exit 1; fi
+if ! ${SUDO} systemctl enable --now jobs-watcher-fetch.timer 2>&1 | tee -a "$LOG_FILE"; then echo -e "${RED}[ERROR] enable fetch.timer failed${NC}" | tee -a "$LOG_FILE"; exit 1; fi
+if ! ${SUDO} systemctl restart jobs-watcher.service 2>&1 | tee -a "$LOG_FILE"; then echo -e "${RED}[ERROR] restart jobs-watcher failed${NC}" | tee -a "$LOG_FILE"; exit 1; fi
 echo -e "${GREEN}[complete]${NC} install ${GREEN}[exit 0]${NC} $(date)" | tee -a "$LOG_FILE"

@@ -24,8 +24,9 @@ log_section() { echo -e "\n${BLUE}━━━━━━━━━━━━━━━�
 log_complete() { echo -e "${GREEN}[complete]${NC} $1" | tee -a "$LOG_FILE"; }
 cleanup_process_artifacts() {
   log_info "Cleaning process artifacts (sockets/state)..."
-  systemctl is-active --quiet jobs-watcher 2>/dev/null && sudo systemctl stop jobs-watcher 2>/dev/null || true
-  pkill -f "node.*dist/src/index" 2>/dev/null | xargs kill -9 2>/dev/null || true
+  if systemctl is-active --quiet jobs-watcher 2>/dev/null; then sudo systemctl stop jobs-watcher 2>/dev/null || true; fi
+  pid=$(systemctl show -p MainPID --value jobs-watcher 2>/dev/null || echo 0); if [ -n "$pid" ] && [ "$pid" -gt 0 ] 2>/dev/null && ps -p "$pid" >/dev/null 2>&1; then sudo kill "$pid" 2>/dev/null || true; fi
+  pkill -u jobs-watcher -f "node.*dist/src/index" 2>/dev/null || true
   rm -f /run/jobs-watcher/ingest.sock 2>/dev/null || true
 }
 systemctl_daemon_reload() { sudo systemctl daemon-reload 2>&1 | tee -a "$LOG_FILE"; }
@@ -39,6 +40,13 @@ if [ ! -f "$ENV_FILE" ]; then
   else log_error "Env file not found: tried $ENV_FILE and .env — abort"; exit 1; fi
 fi
 log_info "Env file: $ENV_FILE"
+if ! grep -qE '^(MONGODB_URI|GMAIL_CLIENT_ID|GMAIL_CLIENT_SECRET|RABBITMQ_URL)=' "$ENV_FILE" 2>/dev/null; then
+  log_warn "Env missing at least one required key (MONGODB_URI/GMAIL_CLIENT_ID/GMAIL_CLIENT_SECRET/RABBITMQ_URL) — will fail at config validation"
+fi
+# source ports for strict health gate (fallback 9090/3000)
+set -a; source "$ENV_FILE" 2>/dev/null || true; set +a
+HEALTH_PORT="${HEALTH_PORT:-9090}"
+WEBHOOK_PORT="${WEBHOOK_PORT:-3000}"
 log_complete "STEP 1 Validate Env"
 # STEP 1.5 MongoDB Cleanup
 if [[ "$CLEAN_MONGODB" == "true" ]]; then
@@ -52,24 +60,28 @@ log_complete "Stop Old"
 # STEP 2 Build
 log_section "STEP 2 Build"
 if [[ "$SKIP_TESTS" != "true" ]]; then
+  if [[ "${SKIP_PREFLIGHT:-}" != "1" ]]; then
+    if npm run test:preflight 2>&1 | tee -a "$LOG_FILE"; then log_complete "test:preflight passed"; else log_error "test:preflight failed"; exit 1; fi
+  else echo -e "${BLUE}[CI] SKIP_PREFLIGHT=1 — preflight skipped${NC}" | tee -a "$LOG_FILE"; fi
   if npm run test:unit 2>&1 | tee -a "$LOG_FILE"; then log_complete "test:unit passed"; else log_error "test:unit failed"; exit 1; fi
   if npm run test:integration -- --no-file-parallelism 2>&1 | tee -a "$LOG_FILE"; then log_complete "test:integration passed"; else log_error "test:integration failed"; exit 1; fi
-else echo -e "${BLUE}[CI] skip-tests — unit+integration skipped${NC}" | tee -a "$LOG_FILE"; fi
+else echo -e "${BLUE}[CI] skip-tests — unit+integration+preflight skipped${NC}" | tee -a "$LOG_FILE"; fi
 if npm run build 2>&1 | tee -a "$LOG_FILE"; then log_complete "Build"; else log_error "Build failed"; exit 1; fi
 [ -f dist/src/index.js ] || { log_error "Build artifact missing: dist/src/index.js"; exit 1; }
 log_complete "STEP 2 Build"
 # STEP 3 Install systemd (includes daemon-reload + 3 enables + restart — see install 064-067)
 log_section "STEP 3 Install systemd"
 if bash scripts/install-systemd-local.sh "$ENV_FILE" >> "$LOG_FILE" 2>&1; then log_complete "systemd installed"; else log_error "systemd install failed"; exit 1; fi
-# STEP 4 Verify (install already daemon-reloaded + enabled; verify here for CI gate)
+# STEP 4 Verify (install already daemon-reloaded + enabled; verify here for CI gate — strict fail)
 log_section "STEP 4 Verify Daemon"
 if ! systemctl is-active --quiet mongod 2>/dev/null; then log_warn "mongod not active"; fi
 if ! systemctl is-active --quiet rabbitmq-server 2>/dev/null; then log_warn "rabbitmq-server not active"; fi
 if systemctl is-active --quiet jobs-watcher; then log_complete "jobs-watcher active"; else log_error "jobs-watcher not active"; sudo systemctl status jobs-watcher 2>&1 | tee -a "$LOG_FILE"; exit 1; fi
 pid=$(systemctl show -p MainPID --value jobs-watcher); if [ "$pid" -gt 0 ] && ps -p "$pid" >/dev/null 2>&1; then log_complete "pid $pid"; else log_error "pid not found"; exit 1; fi
 if [ -S /run/jobs-watcher/ingest.sock ]; then log_complete "UDS /run/jobs-watcher/ingest.sock"; else log_error "UDS not found"; exit 1; fi
-if curl --unix-socket /run/jobs-watcher/ingest.sock -s http://localhost/health 2>&1 | grep -q ok; then log_complete "UDS curl green"; else log_warn "UDS curl pending"; fi
-if curl -s http://127.0.0.1:3000/health 2>&1 | grep -q ok; then log_complete "webhook health"; else echo -e "${GRAY}webhook health pending${NC}" | tee -a "$LOG_FILE"; fi
+if curl --fail --unix-socket /run/jobs-watcher/ingest.sock -s http://localhost/health 2>&1 | grep -q ok; then log_complete "UDS curl green"; else log_error "UDS curl failed"; exit 1; fi
+if curl --fail -s "http://127.0.0.1:${HEALTH_PORT}/health" 2>&1 | grep -q ok; then log_complete "health:${HEALTH_PORT} green"; else log_error "health:${HEALTH_PORT} failed"; exit 1; fi
+if curl --fail -s "http://127.0.0.1:${WEBHOOK_PORT}/health" 2>&1 | grep -q ok; then log_complete "webhook:${WEBHOOK_PORT} green"; else log_error "webhook:${WEBHOOK_PORT} failed"; exit 1; fi
 log_complete "STEP 4 Verify"
 # STEP 5 Beta/Prod fetch timer (install already enables 3 units; beta disables, prod is already active)
 log_section "STEP 5 Fetch Timer"
