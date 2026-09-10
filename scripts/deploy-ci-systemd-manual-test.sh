@@ -36,7 +36,7 @@ log_section "STEP 1 Validate Env"
 if [ ! -f "$ENV_FILE" ]; then
   if [ -f .env.production ]; then ENV_FILE=".env.production"; log_info "Defaulting to .env.production"
   elif [ -f .env ]; then ENV_FILE=".env"; log_info "Defaulting to .env"
-  else echo "Env file not found" | tee -a "$LOG_FILE"; echo "# empty" > /tmp/jobs-watcher.env; ENV_FILE="/tmp/jobs-watcher.env"; fi
+  else log_error "Env file not found: tried $ENV_FILE and .env — abort"; exit 1; fi
 fi
 log_info "Env file: $ENV_FILE"
 log_complete "STEP 1 Validate Env"
@@ -58,14 +58,10 @@ else echo -e "${BLUE}[CI] skip-tests — unit+integration skipped${NC}" | tee -a
 if npm run build 2>&1 | tee -a "$LOG_FILE"; then log_complete "Build"; else log_error "Build failed"; exit 1; fi
 [ -f dist/src/index.js ] || { log_error "Build artifact missing: dist/src/index.js"; exit 1; }
 log_complete "STEP 2 Build"
-# STEP 3 Install systemd
+# STEP 3 Install systemd (includes daemon-reload + 3 enables + restart — see install 064-067)
 log_section "STEP 3 Install systemd"
 if bash scripts/install-systemd-local.sh "$ENV_FILE" >> "$LOG_FILE" 2>&1; then log_complete "systemd installed"; else log_error "systemd install failed"; exit 1; fi
-# STEP 3.5 daemon reload restart
-log_section "STEP 3.5 Daemon Reload & Restart"
-if systemctl_daemon_reload; then log_complete "daemon-reload"; else log_error "daemon-reload failed"; exit 1; fi
-if systemctl_restart_service; then log_complete "restart"; else log_error "restart failed"; exit 1; fi
-# STEP 4 Verify
+# STEP 4 Verify (install already daemon-reloaded + enabled; verify here for CI gate)
 log_section "STEP 4 Verify Daemon"
 if ! systemctl is-active --quiet mongod 2>/dev/null; then log_warn "mongod not active"; fi
 if ! systemctl is-active --quiet rabbitmq-server 2>/dev/null; then log_warn "rabbitmq-server not active"; fi
@@ -75,14 +71,14 @@ if [ -S /run/jobs-watcher/ingest.sock ]; then log_complete "UDS /run/jobs-watche
 if curl --unix-socket /run/jobs-watcher/ingest.sock -s http://localhost/health 2>&1 | grep -q ok; then log_complete "UDS curl green"; else log_warn "UDS curl pending"; fi
 if curl -s http://127.0.0.1:3000/health 2>&1 | grep -q ok; then log_complete "webhook health"; else echo -e "${GRAY}webhook health pending${NC}" | tee -a "$LOG_FILE"; fi
 log_complete "STEP 4 Verify"
-# STEP 5 Beta/Prod fetch timer
+# STEP 5 Beta/Prod fetch timer (install already enables 3 units; beta disables, prod is already active)
 log_section "STEP 5 Fetch Timer"
 if [[ "$IS_BETA" == "true" ]]; then
-  sudo systemctl stop jobs-watcher-fetch.service 2>/dev/null || true
-  sudo systemctl stop jobs-watcher-fetch.timer 2>/dev/null || true
-  log_complete "beta — fetch timer stopped (manual sh 500/7)"
+  sudo systemctl disable --now jobs-watcher-fetch.service 2>/dev/null || true
+  sudo systemctl disable --now jobs-watcher-fetch.timer 2>/dev/null || true
+  log_complete "beta — fetch timer disabled (manual sh 500/7)"
 else
-  if sudo systemctl enable --now jobs-watcher-fetch.timer 2>&1 | tee -a "$LOG_FILE"; then log_complete "prod — fetch timer weekly active"; else log_warn "fetch timer enable failed"; fi
+  log_complete "prod — fetch timer weekly active (via install)"
 fi
 log_info "Deploy complete — ${GREEN}[exit 0]${NC}" | tee -a "$LOG_FILE"
 exit 0

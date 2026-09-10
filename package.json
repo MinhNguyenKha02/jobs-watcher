@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "rm -rf dist && tsc",
-    "daemon": "/home/minh-nguyen/.nvm/versions/node/v22.12.0/bin/node dist/src/index.js",
+    "daemon": "/home/minh-nguyen/.nvm/versions/node/v22.12.0/bin/node dist/src/index.js & DAEMON_PID=$!; sleep 3; echo \"[daemon] pid $DAEMON_PID\"; curl --unix-socket /run/jobs-watcher/ingest.sock -s http://localhost/health 2>&1 | grep -q ok && echo \"[verify] UDS ok\" || echo \"[verify] UDS pending\"; curl -s http://127.0.0.1:9090/health 2>&1 | grep -q ok && echo \"[verify] health ok\" || echo \"[verify] health pending\"; curl -s http://127.0.0.1:3000/health 2>&1 | grep -q ok && echo \"[verify] webhook ok\" || echo \"[verify] webhook pending\"; wait $DAEMON_PID",
     "test": "npm run test:unit && npm run test:contract && npm run test:integration && npm run test:regression",
     "test:full": "npm run test && npm run test:e2e",
     "test:preflight": "tsx scripts/ci-ioc-preflight.ts",

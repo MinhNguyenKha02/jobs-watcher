@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
-if [ ! -d "/opt/jobs-watcher" ]; then echo -e "\x1b[38;2;210;153;34m[TMUX] /opt/jobs-watcher not exists\x1b[0m"; exit 0; fi
 IS_DEV=false; PURGE=false; for arg in "$@"; do case "$arg" in --dev) IS_DEV=true;; --purge) PURGE=true;; esac; done
+if [[ "$IS_DEV" != "true" && ! -d "/opt/jobs-watcher" ]]; then echo -e "\x1b[38;2;210;153;34m[TMUX] /opt/jobs-watcher not exists (need --dev or /opt)\x1b[0m"; exit 0; fi
 if [[ "$IS_DEV" == "true" ]]; then PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; ENV_SRC=".env"; TUI_STATE="/run/user/$(id -u)/jobs-watcher-tui-state.json"
 else PROJECT_ROOT="/opt/jobs-watcher"; ENV_SRC=".env.production"; TUI_STATE="/run/jobs-watcher/tui-state.json"; export NVM_DIR="/opt/jobs-watcher/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 fi

@@ -6,8 +6,8 @@ YELLOW='\033[38;2;210;153;34m'
 BLUE='\033[38;2;88;166;255m'
 GRAY='\033[38;2;139;148;158m'
 NC='\033[0m'
-LOG_DIR="${LOG_DIR:?LOG_DIR required — export LOG_DIR=logs/deploy via deploy-ci}"
-LOG_FILE="${LOG_FILE:?LOG_FILE required — export LOG_DIR LOG_FILE via deploy-ci (always append)}"
+LOG_DIR="${LOG_DIR:-logs/deploy}"
+LOG_FILE="${LOG_FILE:-logs/deploy/systemd-install.log}"
 mkdir -p "$LOG_DIR"
 chmod 755 "$LOG_DIR" 2>/dev/null || true
 echo -e "${BLUE}▶ install started ${GRAY}[incomplete]${NC}" | tee -a "$LOG_FILE"
@@ -16,7 +16,7 @@ ENV_FILE_ARG="${1:-}"
 ENV_FILE="${ENV_FILE_ARG:-.env.production}"
 if [ ! -f "$ENV_FILE" ]; then
   if [ -f .env ]; then ENV_FILE=".env"; echo -e "${YELLOW}[WARN] Defaulting to .env${NC}" | tee -a "$LOG_FILE"
-  else echo -e "${RED}[ERROR] Env file not found: tried $ENV_FILE and .env${NC}" | tee -a "$LOG_FILE"; echo "# jobs-watcher empty env" > /tmp/jobs-watcher.env; ENV_FILE="/tmp/jobs-watcher.env"; fi
+  else echo -e "${RED}[ERROR] Env file not found: tried $ENV_FILE and .env — abort${NC}" | tee -a "$LOG_FILE"; exit 1; fi
 fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OPT_DST="/opt/jobs-watcher"
@@ -31,6 +31,7 @@ ENV_DST="/etc/jobs-watcher.env"
 SUDO=""; if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
 echo -e "${BLUE}▶ ensure group ${GRAY}[incomplete]${NC}" | tee -a "$LOG_FILE"
 ${SUDO} sh -c 'groupadd -f jobs-watcher 2>/dev/null || true' || true
+if ! id -u jobs-watcher >/dev/null 2>&1; then ${SUDO} useradd --system --no-create-home --shell /usr/sbin/nologin --uid 997 --gid jobs-watcher jobs-watcher 2>/dev/null || ${SUDO} useradd --system --no-create-home --shell /usr/sbin/nologin jobs-watcher 2>/dev/null || true; fi
 echo -e "${GREEN}[complete]${NC} group jobs-watcher" | tee -a "$LOG_FILE"
 echo -e "${BLUE}▶ ensure /opt/srv ${GRAY}[incomplete]${NC}" | tee -a "$LOG_FILE"
 ${SUDO} mkdir -p "$OPT_DST" "$SRV_ASSET"
@@ -38,6 +39,7 @@ ${SUDO} chown jobs-watcher:jobs-watcher "$OPT_DST" "$SRV_ASSET" || true
 ${SUDO} chmod 0750 "$OPT_DST"; ${SUDO} chmod 0755 "$SRV_ASSET" || true
 echo -e "${GREEN}[complete]${NC} /opt /srv isolated" | tee -a "$LOG_FILE"
 echo -e "${BLUE}▶ git archive HEAD → $OPT_DST ${GRAY}[incomplete]${NC}" | tee -a "$LOG_FILE"
+${SUDO} rm -rf "${OPT_DST:?}"/* 2>/dev/null || true; ${SUDO} mkdir -p "$OPT_DST"
 ${SUDO} -u jobs-watcher bash -c "git -C $ROOT_DIR archive --format=tar HEAD | tar -x -C $OPT_DST" 2>&1 | tee -a "$LOG_FILE" || true
 echo -e "${BLUE}▶ nvm 22.12 @ $OPT_DST/.nvm ${GRAY}[incomplete]${NC}" | tee -a "$LOG_FILE"
 if [ ! -x "$OPT_DST/.nvm/versions/node/v22.12.0/bin/node" ]; then
@@ -64,4 +66,7 @@ ${SUDO} chmod 0640 "$ENV_DST" || true
 echo -e "${BLUE}▶ daemon-reload + enable ${GRAY}[incomplete]${NC}" | tee -a "$LOG_FILE"
 ${SUDO} systemctl daemon-reload 2>&1 | tee -a "$LOG_FILE" || true
 ${SUDO} systemctl enable --now jobs-watcher.service 2>&1 | tee -a "$LOG_FILE" || true
+${SUDO} systemctl enable --now jobs-watcher-fetch.service 2>&1 | tee -a "$LOG_FILE" || true
+${SUDO} systemctl enable --now jobs-watcher-fetch.timer 2>&1 | tee -a "$LOG_FILE" || true
+${SUDO} systemctl restart jobs-watcher.service 2>&1 | tee -a "$LOG_FILE" || true
 echo -e "${GREEN}[complete]${NC} install ${GREEN}[exit 0]${NC} $(date)" | tee -a "$LOG_FILE"

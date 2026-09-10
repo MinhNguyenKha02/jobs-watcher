@@ -2,6 +2,7 @@
 Description=Weekly fetch timer
 
 [Timer]
+Unit=jobs-watcher-fetch.service
 OnCalendar=weekly
 Persistent=true
 RandomizedDelaySec=3600
