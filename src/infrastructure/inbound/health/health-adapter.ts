@@ -8,6 +8,7 @@ const logger = createLogger('Health');
 
 export interface HealthOptions {
   port: number;
+  host?: string;
   metricsRegistry: DaemonMetricsRegistry | TuiMetricsRegistry;
   systemMonitor?: SystemMonitor;
   containers?: {
@@ -112,8 +113,9 @@ export function startHealthServer(opts: HealthOptions): import('http').Server {
     }
   });
 
-  const server = app.listen(opts.port, () => {
-    logger.info('Server listening', { port: opts.port });
+  const host = opts.host ?? process.env.HEALTH_HOST ?? process.env.TUI_HEALTH_HOST ?? '127.0.0.1';
+  const server = app.listen(opts.port, host, () => {
+    logger.info('Server listening', { port: opts.port, host });
   });
   return server as unknown as ReturnType<typeof import('http').createServer>;
 }

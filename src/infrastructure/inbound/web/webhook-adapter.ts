@@ -123,8 +123,9 @@ export class WebhookAdapter {
       }
     });
 
-    this.server = app.listen(port, () => {
-      logger.info('Listening', { port, path });
+    const host = process.env.WEBHOOK_HOST ?? '127.0.0.1';
+    this.server = app.listen(port, host, () => {
+      logger.info('Listening', { port, host, path });
     });
   }
 }

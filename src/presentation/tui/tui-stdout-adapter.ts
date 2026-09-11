@@ -1,4 +1,5 @@
 import type { Job } from '../../domain/types/job.js';
+import { startHealthServer } from '../../infrastructure/inbound/health/health-adapter.js';
 import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 import { TuiMetricsRegistry } from '../../infrastructure/outbound/monitoring/metrics-registry.js';
 
@@ -26,6 +27,8 @@ export class OpsTuiApp {
   private rmqReader: RabbitMqJobReader;
   private renderer: JobCardRenderer;
   private ansiTerminal: AnsiTerminal;
+  private tuiMetrics: TuiMetricsRegistry;
+  private healthServer: ReturnType<typeof startHealthServer> | null = null;
 
   private isRunning = false;
   private currentJob: Job | null = null;
@@ -36,8 +39,8 @@ export class OpsTuiApp {
 
   constructor(config: OpsTuiConfig) {
     this.config = config;
-    const tuiMetrics = new TuiMetricsRegistry();
-    this.rmqReader = new RabbitMqJobReader(config.rmqUrl, { metricsRegistry: tuiMetrics });
+    this.tuiMetrics = new TuiMetricsRegistry();
+    this.rmqReader = new RabbitMqJobReader(config.rmqUrl, { metricsRegistry: this.tuiMetrics });
     this.renderer = new JobCardRenderer();
     this.ansiTerminal = new AnsiTerminal();
   }
@@ -50,6 +53,23 @@ export class OpsTuiApp {
       this.ansiTerminal.enableRawMode();
 
       await this.rmqReader.start();
+
+      // AMQP duo: expose 9091 health on same TuiMetricsRegistry (2+1 obs, daemon 9090)
+      const tuiPort = Number(process.env.TUI_HEALTH_PORT || process.env.TUI_PORT || '9091');
+      const udsPath = process.env.UDS_SOCKET_PATH || '';
+      this.healthServer = startHealthServer({
+        port: tuiPort,
+        metricsRegistry: this.tuiMetrics,
+        containers: {
+          tui: {
+            ns: 'default',
+            healthPort: tuiPort,
+            rmq: { exchange: 'jobs.events', queues: { s1: 'tui.s1', s2: 'tui.s2', s2direct: 'tui.s2direct', s34: 'tui.s3s4' } },
+            uds: { socketPath: udsPath },
+          },
+        },
+      });
+      logger.info('TUI health listening', { port: tuiPort });
 
       this.isRunning = true;
       await this.mainLoop();
@@ -65,6 +85,11 @@ export class OpsTuiApp {
     if (!this.isRunning) return;
     logger.info('Shutting down...');
     this.isRunning = false;
+
+    try {
+      this.healthServer?.close();
+    } catch {}
+    this.healthServer = null;
 
     try {
       this.ansiTerminal.restoreTerminal();

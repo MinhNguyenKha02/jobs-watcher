@@ -43,13 +43,11 @@ export class PinoLogger implements LoggerPort {
 }
 
 function createPinoLogger(): pino.Logger {
-  return pino({
-    level: process.env.LOG_LEVEL ?? 'info',
-    transport:
-      process.env.NODE_ENV === 'production'
-        ? undefined
-        : { target: 'pino-pretty', options: { colorize: true } },
-  });
+  // STD hygiene: logs → stderr (fd 2) so PA stdout stays render-only, PE tails $LOG via 2>$LOG
+  // Always JSON to stderr; PE does `tail|pino-pretty` for display. Avoid pino-pretty transport here
+  // (transport would bypass dest and write to stdout, breaking 2>$LOG).
+  const dest = pino.destination({ dest: 2, sync: false });
+  return pino({ level: process.env.LOG_LEVEL ?? 'info' }, dest);
 }
 
 let pinoRoot: pino.Logger | undefined;
