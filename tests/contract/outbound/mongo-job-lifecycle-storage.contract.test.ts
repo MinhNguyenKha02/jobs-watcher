@@ -7,6 +7,7 @@ import {
   buildTestDaemonContainer,
   type TestDaemonContainer,
 } from '../../helpers/test-container.js';
+import { deleteTestExchange } from '../../helpers/test-utils.js';
 
 const now = new Date();
 
@@ -39,7 +40,13 @@ describe('JobLifecyclePort — Mongo storage contract · contract mongo-job-life
   }, 120000);
 
   afterAll(async () => {
-    await daemon.stop();
+    // Daemon-only suite (no TUI reader): self-delete the asserted test
+    // exchange (finally => no cleanup script).
+    try {
+      await daemon.stop();
+    } finally {
+      await deleteTestExchange('jobs.events.int.app-ingestor-storage');
+    }
   });
 
   it('GIVEN the Ingestor precondition WHEN upsert → findById on the real JobLifecyclePort THEN stores and retrieves a job lifecycle document (S1)', async () => {

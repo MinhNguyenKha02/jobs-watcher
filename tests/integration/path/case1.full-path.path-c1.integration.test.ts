@@ -41,8 +41,16 @@ describe('Path c1 — S1→S2a→S3 next s1[4] (real)', () => {
   }, 120000);
 
   afterAll(async () => {
-    await tui.stop();
-    await daemon.stop();
+    // Per-suite cycle teardown: stops first, then self-deletes the 4
+    // namespaced queues + test exchange. finally guarantees deletion even
+    // when a stop throws, so no cleanup script is needed. No purge here —
+    // delete drops buffered messages too.
+    try {
+      await tui.stop();
+      await daemon.stop();
+    } finally {
+      await tui.reader.deleteQueues();
+    }
   });
 
   beforeEach(async () => {

@@ -26,26 +26,27 @@ export async function waitFor(
   throw new Error(`waitFor timed out after ${timeoutMs}ms`);
 }
 
-/** Best-effort purge of the TUI per-namespace RMQ queues (reader s1/s2/s3s4 + facade consume s1/s2/s34). */
+/**
+ * @deprecated Do not use in new suites — prefer `tui.reader.purgeQueues()`.
+ * Kept for backward compat. Purge-only (never assertQueue): asserting would
+ * CREATE a missing queue (incl. the retired `consume.*` family) as a side effect.
+ */
 export async function purgeTuiQueues(ns: string): Promise<void> {
   const conn = await amqplib.connect(RMQ_URL);
   const ch = await conn.createChannel();
-  const readerSuffixes = ['s1', 's2', 's3s4'];
-  const consumeSuffixes = ['consume.s1', 'consume.s2', 'consume.s34'];
-  for (const suffix of readerSuffixes) {
+  const queues = [
+    `tui.${ns}.s1`,
+    `tui.${ns}.s2`,
+    `tui.${ns}.s3s4`,
+    `tui.${ns}.consume.s1`,
+    `tui.${ns}.consume.s2`,
+    `tui.${ns}.consume.s34`,
+  ];
+  for (const q of queues) {
     try {
-      await ch.assertQueue(`tui.${ns}.${suffix}`);
-      await ch.purgeQueue(`tui.${ns}.${suffix}`);
+      await ch.purgeQueue(q);
     } catch {
-      /* best-effort — a missing/closed queue is treated as empty */
-    }
-  }
-  for (const suffix of consumeSuffixes) {
-    try {
-      await ch.assertQueue(`tui.${ns}.${suffix}`, { durable: false });
-      await ch.purgeQueue(`tui.${ns}.${suffix}`);
-    } catch {
-      /* best-effort — a missing/closed queue is treated as empty */
+      /* best-effort — a missing queue (404) is treated as empty */
     }
   }
   try {
@@ -54,6 +55,35 @@ export async function purgeTuiQueues(ns: string): Promise<void> {
     /* channel may already be closed by the server */
   }
   await conn.close();
+}
+
+const TEST_EXCHANGE_PREFIX = 'jobs.events.int.';
+
+/**
+ * Test-only exchange teardown for daemon-only suites (no TUI reader exists
+ * there to own queue/exchange lifecycle). Deletes exactly one exchange and
+ * only under the `jobs.events.int.` test prefix — anything else (incl. prod
+ * `jobs.events`) is refused silently. Best-effort, never throws.
+ */
+export async function deleteTestExchange(exchange: string): Promise<void> {
+  if (!exchange.startsWith(TEST_EXCHANGE_PREFIX)) return;
+  try {
+    const conn = await amqplib.connect(RMQ_URL);
+    const ch = await conn.createChannel();
+    try {
+      await ch.deleteExchange(exchange);
+    } catch {
+      /* best-effort — already gone (404) is treated as deleted */
+    }
+    try {
+      await ch.close();
+    } catch {
+      /* channel may already be closed by the server */
+    }
+    await conn.close().catch(() => {});
+  } catch {
+    /* broker unreachable — teardown must not fail the suite */
+  }
 }
 
 function countPdfsRecursive(dir: string): number {

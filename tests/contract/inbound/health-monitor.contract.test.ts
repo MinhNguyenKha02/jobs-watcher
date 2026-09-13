@@ -53,8 +53,14 @@ describe('Health monitor contract — daemon+TUI 2 prom, camelCase labeled, cont
   }, 30000);
 
   afterAll(async () => {
-    await tui.stop().catch(() => {});
-    await daemon.stop().catch(() => {});
+    // Per-suite cycle teardown: stops first, then self-deletes the 4
+    // namespaced queues + timestamped test exchange (finally => no cleanup script).
+    try {
+      await tui.stop().catch(() => {});
+      await daemon.stop().catch(() => {});
+    } finally {
+      await tui.reader.deleteQueues();
+    }
   });
 
   it('GIVEN daemon container WHEN GET /health/observability THEN camelCase labeled map with containers.daemon.healthPort', async () => {

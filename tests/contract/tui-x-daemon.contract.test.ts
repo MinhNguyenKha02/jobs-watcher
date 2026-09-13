@@ -69,8 +69,14 @@ describe('TUI × daemon 2-process boundary contract ([c]/[i]/[j]/[d] over UDS + 
   }, 120000);
 
   afterAll(async () => {
-    await tui.stop();
-    await base.stop();
+    // Per-suite cycle teardown: stops first, then self-deletes the 4
+    // namespaced queues + test exchange (finally => no cleanup script).
+    try {
+      await tui.stop();
+      await base.stop();
+    } finally {
+      await tui.reader.deleteQueues();
+    }
   });
 
   // — (a) structural —

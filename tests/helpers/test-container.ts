@@ -247,6 +247,7 @@ export function mockJobEventReaderPort() {
     getQueueModeState: vi.fn(() => true),
     resetReader: vi.fn(),
     purgeQueues: vi.fn(async () => {}),
+    deleteQueues: vi.fn(async () => {}),
   } satisfies JobEventReaderPort;
 }
 

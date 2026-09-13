@@ -56,8 +56,14 @@ describe('Path c3 — S1[4] TopCV+Indeed S2a TopCV S2c Indeed S2b LinkedIn 1→S
     setQueueMode(true);
   }, 120000);
   afterAll(async () => {
-    await tui.stop();
-    await daemon.stop();
+    // Per-suite cycle teardown: stops first, then self-deletes the 4
+    // namespaced queues + test exchange (finally => no cleanup script).
+    try {
+      await tui.stop();
+      await daemon.stop();
+    } finally {
+      await tui.reader.deleteQueues();
+    }
     try {
       await detail.close();
     } catch {

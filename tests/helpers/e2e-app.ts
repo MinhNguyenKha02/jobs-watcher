@@ -237,8 +237,15 @@ export async function createE2eApp(opts: E2eAppOptions): Promise<E2eApp> {
       } catch {
         /* best-effort */
       }
-      await tui.stop();
-      await daemon.stop();
+      try {
+        await tui.stop();
+        await daemon.stop();
+      } finally {
+        // Per-suite cycle teardown: self-delete the 4 namespaced queues +
+        // test exchange so e2e suites leave no residue (deleteQueues is
+        // best-effort internally and never touches prod `jobs.events`).
+        await tui.reader.deleteQueues();
+      }
     },
   };
 }

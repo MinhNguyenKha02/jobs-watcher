@@ -78,8 +78,14 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
     }, 120000);
 
     afterAll(async () => {
-      await tui.stop();
-      await daemon.stop();
+      // Per-suite cycle teardown: stops first, then self-deletes the 4
+      // namespaced queues + test exchange (finally => no cleanup script).
+      try {
+        await tui.stop();
+        await daemon.stop();
+      } finally {
+        await tui.reader.deleteQueues();
+      }
     });
 
     beforeEach(async () => {
@@ -171,8 +177,14 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
     }, 120000);
 
     afterAll(async () => {
-      await tui.stop();
-      await daemon.stop();
+      // Per-suite cycle teardown: stops first, then self-deletes the 4
+      // namespaced queues + test exchange (finally => no cleanup script).
+      try {
+        await tui.stop();
+        await daemon.stop();
+      } finally {
+        await tui.reader.deleteQueues();
+      }
     });
 
     beforeEach(async () => {
@@ -218,8 +230,14 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
     }, 120000);
 
     afterAll(async () => {
-      await tui.stop();
-      await daemon.stop();
+      // Per-suite cycle teardown: stops first, then self-deletes the 4
+      // namespaced queues + test exchange (finally => no cleanup script).
+      try {
+        await tui.stop();
+        await daemon.stop();
+      } finally {
+        await tui.reader.deleteQueues();
+      }
     });
 
     beforeEach(async () => {
@@ -291,8 +309,13 @@ describe('AssetProducingPort — production asset contract · contract asset-pro
         const doc = await failDaemon.jobLifecycle.findById(id);
         expect(doc!.status).toBe(JobStatus.QUEUED);
       } finally {
-        await failTui.stop();
-        await failDaemon.stop();
+        // Mid-test harness on its own ns: same per-suite cycle teardown.
+        try {
+          await failTui.stop();
+          await failDaemon.stop();
+        } finally {
+          await failTui.reader.deleteQueues();
+        }
       }
     });
   });

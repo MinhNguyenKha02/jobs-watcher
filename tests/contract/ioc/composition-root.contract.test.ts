@@ -6,6 +6,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { buildDaemonContainer, type DaemonContainer } from '../../../src/application/container.js';
 import { createTestStorage } from '../../helpers/create-test-storage.js';
+import { deleteTestExchange } from '../../helpers/test-utils.js';
 
 /**
  * Container-conformance: the production composition root (IoC) wires the full
@@ -37,8 +38,14 @@ describe('Container conformance — IoC composition root', () => {
   }, 120000);
 
   afterAll(async () => {
-    fs.rmSync(assetDir, { recursive: true, force: true });
-    await storage.stop();
+    // Daemon-only suite (no TUI reader): self-delete the asserted test
+    // exchange (finally => no cleanup script).
+    try {
+      fs.rmSync(assetDir, { recursive: true, force: true });
+      await storage.stop();
+    } finally {
+      await deleteTestExchange('jobs.events.int.composition-root');
+    }
   });
 
   it('GIVEN the Container precondition WHEN the port is exercised on the real Container THEN JobIngestor wiring → all 6 real port adapters resolved (no stubs, no divergent 3-arg wiring)', async () => {

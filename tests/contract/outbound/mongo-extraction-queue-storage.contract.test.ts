@@ -5,6 +5,7 @@ import {
   buildTestDaemonContainer,
   type TestDaemonContainer,
 } from '../../helpers/test-container.js';
+import { deleteTestExchange } from '../../helpers/test-utils.js';
 
 describe('ExtractionQueue storage (Mongo FIFO, mongodb-memory-server)', () => {
   let daemon: TestDaemonContainer;
@@ -13,11 +14,20 @@ describe('ExtractionQueue storage (Mongo FIFO, mongodb-memory-server)', () => {
   beforeAll(async () => {
     daemon = await buildTestDaemonContainer({ ns: 'extraction-queue' });
     await daemon.start();
+    // Same scheduler-theft guard as dip-conformance: FIFO/idempotency
+    // assertions require exclusive ownership of the queue.
+    await daemon.apps.scheduler.stop();
     queue = daemon.extractQueue;
   }, 120000);
 
   afterAll(async () => {
-    await daemon.stop();
+    // Daemon-only suite (no TUI reader): self-delete the asserted test
+    // exchange (finally => no cleanup script).
+    try {
+      await daemon.stop();
+    } finally {
+      await deleteTestExchange('jobs.events.int.extraction-queue');
+    }
   });
 
   it('GIVEN the ExtractionQueue precondition WHEN enqueue → dequeue → size on the real ExtractionQueue THEN dequeues in FIFO order and returns the persisted identity per job', async () => {

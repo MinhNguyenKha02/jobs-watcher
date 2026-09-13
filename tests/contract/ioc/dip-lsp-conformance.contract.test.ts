@@ -28,12 +28,22 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
   beforeAll(async () => {
     daemon = await buildTestDaemonContainer({ ns: 'dip-conformance', startScheduler: false });
     await daemon.start();
+    // Queue-content assertions below own the extraction queue: stop the
+    // production scheduler (auto-started by container.start()) so its
+    // onEnqueue-woken workers cannot steal test items mid-assert.
+    await daemon.apps.scheduler.stop();
     tui = await buildTestTuiContainer({ ns: 'dip-conformance' });
   }, 120000);
 
   afterAll(async () => {
-    await tui.stop();
-    await daemon.stop();
+    // Per-suite cycle teardown: stops first, then self-deletes the 4
+    // namespaced queues + test exchange (finally => no cleanup script).
+    try {
+      await tui.stop();
+      await daemon.stop();
+    } finally {
+      await tui.reader.deleteQueues();
+    }
   });
 
   beforeEach(async () => {
