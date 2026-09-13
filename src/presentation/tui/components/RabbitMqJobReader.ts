@@ -162,6 +162,38 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     this.syncMetrics();
   }
 
+  /**
+   * Per-suite teardown: deletes the 4 namespaced queues + the test exchange.
+   * Delete-only (never assertQueue): server-side delete takes only the name,
+   * so legacy no-args and latest s1-with-args queues delete identically.
+   * A missing queue (404) is treated as deleted; per-queue try/catch keeps
+   * one gone queue from aborting the rest. Prod `jobs.events` is never deleted.
+   */
+  async deleteQueues(): Promise<void> {
+    try {
+      const conn = await amqplib.connect(this.baseUrl);
+      const ch = await conn.createChannel();
+      for (const q of [this.s1Queue, this.s2Queue, this.s2DirectQueue, this.s34Queue]) {
+        try {
+          await ch.deleteQueue(q);
+        } catch {
+          /* 404 already gone — treated as deleted */
+        }
+      }
+      if (this.exchange !== EXCHANGE) {
+        try {
+          await ch.deleteExchange(this.exchange);
+        } catch {
+          /* best-effort — exchange may already be gone */
+        }
+      }
+      await ch.close().catch(() => {});
+      await conn.close().catch(() => {});
+    } catch (err) {
+      logger.warn('deleteQueues failed', { error: String(err) });
+    }
+  }
+
   /** Aggregate purge of the 4 durable TUI queues; idempotent, best-effort, separate from resetReader. */
   async purgeQueues(): Promise<void> {
     try {
@@ -178,9 +210,10 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       }
       const conn = await amqplib.connect(this.baseUrl);
       const ch = await conn.createChannel();
+      // Purge-only fallback (never assertQueue): asserting here would CREATE
+      // a missing queue as a side effect. A 404 is treated as already empty.
       for (const q of [this.s1Queue, this.s2Queue, this.s2DirectQueue, this.s34Queue]) {
         try {
-          await ch.assertQueue(q, { durable: true });
           await ch.purgeQueue(q);
         } catch {}
       }

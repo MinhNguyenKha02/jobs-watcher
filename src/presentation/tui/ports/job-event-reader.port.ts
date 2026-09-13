@@ -15,4 +15,5 @@ export interface JobEventReaderPort {
   getQueueModeState(): boolean;
   resetReader(): void;
   purgeQueues(): Promise<void>;
+  deleteQueues(): Promise<void>;
 }
