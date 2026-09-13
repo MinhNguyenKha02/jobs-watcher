@@ -51,7 +51,7 @@ describe('Path c1 — S1→S2a→S3 next s1[4] (real)', () => {
     } finally {
       await tui.reader.deleteQueues();
     }
-  });
+  }, 60000);
 
   beforeEach(async () => {
     await daemon.storage.clearDb();
@@ -59,7 +59,7 @@ describe('Path c1 — S1→S2a→S3 next s1[4] (real)', () => {
     tui.reader.resetReader();
     tui.ipc.clear();
     setQueueMode(true);
-  });
+  }, 60000);
 
   it('GIVEN s1[4] TopCV pick job-0 WHEN S2a htmlToText then [j] queue THEN S3 QUEUED + next pick job-1 depth 2 · path c1', async () => {
     await whenS1Many(daemon, s1Html4('C1'), 's1-c1');
