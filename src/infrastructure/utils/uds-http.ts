@@ -8,6 +8,12 @@ export interface UdsRequestOptions {
   timeoutMs?: number;
 }
 
+// UDS POSTs are low-frequency operator actions: use a fresh unix connection
+// per call (no keep-alive reuse). The shared globalAgent reuses idle sockets
+// past the server's 5s keepAliveTimeout (uds-adapter.ts), which surfaces as a
+// rare `read ECONNRESET` on the response read. Fresh connections remove the class.
+const noKeepAliveAgent = new http.Agent({ keepAlive: false });
+
 export function postJsonOverUds(
   opts: UdsRequestOptions,
   body: unknown
@@ -17,6 +23,7 @@ export function postJsonOverUds(
     method: opts.method || 'POST',
     path: opts.path,
     socketPath: opts.socketPath,
+    agent: noKeepAliveAgent,
     headers: Object.assign(
       { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
       opts.headers || {}
