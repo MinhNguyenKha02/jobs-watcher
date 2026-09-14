@@ -15,7 +15,7 @@ describe('ObserveCompactPane compact', () => {
       } as any,
       64,
     );
-    expect(frame).toContain('jobs_brokered:12');
+    expect(frame).toContain('jobs_brok[a/m]:12');
   });
 
   it('GIVEN infraReady + queue depth WHEN render THEN infra line and extr_q depth', () => {
@@ -41,7 +41,8 @@ describe('ObserveCompactPane compact', () => {
     expect(frame).toContain('infra mongo:1');
     expect(frame).toContain('extr_q depth:3');
     expect(frame).toContain('enq:10');
-    expect(frame).toContain('pub:5');
+    expect(frame).toContain('g:5');
+    expect(frame).toContain('pc:0');
   });
 
   it('GIVEN heap memory WHEN render THEN heap shown', () => {
@@ -61,9 +62,9 @@ describe('ObserveCompactPane compact', () => {
     expect(frame).toContain('heap');
   });
 
-  it('GIVEN empty metrics WHEN render THEN no crash and contains jobs_brokered:0', () => {
+  it('GIVEN empty metrics WHEN render THEN no crash and contains brokered', () => {
     const frame = renderObserveCompactPane({ metrics: {} } as any, 64);
-    expect(frame).toContain('jobs_brokered:0');
+    expect(frame).toContain('jobs_brok[a/m]:0');
     expect(frame).not.toContain('/metrics');
     expect(frame).not.toContain('poll 5s');
   });

@@ -2,12 +2,13 @@ import type { Job } from '../../domain/types/job.js';
 import { startHealthServer } from '../../infrastructure/inbound/health/health-adapter.js';
 import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 import { TuiMetricsRegistry } from '../../infrastructure/outbound/monitoring/metrics-registry.js';
+import { probeIpcPath, probeUdsActive } from '../../infrastructure/utils/uds-probe.js';
 
 import { AnsiTerminal } from './components/AnsiTerminal.js';
 import { JobCardRenderer, type CardStatus } from './components/JobCardRenderer.js';
 import { renderPreviewViewerModal } from './components/PreviewViewerModal.js';
 import { RabbitMqJobReader } from './components/RabbitMqJobReader.js';
-import { clearCurrentJob, getCurrentJob, getQueueMode, resetState } from './shared-tui-state.js';
+import { getCurrentJob, getQueueMode, watchStateFile } from './shared-tui-state.js';
 import type { CurrentJobState } from './shared-tui-state.js';
 
 const logger = createLogger('TUI');
@@ -34,8 +35,10 @@ export class OpsTuiApp {
   private currentJob: Job | null = null;
   private state: TuiState = 'IDLE';
   private lastRenderedModalSignature: string = 'null';
-  private lastClearedJobLifecycleId: string | null = null;
+  private lastRenderedJobLifecycleId: string | null = null;
   private lastQueueMode = true;
+  private unwatchState: (() => void) | null = null;
+  private probeTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(config: OpsTuiConfig) {
     this.config = config;
@@ -48,7 +51,7 @@ export class OpsTuiApp {
   async start(): Promise<void> {
     try {
       logger.info('Starting Render Server');
-      resetState();
+      // Preserve shared IPC across reruns (no wipe; --purge path in tmux script handles explicit clear).
 
       this.ansiTerminal.enableRawMode();
 
@@ -71,7 +74,40 @@ export class OpsTuiApp {
       });
       logger.info('TUI health listening', { port: tuiPort });
 
+      // P3 dual probe: file-exists fast path + active UDS dial (no POST side effect).
+      const refreshProbe = (): void => {
+        try {
+          const statePath = process.env.TUI_SHARED_STATE_PATH || '';
+          this.tuiMetrics.setInfraReady('ipc', probeIpcPath(statePath));
+        } catch {
+          this.tuiMetrics.setInfraReady('ipc', 0);
+        }
+        void probeUdsActive(udsPath).then((v) => {
+          try {
+            this.tuiMetrics.setInfraReady('uds_client', v);
+          } catch {}
+        });
+      };
+      refreshProbe();
+      if (this.probeTimer) clearInterval(this.probeTimer);
+      this.probeTimer = setInterval(refreshProbe, 2000);
+      if (typeof (this.probeTimer as unknown as { unref?: () => void }).unref === 'function') {
+        (this.probeTimer as unknown as { unref: () => void }).unref();
+      }
+
       this.isRunning = true;
+      // Event-driven repaint for cross-process IPC writes (PB mode/modal) + same-process reader.
+      try {
+        this.unwatchState = watchStateFile((s) => {
+          if (!this.isRunning) return;
+          this.lastRenderedModalSignature = JSON.stringify(s.modal ?? null);
+          this.lastRenderedJobLifecycleId = s.jobLifecycleId;
+          this.currentJob = s.job;
+          this.state = s.job ? 'DISPLAY' : 'IDLE';
+          this.lastQueueMode = getQueueMode();
+          this.renderFrame(s.job);
+        });
+      } catch {}
       await this.mainLoop();
     } catch (err) {
       logger.error('Fatal error', { error: String(err) });
@@ -82,6 +118,12 @@ export class OpsTuiApp {
   }
 
   stop(): void {
+    if (this.probeTimer) clearInterval(this.probeTimer);
+    this.probeTimer = null;
+    try {
+      this.unwatchState?.();
+    } catch {}
+    this.unwatchState = null;
     if (!this.isRunning) return;
     logger.info('Shutting down...');
     this.isRunning = false;
@@ -94,7 +136,7 @@ export class OpsTuiApp {
     try {
       this.ansiTerminal.restoreTerminal();
       this.rmqReader.stop();
-      clearCurrentJob();
+      // Preserve IPC on shutdown so rerun (no --purge) restores current job.
       logger.info('Graceful shutdown complete');
     } catch (err) {
       logger.warn('Error during shutdown', { error: String(err) });
@@ -113,18 +155,33 @@ export class OpsTuiApp {
           this.lastQueueMode = queueMode;
           this.currentJob = stateFileJob.job;
           this.state = stateFileJob.job ? 'DISPLAY' : 'IDLE';
+          this.lastRenderedJobLifecycleId = stateFileJob.jobLifecycleId;
           this.renderFrame(this.currentJob);
         }
 
         const modalSignature = JSON.stringify(stateFileJob.modal ?? null);
         if (modalSignature !== this.lastRenderedModalSignature) {
           this.lastRenderedModalSignature = modalSignature;
+          this.lastRenderedJobLifecycleId = stateFileJob.jobLifecycleId;
+          this.currentJob = stateFileJob.job;
+          this.state = stateFileJob.job ? 'DISPLAY' : 'IDLE';
+          this.renderFrame(stateFileJob.job);
+        }
+
+        // IPC job change (RMQ MAKES via set/clear + autoAdvance): repaint PA.
+        if (stateFileJob.jobLifecycleId !== this.lastRenderedJobLifecycleId) {
+          this.lastRenderedJobLifecycleId = stateFileJob.jobLifecycleId;
+          this.currentJob = stateFileJob.job;
+          this.state = stateFileJob.job ? 'DISPLAY' : 'IDLE';
           this.renderFrame(stateFileJob.job);
         }
 
         if (renderCount === 0) {
           renderCount++;
-          this.renderFrame(null);
+          this.lastRenderedJobLifecycleId = stateFileJob.jobLifecycleId;
+          this.currentJob = stateFileJob.job;
+          this.state = stateFileJob.job ? 'DISPLAY' : 'IDLE';
+          this.renderFrame(stateFileJob.job);
         }
 
         if (this.state === 'DISPLAY') {
@@ -132,6 +189,8 @@ export class OpsTuiApp {
           if (displayedId && stateFileJob.jobLifecycleId !== displayedId) {
             this.currentJob = stateFileJob.job;
             this.state = stateFileJob.job ? 'DISPLAY' : 'IDLE';
+            this.lastRenderedJobLifecycleId = stateFileJob.jobLifecycleId;
+            this.renderFrame(this.currentJob);
           }
           await this.sleep(50);
           continue;
@@ -157,17 +216,17 @@ export class OpsTuiApp {
       return;
     }
 
-    // pending metrics now via TuiMetricsRegistry (health port), fallback 0 for PA standalone
+    // Pending metrics from live reader (matches PC tui-poll Q/P/F/D).
     const cardStatus: CardStatus = {
       sseConnected: this.rmqReader.isConnected(),
       udsReady: true,
       state: this.state,
       message: '',
       queueMode: getQueueMode(),
-      pendingDepth: 0,
-      pendingPartial: 0,
-      pendingFull: 0,
-      deferredCount: 0,
+      pendingDepth: this.rmqReader.getQueueDepth(),
+      pendingPartial: this.rmqReader.getPendingPartial(),
+      pendingFull: this.rmqReader.getPendingFull(),
+      deferredCount: this.rmqReader.getDeferredCount(),
       currentJobId: state.jobLifecycleId,
       currentStage: state.stage,
     };

@@ -18,6 +18,7 @@ import { MongoJobLifecycleAdapter } from '../infrastructure/outbound/persistence
 import { RabbitMqConnection } from '../infrastructure/outbound/rabbitmq/rabbitmq-connection.js';
 import { RabbitMqParseAdapter } from '../infrastructure/outbound/rabbitmq/rabbitmq-parse-adapter.js';
 import { RabbitMqRoutingAdapter } from '../infrastructure/outbound/rabbitmq/rabbitmq-route-adapter.js';
+import { probeIpcPath, probeUdsActive } from '../infrastructure/utils/uds-probe.js';
 import { RabbitMqJobReader } from '../presentation/tui/components/RabbitMqJobReader.js';
 import { UdsActionWriter } from '../presentation/tui/components/UdsActionWriter.js';
 import type { ActionWriterPort } from '../presentation/tui/ports/action-writer.port.js';
@@ -171,8 +172,8 @@ export function buildDaemonContainer(
     socketPath: uds.socketPath,
     token: uds.token,
   });
-
-  const webhookAdapter = new WebhookAdapter(ingestor, overrides.gmail ?? new GmailService());
+  const gmailClient = new GmailService();
+  const webhookAdapter = new WebhookAdapter(ingestor, overrides.gmail ?? gmailClient);
 
   let started = false;
   let healthServer: { close: (cb?: () => void) => void } | null = null;
@@ -195,6 +196,13 @@ export function buildDaemonContainer(
       await mongoInitializer.init();
     } catch (e) {
       setInfra('mongo', 0);
+      throw e;
+    }
+    try {
+      await gmailClient.authenticate();
+      setInfra('gmail', 1);
+    } catch (e) {
+      setInfra('gmail', 0);
       throw e;
     }
     try {
@@ -390,6 +398,7 @@ export function buildTuiContainer(
 
   let started = false;
   let healthServer: { close: (cb?: () => void) => void } | null = null;
+  let probeInterval: ReturnType<typeof setInterval> | null = null;
 
   async function start(): Promise<void> {
     if (started) return;
@@ -399,14 +408,24 @@ export function buildTuiContainer(
     const connected = reader.isConnected();
     metricsRegistry.setInfraReady('rmq', connected ? 1 : 0);
     metricsRegistry.setInfraReady('rmq_channels', connected ? 1 : 0);
-    try {
-      const fs = await import('node:fs');
-      metricsRegistry.setInfraReady('uds_client', fs.existsSync(uds.socketPath) ? 1 : 0);
-      const statePath = process.env.TUI_SHARED_STATE_PATH || '';
-      const ipcReady = statePath ? fs.existsSync(statePath) : true;
-      metricsRegistry.setInfraReady('ipc', ipcReady ? 1 : 0);
-    } catch {
-      metricsRegistry.setInfraReady('ipc', 0);
+    const refreshProbe = (): void => {
+      try {
+        const statePath = process.env.TUI_SHARED_STATE_PATH || '';
+        metricsRegistry.setInfraReady('ipc', probeIpcPath(statePath));
+      } catch {
+        metricsRegistry.setInfraReady('ipc', 0);
+      }
+      void probeUdsActive(uds.socketPath).then((v) => {
+        try {
+          metricsRegistry.setInfraReady('uds_client', v);
+        } catch {}
+      });
+    };
+    refreshProbe();
+    if (probeInterval) clearInterval(probeInterval);
+    probeInterval = setInterval(refreshProbe, 2000);
+    if (typeof (probeInterval as unknown as { unref?: () => void }).unref === 'function') {
+      (probeInterval as unknown as { unref: () => void }).unref();
     }
     healthServer = startHealthServer({
       port: health.port,
@@ -426,6 +445,8 @@ export function buildTuiContainer(
 
   async function stop(): Promise<void> {
     if (!started) return;
+    if (probeInterval) clearInterval(probeInterval);
+    probeInterval = null;
     for (const c of ['rmq', 'rmq_channels', 'uds_client', 'ipc'] as const) metricsRegistry.setInfraReady(c, 0);
     try {
       healthServer?.close();

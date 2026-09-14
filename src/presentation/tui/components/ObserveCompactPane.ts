@@ -53,7 +53,8 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
   const stage = sumMetric(metrics, 'jobStageTotal');
   const errors = sumMetric(metrics, 'jobErrorsTotal');
   const flight = sumMetric(metrics, 'jobsInFlight');
-  const line1 = ` jobs_brokered:${brokered} stage:${stage} err:${errors} flight:${flight}`;
+  // jobs_brok[a/m]: source browser-auto/manual only (webhook Gmail path counts in stage/pub, not brokered).
+  const line1 = ` jobs_brok[a/m]:${brokered} stage:${stage} err:${errors} flight:${flight}`;
   lines.push(`│${truncate(line1, inner).padEnd(inner)}│`);
 
   const mem = findMetric(metrics, 'systemMemoryBytes', { type: 'rss' }) ?? sumMetric(metrics, 'systemMemoryBytes');
@@ -78,8 +79,15 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
   const deq = sumMetric(metrics, 'extractionQueueDequeueTotal');
   const depth = findMetric(metrics, 'extractionQueueDepth', {}) ?? enq - deq;
   const depthStr = depth ? `${depth}` : '0';
-  const pub = sumMetric(metrics, 'rmqPublishedTotal');
-  const line4 = ` extr_q depth:${depthStr} enq:${enq} deq:${deq} pub:${pub}`;
+  // Per-key pub (no total): g=job.generated pc=job.parse.completed pf=job.parse.failed
+  // q=job.queue t=job.trash rf=job.route.failed.
+  const g = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.generated' }) ?? 0;
+  const pc = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.parse.completed' }) ?? 0;
+  const pf = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.parse.failed' }) ?? 0;
+  const q = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.queue' }) ?? 0;
+  const t = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.trash' }) ?? 0;
+  const rf = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.route.failed' }) ?? 0;
+  const line4 = ` extr_q depth:${depthStr} enq:${enq} deq:${deq} pub g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf}`;
   lines.push(`│${truncate(line4, inner).padEnd(inner)}│`);
 
   const dS1S2 = avgDuration(metrics, 's1_s2') ?? avgDuration(metrics, 's1-s2');

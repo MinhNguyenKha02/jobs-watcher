@@ -87,6 +87,18 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     return this.pendingJobs.length;
   }
 
+  getPendingPartial(): number {
+    return this.pendingJobs.filter((p) => p.stage === JobStage.PARTIAL_PARSED).length;
+  }
+
+  getPendingFull(): number {
+    return this.pendingJobs.filter((p) => p.stage === JobStage.FULL_PARSED).length;
+  }
+
+  getDeferredCount(): number {
+    return this.deferredS2QueueBuffer.size;
+  }
+
   peekPending(): string[] {
     return this.pendingJobs.map((p) => String(p.job._id));
   }
