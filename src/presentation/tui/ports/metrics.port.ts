@@ -13,6 +13,8 @@ export interface TuiMetricsPort {
     connected: boolean;
     queueMode: boolean;
     peekIds: string[];
+    curId?: string | null;
+    curStage?: string | null;
   }): void;
   incConsumed(queue: string, routingKey: string): void;
   setInfraReady(component: TuiInfraComponent, ready: 0 | 1): void;

@@ -15,7 +15,6 @@ import {
   type ActionWriterPort,
   type WebhookIngestPayload,
 } from '../ports/action-writer.port.js';
-import { clipboardGetter } from '../services/clipboard-getter.js';
 
 const logger = createLogger('UdsAction');
 
@@ -62,8 +61,13 @@ export class UdsActionWriter implements ActionWriterPort {
 
   /**
    * Send a direct-mode clipboard ingest ([i]) — html only, no jobLifecycleId.
+   * Caller ([i]) owns the single clipboardGetter() read and passes html via arg.
    */
   async ingest(html: string): Promise<void> {
+    const resolvedHtml = typeof html === 'string' ? html.trim() : '';
+    if (!resolvedHtml) {
+      throw new Error('Clipboard content is empty');
+    }
     const ingestOpts: UdsRequestOptions = {
       socketPath: this.socketPath,
       path: '/internal/ingest',
@@ -72,28 +76,28 @@ export class UdsActionWriter implements ActionWriterPort {
       timeoutMs: 10000,
     };
 
-    const res = await postJsonOverUds(ingestOpts, { webhook: false, html });
+    const res = await postJsonOverUds(ingestOpts, { webhook: false, html: resolvedHtml });
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw new Error(`Ingest failed: ${res.statusCode} ${res.body}`);
     }
 
-    logger.info('Clipboard ingestion triggered', { size: html.length });
+    logger.info('Clipboard ingestion triggered', { size: resolvedHtml.length });
   }
 
-  async webhookIngest(jobLifecycleId?: string): Promise<string> {
+  /**
+   * Send a queue-mode clipboard ingest ([c]) — html + jobLifecycleId, both required.
+   * Caller ([c]) owns the single clipboardGetter() read and passes both via args.
+   * No clipboard read here: empty html is an early-return error.
+   */
+  async webhookIngest(jobLifecycleId: string, html: string): Promise<string> {
     try {
-      const entries = await clipboardGetter();
-      if (!entries || entries.length === 0) {
-        throw new Error('Clipboard is empty or no new content');
-      }
-
-      const html = String(entries[0]).trim();
-      if (!html) {
+      const resolvedHtml = typeof html === 'string' ? html.trim() : '';
+      if (!jobLifecycleId || !resolvedHtml) {
         throw new Error('Clipboard content is empty');
       }
 
       logger.debug('Pasting HTML from clipboard (webhook stage 2)', {
-        size: html.length,
+        size: resolvedHtml.length,
         jobLifecycleId,
       });
 
@@ -107,7 +111,7 @@ export class UdsActionWriter implements ActionWriterPort {
       };
 
       const ingestPayload: WebhookIngestPayload = {
-        html,
+        html: resolvedHtml,
       };
 
       // Include jobLifecycleId if provided (for webhook stage 2 enrichment)
@@ -121,7 +125,7 @@ export class UdsActionWriter implements ActionWriterPort {
       }
 
       logger.info('Webhook stage 2 clipboard ingest posted to server', { jobLifecycleId });
-      return html;
+      return resolvedHtml;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error('Webhook ingest failed', { error: message });

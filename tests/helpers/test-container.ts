@@ -565,12 +565,12 @@ export async function buildTestTuiContainer(
         check(await post('/internal/action', { jobLifecycleId, action: 'trash' }), 'Action'),
       ingest: async (html) =>
         check(await post('/internal/ingest', { webhook: false, html }), 'Ingest'),
-      webhookIngest: async (jobLifecycleId) => {
+      webhookIngest: async (jobLifecycleId, html) => {
         check(
-          await post('/internal/ingest?webhook=true', jobLifecycleId ? { jobLifecycleId } : {}),
+          await post('/internal/ingest?webhook=true', { html, jobLifecycleId }),
           'Webhook ingest'
         );
-        return '';
+        return typeof html === 'string' ? html : '';
       },
     };
   };

@@ -111,17 +111,29 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     if (!this.metricsRegistry) return;
     const partial = this.pendingJobs.filter((p) => p.stage === JobStage.PARTIAL_PARSED).length;
     const full = this.pendingJobs.length - partial;
+    const trunc11 = (id: string): string => {
+      if (id.length <= 11) return id;
+      const dashIdx = id.lastIndexOf('-');
+      const suffix = dashIdx !== -1 ? id.slice(dashIdx) : id.slice(-6);
+      const head = id.slice(0, 4);
+      const candidate = `${head}…${suffix.replace(/^-/, 'job-')}`;
+      if (candidate.length <= 11) return candidate;
+      return `${head}…${id.slice(-6)}`;
+    };
     const peekIds = this.peekPending()
       .slice(0, 5)
-      .map((id) => {
-        if (id.length <= 11) return id;
-        const dashIdx = id.lastIndexOf('-');
-        const suffix = dashIdx !== -1 ? id.slice(dashIdx) : id.slice(-6);
-        const head = id.slice(0, 4);
-        const candidate = `${head}…${suffix.replace(/^-/, 'job-')}`;
-        if (candidate.length <= 11) return candidate;
-        return `${head}…${id.slice(-6)}`;
-      });
+      .map((id) => trunc11(id));
+    // IPC cur (PA header source of truth) so poll cur matches PA, not pending head.
+    let curId: string | null = null;
+    let curStage: string | null = null;
+    try {
+      const cur = getCurrentJob();
+      curId = cur.jobLifecycleId ? trunc11(cur.jobLifecycleId) : null;
+      curStage = cur.stage ?? null;
+    } catch {
+      curId = null;
+      curStage = null;
+    }
     this.metricsRegistry.syncSnapshot({
       depth: this.pendingJobs.length,
       partial,
@@ -130,6 +142,8 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       connected: this.connected,
       queueMode: this.getQueueMode(),
       peekIds,
+      curId,
+      curStage,
     });
     // rmq_channels liveness: 1 when connected else 0
     this.metricsRegistry.setInfraReady('rmq_channels', this.connected ? 1 : 0);
@@ -566,10 +580,15 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     const now = Date.now();
     for (const [id, entry] of this.deferredS2QueueBuffer) {
       if (now - entry.timestamp > DEFERRED_S2_TTL) {
+        // Guard: nack ONLY when the tag is still tracked (unacked). If s34
+        // already acked it, the map no longer contains the tag — deleting the
+        // stale buffer entry silently avoids a double-resolve 406.
+        // Note: the 406 ack-timeout on channel 1 (s1, 30min broker timeout)
+        // comes from long-lived pending S1 tags held until s34, not from here.
         const tracked = (this.deliveryTagsS2Queue.get(id) ?? []).includes(entry.deliveryTag);
         if (tracked) {
           // Truly stale (no S1 ever arrived): drop the outstanding delivery.
-          logger.warn('Evicting stale deferred S2', { id });
+          logger.warn('Evicting stale deferred S2', { id, tracked });
           this.s2queueChannel?.nack(
             { fields: { deliveryTag: entry.deliveryTag } } as ConsumeMessage,
             false,
@@ -579,6 +598,8 @@ export class RabbitMqJobReader implements JobEventReaderPort {
           const idx = tags.indexOf(entry.deliveryTag);
           if (idx !== -1) tags.splice(idx, 1);
           if (tags.length === 0) this.deliveryTagsS2Queue.delete(id);
+        } else {
+          logger.debug('Dropping already-resolved deferred S2 entry', { id });
         }
         // Otherwise the tag was already resolved (acked by S34): drop the stale entry silently.
         this.deferredS2QueueBuffer.delete(id);

@@ -28,5 +28,5 @@ export interface ActionWriterPort {
   queue(jobLifecycleId: string): Promise<void>;
   trash(jobLifecycleId: string): Promise<void>;
   ingest(html: string): Promise<void>;
-  webhookIngest(jobLifecycleId?: string): Promise<string>;
+  webhookIngest(jobLifecycleId: string, html: string): Promise<string>;
 }

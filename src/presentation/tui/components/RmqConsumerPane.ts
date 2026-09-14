@@ -18,12 +18,14 @@ export interface RmqMetricsSnapshot {
   connected: boolean;
   queueMode: boolean;
   peekIds: string[];
+  curId?: string | null;
+  curStage?: string | null;
   infra?: Record<string, number>;
   consumed?: Record<string, number>;
 }
 
 export function toRmqSnapshot(metrics?: Record<string, Array<{ labels: Record<string, string>; value: number }>>): RmqMetricsSnapshot {
-  if (!metrics) return { depth: 0, partial: 0, full: 0, deferred: 0, connected: false, queueMode: true, peekIds: [], infra: {}, consumed: {} };
+  if (!metrics) return { depth: 0, partial: 0, full: 0, deferred: 0, connected: false, queueMode: true, peekIds: [], curId: null, curStage: null, infra: {}, consumed: {} };
   // wrong-port guard: daemon metrics on tui port
   const depth = findMetric(metrics, 'rmqPendingDepth', { queue: 'total' }) ?? sumMetric(metrics, 'rmqPendingDepth');
   const partial = sumMetric(metrics, 'rmqPendingPartial');
@@ -39,13 +41,16 @@ export function toRmqSnapshot(metrics?: Record<string, Array<{ labels: Record<st
   const connected = (infra.rmq ?? sumMetric(metrics, 'rmqConnected') ?? 0) > 0;
   const queueMode = (infra.queue_mode ?? infra['queueMode'] ?? infra.queueMode ?? sumMetric(metrics, 'rmqQueueMode') ?? 1) > 0;
   const peekIds = (metrics?.rmqPendingIds ?? []).map((v) => String(v.labels.id)).slice(0, 5);
+  const curEntry = (metrics?.rmqCur ?? [])[0];
+  const curId = curEntry ? String(curEntry.labels.id ?? '') || null : null;
+  const curStage = curEntry ? String(curEntry.labels.stage ?? '') || null : null;
   const consumed: Record<string, number> = {};
   for (const v of metrics.rmqConsumedTotal ?? []) {
     const q = String(v.labels.queue ?? '');
     if (!q) continue;
     consumed[q] = (consumed[q] ?? 0) + Number(v.value);
   }
-  return { depth, partial, full, deferred, connected, queueMode, peekIds, infra, consumed };
+  return { depth, partial, full, deferred, connected, queueMode, peekIds, curId, curStage, infra, consumed };
 }
 
 export function renderRmqConsumerPaneFromMetrics(
@@ -73,7 +78,17 @@ export function renderRmqConsumerPane(snapshot: RmqMetricsSnapshot, width = 96):
   lines.push(`│${truncateMid(line1, inner).padEnd(inner)}│`);
 
   let curLine = ' cur: —';
-  if (snapshot.peekIds.length > 0) {
+  if (snapshot.curId) {
+    const stageLabel =
+      snapshot.curStage === 'partial_parsed' || snapshot.curStage === 'PARTIAL'
+        ? 'PARTIAL'
+        : snapshot.curStage === 'full_parsed' || snapshot.curStage === 'FULL_PARSED' || snapshot.curStage === 'FULL'
+          ? 'FULL'
+          : snapshot.curStage
+            ? String(snapshot.curStage)
+            : '';
+    curLine = stageLabel ? ` cur: ${snapshot.curId} ${stageLabel}` : ` cur: ${snapshot.curId}`;
+  } else if (snapshot.peekIds.length > 0) {
     const first = snapshot.peekIds[0];
     const stageLabel = snapshot.full > 0 && snapshot.partial === 0 ? 'FULL' : snapshot.partial > 0 && snapshot.full === 0 ? 'PARTIAL' : snapshot.depth > 0 ? 'mixed' : '';
     curLine = stageLabel ? ` cur: ${first} ${stageLabel}` : ` cur: ${first}`;

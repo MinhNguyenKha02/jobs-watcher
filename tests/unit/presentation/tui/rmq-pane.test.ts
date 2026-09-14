@@ -103,4 +103,41 @@ describe('RmqConsumerPane', () => {
     // infraReady 0 overrides legacy 1
     expect(frame).toContain('infra rmq:0');
   });
+
+  it('GIVEN IPC cur PARTIAL with mixed pend P:3 F:1 WHEN render THEN cur shows IPC PARTIAL not mixed', () => {
+    const frame = renderRmqConsumerPane(
+      {
+        depth: 4,
+        partial: 3,
+        full: 1,
+        deferred: 0,
+        connected: true,
+        queueMode: true,
+        peekIds: ['1a09…job-0', '1a09…job-4', '1a09…job-5', '1a09…job-6'],
+        curId: '1a09…job-3',
+        curStage: 'partial_parsed',
+      },
+      96,
+    );
+    expect(frame).toContain('cur: 1a09…job-3 PARTIAL');
+    expect(frame).not.toContain('mixed');
+  });
+
+  it('GIVEN IPC cur FULL WHEN render THEN cur shows FULL', () => {
+    const frame = renderRmqConsumerPane(
+      {
+        depth: 4,
+        partial: 3,
+        full: 1,
+        deferred: 0,
+        connected: true,
+        queueMode: true,
+        peekIds: ['1a09…job-0', '1a09…job-4', '1a09…job-5', '1a09…job-6'],
+        curId: '1a09…job-3',
+        curStage: 'full_parsed',
+      },
+      96,
+    );
+    expect(frame).toContain('cur: 1a09…job-3 FULL');
+  });
 });

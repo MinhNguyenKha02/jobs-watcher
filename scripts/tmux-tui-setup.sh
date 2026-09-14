@@ -33,6 +33,9 @@ LOG_FILE_ACTION="${PROJECT_ROOT}/tui-logs-action.jsonl"
 export TMUX_TMPDIR="${XDG_RUNTIME_DIR:-/tmp}/tmux"
 mkdir -p "$TMUX_TMPDIR"; chmod 700 "$TMUX_TMPDIR" 2>/dev/null || true
 if [[ "$PURGE" == "true" ]]; then
+  # --purge resets logs + IPC state (must run before session create at new-session/send-keys below).
+  # PA (tui:stdout, first send-keys) recreates the IPC file via ensureSharedStateFile(),
+  # so PB/PC observe clean defaults; non-purge reruns preserve the file (restore path).
   if [[ "$IS_DEV" == "true" ]]; then rm -f "$TUI_SHARED_STATE_PATH" "$TUI_SHARED_STATE_PATH.lock" "$TUI_SHARED_STATE_PATH.tmp" "$PROJECT_ROOT"/tui-logs-*.jsonl 2>/dev/null || true
   else sudo -u jobs-watcher rm -f "$TUI_SHARED_STATE_PATH" "$TUI_SHARED_STATE_PATH.lock" "$TUI_SHARED_STATE_PATH.tmp" "$PROJECT_ROOT"/tui-logs-*.jsonl 2>/dev/null || true
   fi

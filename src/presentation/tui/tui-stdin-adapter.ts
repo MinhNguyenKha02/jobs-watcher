@@ -449,7 +449,7 @@ export class ActionController {
         return;
       }
 
-      await this.udsWriter.webhookIngest(current.jobLifecycleId);
+      await this.udsWriter.webhookIngest(current.jobLifecycleId, htmlPayload);
 
       logger.info('Stage 2 parse triggered successfully', {
         jobLifecycleId: current.jobLifecycleId,

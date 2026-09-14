@@ -4,9 +4,11 @@
  * Default behavior:
  * - production/dev: read real system clipboard via clipboardy
  * - test/fixture mode: use fixture data by setting CLIPBOARD_FIXTURE_MODE=1
+ *
+ * Peek semantics: every call returns the current clipboard content.
+ * No dedup hash — [p] preview must not consume the copy that a later
+ * [c]/[i] needs ([o]->[p]->[c] reuse on the same copy).
  */
-import { createHash } from 'crypto';
-
 import clipboardy from 'clipboardy';
 
 type ClipboardFixtureEmails = {
@@ -16,18 +18,12 @@ type ClipboardFixtureEmails = {
   linkedinPlatformPageHtml2: string;
 };
 
-let lastClipboardHash = '';
-
 function isClipboardFixtureModeEnabled(): boolean {
   return process.env.CLIPBOARD_FIXTURE_MODE === '1';
 }
 
 async function loadClipboardFixtures(): Promise<ClipboardFixtureEmails> {
   return import('../../../../tests/__fixtures__/emails.js') as Promise<ClipboardFixtureEmails>;
-}
-
-function toHash(value: string): string {
-  return createHash('sha256').update(value).digest('hex');
 }
 
 function isHtmlLike(text: string): boolean {
@@ -53,13 +49,7 @@ async function getFixtureClipboard(): Promise<string[]> {
   } = await loadClipboardFixtures();
 
   if (global.__clipboardJob) {
-    const text = global.__clipboardJob;
-    const currentHash = toHash(text);
-    if (currentHash === lastClipboardHash) {
-      return [];
-    }
-    lastClipboardHash = currentHash;
-    return [text];
+    return [global.__clipboardJob];
   }
   return [
     indeedPlatformPageHtml1,
@@ -85,11 +75,5 @@ export async function clipboardGetter(): Promise<string[]> {
     return [];
   }
 
-  const currentHash = toHash(clipboardText);
-  if (currentHash === lastClipboardHash) {
-    return [];
-  }
-
-  lastClipboardHash = currentHash;
   return [clipboardText];
 }

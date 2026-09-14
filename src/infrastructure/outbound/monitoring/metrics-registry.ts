@@ -173,6 +173,7 @@ export class TuiMetricsRegistry implements TuiMetricsPort {
   readonly infraReady: Gauge<string>;
   readonly rmqConsumedTotal: Counter<string>;
   readonly rmqPendingIds: Gauge<string>;
+  readonly rmqCur: Gauge<string>;
 
   constructor(register?: Registry) {
     this.register = register ?? new Registry();
@@ -223,6 +224,13 @@ export class TuiMetricsRegistry implements TuiMetricsPort {
       registers: [this.register],
     });
 
+    this.rmqCur = new Gauge({
+      name: 'rmq_cur',
+      help: 'TUI IPC current job id+stage (1-series, display only)',
+      labelNames: ['id', 'stage'],
+      registers: [this.register],
+    });
+
     // initialize gauges to 0
     this.rmqPendingDepth.set({ queue: 'total' }, 0);
     this.rmqPendingPartial.set(0);
@@ -241,6 +249,8 @@ export class TuiMetricsRegistry implements TuiMetricsPort {
     connected: boolean;
     queueMode: boolean;
     peekIds: string[];
+    curId?: string | null;
+    curStage?: string | null;
   }): void {
     this.rmqPendingDepth.set({ queue: 'total' }, snapshot.depth);
     this.rmqPendingPartial.set(snapshot.partial);
@@ -251,6 +261,10 @@ export class TuiMetricsRegistry implements TuiMetricsPort {
     this.rmqPendingIds.reset();
     for (const id of snapshot.peekIds.slice(0, 5)) {
       this.rmqPendingIds.set({ id }, 1);
+    }
+    this.rmqCur.reset();
+    if (snapshot.curId) {
+      this.rmqCur.set({ id: snapshot.curId, stage: snapshot.curStage ?? '' }, 1);
     }
   }
 
