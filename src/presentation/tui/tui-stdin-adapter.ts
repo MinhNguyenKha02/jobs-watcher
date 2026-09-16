@@ -86,6 +86,7 @@ export class ActionController {
         udsTookMs: this.lastUdsTookMs,
         modalActive: !!state.modal,
         lastError: this.lastError,
+        source: state.source ?? null,
       },
       process.stdout.columns || 96
     );

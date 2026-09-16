@@ -36,4 +36,91 @@ describe('StdinStatusPane 2-line', () => {
     );
     expect(frame).toContain('queue:OFF');
   });
+
+  it('GIVEN queueMode ON WHEN render THEN explicit per-key labels replace PA footer', () => {
+    const frame = renderStdinStatusPane(
+      {
+        lastAction: null,
+        jobLifecycleId: null,
+        queueMode: true,
+        processedCount: 0,
+        udsTookMs: null,
+        modalActive: false,
+        lastError: null,
+      },
+      120
+    );
+    expect(frame).toContain('j=queue');
+    expect(frame).toContain('d=trash');
+    expect(frame).toContain('c=stage2');
+    expect(frame).toContain('o=open-url');
+  });
+
+  it('GIVEN queueMode OFF WHEN render THEN direct label set without open-url/stage2', () => {
+    const frame = renderStdinStatusPane(
+      {
+        lastAction: null,
+        jobLifecycleId: null,
+        queueMode: false,
+        processedCount: 0,
+        udsTookMs: null,
+        modalActive: false,
+        lastError: null,
+      },
+      120
+    );
+    expect(frame).toContain('j=queue');
+    expect(frame).not.toContain('o=open-url');
+    expect(frame).not.toContain('c=stage2');
+  });
+
+  it('GIVEN source browser-auto WHEN render THEN src: auto segment', () => {
+    const frame = renderStdinStatusPane(
+      {
+        lastAction: null,
+        jobLifecycleId: null,
+        queueMode: true,
+        processedCount: 0,
+        udsTookMs: null,
+        modalActive: false,
+        lastError: null,
+        source: 'browser-auto',
+      },
+      120
+    );
+    expect(frame).toContain('src: auto');
+  });
+
+  it('GIVEN source manual WHEN render THEN src: man segment', () => {
+    const frame = renderStdinStatusPane(
+      {
+        lastAction: null,
+        jobLifecycleId: null,
+        queueMode: true,
+        processedCount: 0,
+        udsTookMs: null,
+        modalActive: false,
+        lastError: null,
+        source: 'manual',
+      },
+      120
+    );
+    expect(frame).toContain('src: man');
+  });
+
+  it('GIVEN no source WHEN render THEN src segment omitted', () => {
+    const frame = renderStdinStatusPane(
+      {
+        lastAction: null,
+        jobLifecycleId: null,
+        queueMode: true,
+        processedCount: 0,
+        udsTookMs: null,
+        modalActive: false,
+        lastError: null,
+      },
+      120
+    );
+    expect(frame).not.toContain('src:');
+  });
 });

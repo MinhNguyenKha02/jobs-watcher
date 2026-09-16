@@ -11,6 +11,33 @@ export interface StdinStatus {
   udsTookMs?: number | null;
   modalActive: boolean;
   lastError?: string | null;
+  source?: string | null;
+}
+
+const QUEUE_ACTION_LABELS = [
+  'j=queue',
+  'd=trash',
+  'p=preview',
+  'c=stage2',
+  'o=open-url',
+  'b=queue/direct',
+  '?=help',
+  'q=quit',
+];
+
+const DIRECT_ACTION_LABELS = [
+  'j=queue',
+  'd=trash',
+  'p=preview',
+  'b=queue/direct',
+  '?=help',
+  'q=quit',
+];
+
+function sourceLabel(source?: string | null): string | null {
+  if (source === 'browser-auto') return 'auto';
+  if (source === 'manual') return 'man';
+  return null;
 }
 
 export function renderStdinStatusPane(status: StdinStatus, width = 96): string {
@@ -23,12 +50,15 @@ export function renderStdinStatusPane(status: StdinStatus, width = 96): string {
   const last = status.lastAction
     ? `${status.lastAction} ${status.jobLifecycleId ? midTruncateId(status.jobLifecycleId, 14) : ''} ${status.udsTookMs ? `✓ ${status.udsTookMs}ms` : ''}`.trim()
     : '—';
-  const line1 = ` last: ${last} | mode: queue:${status.queueMode ? 'ON' : 'OFF'} | proc: ${status.processedCount}/1000${status.modalActive ? ' | modal: ↑/↓' : ' | card: ↑/↓'}`;
+  const src = sourceLabel(status.source);
+  const srcSegment = src ? ` | src: ${src}` : '';
+  const line1 = ` last: ${last} | mode: queue:${status.queueMode ? 'ON' : 'OFF'}${srcSegment} | proc: ${status.processedCount}/1000${status.modalActive ? ' | modal: ↑/↓' : ' | card: ↑/↓'}`;
   lines.push(`│${truncate(line1, inner).padEnd(inner)}│`);
 
+  const labels = status.queueMode ? QUEUE_ACTION_LABELS : DIRECT_ACTION_LABELS;
   const line2 = status.lastError
     ? ` err: ${truncate(status.lastError, inner - 7)}`
-    : ' keys: j d p c o i b ? q  • ↑/↓ scroll ESC modal';
+    : ` keys: ${labels.join(' ')}  • ↑/↓ scroll ESC modal`;
   lines.push(`│${truncate(line2, inner).padEnd(inner)}│`);
 
   lines.push(`└${border}┘`);

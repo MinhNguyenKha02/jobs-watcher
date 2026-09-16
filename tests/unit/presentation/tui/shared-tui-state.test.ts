@@ -2,7 +2,7 @@ import { writeFileSync, readFileSync, unlinkSync, existsSync, openSync, closeSyn
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { JobStage } from '../../../../src/domain/types/job-lifecycle.js';
+import { JobStage, JobSource } from '../../../../src/domain/types/job-lifecycle.js';
 
 const TEST_STATE_PATH = '/tmp/test-tui-state.json';
 if (existsSync(TEST_STATE_PATH)) unlinkSync(TEST_STATE_PATH);
@@ -252,6 +252,26 @@ describe('shared-tui-state', () => {
       setCurrentJob('job-blocked', job, JobStage.FULL_PARSED);
       const state2 = getCurrentJob();
       expect(state2.jobLifecycleId).toBe('job-blocked');
+    });
+  });
+
+  describe('source provenance (single root field)', () => {
+    it('GIVEN setCurrentJob with source WHEN getCurrentJob THEN exposes it and IPC file holds exactly one source field', () => {
+      const job = { _id: 'job-src', company: 'SrcCo', role: 'Engineer' } as any;
+      setCurrentJob('job-src', job, JobStage.PARTIAL_PARSED, JobSource.BROWSER_AUTO);
+
+      expect(getCurrentJob().source).toBe(JobSource.BROWSER_AUTO);
+      const raw = JSON.parse(readFileSync(TEST_STATE_PATH, 'utf8'));
+      expect(raw.source).toBe('browser-auto');
+      expect(raw.queue.source).toBeUndefined();
+      expect(raw.direct.source).toBeUndefined();
+    });
+
+    it('GIVEN clearCurrentJob WHEN getCurrentJob THEN source nulled', () => {
+      const job = { _id: 'job-src2', company: 'SrcCo', role: 'Engineer' } as any;
+      setCurrentJob('job-src2', job, JobStage.FULL_PARSED, JobSource.MANUAL);
+      clearCurrentJob();
+      expect(getCurrentJob().source).toBeNull();
     });
   });
 });

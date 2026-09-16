@@ -1,7 +1,7 @@
 import amqplib, { type Channel, type ConsumeMessage } from 'amqplib';
 
 import { ActionEvent } from '../../../domain/types/action-event.js';
-import { JobStage, JobLifecycleDocument } from '../../../domain/types/job-lifecycle.js';
+import { JobStage, type JobSource, type JobStatus } from '../../../domain/types/job-lifecycle.js';
 import type { Job } from '../../../domain/types/job.js';
 import { createLogger } from '../../../infrastructure/outbound/logging/logger.js';
 import type { JobEventReaderPort } from '../ports/job-event-reader.port.js';
@@ -34,12 +34,14 @@ export interface RabbitMqJobReaderOptions {
 }
 
 interface PendingJob {
-  readonly job: Partial<JobLifecycleDocument>;
+  readonly job: Job;
   stage: JobStage.PARTIAL_PARSED | JobStage.FULL_PARSED;
+  source: JobSource | null;
 }
 
 interface S2BufferEntry {
-  payload: Partial<JobLifecycleDocument>;
+  payload: Job;
+  source: JobSource | null;
   deliveryTag: number;
   timestamp: number;
 }
@@ -322,9 +324,17 @@ export class RabbitMqJobReader implements JobEventReaderPort {
 
   private onMessageS1(msg: ConsumeMessage): void {
     try {
-      const payload = JSON.parse(msg.content.toString()) as Partial<JobLifecycleDocument>;
-      const id = payload._id as string;
-      if (!id) {
+      // JSON boundary: any → typed once (repo idiom, cf. shared-tui-state read);
+      // shape is then destructured + _id-validated, never cast downstream.
+      const parsed = JSON.parse(msg.content.toString()) as Job & {
+        stage: JobStage;
+        status?: JobStatus;
+        source?: JobSource;
+      };
+      const { stage, status, source, ...job } = parsed;
+      void status; // stripped by design: carried on wire, unused by TUI
+      const id = job._id;
+      if (typeof id !== 'string') {
         this.s1channel!.ack(msg);
         return;
       }
@@ -336,13 +346,13 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       this.drainDeferredS2(id);
 
       if (!this.pendingJobs.some((p) => p.job._id === id)) {
-        this.pendingJobs.push({ job: payload, stage: JobStage.PARTIAL_PARSED });
+        this.pendingJobs.push({ job: { ...job, _id: id }, stage, source: source ?? null });
       }
 
       logger.info('job.generated', {
         id,
-        company: payload.company,
-        stage: JobStage.PARTIAL_PARSED,
+        company: job.company,
+        stage,
       });
       this.metricsRegistry?.incConsumed(this.s1Queue, ActionEvent.GENERATED);
       this.autoAdvance();
@@ -364,12 +374,17 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       return;
     }
     try {
-      const parsed = JSON.parse(msg.content.toString()) as Record<string, unknown>;
-      const payload = (
-        parsed && typeof parsed === 'object' && 'job' in parsed ? parsed.job : parsed
-      ) as Partial<JobLifecycleDocument>;
-      const id = payload._id as string;
-      if (!id) {
+      // JSON boundary: any → typed once (repo idiom, cf. shared-tui-state read);
+      // shape is then destructured + _id-validated, never cast downstream.
+      const parsed = JSON.parse(msg.content.toString()) as Job & {
+        stage: JobStage;
+        status?: JobStatus;
+        source?: JobSource;
+      };
+      const { stage, status, source, ...job } = parsed;
+      void status; // stripped by design: carried on wire, unused by TUI
+      const id = job._id;
+      if (typeof id !== 'string') {
         this.s2queueChannel!.ack(msg);
         return;
       }
@@ -379,8 +394,8 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         this.recordS2TagQueue(id, msg.fields.deliveryTag);
         this.pendingJobs[existingIdx] = {
           ...this.pendingJobs[existingIdx],
-          job: { ...this.pendingJobs[existingIdx].job, ...payload },
-          stage: JobStage.FULL_PARSED,
+          job: { ...this.pendingJobs[existingIdx].job, ...job, _id: id },
+          stage,
         };
         logger.info('job.parse.completed — merged in pending', { id });
         this.metricsRegistry?.incConsumed(this.s2Queue, ActionEvent.PARSE_COMPLETED);
@@ -389,7 +404,12 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       }
       if (this.currentJobId === id) {
         this.recordS2TagQueue(id, msg.fields.deliveryTag);
-        setCurrentJob(id, { ...getCurrentJob().job, ...payload } as Job, JobStage.FULL_PARSED);
+        setCurrentJob(
+          id,
+          { ...getCurrentJob().job, ...job, _id: id },
+          stage,
+          source ?? null
+        );
         logger.info('job.parse.completed — IPC enriched displayed job', { id });
         this.metricsRegistry?.incConsumed(this.s2Queue, ActionEvent.PARSE_COMPLETED);
         this.syncMetrics();
@@ -402,7 +422,8 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       }
       this.recordS2TagQueue(id, msg.fields.deliveryTag);
       this.deferredS2QueueBuffer.set(id, {
-        payload,
+        payload: { ...job, _id: id },
+        source: source ?? null,
         deliveryTag: msg.fields.deliveryTag,
         timestamp: Date.now(),
       });
@@ -425,17 +446,22 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       return;
     }
     try {
-      const parsed = JSON.parse(msg.content.toString()) as Record<string, unknown>;
-      const payload = (
-        parsed && typeof parsed === 'object' && 'job' in parsed ? parsed.job : parsed
-      ) as Partial<JobLifecycleDocument>;
-      const id = payload._id as string;
-      if (!id) {
+      // JSON boundary: any → typed once (repo idiom, cf. shared-tui-state read);
+      // shape is then destructured + _id-validated, never cast downstream.
+      const parsed = JSON.parse(msg.content.toString()) as Job & {
+        stage: JobStage;
+        status?: JobStatus;
+        source?: JobSource;
+      };
+      const { stage, status, source, ...job } = parsed;
+      void status; // stripped by design: carried on wire, unused by TUI
+      const id = job._id;
+      if (typeof id !== 'string') {
         this.s2directChannel!.ack(msg);
         return;
       }
       this.recordS2TagDirect(id, msg.fields.deliveryTag);
-      setCurrentJob(id, payload as Job, JobStage.FULL_PARSED);
+      setCurrentJob(id, { ...job, _id: id }, stage, source ?? null);
       this.currentJobId = id;
       logger.info('job.parse.completed — direct mode set', { id });
       this.metricsRegistry?.incConsumed(this.s2DirectQueue, ActionEvent.PARSE_COMPLETED);
@@ -546,8 +572,8 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     if (this.currentJobId !== null) return;
     if (this.pendingJobs.length === 0) return;
     const next = this.pendingJobs.shift()!;
-    this.currentJobId = next.job._id as string;
-    setCurrentJob(next.job._id as string, next.job as Job, next.stage);
+    this.currentJobId = next.job._id;
+    setCurrentJob(next.job._id, next.job, next.stage, next.source);
     logger.info('Auto-advanced to next job', { id: next.job._id, stage: next.stage });
     this.syncMetrics();
   }
@@ -570,7 +596,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         stage: JobStage.FULL_PARSED,
       };
     } else {
-      this.pendingJobs.push({ job: entry.payload, stage: JobStage.FULL_PARSED });
+      this.pendingJobs.push({ job: entry.payload, stage: JobStage.FULL_PARSED, source: entry.source });
     }
     logger.info('Deferred S2 drained', { id });
     this.syncMetrics();

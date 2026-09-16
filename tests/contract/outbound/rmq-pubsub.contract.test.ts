@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
-import { JobStage, JobSource } from '../../../src/domain/types/job-lifecycle.js';
+import { JobStage, JobSource, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import { topcvEmailHtmlMany, topcvDetailHtml } from '../../helpers/html-fixtures.js';
 import {
   buildTestDaemonContainer,
@@ -54,12 +54,12 @@ describe(
         _id: 'rmq-probe-s1',
         role: 'Software Engineer',
         company: 'Test Co',
-        stage: JobStage.PARTIAL_PARSED,
       };
 
       await daemon.rmq.ports.parse.emitGenerated(doc, {
         stage: JobStage.PARTIAL_PARSED,
         source: JobSource.BROWSER_AUTO,
+        status: JobStatus.ENRICHING,
       });
 
       await waitFor(() => tui.ipc.read().jobLifecycleId === 'rmq-probe-s1');
@@ -96,18 +96,19 @@ describe(
         _id: 'rmq-probe-s2',
         role: 'Backend Engineer',
         company: 'S2ProbeCo',
-        stage: JobStage.PARTIAL_PARSED,
       };
       await daemon.rmq.ports.parse.emitGenerated(base, {
         stage: JobStage.PARTIAL_PARSED,
         source: JobSource.BROWSER_AUTO,
+        status: JobStatus.ENRICHING,
       });
       await waitFor(() => tui.ipc.read().jobLifecycleId === 'rmq-probe-s2');
-      const job = { _id: 'rmq-probe-s2', role: 'Backend Engineer', stage: JobStage.FULL_PARSED };
+      const job = { _id: 'rmq-probe-s2', role: 'Backend Engineer', company: 'S2ProbeCo' };
 
       await daemon.rmq.ports.parse.emitCompleted(job, {
         stage: JobStage.FULL_PARSED,
         source: JobSource.MANUAL,
+        status: JobStatus.ENRICHED,
       });
 
       await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED);
@@ -281,12 +282,12 @@ describe(
     // — (d) real reader read-back — publish → RabbitMqJobReader queue depth / ipc seam —
     it('GIVEN two GENERATED events WHEN published on the real RMQ pub/sub pair THEN the reader seam shows the first job while queue depth holds the second', async () => {
       await daemon.rmq.ports.parse.emitGenerated(
-        { _id: 'rmq-q-1', role: 'A', company: 'QCo1', stage: JobStage.PARTIAL_PARSED },
-        { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+        { _id: 'rmq-q-1', role: 'A', company: 'QCo1' },
+        { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO, status: JobStatus.ENRICHING }
       );
       await daemon.rmq.ports.parse.emitGenerated(
-        { _id: 'rmq-q-2', role: 'B', company: 'QCo2', stage: JobStage.PARTIAL_PARSED },
-        { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+        { _id: 'rmq-q-2', role: 'B', company: 'QCo2' },
+        { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO, status: JobStatus.ENRICHING }
       );
 
       await waitFor(() => tui.ipc.read().jobLifecycleId === 'rmq-q-1');
@@ -301,9 +302,8 @@ describe(
           _id: 'rmq-pc-1',
           role: 'Software Engineer',
           company: 'PCo',
-          stage: JobStage.PARTIAL_PARSED,
         },
-        { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+        { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO, status: JobStatus.ENRICHING }
       );
       await waitFor(() => tui.ipc.read().jobLifecycleId === 'rmq-pc-1');
 
@@ -312,9 +312,8 @@ describe(
           _id: 'rmq-pc-1',
           role: 'Software Engineer',
           company: 'PCo',
-          stage: JobStage.FULL_PARSED,
         },
-        { stage: JobStage.FULL_PARSED, source: JobSource.BROWSER_AUTO }
+        { stage: JobStage.FULL_PARSED, source: JobSource.BROWSER_AUTO, status: JobStatus.ENRICHED }
       );
 
       await waitFor(() => tui.ipc.read().stage === JobStage.FULL_PARSED);

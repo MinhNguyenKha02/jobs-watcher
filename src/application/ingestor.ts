@@ -188,8 +188,19 @@ export class JobIngestor implements IngestorPort {
       // legacy table emails carry applystart/viewjob — both enqueue for browser s2c.
       const hasUrl = /indeed\.com\/(?:applystart|viewjob)\?|indeed\.com\/rc\/clk\//i.test(url);
 
-      const doc: Partial<JobLifecycleDocument> = {
+      const job: Job = {
         _id: jobLifeCycleId,
+        company,
+        role,
+        location: this.getStringField(extracted.location) || '',
+        description: this.getStringField(extracted.description) || '',
+        salary: this.getStringField(extracted.salary) || '',
+        url,
+        deadline: extracted.deadline || undefined,
+        easyApply: extracted.easyApply || undefined,
+      };
+      const doc: JobLifecycleDocument = {
+        ...job,
         raw: '',
         gmailMeta: metadata
           ? {
@@ -201,14 +212,6 @@ export class JobIngestor implements IngestorPort {
               subject: metadata.subject,
             }
           : undefined,
-        company,
-        role,
-        description: this.getStringField(extracted.description) || '',
-        salary: this.getStringField(extracted.salary) || '',
-        location: this.getStringField(extracted.location) || '',
-        url,
-        deadline: extracted.deadline || undefined,
-        easyApply: extracted.easyApply || undefined,
         stage: JobStage.PARTIAL_PARSED,
         status: JobStatus.ENRICHING,
         source: JobSource.BROWSER_AUTO,
@@ -219,16 +222,14 @@ export class JobIngestor implements IngestorPort {
 
       const filterResult = hybridJobFilter(doc);
       if (!filterResult.passed) {
+        // T1 reject stays daemon-side only: log + continue, no RMQ emit,
+        // so TUI s3s4 is never polluted by tier-filtered s1 jobs.
         this.logger.info('Filter rejected job', {
           jobLifeCycleId,
           role,
           company,
           reasons: filterResult.reasons,
         });
-        await this.routePublishingPort.emitJobTrashed(
-          jobLifeCycleId,
-          `Filter rejected: ${filterResult.reasons.join('; ')}`
-        );
         continue;
       }
 
@@ -259,9 +260,10 @@ export class JobIngestor implements IngestorPort {
         await this.extractionQueueColPort.enqueue(jobLifeCycleId);
       } else {
         this.logger.info('Job has no url — emitting generated only', { jobLifeCycleId, role, company });
-        await this.parsePublishingPort.emitGenerated(doc, {
+        await this.parsePublishingPort.emitGenerated(job, {
           stage: JobStage.PARTIAL_PARSED,
           source: JobSource.BROWSER_AUTO,
+          status: doc.status,
         });
       }
     }
@@ -276,9 +278,22 @@ export class JobIngestor implements IngestorPort {
       this.metricsRegistry?.jobErrors.inc({ stage: 's1', error_type: 'missing_job' });
       return;
     }
-    await this.parsePublishingPort.emitGenerated(existing, {
+    const job: Job = {
+      _id: existing._id,
+      company: existing.company,
+      role: existing.role,
+      location: existing.location,
+      description: existing.description,
+      details: existing.details,
+      salary: existing.salary,
+      url: existing.url,
+      deadline: existing.deadline,
+      easyApply: existing.easyApply,
+    };
+    await this.parsePublishingPort.emitGenerated(job, {
       stage: JobStage.PARTIAL_PARSED,
       source: JobSource.BROWSER_AUTO,
+      status: existing.status,
     });
   }
 
@@ -319,7 +334,7 @@ export class JobIngestor implements IngestorPort {
       return;
     }
 
-    const doc: Partial<JobLifecycleDocument> = {
+    const doc: JobLifecycleDocument = {
       ...stage1Partial,
       _id: jobLifecycleId,
       details: htmlToText(rawPayload),
@@ -337,9 +352,22 @@ export class JobIngestor implements IngestorPort {
       const durationSec = (Date.now() - new Date(stage1Partial.stageTimestamp).getTime()) / 1000;
       this.metricsRegistry?.jobStageDuration.observe({ stage: 's1_s2' }, durationSec);
     }
-    await this.parsePublishingPort.emitCompleted(doc, {
+    const job: Job = {
+      _id: doc._id,
+      company: doc.company,
+      role: doc.role,
+      location: doc.location,
+      description: doc.description,
+      details: doc.details,
+      salary: doc.salary,
+      url: doc.url,
+      deadline: doc.deadline,
+      easyApply: doc.easyApply,
+    };
+    await this.parsePublishingPort.emitCompleted(job, {
       stage: JobStage.FULL_PARSED,
       source: JobSource.MANUAL,
+      status: doc.status,
     });
   }
 
@@ -355,18 +383,21 @@ export class JobIngestor implements IngestorPort {
       return;
     }
 
-    const doc: Partial<JobLifecycleDocument> = {
+    const job: Job = {
       _id: generateFallbackId('clip'),
-      raw: rawPayload,
-      role: this.getStringField(extracted.role) || 'Unknown',
       company: this.getStringField(extracted.company) || 'Unknown',
-      description: '',
-      salary: this.getStringField(extracted.salary) || '',
+      role: this.getStringField(extracted.role) || 'Unknown',
       location: this.getStringField(extracted.location) || '',
-      url: this.getStringField(extracted.url) || '',
+      description: '',
       details: extracted.details,
+      salary: this.getStringField(extracted.salary) || '',
+      url: this.getStringField(extracted.url) || '',
       deadline: extracted.deadline || undefined,
       easyApply: extracted.easyApply || undefined,
+    };
+    const doc: JobLifecycleDocument = {
+      ...job,
+      raw: rawPayload,
       stage: JobStage.FULL_PARSED,
       status: JobStatus.ENRICHED,
       source: JobSource.MANUAL,
@@ -390,9 +421,10 @@ export class JobIngestor implements IngestorPort {
 
     this.metricsRegistry?.jobsBrokered.inc({ source: JobSource.MANUAL });
     this.metricsRegistry?.jobStageTotal.inc({ stage: 's2', status: 'enriched' });
-    await this.parsePublishingPort.emitCompleted(doc, {
+    await this.parsePublishingPort.emitCompleted(job, {
       stage: JobStage.FULL_PARSED,
       source: JobSource.MANUAL,
+      status: doc.status,
     });
   }
 
@@ -419,18 +451,31 @@ export class JobIngestor implements IngestorPort {
       return;
     }
 
-    const s1Doc: Partial<JobLifecycleDocument> = {
+    const s1Doc: JobLifecycleDocument = {
       ...stage1Partial,
       updatedAt: new Date(),
       stageTimestamp: new Date(),
     };
 
-    await this.parsePublishingPort.emitGenerated(s1Doc, {
+    const s1Job: Job = {
+      _id: s1Doc._id,
+      company: s1Doc.company,
+      role: s1Doc.role,
+      location: s1Doc.location,
+      description: s1Doc.description,
+      details: s1Doc.details,
+      salary: s1Doc.salary,
+      url: s1Doc.url,
+      deadline: s1Doc.deadline,
+      easyApply: s1Doc.easyApply,
+    };
+    await this.parsePublishingPort.emitGenerated(s1Job, {
       stage: JobStage.PARTIAL_PARSED,
       source: JobSource.BROWSER_AUTO,
+      status: s1Doc.status,
     });
 
-    const doc: Partial<JobLifecycleDocument> = {
+    const doc: JobLifecycleDocument = {
       ...(stage1Partial || {}),
       _id: jobLifecycleId || s1Doc._id || generateFallbackId('browser-auto'),
       raw: rawPayload,
@@ -457,6 +502,14 @@ export class JobIngestor implements IngestorPort {
     if (!passed.passed) {
       this.logger.info('Filter rejected job at stage 2', { jobLifecycleId, reasons: passed.reasons });
       this.metricsRegistry?.jobErrors.inc({ stage: 's2', error_type: 'filter_rejected' });
+      // T2 reject persists terminal status on the s1 doc (was stale enriching),
+      // then still emits trash so TUI drains it via s34.
+      await this.jobLifecycleColPort.upsert({
+        _id: jobLifecycleId || s1Doc._id!,
+        status: JobStatus.TRASHED,
+        updatedAt: new Date(),
+        stageTimestamp: new Date(),
+      });
       await this.routePublishingPort.emitJobTrashed(
         jobLifecycleId || s1Doc._id!,
         `Filter rejected at stage 2: ${passed.reasons.join('; ')}`
@@ -470,9 +523,22 @@ export class JobIngestor implements IngestorPort {
       const durationSec = (Date.now() - new Date(stage1Partial.stageTimestamp).getTime()) / 1000;
       this.metricsRegistry?.jobStageDuration.observe({ stage: 's1_s2' }, durationSec);
     }
-    await this.parsePublishingPort.emitCompleted(doc, {
+    const job: Job = {
+      _id: doc._id,
+      company: doc.company,
+      role: doc.role,
+      location: doc.location,
+      description: doc.description,
+      details: doc.details,
+      salary: doc.salary,
+      url: doc.url,
+      deadline: doc.deadline,
+      easyApply: doc.easyApply,
+    };
+    await this.parsePublishingPort.emitCompleted(job, {
       stage: JobStage.FULL_PARSED,
       source: JobSource.BROWSER_AUTO,
+      status: doc.status,
     });
   }
 

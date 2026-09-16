@@ -1,20 +1,22 @@
-import type { JobLifecycleDocument } from '../../domain/types/job-lifecycle.js';
-import { JobStage, JobSource } from '../../domain/types/job-lifecycle.js';
+import { JobStage, JobSource, JobStatus } from '../../domain/types/job-lifecycle.js';
+import type { Job } from '../../domain/types/job.js';
 
 export interface ParsePort {
   emitGenerated(
-    job: Partial<JobLifecycleDocument>,
+    job: Job,
     context: {
       stage: JobStage.PARTIAL_PARSED | JobStage.FULL_PARSED;
       source: JobSource.BROWSER_AUTO | JobSource.MANUAL;
+      status: JobStatus;
     }
   ): Promise<void>;
 
   emitCompleted(
-    job: Partial<JobLifecycleDocument>,
+    job: Job,
     context: {
       stage: JobStage.FULL_PARSED;
       source: JobSource;
+      status: JobStatus;
     }
   ): Promise<void>;
 

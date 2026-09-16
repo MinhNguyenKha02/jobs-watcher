@@ -14,7 +14,7 @@ import {
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-import { JobStage } from '../../domain/types/job-lifecycle.js';
+import { JobStage, JobSource } from '../../domain/types/job-lifecycle.js';
 import type { Job } from '../../domain/types/job.js';
 import { createLogger } from '../../infrastructure/outbound/logging/logger.js';
 
@@ -40,6 +40,7 @@ export interface CurrentJobState {
   jobLifecycleId: string | null;
   job: Job | null;
   stage: CurrentJobStage;
+  source: JobSource | null;
   modal: ModalState;
   cardScroll: number;
   updatedAt: string | null;
@@ -58,6 +59,7 @@ interface ModeSubState {
 interface TuiSharedState {
   version: number;
   queueMode: boolean;
+  source: JobSource | null;
   updatedAt: string | null;
   queue: ModeSubState;
   direct: ModeSubState;
@@ -101,6 +103,7 @@ function createDefaultModeSubState(): ModeSubState {
 let sharedState: TuiSharedState = {
   version: STATE_VERSION,
   queueMode: true,
+  source: null,
   updatedAt: null,
   queue: createDefaultModeSubState(),
   direct: createDefaultModeSubState(),
@@ -141,6 +144,7 @@ function readSharedStateFromDisk(): TuiSharedState {
       const migrated: TuiSharedState = {
         version: STATE_VERSION,
         queueMode: true,
+        source: null,
         updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : null,
         queue,
         direct: createDefaultModeSubState(),
@@ -153,6 +157,12 @@ function readSharedStateFromDisk(): TuiSharedState {
     sharedState = {
       version: typeof parsed.version === 'number' ? parsed.version : STATE_VERSION,
       queueMode: parsed.queueMode === false ? false : true,
+      source:
+        parsed.source === JobSource.BROWSER_AUTO || parsed.source === 'browser-auto'
+          ? JobSource.BROWSER_AUTO
+          : parsed.source === JobSource.MANUAL || parsed.source === 'manual'
+            ? JobSource.MANUAL
+            : null,
       updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : null,
       queue:
         parsed.queue && typeof parsed.queue === 'object'
@@ -300,7 +310,8 @@ export function ensureSharedStateFile(): string {
 export function setCurrentJob(
   jobLifecycleId: string,
   job: Job,
-  stage: CurrentJobStage = JobStage.FULL_PARSED
+  stage: CurrentJobStage = JobStage.FULL_PARSED,
+  source: JobSource | null = null
 ): void {
   withExclusiveLock(() => {
     const root = readSharedStateFromDisk();
@@ -323,15 +334,18 @@ export function setCurrentJob(
       }
     }
 
-    const updated = withUpdatedActiveSub(root, {
-      jobLifecycleId,
-      job,
-      stage,
-      editedFields: null,
-      modal: null,
-      cardScroll: 0,
-      cardScrollMax: 0,
-    });
+    const updated = {
+      ...withUpdatedActiveSub(root, {
+        jobLifecycleId,
+        job,
+        stage,
+        editedFields: null,
+        modal: null,
+        cardScroll: 0,
+        cardScrollMax: 0,
+      }),
+      source,
+    };
     persist(updated);
 
     logger.info('[STATE] ✅ Job set complete', {
@@ -339,6 +353,7 @@ export function setCurrentJob(
       stage: stage ?? 'FULL_PARSED',
       mode: activeModeKey(root.queueMode),
       company: job?.company,
+      source: source ?? 'unknown',
     });
   });
 }
@@ -351,6 +366,7 @@ export function getCurrentJob(): CurrentJobState {
     jobLifecycleId: sub.jobLifecycleId,
     job: sub.job,
     stage: sub.stage,
+    source: root.source ?? null,
     modal: sub.modal,
     cardScroll: typeof sub.cardScroll === 'number' ? sub.cardScroll : 0,
     updatedAt: root.updatedAt,
@@ -364,6 +380,7 @@ export function clearCurrentJob(): void {
     const nextState: TuiSharedState = {
       ...root,
       [key]: createDefaultModeSubState(),
+      source: null,
       updatedAt: new Date().toISOString(),
     };
     persist(nextState);
@@ -379,6 +396,7 @@ export function setQueueMode(enabled: boolean): void {
     persist({
       ...root,
       queueMode: enabled,
+      source: null,
       updatedAt: new Date().toISOString(),
     });
     logger.info('[STATE] Mode switched', {
@@ -392,6 +410,7 @@ export function resetState(): void {
     persist({
       ...readSharedStateFromDisk(),
       queueMode: true,
+      source: null,
       updatedAt: new Date().toISOString(),
       queue: createDefaultModeSubState(),
       direct: createDefaultModeSubState(),

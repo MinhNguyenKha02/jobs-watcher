@@ -76,6 +76,20 @@ describe('Path c1 — S1→S2a TopCV next s1[4] (mocked)', () => {
     await whenS1Many(daemon, s1Html4('C1'), 's1-c1');
     expect(storage.upsert).toHaveBeenCalledTimes(4);
     expect(parsePort.emitGenerated).toHaveBeenCalledTimes(4);
+    const [genJob, genCtx] = (
+      parsePort.emitGenerated as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0];
+    expect(genJob).toEqual(expect.objectContaining({ _id: 's1-c1-job-0' }));
+    for (const k of ['raw', 'gmailMeta', 'createdAt', 'updatedAt', 'stageTimestamp', 'stage', 'status', 'source']) {
+      expect(genJob).not.toHaveProperty(k);
+    }
+    expect(genCtx).toEqual(
+      expect.objectContaining({
+        stage: JobStage.PARTIAL_PARSED,
+        source: JobSource.BROWSER_AUTO,
+        status: JobStatus.ENRICHING,
+      })
+    );
     expect(queue.enqueue).not.toHaveBeenCalled();
     assertPicked(tui, { messageId: 's1-c1', s1Count: 4, expectedIdx: 0 });
 
@@ -89,6 +103,20 @@ describe('Path c1 — S1→S2a TopCV next s1[4] (mocked)', () => {
       })
     );
     expect(parsePort.emitCompleted).toHaveBeenCalledTimes(1);
+    const [doneJob, doneCtx] = (
+      parsePort.emitCompleted as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0];
+    expect(doneJob).toEqual(expect.objectContaining({ _id: 's1-c1-job-0' }));
+    for (const k of ['raw', 'gmailMeta', 'createdAt', 'updatedAt', 'stageTimestamp', 'stage', 'status', 'source']) {
+      expect(doneJob).not.toHaveProperty(k);
+    }
+    expect(doneCtx).toEqual(
+      expect.objectContaining({
+        stage: JobStage.FULL_PARSED,
+        source: JobSource.MANUAL,
+        status: JobStatus.ENRICHED,
+      })
+    );
 
     storage.findById.mockResolvedValue(
       makeStage1Partial({ _id: 's1-c1-job-0', status: JobStatus.ENRICHED })

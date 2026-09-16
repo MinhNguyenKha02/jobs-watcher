@@ -8,8 +8,6 @@
 
 import type { Job, JobDetails } from '../../../domain/types/job.js';
 
-import { KeyAction } from './KeyboardHandler.js';
-
 export interface CardStatus {
   sseConnected: boolean;
   udsReady: boolean;
@@ -46,9 +44,7 @@ export class JobCardRenderer {
    */
   cardBodyStats(job: Job | null, status: CardStatus, actionInProgress?: string): CardBodyStats {
     const headLen = 2; // clear + header
-    const footLen = (!job ? this.renderFooter(false, status) : this.renderFooter(true, status)).split(
-      '\n'
-    ).length;
+    const footLen = 1; // single ╚═══╝ closer (no footer)
     const bodyLen = !job
       ? 2 + this.renderWaitingState(status).split('\n').length
       : 2 +
@@ -75,19 +71,17 @@ export class JobCardRenderer {
     // Fixed head: clear + header
     const head: string[] = ['\x1b[2J\x1b[H', this.renderHeader(status)];
 
-    // Scrollable body + fixed foot
+    // Scrollable body + fixed foot (single closer line; actions live in PB)
     let body: string[];
-    let foot: string[];
+    const foot: string[] = [this.renderCloser()];
     if (!job) {
       body = ['', ...this.renderWaitingState(status).split('\n'), ''];
-      foot = this.renderFooter(false, status).split('\n');
     } else {
       body = ['', ...this.renderMetadata(job).split('\n')];
       if (actionInProgress) {
         body.push('', `║  🔄 ${actionInProgress}...`);
       }
       body.push('');
-      foot = this.renderFooter(true, status).split('\n');
     }
 
     // Window the body to the visible pane height (single source: cardBodyStats)
@@ -170,47 +164,35 @@ export class JobCardRenderer {
 
   /**
    * Render job metadata in a readable format.
-   * Display ALL job fields as-is from SSE payload (Stage 1 PARTIAL or Stage 2 FULL_PARSED).
+   * Renders every field of the pruned RMQ payload generically — no
+   * allowlist, no excludes, no truncation (long lines wrap). Payload is
+   * clean by construction (Phase B/C), so the renderer trusts it.
    * When `details` is present, render sub-fields indented and skip flat `description`.
    */
   private renderMetadata(job: Job): string {
     const lines: string[] = [];
     const hasDetails = job.details !== undefined && job.details !== null;
     // PA new line — job identity + stage badge
-    const idLine = (job as unknown as Record<string, unknown>)._id as string | undefined;
-    if (idLine) {
+    if (job._id) {
       const stageBadge = hasDetails ? 'FULL' : 'PARTIAL';
-      lines.push(`╟─ Job # ${this.midTruncateId(idLine, 18)} [${stageBadge}]`);
+      lines.push(`╟─ Job # ${this.midTruncateId(job._id, 18)} [${stageBadge}]`);
     }
-    lines.push('╟─ Job Details (as-is from SSE):');
+    lines.push('╟─ Job Details:');
 
-    const excludeKeys = new Set([
-      'platform',
-      'jobLifecycleId',
-      '_id',
-      'ts',
-      'timestamp',
-      'recordedAt',
-      'source',
-      'action',
-      'stage',
-      'ingestSource',
-      'receivedAt',
-    ]);
-
+    const width = this.terminalWidth - 6;
     for (const [key, value] of Object.entries(job)) {
-      if (excludeKeys.has(key)) continue;
-
       // Render details as plain text block instead of flat description
       if (key === 'details' && typeof value === 'string' && value) {
         this.renderDetails(lines, value);
         continue;
       }
       if (key === 'description' && hasDetails) continue;
+      if (key === 'url') continue; // functional only: consumed by [o] open-url, never displayed
 
-      const displayValue = this.formatValue(value);
-      const kvLine = `${key}: ${displayValue}`;
-      lines.push(`║  ${this.truncate(kvLine, this.terminalWidth - 6)}`);
+      const kvLine = `${key}: ${this.formatValue(value)}`;
+      for (const wrapped of this.wrapLine(kvLine, width)) {
+        lines.push(`║  ${wrapped}`);
+      }
     }
 
     lines.push('╟─────────────────────────────────────────────────────────');
@@ -218,7 +200,7 @@ export class JobCardRenderer {
   }
 
   /**
-   * Render details as an indented plain-text block.
+   * Render details as an indented plain-text block, wrapped in full.
    * Follows the job_lifecycle[job] contract where details is a string
    * produced by htmlToText at stage 2.
    */
@@ -226,97 +208,64 @@ export class JobCardRenderer {
     lines.push(`║  details:`);
     for (const line of details.split('\n')) {
       if (!line.trim()) continue;
-      lines.push(`║    ${this.truncate(line, this.terminalWidth - 6)}`);
+      for (const wrapped of this.wrapLine(line, this.terminalWidth - 6)) {
+        lines.push(`║    ${wrapped}`);
+      }
     }
   }
 
   /**
-   * Format a value for display (handle arrays, objects, nulls, etc.)
+   * Word-wrap a line at maxWidth (hard-break fallback for overlong tokens).
+   * Never truncates — every input char appears in the output.
+   */
+  private wrapLine(text: string, maxWidth: number): string[] {
+    if (text.length <= maxWidth) return [text];
+    const lines: string[] = [];
+    let cur = '';
+    for (const word of text.split(' ')) {
+      if (word.length > maxWidth) {
+        if (cur) {
+          lines.push(cur);
+          cur = '';
+        }
+        for (let i = 0; i < word.length; i += maxWidth) {
+          lines.push(word.slice(i, i + maxWidth));
+        }
+        continue;
+      }
+      const next = cur ? `${cur} ${word}` : word;
+      if (next.length > maxWidth) {
+        lines.push(cur);
+        cur = word;
+      } else {
+        cur = next;
+      }
+    }
+    if (cur) lines.push(cur);
+    return lines.length > 0 ? lines : [''];
+  }
+
+  /**
+   * Format a value for display (payload is scalar-only by construction).
    */
   private formatValue(value: unknown): string {
     if (value === null || value === undefined) {
       return '(empty)';
     }
     if (typeof value === 'object') {
-      if (Array.isArray(value)) {
-        return `[${value.slice(0, 3).join(', ')}${value.length > 3 ? '...' : ''}]`;
-      }
-      // Nested object
-      return JSON.stringify(value).substring(0, 50);
+      return JSON.stringify(value);
     }
     if (typeof value === 'boolean') {
       return value ? '✓' : '✗';
-    }
-    if (typeof value === 'number') {
-      return String(value);
     }
     return String(value);
   }
 
   /**
-   * Render the footer with keyboard help.
+   * Single bottom-border closer. Action labels live in PB (StdinStatusPane).
    */
-  private actionLabel(action: KeyAction): string {
-    switch (action) {
-      case KeyAction.QUEUE:
-        return 'j=queue';
-      case KeyAction.TRASH:
-        return 'd=trash';
-      case KeyAction.PREVIEW:
-        return 'p=preview';
-      case KeyAction.WEBHOOK_STAGE2_PARSE:
-        return 'c=stage2';
-      case KeyAction.OPEN:
-        return 'o=open-url';
-      case KeyAction.INGEST:
-        return 'i=ingest';
-      case KeyAction.TOGGLE_QUEUE:
-        return 'b=queue/direct';
-      case KeyAction.HELP:
-        return '?=help';
-      case KeyAction.QUIT:
-        return 'q=quit';
-      default:
-        return '';
-    }
-  }
-
-  private renderFooter(hasJob: boolean, status?: CardStatus): string {
-    const isDirect = status?.queueMode === false;
-    const lines: string[] = [];
-
-    if (!hasJob) {
-      const actions = isDirect
-        ? [KeyAction.INGEST, KeyAction.PREVIEW, KeyAction.QUIT, KeyAction.TOGGLE_QUEUE]
-        : [KeyAction.QUIT, KeyAction.TOGGLE_QUEUE];
-      lines.push('╚ ' + actions.map((a) => this.actionLabel(a)).join('  '));
-      return lines.join('\n');
-    }
-
-    lines.push('╟─ Actions:');
-    const actions = isDirect
-      ? [
-          KeyAction.QUEUE,
-          KeyAction.TRASH,
-          KeyAction.PREVIEW,
-          KeyAction.TOGGLE_QUEUE,
-          KeyAction.HELP,
-          KeyAction.QUIT,
-        ]
-      : [
-          KeyAction.QUEUE,
-          KeyAction.TRASH,
-          KeyAction.PREVIEW,
-          KeyAction.WEBHOOK_STAGE2_PARSE,
-          KeyAction.OPEN,
-          KeyAction.TOGGLE_QUEUE,
-          KeyAction.HELP,
-          KeyAction.QUIT,
-        ];
-    lines.push('║  ' + actions.map((a) => this.actionLabel(a)).join('  '));
-    lines.push('╚' + '═'.repeat(Math.max(0, this.terminalWidth - 2)) + '╝');
-
-    return lines.join('\n');
+  private renderCloser(): string {
+    return '╚' + '═'.repeat(Math.max(0, this.terminalWidth - 2)) + '╝';
   }
 
   /**
@@ -327,16 +276,6 @@ export class JobCardRenderer {
     const filled = Math.round((clipped / 100) * 10);
     const empty = 10 - filled;
     return `[${String('█').repeat(filled)}${String('░').repeat(empty)}]`;
-  }
-
-  /**
-   * Truncate a string to a maximum width, adding "..." if needed.
-   */
-  private truncate(text: string, maxWidth: number): string {
-    if (text.length <= maxWidth) {
-      return text;
-    }
-    return text.substring(0, maxWidth - 3) + '...';
   }
 
   /**

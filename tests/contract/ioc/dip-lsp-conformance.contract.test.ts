@@ -94,11 +94,8 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
         _id: 'dip-gen-1',
         role: 'Engineer',
         company: 'GenCo',
-        stage: JobStage.PARTIAL_PARSED,
-        status: JobStatus.ENRICHING,
-        source: JobSource.BROWSER_AUTO,
       },
-      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO, status: JobStatus.ENRICHING }
     );
 
     await waitFor(() => tui.ipc.read().jobLifecycleId === 'dip-gen-1');
@@ -126,11 +123,8 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
         _id: 'dip-route-1',
         role: 'Engineer',
         company: 'RouteCo',
-        stage: JobStage.PARTIAL_PARSED,
-        status: JobStatus.ENRICHING,
-        source: JobSource.BROWSER_AUTO,
       },
-      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO, status: JobStatus.ENRICHING }
     );
     await waitFor(() => tui.ipc.read().jobLifecycleId === 'dip-route-1');
 
@@ -148,11 +142,8 @@ describe('DIP/LSP conformance — production-resolved port adapters are behavior
         _id: 'dip-missing',
         role: 'Engineer',
         company: 'MissCo',
-        stage: JobStage.PARTIAL_PARSED,
-        status: JobStatus.ENRICHING,
-        source: JobSource.BROWSER_AUTO,
       },
-      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO, status: JobStatus.ENRICHING }
     );
     await waitFor(() => tui.ipc.read().jobLifecycleId === 'dip-missing');
 

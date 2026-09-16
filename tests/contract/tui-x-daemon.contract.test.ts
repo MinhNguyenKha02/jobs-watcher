@@ -22,7 +22,7 @@ const { RabbitMqJobReader } =
   await import('../../src/presentation/tui/components/RabbitMqJobReader.js');
 const { setQueueMode } = await import('../../src/presentation/tui/shared-tui-state.js');
 const { clipboardSetter } = await import('../../src/presentation/tui/services/clipboard-getter.js');
-const { JobStage, JobSource } = await import('../../src/domain/types/job-lifecycle.js');
+const { JobStage, JobSource, JobStatus } = await import('../../src/domain/types/job-lifecycle.js');
 
 const FULL_CO_HTML = `<div class="job-detail__info--title"><h1>Full Stack</h1></div>
 <div class="company-name-label"><a class="name">FullCo</a></div>
@@ -135,9 +135,8 @@ describe('TUI × daemon 2-process boundary contract ([c]/[i]/[j]/[d] over UDS + 
         _id: 'txd-1',
         role: 'Software Engineer',
         company: 'SeedCo',
-        stage: JobStage.PARTIAL_PARSED,
       },
-      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO, status: JobStatus.ENRICHING }
     );
 
     await waitFor(() => tui.ipc.read().jobLifecycleId === 'txd-1');
@@ -175,9 +174,8 @@ describe('TUI × daemon 2-process boundary contract ([c]/[i]/[j]/[d] over UDS + 
         _id: 'txd-2',
         role: 'DevOps Engineer',
         company: 'SeedCo2',
-        stage: JobStage.PARTIAL_PARSED,
       },
-      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO, status: JobStatus.ENRICHING }
     );
     await waitFor(() => tui.ipc.read().jobLifecycleId === 'txd-2');
 
@@ -195,12 +193,12 @@ describe('TUI × daemon 2-process boundary contract ([c]/[i]/[j]/[d] over UDS + 
 
   it('GIVEN the 2-process precondition WHEN two job.generated events arrive over RMQ THEN the seam shows the first job and the reader queue depth holds the second', async () => {
     await base.rmq.ports.parse.emitGenerated(
-      { _id: 'q-1', role: 'A', company: 'QCo1', stage: JobStage.PARTIAL_PARSED },
-      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+      { _id: 'q-1', role: 'A', company: 'QCo1' },
+      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO, status: JobStatus.ENRICHING }
     );
     await base.rmq.ports.parse.emitGenerated(
-      { _id: 'q-2', role: 'B', company: 'QCo2', stage: JobStage.PARTIAL_PARSED },
-      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO }
+      { _id: 'q-2', role: 'B', company: 'QCo2' },
+      { stage: JobStage.PARTIAL_PARSED, source: JobSource.BROWSER_AUTO, status: JobStatus.ENRICHING }
     );
 
     await waitFor(() => tui.ipc.read().jobLifecycleId === 'q-1');

@@ -1,6 +1,7 @@
 import type { ParsePort } from '../../../application/ports/parse.port.js';
 import { ActionEvent } from '../../../domain/types/action-event.js';
-import type { JobLifecycleDocument } from '../../outbound/persistence/schemas.js';
+import type { JobSource, JobStage, JobStatus } from '../../../domain/types/job-lifecycle.js';
+import type { Job } from '../../../domain/types/job.js';
 import type { DaemonMetricsRegistry } from '../monitoring/metrics-registry.js';
 import { traceContextToHeaders, type TraceContext } from '../monitoring/trace-context.js';
 
@@ -13,13 +14,19 @@ export class RabbitMqParseAdapter implements ParsePort {
     private traceCtx?: TraceContext
   ) {}
 
-  async emitGenerated(job: Partial<JobLifecycleDocument>, _context: unknown): Promise<void> {
+  async emitGenerated(
+    job: Job,
+    context: { stage: JobStage; source: JobSource; status: JobStatus }
+  ): Promise<void> {
+    if (!job._id) throw new Error('emitGenerated requires _id');
     const channel = this.rmq.getChannel();
     const headers = this.traceCtx ? traceContextToHeaders(this.traceCtx) : {};
     channel.publish(
       this.rmq.getExchange(),
       ActionEvent.GENERATED,
-      Buffer.from(JSON.stringify(job)),
+      Buffer.from(
+        JSON.stringify({ ...job, stage: context.stage, status: context.status, source: context.source })
+      ),
       {
         headers,
         persistent: true,
@@ -28,13 +35,19 @@ export class RabbitMqParseAdapter implements ParsePort {
     this.metricsRegistry?.rmqPublishedTotal.inc({ routingKey: ActionEvent.GENERATED });
   }
 
-  async emitCompleted(job: Partial<JobLifecycleDocument>, _context: unknown): Promise<void> {
+  async emitCompleted(
+    job: Job,
+    context: { stage: JobStage; source: JobSource; status: JobStatus }
+  ): Promise<void> {
+    if (!job._id) throw new Error('emitCompleted requires _id');
     const channel = this.rmq.getChannel();
     const headers = this.traceCtx ? traceContextToHeaders(this.traceCtx) : {};
     channel.publish(
       this.rmq.getExchange(),
       ActionEvent.PARSE_COMPLETED,
-      Buffer.from(JSON.stringify({ job })),
+      Buffer.from(
+        JSON.stringify({ ...job, stage: context.stage, status: context.status, source: context.source })
+      ),
       {
         headers,
         persistent: true,
