@@ -186,6 +186,40 @@ describe('Path c2 — S1→S2c auto Indeed next s1[4] (mocked)', () => {
     assertPicked(tui, { messageId: 's1-c2t', s1Count: 4, expectedIdx: 1 });
   });
 
+  it('GIVEN browser returns block page WHEN scheduler extracts THEN PARTIAL fallback, never FULL · path c2 anti-bot', async () => {
+    (browser.extract as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      html: '<html><head><title>Access Denied</title></head><body><h1>Access Denied</h1><p>Your request has been blocked. Your Ray ID for this request is a3b700880969a0e9</p></body></html>',
+    });
+    await daemon.apps.scheduler.start();
+    await whenS1Many(daemon, s1Indeed4('C2B'), 's1-c2b');
+    await vi.waitUntil(
+      () => (parsePort.emitGenerated as unknown as ReturnType<typeof vi.fn>).mock.calls.length >= 4,
+      {
+        timeout: 15000,
+        interval: 50,
+      }
+    );
+    expect(parsePort.emitCompleted).not.toHaveBeenCalled();
+    await daemon.apps.scheduler.stop();
+  });
+
+  it('GIVEN browser returns header-less WAF block WHEN scheduler extracts THEN PARTIAL fallback · path c2 anti-bot', async () => {
+    (browser.extract as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      html: '<html><head><title>Attention Required</title></head><body><h1>Attention Required</h1></body></html>',
+    });
+    await daemon.apps.scheduler.start();
+    await whenS1Many(daemon, s1Indeed4('C2H'), 's1-c2h');
+    await vi.waitUntil(
+      () => (parsePort.emitGenerated as unknown as ReturnType<typeof vi.fn>).mock.calls.length >= 4,
+      {
+        timeout: 15000,
+        interval: 50,
+      }
+    );
+    expect(parsePort.emitCompleted).not.toHaveBeenCalled();
+    await daemon.apps.scheduler.stop();
+  });
+
   it('GIVEN scheduler idle WHEN start/stop THEN browser lifecycle · path c2 SRE', async () => {
     (queue.dequeue as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     const scheduler = daemon.apps.scheduler;

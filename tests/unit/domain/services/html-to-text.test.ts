@@ -48,4 +48,23 @@ describe('htmlToText', () => {
     expect(result).toContain('A');
     expect(result).toContain('B');
   });
+
+  it('GIVEN htmlToText input with irregular spacing WHEN htmlToText evaluates THEN single space per word gap', () => {
+    const result = htmlToText('<p>Senior   Engineer\twith React</p>');
+
+    expect(result).toBe('Senior Engineer with React');
+    expect(result).not.toMatch(/ {2,}/);
+  });
+
+  it('GIVEN htmlToText input with CRLF and padded lines WHEN htmlToText evaluates THEN normalises newlines and trims lines', () => {
+    const result = htmlToText('<p>  Line one  </p>\r\n\r\n<p>Line two</p>');
+
+    expect(result).toBe('Line one\n\nLine two');
+  });
+
+  it('GIVEN htmlToText input with nbsp runs WHEN htmlToText evaluates THEN collapses to single spaces', () => {
+    const result = htmlToText('<p>A  B</p>');
+
+    expect(result).toBe('A B');
+  });
 });

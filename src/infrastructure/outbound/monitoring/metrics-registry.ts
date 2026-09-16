@@ -48,7 +48,7 @@ export class DaemonMetricsRegistry implements DaemonMetricsPort {
     this.jobErrors = new Counter({
       name: 'job_errors_total',
       help: 'Number of errors per stage',
-      labelNames: ['stage', 'error_type'],
+      labelNames: ['stage', 'error_type', 'marker'],
       registers: [this.register],
     });
 

@@ -1,3 +1,4 @@
+import { AntiBotBlockedError, matchBlockedContents } from '../domain/services/blocked-page-guard.js';
 import { JobSource, JobStage } from '../domain/types/job-lifecycle.js';
 
 import type { BrowserPort } from './ports/browser.port.js';
@@ -91,6 +92,10 @@ export class ExtractionScheduler {
         const url = jobDoc?.url || '';
         const extractResult = await this.browser.extract(url);
         const rawPayload = extractResult.html;
+        // Anti-bot guard over adapter outcome (port owner): hard edge blocks are unpreventable
+        // client-side, so they route to the existing PARTIAL fallback (manual TUI rescue), never FULL.
+        const marker = matchBlockedContents(rawPayload);
+        if (marker) throw new AntiBotBlockedError(url, marker);
         await this.ingestor.processIngest(
           JobSource.BROWSER_AUTO,
           JobStage.FULL_PARSED,
@@ -104,9 +109,14 @@ export class ExtractionScheduler {
         }
       } catch (extractErr) {
         const errMsg = extractErr instanceof Error ? extractErr.message : String(extractErr);
-        this.logger?.warn('Extraction failed', { workerId, jobLifecycleId, error: errMsg });
+        const marker = extractErr instanceof AntiBotBlockedError ? extractErr.marker : undefined;
+        this.logger?.warn('Extraction failed', { workerId, jobLifecycleId, error: errMsg, ...(marker ? { marker } : {}) });
         this.metricsRegistry?.jobsInFlight.dec({ stage: 's1' });
-        this.metricsRegistry?.jobErrors.inc({ stage: 'extraction', error_type: 'browser' });
+        this.metricsRegistry?.jobErrors.inc({
+          stage: 'extraction',
+          error_type: marker ? 'anti_bot_block' : 'browser',
+          ...(marker ? { marker } : {}),
+        });
         await this.ingestor.processIngest(
           JobSource.BROWSER_AUTO,
           JobStage.PARTIAL_PARSED,
