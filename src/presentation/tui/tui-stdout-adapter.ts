@@ -8,7 +8,7 @@ import { AnsiTerminal } from './components/AnsiTerminal.js';
 import { JobCardRenderer, type CardStatus } from './components/JobCardRenderer.js';
 import { renderPreviewViewerModal } from './components/PreviewViewerModal.js';
 import { RabbitMqJobReader } from './components/RabbitMqJobReader.js';
-import { getCurrentJob, getQueueMode, watchStateFile } from './shared-tui-state.js';
+import { getCurrentJob, getQueueMode, watchStateFile, ensureSharedStateFile, setCardScrollMax } from './shared-tui-state.js';
 import type { CurrentJobState } from './shared-tui-state.js';
 
 const logger = createLogger('TUI');
@@ -52,7 +52,10 @@ export class OpsTuiApp {
     try {
       logger.info('Starting Render Server');
       // Preserve shared IPC across reruns (no wipe; --purge path in tmux script handles explicit clear).
-
+      // Single recreate side: ensure file exists so ipc probe reads 1 and watch() avoids ENOENT.
+      try {
+        ensureSharedStateFile();
+      } catch {}
       this.ansiTerminal.enableRawMode();
 
       await this.rmqReader.start();
@@ -231,7 +234,13 @@ export class OpsTuiApp {
       currentStage: state.stage,
     };
 
-    const frame = this.renderer.renderCard(job, cardStatus);
+    const frame = this.renderer.renderCard(job, cardStatus, undefined, state.cardScroll);
+
+    // B1-5 overflow gate: publish the body's max offset for PB (change-only
+    // write inside — no watch loop). Stale by at most one render after resize.
+    try {
+      setCardScrollMax(this.renderer.cardBodyStats(job, cardStatus).maxOffset);
+    } catch {}
 
     try {
       this.ansiTerminal.write('\x1b[H\x1b[J' + frame + '\n');

@@ -23,12 +23,12 @@ export function renderStdinStatusPane(status: StdinStatus, width = 96): string {
   const last = status.lastAction
     ? `${status.lastAction} ${status.jobLifecycleId ? midTruncateId(status.jobLifecycleId, 14) : ''} ${status.udsTookMs ? `✓ ${status.udsTookMs}ms` : ''}`.trim()
     : '—';
-  const line1 = ` last: ${last} | mode: queue:${status.queueMode ? 'ON' : 'OFF'} | proc: ${status.processedCount}/1000${status.modalActive ? ' | modal: ↑/↓' : ''}`;
+  const line1 = ` last: ${last} | mode: queue:${status.queueMode ? 'ON' : 'OFF'} | proc: ${status.processedCount}/1000${status.modalActive ? ' | modal: ↑/↓' : ' | card: ↑/↓'}`;
   lines.push(`│${truncate(line1, inner).padEnd(inner)}│`);
 
   const line2 = status.lastError
     ? ` err: ${truncate(status.lastError, inner - 7)}`
-    : ' keys: j d p c o i b ? q  • ↑/↓ ESC modal';
+    : ' keys: j d p c o i b ? q  • ↑/↓ scroll ESC modal';
   lines.push(`│${truncate(line2, inner).padEnd(inner)}│`);
 
   lines.push(`└${border}┘`);

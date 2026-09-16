@@ -24,6 +24,12 @@ export interface CardStatus {
   currentStage?: string | null;
 }
 
+export interface CardBodyStats {
+  total: number;
+  visible: number;
+  maxOffset: number;
+}
+
 export class JobCardRenderer {
   private terminalWidth: number;
   private terminalHeight: number;
@@ -34,40 +40,66 @@ export class JobCardRenderer {
   }
 
   /**
+   * B1-5 overflow gate: body/window metrics for the PA publish step.
+   * Pure function of (job, status, action, pane height) — PA persists
+   * `maxOffset` via `setCardScrollMax` so PB can no-op without rendering.
+   */
+  cardBodyStats(job: Job | null, status: CardStatus, actionInProgress?: string): CardBodyStats {
+    const headLen = 2; // clear + header
+    const footLen = (!job ? this.renderFooter(false, status) : this.renderFooter(true, status)).split(
+      '\n'
+    ).length;
+    const bodyLen = !job
+      ? 2 + this.renderWaitingState(status).split('\n').length
+      : 2 +
+        this.renderMetadata(job).split('\n').length +
+        (actionInProgress ? 2 : 0);
+    const reserved = headLen + footLen + 1; // +1 scroll indicator line
+    const visible = Math.max(1, this.terminalHeight - reserved);
+    return { total: bodyLen, visible, maxOffset: Math.max(0, bodyLen - visible) };
+  }
+
+  /**
    * Render a complete job card with header, metadata, and footer.
    * Returns complete ANSI frame as single string (cleared + rendered).
+   * Head/foot are fixed; the body window scrolls by `cardScroll` lines when
+   * it overflows the visible pane height. Output is byte-identical to the
+   * unwindowed frame whenever the body fits.
    */
-  renderCard(job: Job | null, status: CardStatus, actionInProgress?: string): string {
-    const lines: string[] = [];
+  renderCard(
+    job: Job | null,
+    status: CardStatus,
+    actionInProgress?: string,
+    cardScroll = 0
+  ): string {
+    // Fixed head: clear + header
+    const head: string[] = ['\x1b[2J\x1b[H', this.renderHeader(status)];
 
-    // Clear screen and home cursor
-    lines.push('\x1b[2J\x1b[H');
-
-    // Header with status indicators
-    lines.push(this.renderHeader(status));
-
+    // Scrollable body + fixed foot
+    let body: string[];
+    let foot: string[];
     if (!job) {
-      lines.push('');
-      lines.push(this.renderWaitingState(status));
-      lines.push('');
-      lines.push(this.renderFooter(false, status));
-      return lines.join('\n');
+      body = ['', ...this.renderWaitingState(status).split('\n'), ''];
+      foot = this.renderFooter(false, status).split('\n');
+    } else {
+      body = ['', ...this.renderMetadata(job).split('\n')];
+      if (actionInProgress) {
+        body.push('', `║  🔄 ${actionInProgress}...`);
+      }
+      body.push('');
+      foot = this.renderFooter(true, status).split('\n');
     }
 
-    // Job metadata
-    lines.push('');
-    lines.push(this.renderMetadata(job));
+    // Window the body to the visible pane height (single source: cardBodyStats)
+    const { total, visible, maxOffset } = this.cardBodyStats(job, status, actionInProgress);
+    const offset = Math.max(0, Math.min(Math.floor(cardScroll) || 0, maxOffset));
+    const shown = body.slice(offset, offset + visible);
 
-    // Action in progress
-    if (actionInProgress) {
-      lines.push('');
-      lines.push(`║  🔄 ${actionInProgress}...`);
+    const lines = [...head];
+    if (total > visible) {
+      lines.push(`╟─ ↕ ${offset + 1}–${offset + shown.length}/${total} (↑/↓ scroll)`);
     }
-
-    // Always show footer (actions guide)
-    lines.push('');
-    lines.push(this.renderFooter(true, status));
-
+    lines.push(...shown, ...foot);
     return lines.join('\n');
   }
 

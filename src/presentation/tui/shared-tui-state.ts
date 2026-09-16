@@ -41,6 +41,7 @@ export interface CurrentJobState {
   job: Job | null;
   stage: CurrentJobStage;
   modal: ModalState;
+  cardScroll: number;
   updatedAt: string | null;
 }
 
@@ -50,6 +51,8 @@ interface ModeSubState {
   stage: CurrentJobStage;
   editedFields: Record<string, unknown> | null;
   modal: ModalState;
+  cardScroll: number;
+  cardScrollMax: number;
 }
 
 interface TuiSharedState {
@@ -90,6 +93,8 @@ function createDefaultModeSubState(): ModeSubState {
     stage: null,
     editedFields: null,
     modal: null,
+    cardScroll: 0,
+    cardScrollMax: 0,
   };
 }
 
@@ -130,6 +135,8 @@ function readSharedStateFromDisk(): TuiSharedState {
             : null,
         modal:
           parsed.modal && typeof parsed.modal === 'object' ? (parsed.modal as ModalState) : null,
+        cardScroll: 0,
+        cardScrollMax: 0,
       };
       const migrated: TuiSharedState = {
         version: STATE_VERSION,
@@ -182,6 +189,14 @@ function parseModeSubState(raw: Record<string, unknown>): ModeSubState {
         ? (raw.editedFields as Record<string, unknown>)
         : null,
     modal: raw.modal && typeof raw.modal === 'object' ? (raw.modal as ModalState) : null,
+    cardScroll:
+      typeof raw.cardScroll === 'number' && raw.cardScroll >= 0
+        ? Math.floor(raw.cardScroll)
+        : 0,
+    cardScrollMax:
+      typeof raw.cardScrollMax === 'number' && raw.cardScrollMax >= 0
+        ? Math.floor(raw.cardScrollMax)
+        : 0,
   };
 }
 
@@ -264,6 +279,24 @@ function persist(root: TuiSharedState): void {
   writeSharedStateToDisk(root);
 }
 
+/**
+ * Single canonical recreate side: ensure the shared IPC file exists.
+ * Reuses `writeSharedStateToDisk` (mkdir + atomic tmp→rename) — no inline duplicate.
+ * Existing file (even corrupt/legacy) is left untouched for callers to migrate on read.
+ * Missing file → persists in-memory defaults so `ipc` probe flips 0→1 and `watch` succeeds.
+ */
+export function ensureSharedStateFile(): string {
+  const sp = resolveStatePath();
+  try {
+    accessSync(sp, constants.F_OK);
+    return sp;
+  } catch {
+    // absent → create via the one existing write block
+  }
+  writeSharedStateToDisk(sharedState);
+  return sp;
+}
+
 export function setCurrentJob(
   jobLifecycleId: string,
   job: Job,
@@ -296,6 +329,8 @@ export function setCurrentJob(
       stage,
       editedFields: null,
       modal: null,
+      cardScroll: 0,
+      cardScrollMax: 0,
     });
     persist(updated);
 
@@ -317,6 +352,7 @@ export function getCurrentJob(): CurrentJobState {
     job: sub.job,
     stage: sub.stage,
     modal: sub.modal,
+    cardScroll: typeof sub.cardScroll === 'number' ? sub.cardScroll : 0,
     updatedAt: root.updatedAt,
   };
 }
@@ -456,6 +492,66 @@ export function updatePreviewPage(direction: 'up' | 'down'): void {
       modal: { ...modal, currentPage: nextPage },
     });
   });
+}
+
+/**
+ * B1 card-scroll: move the PA job-card body offset by one line.
+ * Clamped to [0, stored max] — PA publishes the max per render; the top clamp
+ * stops high-rate bursts from running the offset into the thousands.
+ * Returns the persisted offset.
+ */
+export function updateCardScroll(direction: 'up' | 'down', step = 1): number {
+  let offset = 0;
+  withExclusiveLock(() => {
+    const root = readSharedStateFromDisk();
+    const key = activeModeKey(root.queueMode);
+    const sub = root[key];
+    const cur = typeof sub.cardScroll === 'number' && sub.cardScroll >= 0 ? sub.cardScroll : 0;
+    const max =
+      typeof sub.cardScrollMax === 'number' && sub.cardScrollMax >= 0 ? sub.cardScrollMax : 0;
+    offset =
+      direction === 'down'
+        ? Math.min(cur + step, max)
+        : Math.max(0, cur - step);
+    persistMode(key, { cardScroll: offset });
+  });
+  return offset;
+}
+
+export function getCardScroll(): number {
+  const root = readSharedStateFromDisk();
+  const sub = getActiveSub(root);
+  return typeof sub.cardScroll === 'number' && sub.cardScroll >= 0 ? sub.cardScroll : 0;
+}
+
+/**
+ * B1-5 overflow gate: PA publishes the body's max scroll offset per render.
+ * Writes only when the value differs — PA renders on every watched write, so an
+ * unconditional persist here would retrigger its own watcher (write loop).
+ */
+export function setCardScrollMax(max: number): void {
+  const next = Math.max(0, Math.floor(max) || 0);
+  withExclusiveLock(() => {
+    const root = readSharedStateFromDisk();
+    const key = activeModeKey(root.queueMode);
+    const cur = root[key].cardScrollMax;
+    if (cur === next) return;
+    persistMode(key, {
+      cardScrollMax: next,
+      cardScroll: Math.min(
+        typeof root[key].cardScroll === 'number' ? root[key].cardScroll : 0,
+        next
+      ),
+    });
+  });
+}
+
+export function getCardScrollMax(): number {
+  const root = readSharedStateFromDisk();
+  const sub = getActiveSub(root);
+  return typeof sub.cardScrollMax === 'number' && sub.cardScrollMax >= 0
+    ? sub.cardScrollMax
+    : 0;
 }
 
 export function clearModal(): void {

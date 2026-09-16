@@ -191,10 +191,16 @@ export class ActionController {
           break;
 
         case KeyAction.MODAL_DISCARD:
-        case KeyAction.MODAL_SCROLL_UP:
-        case KeyAction.MODAL_SCROLL_DOWN:
-          // These should only be used when a modal is active
+          // Only used when a modal is active
           logger.warn(' Modal action received but no modal active', { action });
+          break;
+
+        case KeyAction.MODAL_SCROLL_UP:
+          await this.handleCardScroll('up');
+          break;
+
+        case KeyAction.MODAL_SCROLL_DOWN:
+          await this.handleCardScroll('down');
           break;
 
         default:
@@ -257,6 +263,28 @@ export class ActionController {
       updatePreviewPage('down');
     } catch (err) {
       logger.error('Preview scroll down failed', { error: String(err) });
+    }
+  }
+
+  /**
+   * B1 card-scroll: no modal active → ↑/↓ scroll the PA job card by default.
+   * B1-5 overflow gate: when the card fits the pane (max 0) this is a no-op —
+   * no IPC write, info-level log per press so the capture stays visible in PE.
+   * Scroll writes stay debug-level: high-rate bursts must not pollute PE.
+   */
+  private async handleCardScroll(direction: 'up' | 'down'): Promise<void> {
+    try {
+      const { updateCardScroll, getCardScrollMax } = await import('./shared-tui-state.js');
+      if (getCardScrollMax() <= 0) {
+        this.lastAction = 'card_scroll_noop';
+        logger.info('Card scroll no-op — fits pane', { direction });
+        return;
+      }
+      const offset = updateCardScroll(direction);
+      this.lastAction = direction === 'up' ? 'card_scroll_up' : 'card_scroll_down';
+      logger.debug('Card scroll', { direction, offset });
+    } catch (err) {
+      logger.error('Card scroll failed', { error: String(err) });
     }
   }
 

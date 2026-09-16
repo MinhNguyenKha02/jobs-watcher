@@ -3,15 +3,15 @@
 ################################################################################
 # Tmux Setup Script for Ops TUI - 5-Pane PA-PE/PB-PE/PC-PD GH-Dark
 #
-# Layout (Option A full-width bottom 25%):
+# Layout (Option A full-width bottom 17%):
 #   ┌──────────────────┬──────────────────┐
-#   │ PA stdout h28    │ PE stderr h36    │  top PE=PA+PB span
-#   │   96x28 0,0      │  64x36 96,0      │  w 60% | 40%
+#   │ PA stdout h32    │ PE stderr h40    │  top PE=PA+PB span
+#   │   96x32 0,0      │  64x40 96,0      │  w 60% | 40%
 #   ├──────────────────┤                  │
-#   │ PB stdin h8      │                  │  96x8 0,28 2-line
+#   │ PB stdin h8      │                  │  96x8 0,32 2-line
 #   ├──────────────────┴──────────────────┤
-#   │ PC tui-poll 96x12│ PD daemon-poll   │  bottom h12 full-width
-#   │  60% 0,36        │  40% 64x12 96,36 │  4-line compact
+#   │ PC tui-poll 96x8 │ PD daemon-poll   │  bottom h8 full-width
+#   │  60% 0,40        │  40% 64x8 96,40  │  4-line compact
 #   └──────────────────┴──────────────────┘
 #   160×48 Tc GH-Dark 38;2 peekIds 19ee…job-N 5× midTruncate 11
 #
@@ -58,11 +58,11 @@ tmux set -g allow-passthrough on 2>/dev/null || true
 tmux set -g set-clipboard on 2>/dev/null || true
 tmux set -g pane-base-index 0 2>/dev/null || true
 tmux set -g base-index 0 2>/dev/null || true
-# 5-pane Option A full-width bottom 25% — PA 60% h28 | PE 40% h36=PA+PB span / PB h8 2-line / PC 60% h12 | PD 40% h12
+# 5-pane Option A full-width bottom 17% — PA 60% h32 | PE 40% h40=PA+PB span / PB h8 2-line / PC 60% h8 | PD 40% h8
 # pane_id stable: avoid pane_index renumber after -h split (was 0.1→PE, 0.2→bottom)
 # split-window -P -F "#{pane_id}" prints pane_id %N; -Pf is -P -f + shell cmd (bug -> dead #{pane_id} pane)
 tmux new-session -d -s "$SESSION_NAME" -x 160 -y 48
-BOTTOM=$(tmux split-window -v -P -F "#{pane_id}" -t "$SESSION_NAME:0.0" -p 25)           # bottom h12 full-width
+BOTTOM=$(tmux split-window -v -P -F "#{pane_id}" -t "$SESSION_NAME:0.0" -p 17)           # bottom h8 full-width
 PE=$(tmux split-window -h -P -F "#{pane_id}" -t "$SESSION_NAME:0.0" -p 40)             # top PE 40% span
 PB=$(tmux split-window -v -P -F "#{pane_id}" -t "$SESSION_NAME:0.0" -p 22)             # left PB h8 2-line
 PD=$(tmux split-window -h -P -F "#{pane_id}" -t "$BOTTOM" -p 40)                       # bottom PD 40% (BOTTOM stays PC 60%)
