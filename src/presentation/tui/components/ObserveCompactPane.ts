@@ -69,8 +69,12 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
     findMetric(metrics, 'jobStageTotal', { stage: 's3', status: 'trashed', source: 'manual' }) ?? 0;
   const flt = (source: string, stage: string): number =>
     findMetric(metrics, 'jobFilterRejectTotal', { source, stage }) ?? 0;
+  // Path stage/phase inflight (independent of flt, inc/dec at transitions).
+  // PC runs wide (70%) so all 4 groups fit; narrow widths truncate the tail gracefully.
+  const inGrp = (source: string, phase: string): number =>
+    sumMetricWhere(metrics, 'jobsInFlight', { source, phase });
   // flt labels compact (flt[a1] = auto/s1) to hold the 64-col pane without truncation.
-  const line1 = ` q[a]:${qa} q[m]:${qm} t[a]:${ta} t[m]:${tm} flt[a1]:${flt('browser-auto', 's1')} flt[a2]:${flt('browser-auto', 's2')} flt[m2]:${flt('manual', 's2')}`;
+  const line1 = ` q[a]:${qa} q[m]:${qm} t[a]:${ta} t[m]:${tm} flt[a1]:${flt('browser-auto', 's1')} flt[a2]:${flt('browser-auto', 's2')} flt[m2]:${flt('manual', 's2')} in[a1e]:${inGrp('browser-auto', 'enriching')} in[a2e]:${inGrp('browser-auto', 'enriched')} in[m1e]:${inGrp('manual', 'enriching')} in[m2e]:${inGrp('manual', 'enriched')}`;
   lines.push(`│${truncate(line1, inner).padEnd(inner)}│`);
 
   // L2: merged process + infra (component names kept verbatim; truncate, full names in JSON).
