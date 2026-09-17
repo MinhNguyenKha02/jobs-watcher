@@ -1,6 +1,6 @@
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 3000;
 const OBSERVABILITY_URL = process.env.OBSERVABILITY_URL || 'http://localhost:9090/health/observability';
-// TUI-port join for pub-vs-consumed balance (L6). Best-effort: TUI down → pub-only degradation.
+// TUI-port join for pub-vs-ack balance (L6). Best-effort: TUI down → pub-only degradation.
 const TUI_OBSERVABILITY_URL =
   process.env.TUI_OBSERVABILITY_URL || 'http://localhost:9091/health/observability';
 

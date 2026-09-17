@@ -36,6 +36,7 @@ export class OpsTuiApp {
   private state: TuiState = 'IDLE';
   private lastRenderedModalSignature: string = 'null';
   private lastRenderedJobLifecycleId: string | null = null;
+  private lastRenderedCardScroll = 0;
   private lastQueueMode = true;
   private unwatchState: (() => void) | null = null;
   private probeTimer: ReturnType<typeof setInterval> | null = null;
@@ -105,6 +106,7 @@ export class OpsTuiApp {
           if (!this.isRunning) return;
           this.lastRenderedModalSignature = JSON.stringify(s.modal ?? null);
           this.lastRenderedJobLifecycleId = s.jobLifecycleId;
+          this.lastRenderedCardScroll = s.cardScroll;
           this.currentJob = s.job;
           this.state = s.job ? 'DISPLAY' : 'IDLE';
           this.lastQueueMode = getQueueMode();
@@ -159,6 +161,7 @@ export class OpsTuiApp {
           this.currentJob = stateFileJob.job;
           this.state = stateFileJob.job ? 'DISPLAY' : 'IDLE';
           this.lastRenderedJobLifecycleId = stateFileJob.jobLifecycleId;
+          this.lastRenderedCardScroll = stateFileJob.cardScroll;
           this.renderFrame(this.currentJob);
         }
 
@@ -166,6 +169,7 @@ export class OpsTuiApp {
         if (modalSignature !== this.lastRenderedModalSignature) {
           this.lastRenderedModalSignature = modalSignature;
           this.lastRenderedJobLifecycleId = stateFileJob.jobLifecycleId;
+          this.lastRenderedCardScroll = stateFileJob.cardScroll;
           this.currentJob = stateFileJob.job;
           this.state = stateFileJob.job ? 'DISPLAY' : 'IDLE';
           this.renderFrame(stateFileJob.job);
@@ -174,6 +178,15 @@ export class OpsTuiApp {
         // IPC job change (RMQ MAKES via set/clear + autoAdvance): repaint PA.
         if (stateFileJob.jobLifecycleId !== this.lastRenderedJobLifecycleId) {
           this.lastRenderedJobLifecycleId = stateFileJob.jobLifecycleId;
+          this.lastRenderedCardScroll = stateFileJob.cardScroll;
+          this.currentJob = stateFileJob.job;
+          this.state = stateFileJob.job ? 'DISPLAY' : 'IDLE';
+          this.renderFrame(stateFileJob.job);
+        }
+
+        // Card-scroll-only IPC write (PB ↑/↓): repaint PA at the new offset.
+        if (stateFileJob.cardScroll !== this.lastRenderedCardScroll) {
+          this.lastRenderedCardScroll = stateFileJob.cardScroll;
           this.currentJob = stateFileJob.job;
           this.state = stateFileJob.job ? 'DISPLAY' : 'IDLE';
           this.renderFrame(stateFileJob.job);
@@ -182,6 +195,7 @@ export class OpsTuiApp {
         if (renderCount === 0) {
           renderCount++;
           this.lastRenderedJobLifecycleId = stateFileJob.jobLifecycleId;
+          this.lastRenderedCardScroll = stateFileJob.cardScroll;
           this.currentJob = stateFileJob.job;
           this.state = stateFileJob.job ? 'DISPLAY' : 'IDLE';
           this.renderFrame(stateFileJob.job);
@@ -193,6 +207,7 @@ export class OpsTuiApp {
             this.currentJob = stateFileJob.job;
             this.state = stateFileJob.job ? 'DISPLAY' : 'IDLE';
             this.lastRenderedJobLifecycleId = stateFileJob.jobLifecycleId;
+            this.lastRenderedCardScroll = stateFileJob.cardScroll;
             this.renderFrame(this.currentJob);
           }
           await this.sleep(50);
