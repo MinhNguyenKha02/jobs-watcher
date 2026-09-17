@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
+import { assertJobErrors } from '../../helpers/assert-metrics.js';
 import { assertPicked } from '../../helpers/assert-path.js';
 import { indeedEmailHtmlMany, indeedDetailHtml } from '../../helpers/html-fixtures.js';
 import { whenS1Many, whenQueue, whenTrash } from '../../helpers/saga.js';
@@ -218,6 +219,13 @@ describe('Path c2 — S1→S2c auto Indeed next s1[4] (mocked)', () => {
     );
     expect(parsePort.emitCompleted).not.toHaveBeenCalled();
     await daemon.apps.scheduler.stop();
+  });
+
+  it('GIVEN upsert 11000 duplicate WHEN ingest THEN duplicate_job counted, no trash emit · path c2', async () => {
+    (storage.upsert as unknown as ReturnType<typeof vi.fn>).mockRejectedValue({ code: 11000 });
+    await whenS1Many(daemon, s1Indeed4('C2D'), 's1-c2d');
+    await assertJobErrors(daemon.metricsRegistry, { stage: 's1', errorType: 'duplicate_job' }, 1);
+    expect(routingPort.emitJobTrashed).not.toHaveBeenCalled();
   });
 
   it('GIVEN scheduler idle WHEN start/stop THEN browser lifecycle · path c2 SRE', async () => {

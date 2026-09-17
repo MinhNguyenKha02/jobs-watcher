@@ -96,10 +96,10 @@ export async function assertInfraReady(registry: DaemonMetricsPort | TuiMetricsP
   if (v !== expected) throw new Error(`infraReady{component=${component}} ${v} !== ${expected} — ${JSON.stringify(m.infraReady)}`);
 }
 
-export async function assertRmqAck(registry: TuiMetricsPort, queue: string, min = 1): Promise<void> {
+export async function assertRmqReady(registry: TuiMetricsPort, queue: string, expected: number): Promise<void> {
   const m = await getTuiMetrics(registry);
-  const v = findMetric(m, 'rmqAckTotal', { queue }) ?? 0;
-  if (v < min) throw new Error(`rmqAckTotal{queue=${queue}} ${v} < ${min}`);
+  const v = findMetric(m, 'rmqReady', { queue }) ?? 0;
+  if (v !== expected) throw new Error(`rmqReady{queue=${queue}} ${v} !== ${expected}`);
 }
 
 export async function assertRmqPendingIds(registry: TuiMetricsPort, expectedCount: number): Promise<void> {

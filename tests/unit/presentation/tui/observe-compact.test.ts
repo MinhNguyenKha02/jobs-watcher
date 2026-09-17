@@ -123,7 +123,7 @@ describe('ObserveCompactPane compact', () => {
     expect(frame).not.toContain('s1_s2 4.31s🔴');
   });
 
-  it('GIVEN daemon pub plus tui consumed WHEN render THEN signed deltas with detail', () => {
+  it('GIVEN daemon pubs plus tui ready+unack WHEN render THEN implied held deltas with s2d', () => {
     const frame = renderObserveCompactPane(
       {
         metrics: {
@@ -135,17 +135,40 @@ describe('ObserveCompactPane compact', () => {
           ],
         },
         tuiMetrics: {
-          rmqAckTotal: [
-            { labels: { queue: 'tui.s1' }, value: 14 },
-            { labels: { queue: 'tui.s2' }, value: 3 },
-            { labels: { queue: 'tui.s3s4' }, value: 15 },
+          rmqReady: [{ labels: { queue: 'tui.s1' }, value: 0 }],
+          rmqUnack: [
+            { labels: { queue: 'tui.s1' }, value: 1 },
+            { labels: { queue: 'tui.s2' }, value: 0 },
+            { labels: { queue: 'tui.s2direct' }, value: 0 },
+            { labels: { queue: 'tui.s3s4' }, value: 0 },
           ],
         },
       } as any,
-      64,
+      96,
     );
-    expect(frame).toContain('pub s1:+1 s2:+0 s3s4:+0');
+    expect(frame).toContain('pub s1:+14 s2:+3 s2d:+3 s3s4:+15');
     expect(frame).toContain('(g:15 pc:3 pf:0 q:4 t:11 rf:0)');
+  });
+
+  it('GIVEN post-restart rebuilt unack+ready with no ack series WHEN render THEN identical L6 as pre-restart', () => {
+    const daemonMetrics = {
+      rmqPublishedTotal: [
+        { labels: { routingKey: 'job.generated' }, value: 15 },
+        { labels: { routingKey: 'job.parse.completed' }, value: 4 },
+      ],
+    };
+    // Pre-restart: proc held 4 s1 (1 consumed into pending + 3 redeliverable).
+    // Post-restart: same 4 rebuilt via redelivery (unack) + checkQueue (ready).
+    // No rmqAckTotal series exists in either — broker forgets acks.
+    const held = {
+      rmqReady: [{ labels: { queue: 'tui.s1' }, value: 0 }],
+      rmqUnack: [{ labels: { queue: 'tui.s1' }, value: 4 }],
+    };
+    const before = renderObserveCompactPane({ metrics: daemonMetrics, tuiMetrics: held } as any, 96);
+    const after = renderObserveCompactPane({ metrics: daemonMetrics, tuiMetrics: held } as any, 96);
+    const l6 = (f: string): string => f.split('\n').find((l) => l.includes('pub s1:')) ?? '';
+    expect(l6(after)).toBe(l6(before));
+    expect(l6(after)).toContain('pub s1:+11 s2:+4 s2d:+4 s3s4:+0');
   });
 
   it('GIVEN no tui join WHEN render THEN pub-only detail with dash deltas', () => {
@@ -157,7 +180,7 @@ describe('ObserveCompactPane compact', () => {
       } as any,
       64,
     );
-    expect(frame).toContain('pub s1:— s2:— s3s4:—');
+    expect(frame).toContain('pub s1:— s2:— s2d:— s3s4:—');
     expect(frame).toContain('g:5');
   });
 

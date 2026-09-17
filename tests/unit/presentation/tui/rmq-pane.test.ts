@@ -44,7 +44,7 @@ describe('RmqConsumerPane', () => {
     expect(frame).toContain('+1 more');
   });
 
-  it('GIVEN infraReady + consumed WHEN renderFromMetrics THEN infra and consumed lines', () => {
+  it('GIVEN infraReady + unack + ready WHEN renderFromMetrics THEN infra, unack-only and R total', () => {
     const frame = renderRmqConsumerPaneFromMetrics(
       {
         rmqPendingDepth: [{ labels: { queue: 'total' }, value: 2 }],
@@ -62,20 +62,21 @@ describe('RmqConsumerPane', () => {
           { labels: { id: '19ee…job-1' }, value: 1 },
           { labels: { id: '19ea…job-7' }, value: 1 },
         ],
-        rmqAckTotal: [
-          { labels: { queue: 'tui.s1' }, value: 5 },
-          { labels: { queue: 'tui.s2' }, value: 3 },
-        ],
         rmqUnack: [
           { labels: { queue: 'tui.s1' }, value: 1 },
           { labels: { queue: 'tui.s2direct' }, value: 0 },
+        ],
+        rmqReady: [
+          { labels: { queue: 'tui.s1' }, value: 2 },
+          { labels: { queue: 'tui.s2' }, value: 0 },
         ],
       },
       96,
     );
     expect(frame).toContain('infra rmq:1');
-    expect(frame).toContain('ack s1:+5 s2:+3 s2d:+0 s34:+0');
-    expect(frame).toContain('unack s1:1');
+    expect(frame).toContain('Q(tui):2 P:1 F:1 D:0 R:2');
+    expect(frame).toContain('unack s1:1 s2:0 s2d:0 s34:0');
+    expect(frame).not.toContain(' ack ');
     expect(frame).not.toContain('pref 5/5/1/5');
   });
 
