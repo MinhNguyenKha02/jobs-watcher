@@ -62,16 +62,20 @@ describe('RmqConsumerPane', () => {
           { labels: { id: '19ee…job-1' }, value: 1 },
           { labels: { id: '19ea…job-7' }, value: 1 },
         ],
-        rmqConsumedTotal: [
-          { labels: { queue: 'tui.s1', routingKey: 'job.generated' }, value: 5 },
-          { labels: { queue: 'tui.s2', routingKey: 'job.parse.completed' }, value: 3 },
+        rmqAckTotal: [
+          { labels: { queue: 'tui.s1' }, value: 5 },
+          { labels: { queue: 'tui.s2' }, value: 3 },
+        ],
+        rmqUnack: [
+          { labels: { queue: 'tui.s1' }, value: 1 },
+          { labels: { queue: 'tui.s2direct' }, value: 0 },
         ],
       },
       96,
     );
     expect(frame).toContain('infra rmq:1');
-    expect(frame).toContain('consumed:');
-    expect(frame).toContain('tui.s1 5');
+    expect(frame).toContain('ack s1:+5 s2:+3 s2d:+0 s34:+0');
+    expect(frame).toContain('unack s1:1');
     expect(frame).not.toContain('pref 5/5/1/5');
   });
 

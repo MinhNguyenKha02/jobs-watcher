@@ -172,4 +172,16 @@ describe('B1 card-scroll renderer', () => {
       tight.renderCard(tallJob, { ...status }, undefined, stats.maxOffset)
     );
   });
+
+  it('GIVEN scroll-only IPC write WHEN renderCard at persisted offset THEN window advances (PA repaint target)', () => {
+    const renderer = new JobCardRenderer(80, 12);
+    const stats = renderer.cardBodyStats(tallJob, { ...status });
+    setCardScrollMax(stats.maxOffset);
+    updateCardScroll('down');
+    updateCardScroll('down');
+    const scrolled = renderer.renderCard(tallJob, { ...status }, undefined, getCardScroll());
+    expect(getCardScroll()).toBe(2);
+    expect(scrolled).toContain('↕ 3–');
+    expect(scrolled).not.toBe(renderer.renderCard(tallJob, { ...status }, undefined, 0));
+  });
 });

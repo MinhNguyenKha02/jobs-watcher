@@ -37,6 +37,22 @@ describe('ObserveCompactPane compact', () => {
     expect(frame).toContain('flt[a1]:4 flt[a2]:2 flt[m2]:1');
   });
 
+  it('GIVEN enriched inflight in JSON WHEN render THEN L4 stays extraction-scoped (groups explicit in JSON only)', () => {
+    const frame = renderObserveCompactPane(
+      {
+        metrics: {
+          jobsInFlight: [
+            { labels: { stage: 's1', source: 'browser-auto', phase: 'enriching' }, value: 3 },
+            { labels: { stage: 's2', source: 'browser-auto', phase: 'enriched' }, value: 2 },
+            { labels: { stage: 's2', source: 'manual', phase: 'enriched' }, value: 1 },
+          ],
+        },
+      } as any,
+      96,
+    );
+    expect(frame).toContain('extr_q depth:0 inflight:3 idle:0');
+  });
+
   it('GIVEN errors by stage WHEN render THEN grouped counts plus total', () => {
     const frame = renderObserveCompactPane(
       {
@@ -52,19 +68,22 @@ describe('ObserveCompactPane compact', () => {
     expect(frame).toContain('error[s1:0 s2:1 s3:0 ext:2 res:0 tot:3]');
   });
 
-  it('GIVEN in-flight jobs WHEN render THEN busy and idle derived from pool of 3', () => {
+  it('GIVEN in-flight jobs WHEN render THEN extraction-scoped inflight and idle', () => {
     const frame = renderObserveCompactPane(
       {
         metrics: {
           extractionQueueDepth: [{ labels: {}, value: 2 }],
           extractionQueueEnqueueTotal: [{ labels: {}, value: 10 }],
           extractionQueueDequeueTotal: [{ labels: {}, value: 8 }],
-          jobsInFlight: [{ labels: { stage: 's1' }, value: 2 }],
+          jobsInFlight: [
+            { labels: { stage: 's1', source: 'browser-auto', phase: 'enriching' }, value: 2 },
+            { labels: { stage: 's2', source: 'browser-auto', phase: 'enriched' }, value: 5 },
+          ],
         },
       } as any,
       64,
     );
-    expect(frame).toContain('extr_q depth:2 in-flight:2 workers busy:2 idle:1');
+    expect(frame).toContain('extr_q depth:2 inflight:2 idle:1');
   });
 
   it('GIVEN slow durations WHEN render THEN red flag appended, values kept', () => {
@@ -100,7 +119,7 @@ describe('ObserveCompactPane compact', () => {
           ],
         },
         tuiMetrics: {
-          rmqConsumedTotal: [
+          rmqAckTotal: [
             { labels: { queue: 'tui.s1' }, value: 14 },
             { labels: { queue: 'tui.s2' }, value: 3 },
             { labels: { queue: 'tui.s3s4' }, value: 15 },
