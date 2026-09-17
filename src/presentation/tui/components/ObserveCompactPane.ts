@@ -11,8 +11,6 @@ export interface ObserveSnapshot {
   metrics?: Record<string, Array<{ labels: Record<string, string>; value: number }>>;
   containers?: unknown;
   health?: unknown;
-  /** Best-effort TUI-port (9091) metrics joined by the poller for pub-vs-consumed balance. */
-  tuiMetrics?: Record<string, Array<{ labels: Record<string, string>; value: number }>>;
   [key: string]: unknown;
 }
 
@@ -130,47 +128,13 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
   const line5 = ` dur s1_s2 ${flag(dS1S2, DUR_SLOW_S)} s2_s3 ${flag(dS2S3, DUR_SLOW_S)} extr ${flag(dExtr, EXTR_SLOW_S)}`;
   lines.push(`│${truncate(line5, inner).padEnd(inner)}│`);
 
-  // L6: publisher-vs-held balance (no ack series: broker forgets acks, so an
-  // in-mem ack counter resets on TUI restart while daemon pubs persist).
-  // Δ[q] = pubs[q] − ready[q] − unack[q] rebuilds identically after restart
-  // (redelivery restores unack, checkQueue restores ready). Fanout note: one
-  // pc publish lands in BOTH s2 and s2direct, but the two lifecycles differ:
-  // s2 is held-until-s34 (tag kept, ack deferred to s34 drain), while s2direct
-  // in queue-mode is an immediate nack(drop) and never enters held (prefetch 1,
-  // no pending accumulation); direct-mode mirrors this. The inactive branch is
-  // therefore measured against 0 pubs, not pc (else a permanent +pc bias).
-  // Polls stay 1s (daemon+tui); ready refresh stays 5s (stale-ready flicker only).
   const g = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.generated' }) ?? 0;
   const pc = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.parse.completed' }) ?? 0;
   const pf = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.parse.failed' }) ?? 0;
   const q = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.queue' }) ?? 0;
   const t = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.trash' }) ?? 0;
   const rf = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.route.failed' }) ?? 0;
-  const tui = data.tuiMetrics;
-  let line6: string;
-  if (tui) {
-    const held = (queue: string): number =>
-      sumMetricWhere(tui, 'rmqReady', { queue }) + sumMetricWhere(tui, 'rmqUnack', { queue });
-    const d = (pub: number, queue: string): string => {
-      const v = pub - held(queue);
-      return `${v > 0 ? '+' : ''}${v}`;
-    };
-    const d34v = pf + q + t + rf - held('tui.s3s4');
-    const d34 = `${d34v > 0 ? '+' : ''}${d34v}`;
-    const qmode = findMetric(tui, 'infraReady', { component: 'queue_mode' });
-    let s2pub = pc;
-    let s2dpub = pc;
-    if (qmode !== undefined) {
-      if (qmode > 0) {
-        s2dpub = 0;
-      } else {
-        s2pub = 0;
-      }
-    }
-    line6 = ` pub s1:${d(g, 'tui.s1')} s2:${d(s2pub, 'tui.s2')} s2d:${d(s2dpub, 'tui.s2direct')} s3s4:${d34} (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;
-  } else {
-    line6 = ` pub s1:— s2:— s2d:— s3s4:— (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;
-  }
+  const line6 = ` pub g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf}`;
   lines.push(`│${truncate(line6, inner).padEnd(inner)}│`);
 
   lines.push(`└${border}┘`);
