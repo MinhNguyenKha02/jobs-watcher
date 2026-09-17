@@ -67,9 +67,9 @@ OFFENDING_QUEUES=()
 declare -A QDETAIL=() # name -> "ready unacked consumers"
 while IFS= read -r row; do
   [[ -z "$row" ]] && continue
-  [[ "$row" == "name" ]] && continue # rabbitmqctl header row (no --quiet)
   # columns: name ready unacked consumers (queue names never contain spaces)
   q="${row%%[[:space:]]*}"
+  [[ "$q" == "name" ]] && continue # rabbitmqctl header row (with or without --quiet)
   rest="$(echo "$row" | awk '{print $(NF-2), $(NF-1), $NF}')"
   if is_prod_queue "$q"; then
     PROD=$((PROD + 1))
@@ -86,7 +86,7 @@ EXPECTED_EX=""
 OFFENDING_EXCHANGES=()
 while IFS= read -r ex; do
   [[ -z "$ex" ]] && continue
-  [[ "$ex" == "name" ]] && continue # rabbitmqctl header row (no --quiet)
+  [[ "${ex%%[[:space:]]*}" == "name" ]] && continue # rabbitmqctl header row
   if [[ -n "$NS" && "$ex" == "jobs.events.int.${NS}" ]]; then
     EXPECTED_EX="$ex"
   elif is_test_exchange "$ex"; then
