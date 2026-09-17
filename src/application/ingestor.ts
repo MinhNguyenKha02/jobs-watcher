@@ -254,10 +254,7 @@ export class JobIngestor implements IngestorPort {
       } catch (e: unknown) {
         if ((e as { code?: unknown })?.code === 11000) {
           this.logger.info('Duplicate role+company — skipping', { jobLifeCycleId, role, company });
-          await this.routePublishingPort.emitJobTrashed(
-            jobLifeCycleId,
-            `Duplicate: ${role}/${company}`
-          );
+          this.metricsRegistry?.jobErrors.inc({ stage: 's1', error_type: 'duplicate_job' }); // duplicate role+company
           continue;
         }
         throw e;
