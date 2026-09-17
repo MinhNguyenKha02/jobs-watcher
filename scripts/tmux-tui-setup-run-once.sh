@@ -16,11 +16,11 @@
 #   160×48 Tc GH-Dark 38;2 peekIds 19ee…job-N 5× midTruncate 11
 #
 # Usage:
-#   ./scripts/tmux-tui-setup.sh [--dev] [--purge]
+#   ./scripts/tmux-tui-setup-run-once.sh [--dev] [--purge] [--auto-kill]
 ################################################################################
 
 set -euo pipefail
-IS_DEV=false; PURGE=false; for arg in "$@"; do case "$arg" in --dev) IS_DEV=true;; --purge) PURGE=true;; esac; done
+IS_DEV=false; PURGE=false; AUTO_KILL=false; for arg in "$@"; do case "$arg" in --dev) IS_DEV=true;; --purge) PURGE=true;; --auto-kill) AUTO_KILL=true;; esac; done
 if [[ "$IS_DEV" != "true" && ! -d "/opt/jobs-watcher" ]]; then echo -e "\x1b[38;2;210;153;34m[TMUX] /opt/jobs-watcher not exists (need --dev or /opt)\x1b[0m"; exit 0; fi
 if [[ "$IS_DEV" == "true" ]]; then PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; ENV_SRC=".env"
 else PROJECT_ROOT="/opt/jobs-watcher"; ENV_SRC=".env.production"; export NVM_DIR="/opt/jobs-watcher/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
@@ -48,7 +48,69 @@ SESSION_NAME="jobs"
 if ! command -v tmux >/dev/null 2>&1; then echo "tmux not found"; exit 1; fi
 if ! command -v node >/dev/null 2>&1; then echo "node not found"; exit 1; fi
 if [ ! -d "$PROJECT_ROOT/dist" ]; then echo -e "\x1b[38;2;210;153;34m[WARN] $PROJECT_ROOT/dist missing → building\x1b[0m"; if [[ -z "$RUN_AS" ]]; then bash -c "cd $PROJECT_ROOT && npm run build" >/dev/null 2>&1 || true; else $RUN_AS bash -c "cd $PROJECT_ROOT && npm run build" >/dev/null 2>&1 || true; fi; fi
-if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true; sleep 1; fi
+# --- stuck-protection: cross-socket sweep (refuse+list, or --auto-kill) ---
+# The classic stuck state: a live `jobs` session on another socket dir (or
+# socketless orphan TUI procs) while this run builds a duplicate stack.
+SOCKETS=()
+[[ -n "${TMUX_TMPDIR:-}" ]] && SOCKETS+=("$TMUX_TMPDIR/default")
+for d in /tmp/tmux-1000 /run/user/1000/tmux/tmux-1000; do
+  [[ -e "$d/default" ]] && SOCKETS+=("$d/default")
+done
+LIVE_SESS=()
+for s in ${SOCKETS[@]+"${SOCKETS[@]}"}; do
+  if tmux -S "$s" has-session -t "$SESSION_NAME" 2>/dev/null; then LIVE_SESS+=("$s"); fi
+done
+if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  already=0
+  for s in ${LIVE_SESS[@]+"${LIVE_SESS[@]}"}; do [[ "$s" == "(default)" ]] && already=1; done
+  [[ "$already" -eq 0 ]] && LIVE_SESS+=("(default)")
+fi
+ORPHANS="$(pgrep -af 'tui:tui-poll|tui:daemon-poll|tui:stdout|tui:stdin' 2>/dev/null || true)"
+if [[ "${#LIVE_SESS[@]}" -gt 0 || -n "$ORPHANS" ]]; then
+  echo -e "\x1b[38;2;210;153;34m[TMUX] live duplicates found:\x1b[0m"
+  for s in ${LIVE_SESS[@]+"${LIVE_SESS[@]}"}; do echo -e "\x1b[38;2;210;153;34m[TMUX] session jobs on socket $s\x1b[0m"; done
+  [[ -n "$ORPHANS" ]] && echo "$ORPHANS" | sed 's/^/\x1b[38;2;210;153;34m[TMUX] orphan proc: /' | sed 's/$/\x1b[0m/'
+  if [[ "$AUTO_KILL" != "true" ]]; then
+    echo -e "\x1b[38;2;248;81;73m[TMUX] refuse: rerun with --auto-kill to kill them first\x1b[0m"
+    exit 1
+  fi
+  echo -e "\x1b[38;2;210;153;34m[TMUX] --auto-kill: killing duplicates (TERM, 5s grace, then KILL)...\x1b[0m"
+  for s in ${LIVE_SESS[@]+"${LIVE_SESS[@]}"}; do
+    if [[ "$s" == "(default)" ]]; then tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
+    else tmux -S "$s" kill-session -t "$SESSION_NAME" 2>/dev/null || true; fi
+    echo -e "\x1b[38;2;210;153;34m[TMUX] killed session jobs on $s\x1b[0m"
+  done
+  if [[ -n "$ORPHANS" ]]; then
+    while IFS= read -r line; do
+      pid="${line%% *}"
+      owner="$(ps -o user= -p "$pid" 2>/dev/null | tr -d ' ' || true)"
+      if [[ "$owner" == "root" && "$(id -u)" -ne 0 ]]; then
+        echo -e "\x1b[38;2;248;81;73m[TMUX] skip root-owned pid $pid (needs sudo kill $pid)\x1b[0m"
+        continue
+      fi
+      kill "$pid" 2>/dev/null || true
+    done <<< "$ORPHANS"
+    for i in 1 2 3 4 5; do
+      REM="$(pgrep -f 'tui:tui-poll|tui:daemon-poll|tui:stdout|tui:stdin' 2>/dev/null || true)"
+      [[ -z "$REM" ]] && break
+      [[ "$i" -eq 5 ]] && echo "$REM" | while IFS= read -r line; do kill -9 "${line%% *}" 2>/dev/null || true; done
+      sleep 1
+    done
+    echo -e "\x1b[38;2;210;153;34m[TMUX] orphan TUI procs cleared\x1b[0m"
+  fi
+  sleep 1
+fi
+# --- stuck-protection: port pre-checks ---
+if ss -ltn 2>/dev/null | grep -q ':9091 '; then
+  echo -e "\x1b[38;2;248;81;73m[TMUX] refuse: 9091 listening (stale tui:stdout?) — stop it or rerun with --auto-kill\x1b[0m"
+  exit 1
+fi
+echo -e "\x1b[38;2;210;153;34m[TMUX] pre-check: 9091 free\x1b[0m"
+if ! curl -s --connect-timeout 2 http://127.0.0.1:9090/health >/dev/null 2>&1; then
+  echo -e "\x1b[38;2;210;153;34m[TMUX] WARN: daemon 9090 not up (PC will show ERR until daemon starts)\x1b[0m"
+else
+  echo -e "\x1b[38;2;210;153;34m[TMUX] pre-check: daemon 9090 up\x1b[0m"
+fi
 tmux set -g default-terminal "tmux-256color" 2>/dev/null || tmux set -g default-terminal "screen-256color" 2>/dev/null || true
 tmux set -ga terminal-overrides ",xterm-256color:Tc,*-256color:Tc,alacritty:Tc" 2>/dev/null || true
 tmux set -g xterm-keys on 2>/dev/null || true
@@ -78,4 +140,18 @@ tmux select-pane -t "$PB"
 sleep 3
 if tmux capture-pane -t "$SESSION_NAME:0.0" -p -e 2>/dev/null | grep -q $'\x1b\['; then :; else echo -e "\x1b[38;2;210;153;34m[WARN] ANSI stripped in PA\x1b[0m"; fi
 if [[ "$IS_DEV" != "true" ]]; then PANE_OWNER=$(ps -o user= -p $(tmux list-panes -t "$PB" -F "#{pane_pid}" 2>/dev/null | head -1) 2>/dev/null | tr -d ' '); if [ "$PANE_OWNER" != "jobs-watcher" ]; then echo -e "\x1b[38;2;248;81;73m[TMUX] unexpected $PANE_OWNER expected jobs-watcher 997/1004\x1b[0m"; fi; fi
+# --- stuck-protection: post-start verify (rollback on fail, never a half-built stack) ---
+echo -e "\x1b[38;2;210;153;34m[TMUX] post-check: 5 panes alive + 9091 health (10s budget)...\x1b[0m"
+OK=false
+for i in $(seq 1 10); do
+  DEAD="$(tmux list-panes -t "$SESSION_NAME" -F '#{pane_dead}' 2>/dev/null | grep -c '^1$' || true)"
+  if [[ "$DEAD" == "0" ]] && curl -s --connect-timeout 2 http://127.0.0.1:9091/health >/dev/null 2>&1; then OK=true; break; fi
+  sleep 1
+done
+if [[ "$OK" != "true" ]]; then
+  echo -e "\x1b[38;2;248;81;73m[TMUX] FAIL: stack unhealthy — rolling back (kill session)\x1b[0m"
+  tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
+  exit 1
+fi
+echo -e "\x1b[38;2;210;153;34m[TMUX] post-check: 5 panes alive, 9091 ok — attaching\x1b[0m"
 tmux attach-session -t "$SESSION_NAME"
