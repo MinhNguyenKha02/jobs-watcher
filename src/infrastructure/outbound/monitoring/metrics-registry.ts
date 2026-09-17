@@ -144,8 +144,8 @@ export class TuiMetricsRegistry implements TuiMetricsPort {
   readonly rmqPendingFull: Gauge<string>;
   readonly rmqDeferredCount: Gauge<string>;
   readonly infraReady: Gauge<string>;
-  readonly rmqAckTotal: Counter<string>;
   readonly rmqUnack: Gauge<string>;
+  readonly rmqReady: Gauge<string>;
   readonly rmqPendingIds: Gauge<string>;
   readonly rmqCur: Gauge<string>;
 
@@ -184,16 +184,16 @@ export class TuiMetricsRegistry implements TuiMetricsPort {
       registers: [this.register],
     });
 
-    this.rmqAckTotal = new Counter({
-      name: 'rmq_ack_total',
-      help: 'Total RMQ messages acked by TUI per queue',
+    this.rmqUnack = new Gauge({
+      name: 'rmq_unack',
+      help: 'TUI RMQ delivered-but-unacked messages per queue',
       labelNames: ['queue'],
       registers: [this.register],
     });
 
-    this.rmqUnack = new Gauge({
-      name: 'rmq_unack',
-      help: 'TUI RMQ delivered-but-unacked messages per queue',
+    this.rmqReady = new Gauge({
+      name: 'rmq_ready',
+      help: 'TUI RMQ broker-ready (not yet delivered) messages per queue via checkQueue',
       labelNames: ['queue'],
       registers: [this.register],
     });
@@ -249,10 +249,6 @@ export class TuiMetricsRegistry implements TuiMetricsPort {
     }
   }
 
-  ackInc(queue: string): void {
-    this.rmqAckTotal.inc({ queue });
-  }
-
   unackInc(queue: string): void {
     this.rmqUnack.inc({ queue });
   }
@@ -260,6 +256,10 @@ export class TuiMetricsRegistry implements TuiMetricsPort {
   unackDec(queue: string): void {
     // Caller decs only for previously-inc'd deliveries (tag maps), so the gauge stays ≥0.
     this.rmqUnack.dec({ queue });
+  }
+
+  setReady(queue: string, n: number): void {
+    this.rmqReady.set({ queue }, Math.max(0, Math.floor(n)));
   }
 
   async metrics(): Promise<string> {

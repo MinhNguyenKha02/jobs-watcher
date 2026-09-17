@@ -16,8 +16,11 @@ export interface TuiMetricsPort {
     curId?: string | null;
     curStage?: string | null;
   }): void;
-  ackInc(queue: string): void;
+  // Consumer-driven only: deliver→unackInc, broker-ack/nack→unackDec,
+  // checkQueue→setReady. No other writers (in-mem by design, rerun-stable
+  // via broker redelivery + ready; broker forgets acks so no ack series).
   unackInc(queue: string): void;
   unackDec(queue: string): void;
+  setReady(queue: string, n: number): void;
   setInfraReady(component: TuiInfraComponent, ready: 0 | 1): void;
 }
