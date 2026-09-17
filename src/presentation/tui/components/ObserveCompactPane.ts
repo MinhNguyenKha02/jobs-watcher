@@ -70,7 +70,7 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
   const flt = (source: string, stage: string): number =>
     findMetric(metrics, 'jobFilterRejectTotal', { source, stage }) ?? 0;
   // Path stage/phase inflight (independent of flt, inc/dec at transitions).
-  // PC runs wide (70%) so all 4 groups fit; narrow widths truncate the tail gracefully.
+  // PC runs at 60% width so all 4 groups fit; narrow widths truncate the tail gracefully.
   const inGrp = (source: string, phase: string): number =>
     sumMetricWhere(metrics, 'jobsInFlight', { source, phase });
   // flt labels compact (flt[a1] = auto/s1) to hold the 64-col pane without truncation.

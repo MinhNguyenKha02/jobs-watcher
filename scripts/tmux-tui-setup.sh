@@ -58,7 +58,7 @@ tmux set -g allow-passthrough on 2>/dev/null || true
 tmux set -g set-clipboard on 2>/dev/null || true
 tmux set -g pane-base-index 0 2>/dev/null || true
 tmux set -g base-index 0 2>/dev/null || true
-# 5-pane Option A full-width bottom 17% — PA 60% h32 | PE 40% h40=PA+PB span / PB h8 2-line / PC 70% h8 | PD 30% h8
+# 5-pane Option A full-width bottom 17% — PA 60% h32 | PE 40% h40=PA+PB span / PB h8 2-line / PC 60% h8 | PD 40% h8
 # bottom swap: PC left (daemon-poll 9090) | PD right (tui-poll 9091)
 # pane_id stable: avoid pane_index renumber after -h split (was 0.1→PE, 0.2→bottom)
 # split-window -P -F "#{pane_id}" prints pane_id %N; -Pf is -P -f + shell cmd (bug -> dead #{pane_id} pane)
@@ -66,7 +66,7 @@ tmux new-session -d -s "$SESSION_NAME" -x 160 -y 48
 BOTTOM=$(tmux split-window -v -P -F "#{pane_id}" -t "$SESSION_NAME:0.0" -p 17)           # bottom h8 full-width
 PE=$(tmux split-window -h -P -F "#{pane_id}" -t "$SESSION_NAME:0.0" -p 40)             # top PE 40% span
 PB=$(tmux split-window -v -P -F "#{pane_id}" -t "$SESSION_NAME:0.0" -p 22)             # left PB h8 2-line
-PD=$(tmux split-window -h -P -F "#{pane_id}" -t "$BOTTOM" -p 30)                       # bottom PD 30% (BOTTOM stays PC 70%)
+PD=$(tmux split-window -h -P -F "#{pane_id}" -t "$BOTTOM" -p 40)                       # bottom PD 40% (BOTTOM stays PC 60%)
 # STD hygiene: PA stdout P0 tui:stdout 0.0, PB stdin raw P2 tui:stdin PB, PE stderr P1 tail inline PE, PC 3s P3 tui:daemon-poll 9090 BOTTOM, PD 1s P4 tui:tui-poll 9091 PD
 tmux send-keys -t "$SESSION_NAME:0.0" "$RUN_AS bash -c \"cd $PROJECT_ROOT && npm run tui:stdout 2>$LOG_FILE_RENDER\"" C-m
 tmux send-keys -t "$PE" "$RUN_AS bash -c \"tail -f -n +1 $LOG_FILE_RENDER $LOG_FILE_ACTION 2>/dev/null | npx pino-pretty 2>/dev/null || cat\"" C-m
