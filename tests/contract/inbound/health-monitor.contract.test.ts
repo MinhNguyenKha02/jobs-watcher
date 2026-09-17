@@ -72,6 +72,8 @@ describe('Health monitor contract — daemon+TUI 2 prom, camelCase labeled, cont
     expect(obs.metrics.systemMemoryBytes).toBeDefined();
     expect(obs.metrics.infraReady).toBeDefined();
     expect(obs.metrics.extractionQueueDepth).toBeDefined();
+    expect(obs.metrics.jobFilterRejectTotal).toBeDefined();
+    expect(obs.metrics.jobErrorsTotal).toBeDefined();
     // no snake keys
     expect(obs.metrics.jobs_brokered_total).toBeUndefined();
     expect(obs.metrics.infra_ready).toBeUndefined();

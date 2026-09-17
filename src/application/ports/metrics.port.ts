@@ -14,6 +14,7 @@ export type DaemonMetricsPort = {
   readonly extractionQueueEnqueueTotal: { inc(): void };
   readonly extractionQueueDequeueTotal: { inc(): void };
   readonly rmqPublishedTotal: { inc(o: Record<string, string>): void };
+  readonly jobFilterRejectTotal: { inc(o: Record<string, string>): void };
   readonly infraReady: { set(o: Record<string, string>, v: number): void };
   readonly extractionQueueDepth: { set(v: number): void };
   jobsBrokeredInc(source: string): void;
@@ -25,6 +26,7 @@ export type DaemonMetricsPort = {
   extractionQueueEnqueueInc(): void;
   extractionQueueDequeueInc(): void;
   rmqPublishedInc(routingKey: string): void;
+  jobFilterRejectInc(source: string, stage: string): void;
   setInfraReady(component: DaemonInfraComponent, ready: 0 | 1): void;
   setExtractionQueueDepth(depth: number): void;
 };

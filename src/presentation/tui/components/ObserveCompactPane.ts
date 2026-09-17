@@ -1,5 +1,6 @@
 import {
   sumMetric,
+  sumMetricWhere,
   findMetric,
   getMetrics,
   avgDuration,
@@ -10,8 +11,16 @@ export interface ObserveSnapshot {
   metrics?: Record<string, Array<{ labels: Record<string, string>; value: number }>>;
   containers?: unknown;
   health?: unknown;
+  /** Best-effort TUI-port (9091) metrics joined by the poller for pub-vs-consumed balance. */
+  tuiMetrics?: Record<string, Array<{ labels: Record<string, string>; value: number }>>;
   [key: string]: unknown;
 }
+
+// Scheduler worker pool size mirrors ExtractionScheduler WORKER_COUNT (single-process daemon).
+const EXTRACTION_WORKERS = 3;
+// Operator bounds: flag, never hide. Extr budget covers challenge-wait (15s) + proc + jitter.
+const DUR_SLOW_S = 60;
+const EXTR_SLOW_S = 25;
 
 function renderTitle(width: number, port: number): string {
   const inner = Math.max(10, width - 2);
@@ -49,14 +58,22 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
   const lines: string[] = [];
   lines.push(`┌${border}┐`);
 
-  const brokered = sumMetric(metrics, 'jobsBrokeredTotal');
-  const stage = sumMetric(metrics, 'jobStageTotal');
-  const errors = sumMetric(metrics, 'jobErrorsTotal');
-  const flight = sumMetric(metrics, 'jobsInFlight');
-  // jobs_brok[a/m]: source browser-auto/manual only (webhook Gmail path counts in stage/pub, not brokered).
-  const line1 = ` jobs_brok[a/m]:${brokered} stage:${stage} err:${errors} flight:${flight}`;
+  // L1: s3 resolutions by origin source (doc source at resolution) + tier-filter rejects.
+  const qa =
+    findMetric(metrics, 'jobStageTotal', { stage: 's3', status: 'queued', source: 'browser-auto' }) ?? 0;
+  const qm =
+    findMetric(metrics, 'jobStageTotal', { stage: 's3', status: 'queued', source: 'manual' }) ?? 0;
+  const ta =
+    findMetric(metrics, 'jobStageTotal', { stage: 's3', status: 'trashed', source: 'browser-auto' }) ?? 0;
+  const tm =
+    findMetric(metrics, 'jobStageTotal', { stage: 's3', status: 'trashed', source: 'manual' }) ?? 0;
+  const flt = (source: string, stage: string): number =>
+    findMetric(metrics, 'jobFilterRejectTotal', { source, stage }) ?? 0;
+  // flt labels compact (flt[a1] = auto/s1) to hold the 64-col pane without truncation.
+  const line1 = ` q[a]:${qa} q[m]:${qm} t[a]:${ta} t[m]:${tm} flt[a1]:${flt('browser-auto', 's1')} flt[a2]:${flt('browser-auto', 's2')} flt[m2]:${flt('manual', 's2')}`;
   lines.push(`│${truncate(line1, inner).padEnd(inner)}│`);
 
+  // L2: merged process + infra (component names kept verbatim; truncate, full names in JSON).
   const mem = findMetric(metrics, 'systemMemoryBytes', { type: 'rss' }) ?? sumMetric(metrics, 'systemMemoryBytes');
   const heap = findMetric(metrics, 'systemMemoryBytes', { type: 'heapUsed' });
   const cpu = findMetric(metrics, 'systemCpuPercent', {}) ?? (metrics.systemCpuPercent?.[0]?.value as number | undefined);
@@ -65,40 +82,64 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
   const heapMb = heap ? ` heap ${Math.round(Number(heap) / 1024 / 1024)}M` : '';
   const cpuStr = cpu !== undefined ? `${Number(cpu).toFixed(1)}` : '—';
   const lagStr = lag ? `${Number(lag).toFixed(3)}s` : '—';
-  const line2 = ` mem ${memMb}${heapMb} cpu ${cpuStr}% lag ${lagStr}`;
-  lines.push(`│${truncate(line2, inner).padEnd(inner)}│`);
-
   const infra = (component: string): string => {
     const v = findMetric(metrics, 'infraReady', { component });
     return v !== undefined ? `${v ? '1' : '0'}` : '—';
   };
-  const line3 = ` infra mongo:${infra('mongo')} rmq:${infra('rabbitmq')} browser:${infra('browser')} uds:${infra('uds')} webhook:${infra('webhook')} sched:${infra('scheduler')}`;
+  const line2 = ` mem ${memMb}${heapMb} cpu ${cpuStr}% lag ${lagStr} | mongo:${infra('mongo')} rmq:${infra('rabbitmq')} bro:${infra('browser')} uds:${infra('uds')} web:${infra('webhook')} sch:${infra('scheduler')}`;
+  lines.push(`│${truncate(line2, inner).padEnd(inner)}│`);
+
+  // L3: errors grouped by canonical stage + total (per-type detail stays in observability JSON).
+  const errStage = (stage: string): number => sumMetricWhere(metrics, 'jobErrorsTotal', { stage });
+  const e1 = errStage('s1');
+  const e2 = errStage('s2');
+  const e3 = errStage('s3');
+  const ee = errStage('extraction');
+  const er = errStage('resolution');
+  const etot = sumMetric(metrics, 'jobErrorsTotal');
+  const line3 = ` error[s1:${e1} s2:${e2} s3:${e3} ext:${ee} res:${er} tot:${etot}]`;
   lines.push(`│${truncate(line3, inner).padEnd(inner)}│`);
 
+  // L4: extraction backlog + worker saturation (busy derived, idle clamped; pool size const above).
   const enq = sumMetric(metrics, 'extractionQueueEnqueueTotal');
   const deq = sumMetric(metrics, 'extractionQueueDequeueTotal');
   const depth = findMetric(metrics, 'extractionQueueDepth', {}) ?? enq - deq;
   const depthStr = depth ? `${depth}` : '0';
-  // Per-key pub (no total): g=job.generated pc=job.parse.completed pf=job.parse.failed
-  // q=job.queue t=job.trash rf=job.route.failed.
+  const flight = sumMetricWhere(metrics, 'jobsInFlight', { stage: 's1' });
+  const busy = Math.max(0, Math.min(EXTRACTION_WORKERS, flight));
+  const idle = EXTRACTION_WORKERS - busy;
+  const line4 = ` extr_q depth:${depthStr} in-flight:${flight} workers busy:${busy} idle:${idle}`;
+  lines.push(`│${truncate(line4, inner).padEnd(inner)}│`);
+
+  // L5: stage durations, always shown, red-flagged over bound (never hidden).
+  const dS1S2 = avgDuration(metrics, 's1_s2') ?? avgDuration(metrics, 's1-s2');
+  const dS2S3 = avgDuration(metrics, 's2_s3') ?? avgDuration(metrics, 's2-s3');
+  const dExtr = avgDuration(metrics, 'extraction');
+  const flag = (v: number | undefined, bound: number): string =>
+    v === undefined ? '—' : `${v.toFixed(2)}s${v > bound ? '🔴' : ''}`;
+  const line5 = ` dur s1_s2 ${flag(dS1S2, DUR_SLOW_S)} s2_s3 ${flag(dS2S3, DUR_SLOW_S)} extr ${flag(dExtr, EXTR_SLOW_S)}`;
+  lines.push(`│${truncate(line5, inner).padEnd(inner)}│`);
+
+  // L6: publisher-vs-consumer balance. Fanout note: one pc publish lands in BOTH s2 and s2direct,
+  // so s2 Δ is measured against the s2 queue only (small positive bias is normal, not a leak).
   const g = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.generated' }) ?? 0;
   const pc = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.parse.completed' }) ?? 0;
   const pf = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.parse.failed' }) ?? 0;
   const q = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.queue' }) ?? 0;
   const t = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.trash' }) ?? 0;
   const rf = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.route.failed' }) ?? 0;
-  const line4 = ` extr_q depth:${depthStr} enq:${enq} deq:${deq} pub g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf}`;
-  lines.push(`│${truncate(line4, inner).padEnd(inner)}│`);
-
-  const dS1S2 = avgDuration(metrics, 's1_s2') ?? avgDuration(metrics, 's1-s2');
-  const dS2S3 = avgDuration(metrics, 's2_s3') ?? avgDuration(metrics, 's2-s3');
-  const dExtr = avgDuration(metrics, 'extraction');
-  const parts: string[] = [];
-  if (dS1S2 !== undefined) parts.push(`s1_s2 ${dS1S2.toFixed(2)}s`);
-  if (dS2S3 !== undefined) parts.push(`s2_s3 ${dS2S3.toFixed(2)}s`);
-  if (dExtr !== undefined) parts.push(`extr ${dExtr.toFixed(2)}s`);
-  const line5 = parts.length ? ` dur ${parts.join(' ')}` : ' dur —';
-  lines.push(`│${truncate(line5, inner).padEnd(inner)}│`);
+  const tui = data.tuiMetrics;
+  let line6: string;
+  if (tui) {
+    const cons = (queue: string): number => sumMetricWhere(tui, 'rmqConsumedTotal', { queue });
+    const d1 = g - cons('tui.s1');
+    const d2 = pc - cons('tui.s2');
+    const d34 = pf + q + t + rf - cons('tui.s3s4');
+    line6 = ` pub s1:${d1 >= 0 ? '+' : ''}${d1} s2:${d2 >= 0 ? '+' : ''}${d2} s3s4:${d34 >= 0 ? '+' : ''}${d34} (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;
+  } else {
+    line6 = ` pub s1:— s2:— s3s4:— (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;
+  }
+  lines.push(`│${truncate(line6, inner).padEnd(inner)}│`);
 
   lines.push(`└${border}┘`);
   return lines.join('\n');

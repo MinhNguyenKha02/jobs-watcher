@@ -74,8 +74,8 @@ export class JobIngestor implements IngestorPort {
           action,
         });
         this.metricsRegistry?.jobErrors.inc({
-          stage: '2',
-          error_type: 'missing_job during routing',
+          stage: 's2',
+          error_type: 'missing_job_during_routing',
         });
         await this.routePublishingPort.emitRouteFailed(
           jobLifecycleId,
@@ -96,7 +96,7 @@ export class JobIngestor implements IngestorPort {
           JobStage.FULL_PARSED,
           JobStatus.QUEUED
         );
-        this.metricsRegistry?.jobStageTotal.inc({ stage: 's3', status: 'queued' });
+        this.metricsRegistry?.jobStageTotal.inc({ stage: 's3', status: 'queued', source: String(existing.source ?? 'unknown') });
         if (existing?.stageTimestamp) {
           const durationSec = (Date.now() - new Date(existing.stageTimestamp).getTime()) / 1000;
           this.metricsRegistry?.jobStageDuration.observe({ stage: 's2_s3' }, durationSec);
@@ -138,7 +138,7 @@ export class JobIngestor implements IngestorPort {
           JobStage.FULL_PARSED,
           JobStatus.TRASHED
         );
-        this.metricsRegistry?.jobStageTotal.inc({ stage: 's3', status: 'trashed' });
+        this.metricsRegistry?.jobStageTotal.inc({ stage: 's3', status: 'trashed', source: String(existing.source ?? 'unknown') });
         await this.routePublishingPort.emitJobTrashed(existing._id, 'operator:trash');
       }
     } catch (err) {
@@ -229,6 +229,10 @@ export class JobIngestor implements IngestorPort {
           role,
           company,
           reasons: filterResult.reasons,
+        });
+        this.metricsRegistry?.jobFilterRejectTotal?.inc({
+          source: String(doc.source ?? 'unknown'),
+          stage: 's1',
         });
         continue;
       }
@@ -502,6 +506,10 @@ export class JobIngestor implements IngestorPort {
     if (!passed.passed) {
       this.logger.info('Filter rejected job at stage 2', { jobLifecycleId, reasons: passed.reasons });
       this.metricsRegistry?.jobErrors.inc({ stage: 's2', error_type: 'filter_rejected' });
+      this.metricsRegistry?.jobFilterRejectTotal?.inc({
+        source: String(doc.source ?? 'unknown'),
+        stage: 's2',
+      });
       // T2 reject persists terminal status on the s1 doc (was stale enriching),
       // then still emits trash so TUI drains it via s34.
       await this.jobLifecycleColPort.upsert({

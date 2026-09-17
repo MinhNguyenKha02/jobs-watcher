@@ -1,5 +1,8 @@
 const POLL_INTERVAL_MS = 5000;
 const OBSERVABILITY_URL = process.env.OBSERVABILITY_URL || 'http://localhost:9090/health/observability';
+// TUI-port join for pub-vs-consumed balance (L6). Best-effort: TUI down → pub-only degradation.
+const TUI_OBSERVABILITY_URL =
+  process.env.TUI_OBSERVABILITY_URL || 'http://localhost:9091/health/observability';
 
 function clearAndMoveTop(): void {
   process.stdout.write('\x1b[2J\x1b[H');
@@ -37,7 +40,20 @@ export async function startObservabilityPolling(): Promise<void> {
       if (compact) {
         const { renderObserveCompactPane: fn } = await import('../../../presentation/tui/components/ObserveCompactPane.js');
         void fn;
-        const frame = renderObserveCompactPane(data as never, width);
+        // Best-effort TUI join: never fails the daemon frame (own 2s budget, silent on miss).
+        let tuiMetrics: Record<string, Array<{ labels: Record<string, string>; value: number }>> | undefined;
+        try {
+          const tuiRes = await fetchWithTimeout(TUI_OBSERVABILITY_URL);
+          if (tuiRes.ok) {
+            const tuiData = (await tuiRes.json()) as {
+              metrics?: Record<string, Array<{ labels: Record<string, string>; value: number }>>;
+            };
+            tuiMetrics = tuiData.metrics;
+          }
+        } catch {
+          tuiMetrics = undefined;
+        }
+        const frame = renderObserveCompactPane({ ...(data as object), tuiMetrics } as never, width);
         const inner = Math.max(10, width - 2);
         const title = ` daemon 9090 `;
         const left = Math.floor((inner - title.length) / 2);

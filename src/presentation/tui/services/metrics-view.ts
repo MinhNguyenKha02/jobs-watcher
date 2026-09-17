@@ -21,6 +21,18 @@ export function findMetric(
   return found ? Number(found.value) : undefined;
 }
 
+export function sumMetricWhere(
+  metrics: Record<string, Labeled> | undefined,
+  key: string,
+  labels: Record<string, string>,
+): number {
+  const arr = metrics?.[key];
+  if (!arr) return 0;
+  return arr
+    .filter((v) => Object.entries(labels).every(([k, val]) => String(v.labels[k]) === String(val)))
+    .reduce((a, v) => a + Number(v.value), 0);
+}
+
 export function getMetrics(data: {
   metrics?: Record<string, Labeled>;
   [key: string]: unknown;

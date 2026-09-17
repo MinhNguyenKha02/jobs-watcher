@@ -17,6 +17,7 @@ export class DaemonMetricsRegistry implements DaemonMetricsPort {
   readonly extractionQueueEnqueueTotal: Counter<string>;
   readonly extractionQueueDequeueTotal: Counter<string>;
   readonly rmqPublishedTotal: Counter<string>;
+  readonly jobFilterRejectTotal: Counter<string>;
   readonly infraReady: Gauge<string>;
   readonly extractionQueueDepth: Gauge<string>;
 
@@ -33,7 +34,7 @@ export class DaemonMetricsRegistry implements DaemonMetricsPort {
     this.jobStageTotal = new Counter({
       name: 'job_stage_total',
       help: 'Number of jobs at each pipeline stage',
-      labelNames: ['stage', 'status'],
+      labelNames: ['stage', 'status', 'source'],
       registers: [this.register],
     });
 
@@ -97,6 +98,13 @@ export class DaemonMetricsRegistry implements DaemonMetricsPort {
       registers: [this.register],
     });
 
+    this.jobFilterRejectTotal = new Counter({
+      name: 'job_filter_reject_total',
+      help: 'Tier-filter rejected jobs by origin source and stage',
+      labelNames: ['source', 'stage'],
+      registers: [this.register],
+    });
+
     this.infraReady = new Gauge({
       name: 'infra_ready',
       help: 'Daemon infra component readiness 1=ready 0=not',
@@ -154,6 +162,9 @@ export class DaemonMetricsRegistry implements DaemonMetricsPort {
   }
   rmqPublishedInc(routingKey: string): void {
     this.rmqPublishedTotal.inc({ routingKey });
+  }
+  jobFilterRejectInc(source: string, stage: string): void {
+    this.jobFilterRejectTotal.inc({ source, stage });
   }
   setInfraReady(component: string, ready: 0 | 1): void {
     this.infraReady.set({ component }, ready);
