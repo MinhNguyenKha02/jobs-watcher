@@ -56,7 +56,7 @@ export class DaemonMetricsRegistry implements DaemonMetricsPort {
     this.jobsInFlight = new Gauge({
       name: 'jobs_in_flight',
       help: 'Number of jobs currently being processed',
-      labelNames: ['stage'],
+      labelNames: ['stage', 'source', 'phase'],
       registers: [this.register],
     });
 
@@ -127,45 +127,7 @@ export class DaemonMetricsRegistry implements DaemonMetricsPort {
     return await this.register.metrics();
   }
 
-  async metricsJson(): Promise<unknown> {
-    return await this.register.getMetricsAsJSON();
-  }
-
-  clear(): void {
-    this.register.clear();
-  }
-
   // DaemonMetricsPort impl (delegates)
-  jobsBrokeredInc(source: string): void {
-    this.jobsBrokered.inc({ source });
-  }
-  jobStageTotalInc(stage: string, status: string): void {
-    this.jobStageTotal.inc({ stage, status });
-  }
-  jobStageDurationObserve(stage: string, sec: number): void {
-    this.jobStageDuration.observe({ stage }, sec);
-  }
-  jobErrorsInc(stage: string, errorType: string): void {
-    this.jobErrors.inc({ stage, error_type: errorType });
-  }
-  jobsInFlightInc(stage: string): void {
-    this.jobsInFlight.inc({ stage });
-  }
-  jobsInFlightDec(stage: string): void {
-    this.jobsInFlight.dec({ stage });
-  }
-  extractionQueueEnqueueInc(): void {
-    this.extractionQueueEnqueueTotal.inc();
-  }
-  extractionQueueDequeueInc(): void {
-    this.extractionQueueDequeueTotal.inc();
-  }
-  rmqPublishedInc(routingKey: string): void {
-    this.rmqPublishedTotal.inc({ routingKey });
-  }
-  jobFilterRejectInc(source: string, stage: string): void {
-    this.jobFilterRejectTotal.inc({ source, stage });
-  }
   setInfraReady(component: string, ready: 0 | 1): void {
     this.infraReady.set({ component }, ready);
   }
@@ -182,7 +144,8 @@ export class TuiMetricsRegistry implements TuiMetricsPort {
   readonly rmqPendingFull: Gauge<string>;
   readonly rmqDeferredCount: Gauge<string>;
   readonly infraReady: Gauge<string>;
-  readonly rmqConsumedTotal: Counter<string>;
+  readonly rmqAckTotal: Counter<string>;
+  readonly rmqUnack: Gauge<string>;
   readonly rmqPendingIds: Gauge<string>;
   readonly rmqCur: Gauge<string>;
 
@@ -221,10 +184,17 @@ export class TuiMetricsRegistry implements TuiMetricsPort {
       registers: [this.register],
     });
 
-    this.rmqConsumedTotal = new Counter({
-      name: 'rmq_consumed_total',
-      help: 'Total RMQ messages consumed by TUI',
-      labelNames: ['queue', 'routingKey'],
+    this.rmqAckTotal = new Counter({
+      name: 'rmq_ack_total',
+      help: 'Total RMQ messages acked by TUI per queue',
+      labelNames: ['queue'],
+      registers: [this.register],
+    });
+
+    this.rmqUnack = new Gauge({
+      name: 'rmq_unack',
+      help: 'TUI RMQ delivered-but-unacked messages per queue',
+      labelNames: ['queue'],
       registers: [this.register],
     });
 
@@ -279,31 +249,24 @@ export class TuiMetricsRegistry implements TuiMetricsPort {
     }
   }
 
-  incConsumed(queue: string, routingKey: string): void {
-    this.rmqConsumedTotal.inc({ queue, routingKey });
+  ackInc(queue: string): void {
+    this.rmqAckTotal.inc({ queue });
+  }
+
+  unackInc(queue: string): void {
+    this.rmqUnack.inc({ queue });
+  }
+
+  unackDec(queue: string): void {
+    // Caller decs only for previously-inc'd deliveries (tag maps), so the gauge stays ≥0.
+    this.rmqUnack.dec({ queue });
   }
 
   async metrics(): Promise<string> {
     return await this.register.metrics();
   }
 
-  async metricsJson(): Promise<unknown> {
-    return await this.register.getMetricsAsJSON();
-  }
-
-  clear(): void {
-    this.register.clear();
-  }
-
   setInfraReady(component: string, ready: 0 | 1): void {
     this.infraReady.set({ component }, ready);
-  }
-  setChannelReady(channel: string, ready: 0 | 1): void {
-    // aggregate rmq_channels: 1 only if all 4 channels ready; store per-channel implicit via infraReady
-    const all = ['s1', 's2', 's2direct', 's34'];
-    // keep simple: set infra_ready rmq_channels to 1 when last channel set 1, caller manages aggregate
-    this.infraReady.set({ component: 'rmq_channels' }, ready);
-    void all;
-    void channel;
   }
 }

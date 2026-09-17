@@ -80,7 +80,7 @@ export class ExtractionScheduler {
         jobLifecycleId = item.jobLifecycleId;
         startMs = Date.now();
         this.logger?.info('Worker dequeued job', { workerId, jobLifecycleId });
-        this.metricsRegistry?.jobsInFlight.inc({ stage: 's1' });
+        this.metricsRegistry?.jobsInFlight.inc({ stage: 's1', source: 'browser-auto', phase: 'enriching' });
 
         const jobDoc = await this.jobLifecycleColPort.findById(jobLifecycleId);
         if (!jobDoc) {
@@ -102,7 +102,7 @@ export class ExtractionScheduler {
           rawPayload,
           jobLifecycleId
         );
-        this.metricsRegistry?.jobsInFlight.dec({ stage: 's1' });
+        this.metricsRegistry?.jobsInFlight.dec({ stage: 's1', source: 'browser-auto', phase: 'enriching' });
         if (startMs > 0) {
           const durationSec = (Date.now() - startMs) / 1000;
           this.metricsRegistry?.jobStageDuration.observe({ stage: 'extraction' }, durationSec);
@@ -111,7 +111,7 @@ export class ExtractionScheduler {
         const errMsg = extractErr instanceof Error ? extractErr.message : String(extractErr);
         const marker = extractErr instanceof AntiBotBlockedError ? extractErr.marker : undefined;
         this.logger?.warn('Extraction failed', { workerId, jobLifecycleId, error: errMsg, ...(marker ? { marker } : {}) });
-        this.metricsRegistry?.jobsInFlight.dec({ stage: 's1' });
+        this.metricsRegistry?.jobsInFlight.dec({ stage: 's1', source: 'browser-auto', phase: 'enriching' });
         this.metricsRegistry?.jobErrors.inc({
           stage: 'extraction',
           error_type: marker ? 'anti_bot_block' : 'browser',

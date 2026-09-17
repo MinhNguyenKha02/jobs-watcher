@@ -164,11 +164,13 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     for (const [, tags] of this.deliveryTagsS1) {
       for (const tag of tags) {
         this.s1channel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, false);
+        this.metricsRegistry?.unackDec(this.s1Queue);
       }
     }
     for (const [, tags] of this.deliveryTagsS2Queue) {
       for (const tag of tags) {
         this.s2queueChannel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, false);
+        this.metricsRegistry?.unackDec(this.s2Queue);
       }
     }
     for (const [, tags] of this.deliveryTagsS2Direct) {
@@ -178,6 +180,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
           false,
           false
         );
+        this.metricsRegistry?.unackDec(this.s2DirectQueue);
       }
     }
     this.deliveryTagsS1.clear();
@@ -337,7 +340,10 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       void status; // stripped by design: carried on wire, unused by TUI
       const id = job._id;
       if (typeof id !== 'string') {
+        this.metricsRegistry?.unackInc(this.s1Queue);
         this.s1channel!.ack(msg);
+        this.metricsRegistry?.unackDec(this.s1Queue);
+        this.metricsRegistry?.ackInc(this.s1Queue);
         return;
       }
 
@@ -356,7 +362,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         company: job.company,
         stage,
       });
-      this.metricsRegistry?.incConsumed(this.s1Queue, ActionEvent.GENERATED);
+      this.metricsRegistry?.unackInc(this.s1Queue);
       this.autoAdvance();
       this.syncMetrics();
     } catch (err) {
@@ -387,7 +393,10 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       void status; // stripped by design: carried on wire, unused by TUI
       const id = job._id;
       if (typeof id !== 'string') {
+        this.metricsRegistry?.unackInc(this.s2Queue);
         this.s2queueChannel!.ack(msg);
+        this.metricsRegistry?.unackDec(this.s2Queue);
+        this.metricsRegistry?.ackInc(this.s2Queue);
         return;
       }
 
@@ -400,7 +409,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
           stage,
         };
         logger.info('job.parse.completed — merged in pending', { id });
-        this.metricsRegistry?.incConsumed(this.s2Queue, ActionEvent.PARSE_COMPLETED);
+        this.metricsRegistry?.unackInc(this.s2Queue);
         this.syncMetrics();
         return;
       }
@@ -413,7 +422,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
           source ?? null
         );
         logger.info('job.parse.completed — IPC enriched displayed job', { id });
-        this.metricsRegistry?.incConsumed(this.s2Queue, ActionEvent.PARSE_COMPLETED);
+        this.metricsRegistry?.unackInc(this.s2Queue);
         this.syncMetrics();
         return;
       }
@@ -430,7 +439,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         timestamp: Date.now(),
       });
       logger.debug('S2 deferred', { id });
-      this.metricsRegistry?.incConsumed(this.s2Queue, ActionEvent.PARSE_COMPLETED);
+      this.metricsRegistry?.unackInc(this.s2Queue);
       this.syncMetrics();
     } catch (err) {
       logger.warn('C2 Error', { error: String(err) });
@@ -459,14 +468,17 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       void status; // stripped by design: carried on wire, unused by TUI
       const id = job._id;
       if (typeof id !== 'string') {
+        this.metricsRegistry?.unackInc(this.s2DirectQueue);
         this.s2directChannel!.ack(msg);
+        this.metricsRegistry?.unackDec(this.s2DirectQueue);
+        this.metricsRegistry?.ackInc(this.s2DirectQueue);
         return;
       }
       this.recordS2TagDirect(id, msg.fields.deliveryTag);
       setCurrentJob(id, { ...job, _id: id }, stage, source ?? null);
       this.currentJobId = id;
       logger.info('job.parse.completed — direct mode set', { id });
-      this.metricsRegistry?.incConsumed(this.s2DirectQueue, ActionEvent.PARSE_COMPLETED);
+      this.metricsRegistry?.unackInc(this.s2DirectQueue);
       this.syncMetrics();
     } catch (err) {
       logger.warn('C2 Direct Error', { error: String(err) });
@@ -494,15 +506,31 @@ export class RabbitMqJobReader implements JobEventReaderPort {
           ? String((parsed as { jobLifecycleId: unknown }).jobLifecycleId)
           : String(parsed);
       if (!id) {
+        this.metricsRegistry?.unackInc(this.s34Queue);
         this.ackS3TagForJob(msg);
+        this.metricsRegistry?.unackDec(this.s34Queue);
+        this.metricsRegistry?.ackInc(this.s34Queue);
         return;
       }
 
       // Ack tags per queue that recorded them; s2direct now also ack in s34 (prefetch 1).
-      this.ackS1TagForJob(id);
-      this.ackS2TagQueueForJob(id);
-      this.ackS2TagDirectForJobId(id);
+      // Each held delivery moves unack→ack so PC per-queue deltas reconcile with pub counts.
+      this.metricsRegistry?.unackInc(this.s34Queue);
+      for (let i = 0, n = this.ackS1TagForJob(id); i < n; i++) {
+        this.metricsRegistry?.unackDec(this.s1Queue);
+        this.metricsRegistry?.ackInc(this.s1Queue);
+      }
+      for (let i = 0, n = this.ackS2TagQueueForJob(id); i < n; i++) {
+        this.metricsRegistry?.unackDec(this.s2Queue);
+        this.metricsRegistry?.ackInc(this.s2Queue);
+      }
+      for (let i = 0, n = this.ackS2TagDirectForJobId(id); i < n; i++) {
+        this.metricsRegistry?.unackDec(this.s2DirectQueue);
+        this.metricsRegistry?.ackInc(this.s2DirectQueue);
+      }
       this.ackS3TagForJob(msg);
+      this.metricsRegistry?.unackDec(this.s34Queue);
+      this.metricsRegistry?.ackInc(this.s34Queue);
 
       this.removeFromPending(id);
 
@@ -522,7 +550,6 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         }
       }
 
-      this.metricsRegistry?.incConsumed(this.s34Queue, msg.fields.routingKey);
       this.autoAdvance();
       this.syncMetrics();
     } catch (err) {
@@ -531,37 +558,43 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     }
   }
 
-  /** Acks every recorded S1 delivery tag for a job; direct mode never records S1 tags. */
-  private ackS1TagForJob(id: string): void {
+  /** Acks every recorded S1 delivery tag for a job; returns acked count. Direct mode never records S1 tags. */
+  private ackS1TagForJob(id: string): number {
     const tags = this.deliveryTagsS1.get(id);
     if (tags && this.s1channel) {
       for (const tag of tags) {
         this.s1channel.ack({ fields: { deliveryTag: tag } } as ConsumeMessage, false);
       }
       this.deliveryTagsS1.delete(id);
+      return tags.length;
     }
+    return 0;
   }
 
-  /** Acks every recorded queue-mode S2 delivery tag for a job. The deferred buffer is NOT touched here. */
-  private ackS2TagQueueForJob(id: string): void {
+  /** Acks every recorded queue-mode S2 delivery tag for a job; returns acked count. The deferred buffer is NOT touched here. */
+  private ackS2TagQueueForJob(id: string): number {
     const tags = this.deliveryTagsS2Queue.get(id);
     if (tags && this.s2queueChannel) {
       for (const tag of tags) {
         this.s2queueChannel.ack({ fields: { deliveryTag: tag } } as ConsumeMessage, false);
       }
       this.deliveryTagsS2Queue.delete(id);
+      return tags.length;
     }
+    return 0;
   }
 
-  /** Acks every recorded direct-mode S2 delivery tag for a job at s34. */
-  private ackS2TagDirectForJobId(id: string): void {
+  /** Acks every recorded direct-mode S2 delivery tag for a job at s34; returns acked count. */
+  private ackS2TagDirectForJobId(id: string): number {
     const tags = this.deliveryTagsS2Direct.get(id);
     if (tags && this.s2directChannel) {
       for (const tag of tags) {
         this.s2directChannel.ack({ fields: { deliveryTag: tag } } as ConsumeMessage, false);
       }
       this.deliveryTagsS2Direct.delete(id);
+      return tags.length;
     }
+    return 0;
   }
 
   /** Acks the S34 delivery itself. */
@@ -626,6 +659,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
           const idx = tags.indexOf(entry.deliveryTag);
           if (idx !== -1) tags.splice(idx, 1);
           if (tags.length === 0) this.deliveryTagsS2Queue.delete(id);
+          this.metricsRegistry?.unackDec(this.s2Queue);
         } else {
           logger.debug('Dropping already-resolved deferred S2 entry', { id });
         }
@@ -640,18 +674,21 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     for (const [, tags] of this.deliveryTagsS1) {
       for (const tag of tags) {
         this.s1channel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, true);
+        this.metricsRegistry?.unackDec(this.s1Queue);
       }
     }
     this.deliveryTagsS1.clear();
     for (const [, tags] of this.deliveryTagsS2Queue) {
       for (const tag of tags) {
         this.s2queueChannel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, true);
+        this.metricsRegistry?.unackDec(this.s2Queue);
       }
     }
     this.deliveryTagsS2Queue.clear();
     for (const [, tags] of this.deliveryTagsS2Direct) {
       for (const tag of tags) {
         this.s2directChannel?.nack({ fields: { deliveryTag: tag } } as ConsumeMessage, false, true);
+        this.metricsRegistry?.unackDec(this.s2DirectQueue);
       }
     }
     this.deliveryTagsS2Direct.clear();

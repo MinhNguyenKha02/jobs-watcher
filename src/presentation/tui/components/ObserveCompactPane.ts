@@ -105,10 +105,16 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
   const deq = sumMetric(metrics, 'extractionQueueDequeueTotal');
   const depth = findMetric(metrics, 'extractionQueueDepth', {}) ?? enq - deq;
   const depthStr = depth ? `${depth}` : '0';
-  const flight = sumMetricWhere(metrics, 'jobsInFlight', { stage: 's1' });
+  const flight = sumMetricWhere(metrics, 'jobsInFlight', {
+    stage: 's1',
+    source: 'browser-auto',
+    phase: 'enriching',
+  });
   const busy = Math.max(0, Math.min(EXTRACTION_WORKERS, flight));
   const idle = EXTRACTION_WORKERS - busy;
-  const line4 = ` extr_q depth:${depthStr} in-flight:${flight} workers busy:${busy} idle:${idle}`;
+  // Extraction scope only (s1/auto/enriching): worker saturation signal.
+  // Enriched-awaiting-resolution groups stay in JSON, not on this 64-col line.
+  const line4 = ` extr_q depth:${depthStr} inflight:${flight} idle:${idle}`;
   lines.push(`│${truncate(line4, inner).padEnd(inner)}│`);
 
   // L5: stage durations, always shown, red-flagged over bound (never hidden).
@@ -120,7 +126,7 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
   const line5 = ` dur s1_s2 ${flag(dS1S2, DUR_SLOW_S)} s2_s3 ${flag(dS2S3, DUR_SLOW_S)} extr ${flag(dExtr, EXTR_SLOW_S)}`;
   lines.push(`│${truncate(line5, inner).padEnd(inner)}│`);
 
-  // L6: publisher-vs-consumer balance. Fanout note: one pc publish lands in BOTH s2 and s2direct,
+  // L6: publisher-vs-acker balance. Fanout note: one pc publish lands in BOTH s2 and s2direct,
   // so s2 Δ is measured against the s2 queue only (small positive bias is normal, not a leak).
   const g = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.generated' }) ?? 0;
   const pc = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.parse.completed' }) ?? 0;
@@ -131,10 +137,10 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
   const tui = data.tuiMetrics;
   let line6: string;
   if (tui) {
-    const cons = (queue: string): number => sumMetricWhere(tui, 'rmqConsumedTotal', { queue });
-    const d1 = g - cons('tui.s1');
-    const d2 = pc - cons('tui.s2');
-    const d34 = pf + q + t + rf - cons('tui.s3s4');
+    const acked = (queue: string): number => sumMetricWhere(tui, 'rmqAckTotal', { queue });
+    const d1 = g - acked('tui.s1');
+    const d2 = pc - acked('tui.s2');
+    const d34 = pf + q + t + rf - acked('tui.s3s4');
     line6 = ` pub s1:${d1 >= 0 ? '+' : ''}${d1} s2:${d2 >= 0 ? '+' : ''}${d2} s3s4:${d34 >= 0 ? '+' : ''}${d34} (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;
   } else {
     line6 = ` pub s1:— s2:— s3s4:— (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;

@@ -97,6 +97,11 @@ export class JobIngestor implements IngestorPort {
           JobStatus.QUEUED
         );
         this.metricsRegistry?.jobStageTotal.inc({ stage: 's3', status: 'queued', source: String(existing.source ?? 'unknown') });
+        this.metricsRegistry?.jobsInFlight.dec({
+          stage: 's2',
+          source: String(existing.source ?? 'unknown'),
+          phase: 'enriched',
+        });
         if (existing?.stageTimestamp) {
           const durationSec = (Date.now() - new Date(existing.stageTimestamp).getTime()) / 1000;
           this.metricsRegistry?.jobStageDuration.observe({ stage: 's2_s3' }, durationSec);
@@ -139,6 +144,13 @@ export class JobIngestor implements IngestorPort {
           JobStatus.TRASHED
         );
         this.metricsRegistry?.jobStageTotal.inc({ stage: 's3', status: 'trashed', source: String(existing.source ?? 'unknown') });
+        if (existing.status === JobStatus.ENRICHED) {
+          this.metricsRegistry?.jobsInFlight.dec({
+            stage: 's2',
+            source: String(existing.source ?? 'unknown'),
+            phase: 'enriched',
+          });
+        }
         await this.routePublishingPort.emitJobTrashed(existing._id, 'operator:trash');
       }
     } catch (err) {
@@ -262,6 +274,11 @@ export class JobIngestor implements IngestorPort {
           url,
         });
         await this.extractionQueueColPort.enqueue(jobLifeCycleId);
+        this.metricsRegistry?.jobsInFlight.inc({
+          stage: 's1',
+          source: JobSource.BROWSER_AUTO,
+          phase: 'enriching',
+        });
       } else {
         this.logger.info('Job has no url — emitting generated only', { jobLifeCycleId, role, company });
         await this.parsePublishingPort.emitGenerated(job, {
@@ -352,6 +369,11 @@ export class JobIngestor implements IngestorPort {
 
     await this.jobLifecycleColPort.upsert(doc);
     this.metricsRegistry?.jobStageTotal.inc({ stage: 's2', status: 'enriched' });
+    this.metricsRegistry?.jobsInFlight.inc({
+      stage: 's2',
+      source: JobSource.MANUAL,
+      phase: 'enriched',
+    });
     if (stage1Partial?.stageTimestamp) {
       const durationSec = (Date.now() - new Date(stage1Partial.stageTimestamp).getTime()) / 1000;
       this.metricsRegistry?.jobStageDuration.observe({ stage: 's1_s2' }, durationSec);
@@ -425,6 +447,7 @@ export class JobIngestor implements IngestorPort {
 
     this.metricsRegistry?.jobsBrokered.inc({ source: JobSource.MANUAL });
     this.metricsRegistry?.jobStageTotal.inc({ stage: 's2', status: 'enriched' });
+    this.metricsRegistry?.jobsInFlight.inc({ stage: 's2', source: JobSource.MANUAL, phase: 'enriched' });
     await this.parsePublishingPort.emitCompleted(job, {
       stage: JobStage.FULL_PARSED,
       source: JobSource.MANUAL,
@@ -452,8 +475,19 @@ export class JobIngestor implements IngestorPort {
         jobLifecycleId,
       });
       this.metricsRegistry?.jobErrors.inc({ stage: 's2', error_type: 'missing_job' });
+      this.metricsRegistry?.jobsInFlight.dec({
+        stage: 's1',
+        source: JobSource.BROWSER_AUTO,
+        phase: 'enriching',
+      });
       return;
     }
+    // Leaving enriching (paired with the s1 enqueue inc); enriched inc follows on success only.
+    this.metricsRegistry?.jobsInFlight.dec({
+      stage: 's1',
+      source: JobSource.BROWSER_AUTO,
+      phase: 'enriching',
+    });
 
     const s1Doc: JobLifecycleDocument = {
       ...stage1Partial,
@@ -527,6 +561,11 @@ export class JobIngestor implements IngestorPort {
 
     await this.jobLifecycleColPort.upsert(doc);
     this.metricsRegistry?.jobStageTotal.inc({ stage: 's2', status: 'enriched' });
+    this.metricsRegistry?.jobsInFlight.inc({
+      stage: 's2',
+      source: String(doc.source ?? JobSource.BROWSER_AUTO),
+      phase: 'enriched',
+    });
     if (stage1Partial?.stageTimestamp) {
       const durationSec = (Date.now() - new Date(stage1Partial.stageTimestamp).getTime()) / 1000;
       this.metricsRegistry?.jobStageDuration.observe({ stage: 's1_s2' }, durationSec);

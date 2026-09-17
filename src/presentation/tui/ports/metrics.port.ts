@@ -16,7 +16,8 @@ export interface TuiMetricsPort {
     curId?: string | null;
     curStage?: string | null;
   }): void;
-  incConsumed(queue: string, routingKey: string): void;
+  ackInc(queue: string): void;
+  unackInc(queue: string): void;
+  unackDec(queue: string): void;
   setInfraReady(component: TuiInfraComponent, ready: 0 | 1): void;
-  setChannelReady(channel: 's1' | 's2' | 's2direct' | 's34', ready: 0 | 1): void;
 }

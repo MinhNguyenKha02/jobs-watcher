@@ -5,7 +5,6 @@ import type { Registry } from 'prom-client';
 export type DaemonMetricsPort = {
   readonly register: Registry;
   metrics(): Promise<string>;
-  // legacy direct prom handles (compat while ports adopt)
   readonly jobsBrokered: { inc(o: Record<string, string>): void };
   readonly jobStageTotal: { inc(o: Record<string, string>): void };
   readonly jobStageDuration: { observe(o: Record<string, string>, v: number): void };
@@ -17,16 +16,6 @@ export type DaemonMetricsPort = {
   readonly jobFilterRejectTotal: { inc(o: Record<string, string>): void };
   readonly infraReady: { set(o: Record<string, string>, v: number): void };
   readonly extractionQueueDepth: { set(v: number): void };
-  jobsBrokeredInc(source: string): void;
-  jobStageTotalInc(stage: string, status: string): void;
-  jobStageDurationObserve(stage: string, sec: number): void;
-  jobErrorsInc(stage: string, errorType: string): void;
-  jobsInFlightInc(stage: string): void;
-  jobsInFlightDec(stage: string): void;
-  extractionQueueEnqueueInc(): void;
-  extractionQueueDequeueInc(): void;
-  rmqPublishedInc(routingKey: string): void;
-  jobFilterRejectInc(source: string, stage: string): void;
   setInfraReady(component: DaemonInfraComponent, ready: 0 | 1): void;
   setExtractionQueueDepth(depth: number): void;
 };

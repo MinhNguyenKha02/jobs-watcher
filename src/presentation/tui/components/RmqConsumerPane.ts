@@ -21,11 +21,12 @@ export interface RmqMetricsSnapshot {
   curId?: string | null;
   curStage?: string | null;
   infra?: Record<string, number>;
-  consumed?: Record<string, number>;
+  ack?: Record<string, number>;
+  unack?: Record<string, number>;
 }
 
 export function toRmqSnapshot(metrics?: Record<string, Array<{ labels: Record<string, string>; value: number }>>): RmqMetricsSnapshot {
-  if (!metrics) return { depth: 0, partial: 0, full: 0, deferred: 0, connected: false, queueMode: true, peekIds: [], curId: null, curStage: null, infra: {}, consumed: {} };
+  if (!metrics) return { depth: 0, partial: 0, full: 0, deferred: 0, connected: false, queueMode: true, peekIds: [], curId: null, curStage: null, infra: {}, ack: {}, unack: {} };
   // wrong-port guard: daemon metrics on tui port
   const depth = findMetric(metrics, 'rmqPendingDepth', { queue: 'total' }) ?? sumMetric(metrics, 'rmqPendingDepth');
   const partial = sumMetric(metrics, 'rmqPendingPartial');
@@ -57,13 +58,19 @@ export function toRmqSnapshot(metrics?: Record<string, Array<{ labels: Record<st
     .map((v) => String(v.labels.id))
     .filter((id) => (curHead ? id !== curHead : true))
     .slice(0, 5);
-  const consumed: Record<string, number> = {};
-  for (const v of metrics.rmqConsumedTotal ?? []) {
+  const ack: Record<string, number> = {};
+  for (const v of metrics.rmqAckTotal ?? []) {
     const q = String(v.labels.queue ?? '');
     if (!q) continue;
-    consumed[q] = (consumed[q] ?? 0) + Number(v.value);
+    ack[q] = (ack[q] ?? 0) + Number(v.value);
   }
-  return { depth, partial, full, deferred, connected, queueMode, peekIds, curId, curStage, infra, consumed };
+  const unack: Record<string, number> = {};
+  for (const v of metrics.rmqUnack ?? []) {
+    const q = String(v.labels.queue ?? '');
+    if (!q) continue;
+    unack[q] = (unack[q] ?? 0) + Number(v.value);
+  }
+  return { depth, partial, full, deferred, connected, queueMode, peekIds, curId, curStage, infra, ack, unack };
 }
 
 export function renderRmqConsumerPaneFromMetrics(
@@ -127,15 +134,20 @@ export function renderRmqConsumerPane(snapshot: RmqMetricsSnapshot, width = 96):
   const infraLine = ` infra rmq:${rmq} ch:${ch ? '4/4' : '0/4'} uds:${uds} ipc:${ipc} qmode:${qmode} ${snapshot.connected ? '🟢' : '🔴'}`;
   lines.push(`│${truncateMid(infraLine, inner).padEnd(inner)}│`);
 
-  const consumed = snapshot.consumed ?? {};
-  const consumedKeys = Object.keys(consumed);
-  let consLine = ' consumed: —';
-  if (consumedKeys.length) {
-    const parts = consumedKeys.sort().map((k) => `${k} ${consumed[k]}`);
-    const total = Object.values(consumed).reduce((a, b) => a + b, 0);
-    consLine = ` consumed: ${parts.join(' ')} tot ${total}`;
+  const ack = snapshot.ack ?? {};
+  const unack = snapshot.unack ?? {};
+  const short = (q: string): string =>
+    q === 'tui.s1' ? 's1' : q === 'tui.s2' ? 's2' : q === 'tui.s2direct' ? 's2d' : q === 'tui.s3s4' ? 's34' : q;
+  const ackKeys = Object.keys(ack);
+  const unackKeys = Object.keys(unack);
+  let ackLine = ' ack/unack: —';
+  if (ackKeys.length || unackKeys.length) {
+    const order = ['tui.s1', 'tui.s2', 'tui.s2direct', 'tui.s3s4'];
+    const a = order.map((q) => `${short(q)}:+${ack[q] ?? 0}`).join(' ');
+    const u = order.map((q) => `${short(q)}:${unack[q] ?? 0}`).join(' ');
+    ackLine = ` ack ${a} · unack ${u}`;
   }
-  lines.push(`│${truncateMid(consLine, inner).padEnd(inner)}│`);
+  lines.push(`│${truncateMid(ackLine, inner).padEnd(inner)}│`);
 
   lines.push(`└${border}┘`);
   return lines.join('\n');
