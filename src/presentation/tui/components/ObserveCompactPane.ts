@@ -134,8 +134,12 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
   // in-mem ack counter resets on TUI restart while daemon pubs persist).
   // Δ[q] = pubs[q] − ready[q] − unack[q] rebuilds identically after restart
   // (redelivery restores unack, checkQueue restores ready). Fanout note: one
-  // pc publish lands in BOTH s2 and s2direct, so s2/s2d Δ are measured
-  // against the same pc counter (small positive bias is normal, not a leak).
+  // pc publish lands in BOTH s2 and s2direct, but the two lifecycles differ:
+  // s2 is held-until-s34 (tag kept, ack deferred to s34 drain), while s2direct
+  // in queue-mode is an immediate nack(drop) and never enters held (prefetch 1,
+  // no pending accumulation); direct-mode mirrors this. The inactive branch is
+  // therefore measured against 0 pubs, not pc (else a permanent +pc bias).
+  // Polls stay 1s (daemon+tui); ready refresh stays 5s (stale-ready flicker only).
   const g = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.generated' }) ?? 0;
   const pc = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.parse.completed' }) ?? 0;
   const pf = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.parse.failed' }) ?? 0;
@@ -149,11 +153,21 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
       sumMetricWhere(tui, 'rmqReady', { queue }) + sumMetricWhere(tui, 'rmqUnack', { queue });
     const d = (pub: number, queue: string): string => {
       const v = pub - held(queue);
-      return `${v >= 0 ? '+' : ''}${v}`;
+      return `${v > 0 ? '+' : ''}${v}`;
     };
     const d34v = pf + q + t + rf - held('tui.s3s4');
-    const d34 = `${d34v >= 0 ? '+' : ''}${d34v}`;
-    line6 = ` pub s1:${d(g, 'tui.s1')} s2:${d(pc, 'tui.s2')} s2d:${d(pc, 'tui.s2direct')} s3s4:${d34} (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;
+    const d34 = `${d34v > 0 ? '+' : ''}${d34v}`;
+    const qmode = findMetric(tui, 'infraReady', { component: 'queue_mode' });
+    let s2pub = pc;
+    let s2dpub = pc;
+    if (qmode !== undefined) {
+      if (qmode > 0) {
+        s2dpub = 0;
+      } else {
+        s2pub = 0;
+      }
+    }
+    line6 = ` pub s1:${d(g, 'tui.s1')} s2:${d(s2pub, 'tui.s2')} s2d:${d(s2dpub, 'tui.s2direct')} s3s4:${d34} (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;
   } else {
     line6 = ` pub s1:— s2:— s2d:— s3s4:— (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;
   }

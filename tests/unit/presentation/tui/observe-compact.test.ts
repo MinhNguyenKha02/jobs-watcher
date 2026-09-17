@@ -142,12 +142,81 @@ describe('ObserveCompactPane compact', () => {
             { labels: { queue: 'tui.s2direct' }, value: 0 },
             { labels: { queue: 'tui.s3s4' }, value: 0 },
           ],
+          infraReady: [{ labels: { component: 'queue_mode' }, value: 1 }],
         },
       } as any,
       96,
     );
-    expect(frame).toContain('pub s1:+14 s2:+3 s2d:+3 s3s4:+15');
+    expect(frame).toContain('pub s1:+14 s2:+3 s2d:0 s3s4:+15');
     expect(frame).toContain('(g:15 pc:3 pf:0 q:4 t:11 rf:0)');
+  });
+
+  it('GIVEN queue-mode pc held in s2 with empty s2direct WHEN render THEN s2:0 s2d:0', () => {
+    const frame = renderObserveCompactPane(
+      {
+        metrics: {
+          rmqPublishedTotal: [
+            { labels: { routingKey: 'job.generated' }, value: 15 },
+            { labels: { routingKey: 'job.parse.completed' }, value: 3 },
+            { labels: { routingKey: 'job.trash' }, value: 12 },
+          ],
+        },
+        tuiMetrics: {
+          rmqReady: [],
+          rmqUnack: [
+            { labels: { queue: 'tui.s1' }, value: 3 },
+            { labels: { queue: 'tui.s2' }, value: 3 },
+            { labels: { queue: 'tui.s2direct' }, value: 0 },
+            { labels: { queue: 'tui.s3s4' }, value: 0 },
+          ],
+          infraReady: [{ labels: { component: 'queue_mode' }, value: 1 }],
+        },
+      } as any,
+      96,
+    );
+    expect(frame).toContain('pub s1:+12 s2:0 s2d:0 s3s4:+12');
+  });
+
+  it('GIVEN direct-mode pc held in s2direct with empty s2 WHEN render THEN mirrored s2:0 s2d:0', () => {
+    const frame = renderObserveCompactPane(
+      {
+        metrics: {
+          rmqPublishedTotal: [
+            { labels: { routingKey: 'job.generated' }, value: 15 },
+            { labels: { routingKey: 'job.parse.completed' }, value: 3 },
+            { labels: { routingKey: 'job.trash' }, value: 12 },
+          ],
+        },
+        tuiMetrics: {
+          rmqReady: [],
+          rmqUnack: [
+            { labels: { queue: 'tui.s1' }, value: 3 },
+            { labels: { queue: 'tui.s2' }, value: 0 },
+            { labels: { queue: 'tui.s2direct' }, value: 3 },
+            { labels: { queue: 'tui.s3s4' }, value: 0 },
+          ],
+          infraReady: [{ labels: { component: 'queue_mode' }, value: 0 }],
+        },
+      } as any,
+      96,
+    );
+    expect(frame).toContain('pub s1:+12 s2:0 s2d:0 s3s4:+12');
+  });
+
+  it('GIVEN missing queue_mode WHEN render THEN legacy pc-held both branches', () => {
+    const frame = renderObserveCompactPane(
+      {
+        metrics: {
+          rmqPublishedTotal: [{ labels: { routingKey: 'job.parse.completed' }, value: 3 }],
+        },
+        tuiMetrics: {
+          rmqReady: [],
+          rmqUnack: [{ labels: { queue: 'tui.s2' }, value: 3 }],
+        },
+      } as any,
+      96,
+    );
+    expect(frame).toContain('s2:0 s2d:+3');
   });
 
   it('GIVEN post-restart rebuilt unack+ready with no ack series WHEN render THEN identical L6 as pre-restart', () => {
@@ -168,7 +237,7 @@ describe('ObserveCompactPane compact', () => {
     const after = renderObserveCompactPane({ metrics: daemonMetrics, tuiMetrics: held } as any, 96);
     const l6 = (f: string): string => f.split('\n').find((l) => l.includes('pub s1:')) ?? '';
     expect(l6(after)).toBe(l6(before));
-    expect(l6(after)).toContain('pub s1:+11 s2:+4 s2d:+4 s3s4:+0');
+    expect(l6(after)).toContain('pub s1:+11 s2:+4 s2d:+4 s3s4:0');
   });
 
   it('GIVEN no tui join WHEN render THEN pub-only detail with dash deltas', () => {
