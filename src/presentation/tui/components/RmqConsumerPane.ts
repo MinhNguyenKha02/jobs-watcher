@@ -40,10 +40,23 @@ export function toRmqSnapshot(metrics?: Record<string, Array<{ labels: Record<st
   }
   const connected = (infra.rmq ?? sumMetric(metrics, 'rmqConnected') ?? 0) > 0;
   const queueMode = (infra.queue_mode ?? infra['queueMode'] ?? infra.queueMode ?? sumMetric(metrics, 'rmqQueueMode') ?? 1) > 0;
-  const peekIds = (metrics?.rmqPendingIds ?? []).map((v) => String(v.labels.id)).slice(0, 5);
   const curEntry = (metrics?.rmqCur ?? [])[0];
   const curId = curEntry ? String(curEntry.labels.id ?? '') || null : null;
   const curStage = curEntry ? String(curEntry.labels.stage ?? '') || null : null;
+  // pend excludes cur: the displayed job is normally already shifted out of
+  // pending by autoAdvance, but an s1 redelivery (nack requeue / duplicate
+  // publish) can re-push its id while it is still on screen — the s1 dedup
+  // guard (RabbitMqJobReader) covers the pending list only, not the
+  // displayed id. Filtering here keeps `shown + N = depth` reconciled.
+  // FUTURE: optionally extend that guard with `id !== currentJobId`; that is
+  // consumer-logic behavior change (ack/tag implications), parked out of scope.
+  // (rmqPendingIds stores trunc11 ids while rmqCur now stores the full id,
+  // so compare trunc11 forms at this seam.)
+  const curHead = curId ? midTruncateId(curId) : null;
+  const peekIds = (metrics?.rmqPendingIds ?? [])
+    .map((v) => String(v.labels.id))
+    .filter((id) => (curHead ? id !== curHead : true))
+    .slice(0, 5);
   const consumed: Record<string, number> = {};
   for (const v of metrics.rmqConsumedTotal ?? []) {
     const q = String(v.labels.queue ?? '');
@@ -79,15 +92,11 @@ export function renderRmqConsumerPane(snapshot: RmqMetricsSnapshot, width = 96):
 
   let curLine = ' cur: —';
   if (snapshot.curId) {
-    const stageLabel =
-      snapshot.curStage === 'partial_parsed' || snapshot.curStage === 'PARTIAL'
-        ? 'PARTIAL'
-        : snapshot.curStage === 'full_parsed' || snapshot.curStage === 'FULL_PARSED' || snapshot.curStage === 'FULL'
-          ? 'FULL'
-          : snapshot.curStage
-            ? String(snapshot.curStage)
-            : '';
-    curLine = stageLabel ? ` cur: ${snapshot.curId} ${stageLabel}` : ` cur: ${snapshot.curId}`;
+    // PA-identical fragment: `cur:<trunc13(id)> <raw stage>` (JobCardRenderer
+    // header). Stage is IPC-verbatim (partial_parsed/full_parsed), never
+    // normalized, so both panes agree byte-for-byte.
+    const shortId = midTruncateId(snapshot.curId, 13);
+    curLine = snapshot.curStage ? ` cur:${shortId} ${snapshot.curStage}` : ` cur:${shortId}`;
   } else if (snapshot.peekIds.length > 0) {
     const first = snapshot.peekIds[0];
     const stageLabel = snapshot.full > 0 && snapshot.partial === 0 ? 'FULL' : snapshot.partial > 0 && snapshot.full === 0 ? 'PARTIAL' : snapshot.depth > 0 ? 'mixed' : '';

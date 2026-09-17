@@ -104,7 +104,7 @@ describe('RmqConsumerPane', () => {
     expect(frame).toContain('infra rmq:0');
   });
 
-  it('GIVEN IPC cur PARTIAL with mixed pend P:3 F:1 WHEN render THEN cur shows IPC PARTIAL not mixed', () => {
+  it('GIVEN IPC cur partial_parsed with mixed pend P:3 F:1 WHEN render THEN cur matches PA exact fragment', () => {
     const frame = renderRmqConsumerPane(
       {
         depth: 4,
@@ -119,11 +119,12 @@ describe('RmqConsumerPane', () => {
       },
       96,
     );
-    expect(frame).toContain('cur: 1a09…job-3 PARTIAL');
+    expect(frame).toContain('cur:1a09…job-3 partial_parsed');
+    expect(frame).not.toContain('PARTIAL');
     expect(frame).not.toContain('mixed');
   });
 
-  it('GIVEN IPC cur FULL WHEN render THEN cur shows FULL', () => {
+  it('GIVEN IPC cur full_parsed WHEN render THEN cur shows raw FULL_PARSED wording', () => {
     const frame = renderRmqConsumerPane(
       {
         depth: 4,
@@ -138,6 +139,43 @@ describe('RmqConsumerPane', () => {
       },
       96,
     );
-    expect(frame).toContain('cur: 1a09…job-3 FULL');
+    expect(frame).toContain('cur:1a09…job-3 full_parsed');
+  });
+
+  it('GIVEN full-length rmqCur id WHEN renderFromMetrics THEN cur truncates to PA width 13', () => {
+    const frame = renderRmqConsumerPaneFromMetrics(
+      {
+        rmqPendingDepth: [{ labels: { queue: 'total' }, value: 1 }],
+        rmqCur: [{ labels: { id: '1a09f3244ae345fd-job-3', stage: 'partial_parsed' }, value: 1 }],
+      },
+      96,
+    );
+    expect(frame).toContain('cur:1a09…job-3 partial_parsed');
+  });
+
+  it('GIVEN cur id redelivered into peek heads WHEN renderFromMetrics THEN pend excludes cur and shown+N=depth', () => {
+    const frame = renderRmqConsumerPaneFromMetrics(
+      {
+        rmqPendingDepth: [{ labels: { queue: 'total' }, value: 5 }],
+        rmqPendingPartial: [{ labels: {}, value: 3 }],
+        rmqPendingFull: [{ labels: {}, value: 2 }],
+        rmqDeferredCount: [{ labels: {}, value: 0 }],
+        rmqPendingIds: [
+          { labels: { id: '1a09…job-3' }, value: 1 },
+          { labels: { id: '1a09…job-0' }, value: 1 },
+          { labels: { id: '1a09…job-4' }, value: 1 },
+          { labels: { id: '1a09…job-5' }, value: 1 },
+          { labels: { id: '1a09…job-6' }, value: 1 },
+        ],
+        rmqCur: [{ labels: { id: '1a09f3244ae345fd-job-3', stage: 'partial_parsed' }, value: 1 }],
+      },
+      96,
+    );
+    const pendLine = frame.split('\n').find((l) => l.includes('pend:')) ?? '';
+    expect(frame).toContain('cur:1a09…job-3 partial_parsed');
+    expect(pendLine).not.toContain('1a09…job-3');
+    expect(pendLine).toContain('1a09…job-0');
+    // 4 shown +1 more = depth 5
+    expect(pendLine).toContain('+1 more');
   });
 });

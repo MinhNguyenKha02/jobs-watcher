@@ -126,11 +126,13 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       .slice(0, 5)
       .map((id) => trunc11(id));
     // IPC cur (PA header source of truth) so poll cur matches PA, not pending head.
+    // Full id stored: rmqCur is a single-series display gauge (no cardinality
+    // risk) and the pane truncates to the PA-identical width at render.
     let curId: string | null = null;
     let curStage: string | null = null;
     try {
       const cur = getCurrentJob();
-      curId = cur.jobLifecycleId ? trunc11(cur.jobLifecycleId) : null;
+      curId = cur.jobLifecycleId || null;
       curStage = cur.stage ?? null;
     } catch {
       curId = null;

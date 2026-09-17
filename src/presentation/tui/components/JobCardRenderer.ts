@@ -8,6 +8,8 @@
 
 import type { Job, JobDetails } from '../../../domain/types/job.js';
 
+import { midTruncateId } from './RmqConsumerPane.js';
+
 export interface CardStatus {
   sseConnected: boolean;
   udsReady: boolean;
@@ -135,11 +137,7 @@ export class JobCardRenderer {
   }
 
   private midTruncateId(id: string, maxLen = 13): string {
-    if (id.length <= maxLen) return id;
-    const dash = id.lastIndexOf('-');
-    const suffix = dash !== -1 ? id.slice(dash) : id.slice(-6);
-    const head = id.slice(0, 4);
-    return `${head}…${suffix.replace(/^-/, 'job-')}`;
+    return midTruncateId(id, maxLen);
   }
 
   /**
