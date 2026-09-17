@@ -61,6 +61,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
 
   private connected = false;
   private evictTimer: ReturnType<typeof setInterval> | null = null;
+  private readyTimer: ReturnType<typeof setInterval> | null = null;
   private metricsRegistry?: TuiMetricsPort;
 
   constructor(
@@ -302,8 +303,10 @@ export class RabbitMqJobReader implements JobEventReaderPort {
       });
 
       this.evictTimer = setInterval(() => this.evictStaleDeferred(), 5000);
+      this.readyTimer = setInterval(() => void this.refreshReady(), 5000);
       this.connected = true;
       this.syncMetrics();
+      void this.refreshReady();
       logger.info('Started, 4 consumers active');
     } catch (err) {
       logger.error('Start failed', { error: String(err) });
@@ -316,6 +319,7 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     this.connected = false;
     this.syncMetrics();
     if (this.evictTimer) clearInterval(this.evictTimer);
+    if (this.readyTimer) clearInterval(this.readyTimer);
     this.nackAllPending();
     [this.s1channel, this.s2queueChannel, this.s2directChannel, this.s34channel].forEach((ch) => {
       if (ch) ch.close().catch(() => {});
@@ -343,7 +347,6 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         this.metricsRegistry?.unackInc(this.s1Queue);
         this.s1channel!.ack(msg);
         this.metricsRegistry?.unackDec(this.s1Queue);
-        this.metricsRegistry?.ackInc(this.s1Queue);
         return;
       }
 
@@ -396,7 +399,6 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         this.metricsRegistry?.unackInc(this.s2Queue);
         this.s2queueChannel!.ack(msg);
         this.metricsRegistry?.unackDec(this.s2Queue);
-        this.metricsRegistry?.ackInc(this.s2Queue);
         return;
       }
 
@@ -471,7 +473,6 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         this.metricsRegistry?.unackInc(this.s2DirectQueue);
         this.s2directChannel!.ack(msg);
         this.metricsRegistry?.unackDec(this.s2DirectQueue);
-        this.metricsRegistry?.ackInc(this.s2DirectQueue);
         return;
       }
       this.recordS2TagDirect(id, msg.fields.deliveryTag);
@@ -509,28 +510,23 @@ export class RabbitMqJobReader implements JobEventReaderPort {
         this.metricsRegistry?.unackInc(this.s34Queue);
         this.ackS3TagForJob(msg);
         this.metricsRegistry?.unackDec(this.s34Queue);
-        this.metricsRegistry?.ackInc(this.s34Queue);
         return;
       }
 
-      // Ack tags per queue that recorded them; s2direct now also ack in s34 (prefetch 1).
-      // Each held delivery moves unack→ack so PC per-queue deltas reconcile with pub counts.
+      // Release held tags per queue at s34 drain (broker ack only; no ack
+      // series — PC reconciles pubs vs broker-ready + unack instead).
       this.metricsRegistry?.unackInc(this.s34Queue);
       for (let i = 0, n = this.ackS1TagForJob(id); i < n; i++) {
         this.metricsRegistry?.unackDec(this.s1Queue);
-        this.metricsRegistry?.ackInc(this.s1Queue);
       }
       for (let i = 0, n = this.ackS2TagQueueForJob(id); i < n; i++) {
         this.metricsRegistry?.unackDec(this.s2Queue);
-        this.metricsRegistry?.ackInc(this.s2Queue);
       }
       for (let i = 0, n = this.ackS2TagDirectForJobId(id); i < n; i++) {
         this.metricsRegistry?.unackDec(this.s2DirectQueue);
-        this.metricsRegistry?.ackInc(this.s2DirectQueue);
       }
       this.ackS3TagForJob(msg);
       this.metricsRegistry?.unackDec(this.s34Queue);
-      this.metricsRegistry?.ackInc(this.s34Queue);
 
       this.removeFromPending(id);
 
@@ -635,6 +631,32 @@ export class RabbitMqJobReader implements JobEventReaderPort {
     }
     logger.info('Deferred S2 drained', { id });
     this.syncMetrics();
+  }
+
+  /**
+   * Broker-ready refresh (read-only): per-queue checkQueue messageCount →
+   * rmqReady gauge. Passive (queues asserted in start); per-queue silent on
+   * failure so a broker hiccup never fails consume — stale ready is kept.
+   */
+  private async refreshReady(): Promise<void> {
+    const pairs: Array<{
+      queue: string;
+      ch?: { checkQueue(queue: string): Promise<{ messageCount: number }> } | null;
+    }> = [
+      { queue: this.s1Queue, ch: this.s1channel },
+      { queue: this.s2Queue, ch: this.s2queueChannel },
+      { queue: this.s2DirectQueue, ch: this.s2directChannel },
+      { queue: this.s34Queue, ch: this.s34channel },
+    ];
+    for (const { queue, ch } of pairs) {
+      try {
+        if (!ch) continue;
+        const q = await ch.checkQueue(queue);
+        this.metricsRegistry?.setReady(queue, q.messageCount);
+      } catch {
+        continue;
+      }
+    }
   }
 
   private evictStaleDeferred(): void {
