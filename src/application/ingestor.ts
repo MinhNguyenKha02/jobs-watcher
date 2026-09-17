@@ -337,7 +337,8 @@ export class JobIngestor implements IngestorPort {
       stage1Partial &&
       (stage1Partial.status === JobStatus.QUEUED ||
         stage1Partial.status === JobStatus.TRASHED ||
-        stage1Partial.status === JobStatus.ENRICHED)
+        stage1Partial.status === JobStatus.ENRICHED ||
+        stage1Partial.status === JobStatus.FAILED)
     ) {
       this.logger.warn('S2 enrichment skipped — job already routed or fully parsed', {
         jobLifecycleId,
@@ -457,7 +458,9 @@ export class JobIngestor implements IngestorPort {
 
     if (
       stage1Partial &&
-      (stage1Partial.status === JobStatus.QUEUED || stage1Partial.status === JobStatus.TRASHED)
+      (stage1Partial.status === JobStatus.QUEUED ||
+        stage1Partial.status === JobStatus.TRASHED ||
+        stage1Partial.status === JobStatus.FAILED)
     ) {
       this.logger.warn('signal2cBrowserAuto skipped — job already routed', {
         jobLifecycleId,
@@ -486,33 +489,9 @@ export class JobIngestor implements IngestorPort {
       phase: 'enriching',
     });
 
-    const s1Doc: JobLifecycleDocument = {
-      ...stage1Partial,
-      updatedAt: new Date(),
-      stageTimestamp: new Date(),
-    };
-
-    const s1Job: Job = {
-      _id: s1Doc._id,
-      company: s1Doc.company,
-      role: s1Doc.role,
-      location: s1Doc.location,
-      description: s1Doc.description,
-      details: s1Doc.details,
-      salary: s1Doc.salary,
-      url: s1Doc.url,
-      deadline: s1Doc.deadline,
-      easyApply: s1Doc.easyApply,
-    };
-    await this.parsePublishingPort.emitGenerated(s1Job, {
-      stage: JobStage.PARTIAL_PARSED,
-      source: JobSource.BROWSER_AUTO,
-      status: s1Doc.status,
-    });
-
     const doc: JobLifecycleDocument = {
       ...(stage1Partial || {}),
-      _id: jobLifecycleId || s1Doc._id || generateFallbackId('browser-auto'),
+      _id: jobLifecycleId || stage1Partial._id || generateFallbackId('browser-auto'),
       raw: rawPayload,
       gmailMeta: stage1Partial?.gmailMeta,
       role: stage1Partial?.role || 'Unknown',
@@ -541,20 +520,39 @@ export class JobIngestor implements IngestorPort {
         source: String(doc.source ?? 'unknown'),
         stage: 's2',
       });
-      // T2 reject persists terminal status on the s1 doc (was stale enriching),
-      // then still emits trash so TUI drains it via s34.
       await this.jobLifecycleColPort.upsert({
-        _id: jobLifecycleId || s1Doc._id!,
-        status: JobStatus.TRASHED,
+        _id: jobLifecycleId || stage1Partial._id!,
+        status: JobStatus.FAILED,
+        trashReason: `Filter rejected at stage 2: ${passed.reasons.join('; ')}`,
         updatedAt: new Date(),
         stageTimestamp: new Date(),
       });
-      await this.routePublishingPort.emitJobTrashed(
-        jobLifecycleId || s1Doc._id!,
-        `Filter rejected at stage 2: ${passed.reasons.join('; ')}`
-      );
       return;
     }
+
+    const s1Doc: JobLifecycleDocument = {
+      ...stage1Partial,
+      updatedAt: new Date(),
+      stageTimestamp: new Date(),
+    };
+
+    const s1Job: Job = {
+      _id: s1Doc._id,
+      company: s1Doc.company,
+      role: s1Doc.role,
+      location: s1Doc.location,
+      description: s1Doc.description,
+      details: s1Doc.details,
+      salary: s1Doc.salary,
+      url: s1Doc.url,
+      deadline: s1Doc.deadline,
+      easyApply: s1Doc.easyApply,
+    };
+    await this.parsePublishingPort.emitGenerated(s1Job, {
+      stage: JobStage.PARTIAL_PARSED,
+      source: JobSource.BROWSER_AUTO,
+      status: s1Doc.status,
+    });
 
     await this.jobLifecycleColPort.upsert(doc);
     this.metricsRegistry?.jobStageTotal.inc({ stage: 's2', status: 'enriched' });
