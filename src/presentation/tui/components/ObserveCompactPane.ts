@@ -130,8 +130,12 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
   const line5 = ` dur s1_s2 ${flag(dS1S2, DUR_SLOW_S)} s2_s3 ${flag(dS2S3, DUR_SLOW_S)} extr ${flag(dExtr, EXTR_SLOW_S)}`;
   lines.push(`│${truncate(line5, inner).padEnd(inner)}│`);
 
-  // L6: publisher-vs-acker balance. Fanout note: one pc publish lands in BOTH s2 and s2direct,
-  // so s2 Δ is measured against the s2 queue only (small positive bias is normal, not a leak).
+  // L6: publisher-vs-held balance (no ack series: broker forgets acks, so an
+  // in-mem ack counter resets on TUI restart while daemon pubs persist).
+  // Δ[q] = pubs[q] − ready[q] − unack[q] rebuilds identically after restart
+  // (redelivery restores unack, checkQueue restores ready). Fanout note: one
+  // pc publish lands in BOTH s2 and s2direct, so s2/s2d Δ are measured
+  // against the same pc counter (small positive bias is normal, not a leak).
   const g = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.generated' }) ?? 0;
   const pc = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.parse.completed' }) ?? 0;
   const pf = findMetric(metrics, 'rmqPublishedTotal', { routingKey: 'job.parse.failed' }) ?? 0;
@@ -141,13 +145,17 @@ export function renderObserveCompactPane(data: ObserveSnapshot, width = 64): str
   const tui = data.tuiMetrics;
   let line6: string;
   if (tui) {
-    const acked = (queue: string): number => sumMetricWhere(tui, 'rmqAckTotal', { queue });
-    const d1 = g - acked('tui.s1');
-    const d2 = pc - acked('tui.s2');
-    const d34 = pf + q + t + rf - acked('tui.s3s4');
-    line6 = ` pub s1:${d1 >= 0 ? '+' : ''}${d1} s2:${d2 >= 0 ? '+' : ''}${d2} s3s4:${d34 >= 0 ? '+' : ''}${d34} (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;
+    const held = (queue: string): number =>
+      sumMetricWhere(tui, 'rmqReady', { queue }) + sumMetricWhere(tui, 'rmqUnack', { queue });
+    const d = (pub: number, queue: string): string => {
+      const v = pub - held(queue);
+      return `${v >= 0 ? '+' : ''}${v}`;
+    };
+    const d34v = pf + q + t + rf - held('tui.s3s4');
+    const d34 = `${d34v >= 0 ? '+' : ''}${d34v}`;
+    line6 = ` pub s1:${d(g, 'tui.s1')} s2:${d(pc, 'tui.s2')} s2d:${d(pc, 'tui.s2direct')} s3s4:${d34} (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;
   } else {
-    line6 = ` pub s1:— s2:— s3s4:— (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;
+    line6 = ` pub s1:— s2:— s2d:— s3s4:— (g:${g} pc:${pc} pf:${pf} q:${q} t:${t} rf:${rf})`;
   }
   lines.push(`│${truncate(line6, inner).padEnd(inner)}│`);
 
