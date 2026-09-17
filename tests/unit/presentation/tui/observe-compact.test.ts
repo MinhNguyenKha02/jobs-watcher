@@ -37,6 +37,22 @@ describe('ObserveCompactPane compact', () => {
     expect(frame).toContain('flt[a1]:4 flt[a2]:2 flt[m2]:1');
   });
 
+  it('GIVEN inflight gauges WHEN render wide THEN L1 groups split by source and phase', () => {
+    const frame = renderObserveCompactPane(
+      {
+        metrics: {
+          jobsInFlight: [
+            { labels: { stage: 's1', source: 'browser-auto', phase: 'enriching' }, value: 3 },
+            { labels: { stage: 's2', source: 'browser-auto', phase: 'enriched' }, value: 2 },
+            { labels: { stage: 's2', source: 'manual', phase: 'enriched' }, value: 1 },
+          ],
+        },
+      } as any,
+      112,
+    );
+    expect(frame).toContain('in[a1e]:3 in[a2e]:2 in[m1e]:0 in[m2e]:1');
+  });
+
   it('GIVEN enriched inflight in JSON WHEN render THEN L4 stays extraction-scoped (groups explicit in JSON only)', () => {
     const frame = renderObserveCompactPane(
       {
