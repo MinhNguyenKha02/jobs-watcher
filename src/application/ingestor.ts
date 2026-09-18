@@ -521,7 +521,9 @@ export class JobIngestor implements IngestorPort {
         stage: 's2',
       });
       await this.jobLifecycleColPort.upsert({
+        ...doc,
         _id: jobLifecycleId || stage1Partial._id!,
+        stage: JobStage.FULL_PARSED,
         status: JobStatus.FAILED,
         trashReason: `Filter rejected at stage 2: ${passed.reasons.join('; ')}`,
         updatedAt: new Date(),

@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { JobStatus } from '../../../src/domain/types/job-lifecycle.js';
+import { JobStage, JobStatus } from '../../../src/domain/types/job-lifecycle.js';
 import { setQueueMode } from '../../../src/presentation/tui/shared-tui-state.js';
 import { assertJobErrors } from '../../helpers/assert-metrics.js';
 import { assertPicked } from '../../helpers/assert-path.js';
@@ -219,6 +219,47 @@ describe('Path c2 — S1→S2c auto Indeed next s1[4] (mocked)', () => {
     );
     expect(parsePort.emitCompleted).not.toHaveBeenCalled();
     await daemon.apps.scheduler.stop();
+  });
+
+  it('GIVEN browser returns senior-role detail WHEN scheduler extracts THEN filter rejected and no emits · path c2', async () => {
+    (browser.extract as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      html: '<html><body><h1>Senior Software Engineer</h1><p>5+ years of experience building enterprise systems. Ruby and Elixir shop.</p></body></html>',
+    });
+    (storage.findById as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) =>
+        makeStage1Partial({
+          _id: id,
+          description: 'Enterprise systems builder',
+          url: `https://vn.indeed.com/viewjob?jk=${id}`,
+        })
+    );
+    await daemon.apps.scheduler.start();
+    await whenS1Many(daemon, s1Indeed4('C2R'), 's1-c2r');
+    await vi.waitUntil(
+      () =>
+        (storage.upsert as unknown as ReturnType<typeof vi.fn>).mock.calls.filter(
+          (c) => (c[0] as { status?: string })?.status === JobStatus.FAILED
+        ).length >= 4,
+      {
+        timeout: 15000,
+        interval: 50,
+      }
+    );
+    await daemon.apps.scheduler.stop();
+    const failedArg = (storage.upsert as unknown as ReturnType<typeof vi.fn>).mock.calls
+      .map((c) => c[0] as Record<string, unknown>)
+      .find((a) => a?.status === JobStatus.FAILED) as Record<string, unknown>;
+    expect(String(failedArg.trashReason)).toContain('Filter rejected at stage 2');
+    expect(String(failedArg.details)).toContain('Senior Software Engineer');
+    expect(String(failedArg.raw)).toContain('5+ years');
+    expect(failedArg.stage).toBe(JobStage.FULL_PARSED);
+    const generatedBefore = (parsePort.emitGenerated as unknown as ReturnType<typeof vi.fn>)
+      .mock.calls.length;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(
+      (parsePort.emitGenerated as unknown as ReturnType<typeof vi.fn>).mock.calls.length
+    ).toBe(generatedBefore);
+    expect(parsePort.emitCompleted).not.toHaveBeenCalled();
   });
 
   it('GIVEN upsert 11000 duplicate WHEN ingest THEN duplicate_job counted, no trash emit · path c2', async () => {
