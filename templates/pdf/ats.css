@@ -27,7 +27,10 @@
 --space-5: 10pt;
 
   /* Layout */
---page-margin: 12mm;
+--page-margin-top: 6mm;
+--page-margin-right: 10mm;
+--page-margin-bottom: 6mm;
+--page-margin-left: 10mm;
   --label-width: 100px;
 
   /* Colors */
@@ -42,7 +45,7 @@
 
 @page {
   size: A4;
-  margin: var(--page-margin);
+  margin: var(--page-margin-top) var(--page-margin-right) var(--page-margin-bottom) var(--page-margin-left);
 }
 
 /* ==========================================================================
