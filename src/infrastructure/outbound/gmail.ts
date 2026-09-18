@@ -1,24 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 import { google, gmail_v1 } from 'googleapis';
 
-// DeliveryLog import removed (was unused)
-
-let __dir: string;
-try {
-  if (process.env.NODE_ENV === 'test') {
-    throw new Error('test env');
-  }
-  // Use eval to prevent Jest from parsing import.meta at syntax level
-  const importMeta = eval('import.meta') as { url: string };
-  __dir = path.dirname(fileURLToPath(importMeta.url));
-} catch {
-  __dir = process.cwd();
-}
-const TOKEN_PATH = path.join(__dir, '../../token.json');
-const CREDENTIALS_PATH = path.join(__dir, '../../credentials.json');
+const TOKEN_PATH = path.resolve(process.cwd(), 'token.json');
+const CREDENTIALS_PATH = path.resolve(process.cwd(), 'credentials.json');
 
 type OAuth2ClientType = InstanceType<typeof google.auth.OAuth2>;
 
@@ -72,7 +58,7 @@ export class GmailService {
 
   private loadCredentials(): CredentialsFile {
     if (!fs.existsSync(CREDENTIALS_PATH)) {
-      throw new Error('credentials.json not found. Please download it from Google Cloud Console.');
+      throw new Error('credentials.json not found. Please download it from Google Cloud Console.' + CREDENTIALS_PATH);
     }
     return JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8')) as CredentialsFile;
   }

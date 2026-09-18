@@ -8,7 +8,7 @@ SINCE_DAYS="${2:-7}"
 UNTIL_DAYS="${3:-}"
 CLEAN_FLAG="${4:-}"
 WEBHOOK_URL="${WEBHOOK_URL:-http://127.0.0.1:${WEBHOOK_PORT:-3000}${WEBHOOK_PATH:-/webhook/gmail}}"
-LABEL_NAME="${LABEL_NAME:-${GMAIL_LABEL_NAME:-Job Alerts}}"
+LABEL_NAME="${LABEL_NAME:-${GMAIL_LABEL_NAME:-Job-Alerts}}"
 PROCESSED="$ROOT_DIR/logs/eval-messageids.json"
 mkdir -p "$ROOT_DIR/logs"
 if [[ "$CLEAN_FLAG" == "clean" || "$CLEAN_FLAG" == "--clean" ]]; then rm -f "$PROCESSED"; fi

@@ -1,8 +1,10 @@
 // scripts/eval-fetch-and-trigger.ts — fetcher (msgs assigned) direct to processed json
-import { GmailService } from '../src/infrastructure/outbound/gmail.js';
-import { config } from '../src/config.js';
-import fetch from 'node-fetch';
 import fs from 'fs';
+
+import fetch from 'node-fetch';
+
+import { config } from '../src/config.js';
+import { GmailService } from '../src/infrastructure/outbound/gmail.js';
 
 const WEBHOOK_URL = process.env.WEBHOOK_URL || `http://127.0.0.1:${process.env.WEBHOOK_PORT || '3000'}${process.env.WEBHOOK_PATH || '/webhook/gmail'}`;
 const LABEL_NAME = process.env.LABEL_NAME || config.gmail.labelName;

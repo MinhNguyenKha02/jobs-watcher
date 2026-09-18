@@ -3,6 +3,7 @@ import http from 'node:http';
 
 /**
  * P3 dual probe for TUI `infraReady{uds_client,ipc}` (PC `tui 9091` line).
+ * Boolean gauge semantics: 1 = true/ready, 0 = false/not-ready (NOT unix exit codes).
  * - `ipc`: file existence of `TUI_SHARED_STATE_PATH` (local seam, no dial).
  * - `uds_client`: `existsSync(socket)` fast-fail + active `GET /` over UDS.
  *   Any HTTP status (401/404 from `UdsAdapter` unknown-path guard) proves the
@@ -13,7 +14,7 @@ const probeAgent = new http.Agent({ keepAlive: false });
 
 export function probeIpcPath(statePath: string): 0 | 1 {
   try {
-    if (!statePath) return 1;
+    if (!statePath) return 0;
     return existsSync(statePath) ? 1 : 0;
   } catch {
     return 0;
