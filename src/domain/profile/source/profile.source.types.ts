@@ -56,23 +56,23 @@ export enum observabilityCapability {
 
 export enum infrastructureCapability {
   containerized_deployment = 'containerized-deployment',
-  linux_service_management = 'linux-service-management',
+  linux_host_operation = 'linux-host-operation',
   development_workflow_automation = 'development-workflow-automation',
   cloud_deployment = 'cloud-deployment',
-  ci_cd_automation = 'ci_cd_automation',
-  configuration_management = 'configuration_management',
-  environment_management = 'environment_management',
+  ci_cd_automation = 'ci-cd-automation',
+  configuration_management = 'configuration-management',
+  environment_management = 'environment-management',
 }
 
 export enum communicationCapability {
-  request_response_communication = 'request_response_communication',
-  streaming_communication = 'streaming_communication',
-  event_based_communication = 'event_based_communication',
+  request_response_communication = 'request-response-communication',
+  streaming_communication = 'streaming-communication',
+  event_based_communication = 'event-based-communication',
 }
 
 export enum securityCapability {
-  authentication_implementation = 'authentication_implementation',
-  authorization_control = 'authorization_control',
+  authentication = 'authentication',
+  authorization = 'authorization',
   input_validation = 'input-validation',
   rate_limiting = 'rate-limiting',
 }
@@ -113,73 +113,73 @@ export enum engineeringBehavior {
 
 // enums for technologies
 export enum protocolTech {
-  websocket = 'websocket',
-  restful_api = 'restful-api',
-  graphql = 'graphql',
-  pubsub = 'pubsub',
-  webhooks = 'webhooks',
-  unix_domain_socket = 'unix-domain-socket',
-  grpc = 'grpc',
-  rpc = 'rpc',
-  abi_interface = 'abi interface',
-  rabbitmq = 'rabbitmq',
-  kafka = 'kafka',
+  websocket = 'WebSocket',
+  restful_api = 'RESTful API',
+  graphql = 'GraphQL',
+  pubsub = 'Pub/Sub',
+  webhooks = 'Webhooks',
+  unix_domain_socket = 'Unix domain socket',
+  grpc = 'gRPC',
+  rpc = 'RPC',
+  abi = 'ABI',
+  rabbitmq = 'RabbitMQ',
+  kafka = 'Apache Kafka',
 }
 
 export enum languageTech {
-  go = 'go',
-  typescript = 'typescript',
-  javascript = 'javascript',
-  sql = 'sql',
-  c = 'c',
-  php = 'php',
-  bash = 'bash',
-  python = 'python',
+  go = 'Go',
+  typescript = 'TypeScript',
+  javascript = 'JavaScript',
+  sql = 'SQL',
+  c = 'C',
+  php = 'PHP',
+  bash = 'Bash',
+  python = 'Python',
 }
 
 export enum backendFrameworkTech {
-  nodejs = 'nodejs',
-  expressjs = 'expressjs',
-  gin = 'gin',
-  laravel = 'laravel',
-  django = 'django',
-  nuxtjs = 'nuxtjs',
+  nodejs = 'Node.js',
+  expressjs = 'Express.js',
+  gin = 'Gin',
+  laravel = 'Laravel',
+  django = 'Django',
+  nuxtjs = 'Nuxt',
 }
 
 export enum testingTech {
-  vitest = 'vitest',
-  jest = 'jest',
-  playwright = 'playwright',
-  gotesting = 'go testing',
-  ctesting = 'c testing',
+  vitest = 'Vitest',
+  jest = 'Jest',
+  playwright = 'Playwright',
+  go_test = 'Go testing',
+  c_test = 'C testing',
 }
 
 export enum infrastructureTech {
-  docker = 'docker',
-  ubuntu = 'ubuntu',
-  aws = 'aws',
-  google_cloud = 'google-cloud',
-  cloudflare = 'cloudflare',
-  github_actions = 'github-actions',
-  git = 'git',
+  docker = 'Docker',
+  linux = 'Linux',
+  aws = 'AWS',
+  google_cloud = 'Google Cloud',
+  cloudflare = 'Cloudflare',
+  github_actions = 'GitHub Actions',
+  git = 'Git',
 }
 
 export enum databaseTech {
-  postgresql = 'postgresql',
-  mongodb = 'mongodb',
-  redis = 'redis',
-  supabase = 'supabase',
+  postgresql = 'PostgreSQL',
+  mongodb = 'MongoDB',
+  redis = 'Redis',
+  supabase = 'Supabase',
 }
 
 export enum observabilityTech {
-  pino = 'pino',
-  prometheus = 'prometheus',
-  opentelemetry = 'opentelemetry',
+  pino = 'Pino',
+  prometheus = 'Prometheus',
+  opentelemetry = 'OpenTelemetry',
 }
 
 export enum securityTech {
-  jwt = 'jwt',
-  oauth = 'oauth 2.0',
+  jwt = 'JWT',
+  oauth = 'OAuth 2.0',
 }
 
 export enum foundationCapability {

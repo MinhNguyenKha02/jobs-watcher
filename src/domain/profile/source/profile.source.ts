@@ -86,7 +86,7 @@ export const profileSource: ProfileSource = {
 
     infrastructure: [
       infrastructureCapability.containerized_deployment,
-      infrastructureCapability.linux_service_management,
+      infrastructureCapability.linux_host_operation,
       infrastructureCapability.cloud_deployment,
       infrastructureCapability.ci_cd_automation,
       infrastructureCapability.configuration_management,
@@ -100,8 +100,8 @@ export const profileSource: ProfileSource = {
     ],
 
     security: [
-      securityCapability.authentication_implementation,
-      securityCapability.authorization_control,
+      securityCapability.authentication,
+      securityCapability.authorization,
       securityCapability.input_validation,
       securityCapability.rate_limiting,
     ],
@@ -148,7 +148,7 @@ export const profileSource: ProfileSource = {
       protocolTech.unix_domain_socket,
       protocolTech.grpc,
       protocolTech.rpc,
-      protocolTech.abi_interface,
+      protocolTech.abi,
       protocolTech.rabbitmq,
       protocolTech.kafka,
     ],
@@ -163,7 +163,7 @@ export const profileSource: ProfileSource = {
       languageTech.php,
       languageTech.bash,
     ],
-    observability: [observabilityTech.pino, observabilityTech.opentelemetry],
+    observability: [observabilityTech.pino, observabilityTech.opentelemetry, observabilityTech.prometheus],
     backend_framework: [
       backendFrameworkTech.nodejs,
       backendFrameworkTech.expressjs,
@@ -174,7 +174,7 @@ export const profileSource: ProfileSource = {
     ],
     infrastructure: [
       infrastructureTech.docker,
-      infrastructureTech.ubuntu,
+      infrastructureTech.linux,
       infrastructureTech.github_actions,
       infrastructureTech.git,
       infrastructureTech.cloudflare,
@@ -198,20 +198,23 @@ export const profileSource: ProfileSource = {
       type: 'personal',
       position: ProfileRole.SoftwareEngineer,
       summary: `
-      Event-driven job ingestion and workflow system that converts Gmail job alerts into deterministic, auditable actions using a Saga-style orchestrator and human-in-the-loop enrichment flow.
+      Daemon serve repetitive job application operation reduction by 3 browsers fifo workers and tui operator browsing fallback and jobs ir per each by profile-leaned 
         `,
       anchors: {
         cap: {
-          // foundation: [
-          //   foundationCapability.data_structures,
-          //   foundationCapability.algorithms,
-          //   foundationCapability.system_design,
-          //   foundationCapability.oop,
-          //   foundationCapability.sdlc,
-          // ],
+          foundation: [
+            foundationCapability.data_structures,
+            foundationCapability.algorithms,
+            foundationCapability.system_design,
+            foundationCapability.oop,
+            foundationCapability.sdlc,
+            foundationCapability.operating_systems_fundamentals,
+            foundationCapability.networking_fundamentals,
+            foundationCapability.database_fundamentals,
+          ],
           security: [
-            securityCapability.authentication_implementation,
-            securityCapability.authorization_control,
+            securityCapability.authentication,
+            securityCapability.authorization,
             securityCapability.input_validation,
           ],
           backend: [
@@ -219,7 +222,6 @@ export const profileSource: ProfileSource = {
             backendCapability.api_design,
             backendCapability.service_integration,
             backendCapability.background_job_processing,
-            backendCapability.message_queue_processing,
             backendCapability.message_queue_processing,
             backendCapability.event_processing,
             backendCapability.concurrent_processing,
@@ -246,6 +248,7 @@ export const profileSource: ProfileSource = {
             testingCapability.unit_testing,
             testingCapability.integration_testing,
             testingCapability.regression_testing,
+            testingCapability.api_testing,
           ],
           database: [
             databaseCapability.query_optimization,
@@ -256,7 +259,7 @@ export const profileSource: ProfileSource = {
             databaseCapability.data_consistency,
           ],
           infrastructure: [
-            infrastructureCapability.linux_service_management,
+            infrastructureCapability.linux_host_operation,
             infrastructureCapability.configuration_management,
             infrastructureCapability.environment_management,
           ],
@@ -302,37 +305,24 @@ export const profileSource: ProfileSource = {
           ],
           language: [languageTech.typescript, languageTech.bash],
           backend_framework: [backendFrameworkTech.nodejs, backendFrameworkTech.expressjs],
-          infrastructure: [infrastructureTech.ubuntu, infrastructureTech.git],
+          infrastructure: [infrastructureTech.linux, infrastructureTech.git],
+          observability: [observabilityTech.pino, observabilityTech.prometheus, observabilityTech.opentelemetry],
           database: [databaseTech.mongodb],
           third_party: ['Gmail API'],
           testing: [testingTech.vitest, testingTech.playwright],
         },
       },
       key_contributions: [
-        // proposed
-        'Built Semi-auto queue-based extractor for Gmail Pub/Sub webhook events and headless-browser-based workers pool for parallel job processing with staged parsing, dedupe, filtering and operator-assisted routing and resume IR workflows',
-        'Designed a clean and hexagonal architecture using ports/adapters and saga-command patterns orchestration',
-        'Developed signal-driven orchestration for staged ingestion, routing, and operator-controlled resolution',
-        'Implemented workflow persistence using MongoDB collections for lifecycle state and immutable action snapshots',
-        'Integrated background daemon workflows with tmux-based operational tui',
-        'Built TUI operator workflows using MongoDB change-stream/SSE event streams and Unix Domain Socket command interfaces',
-        'Designed and developed resume IR module for routed-job for optimal resume enforced ATS resolver',
-        'Implemented unit and integration and manual tests for ingestion, enrichment, and operator interaction flows using Vitest and local staging environment setups',
-
-        // Already
-        // 'Designed a clean and hexagonal architecture using ports/adapters and saga-command orchestration',
-        // 'Implemented Gmail Pub/Sub webhook ingestion with staged parsing and job deduplication',
-        // 'Built TUI operator workflows using MongoDB change-stream/SSE event streams and Unix Domain Socket command interfaces',
-        // 'Implemented workflow persistence using MongoDB collections for lifecycle state and immutable action snapshots',
-        // 'Developed signal-driven enrichment flow for staged ingestion, routing, and operator-controlled resolution',
-        // 'Integrated background daemon workflows with tmux-based operational tooling and manual validation scripts',
-        // 'Implemented unit and integration and manual tests for ingestion, enrichment, and operator interaction flows using Vitest and local staging environment setups,'
+        
+        'Built a TypeScript/Node.js Linux daemon integrating Gmail Pub/Sub webhooks and Gmail API fallback inputs with Saga-based job processing, automating job intake for downstream application preparation.',
+        'Implemented a three-worker Playwright extraction pipeline with MongoDB-backed scheduling, processing job URLs into full job data while retaining manual TUI fallback for failed or deferred extraction.',
+        'Developed a TUI operator workflow using RabbitMQ consumers and Unix Domain Socket commands, enabling manual HTML ingestion, job routing, and completion handling when automated extraction requires intervention.',
+        'Built a profile-driven job IR pipeline using anchor matching, evidence resolution, and keyword ranking, transforming processed job data into ATS resume PDFs through Handlebars templates and Playwright rendering.',
+        'Engineered Hexagonal Architecture and SOLID dependency boundaries across application ports and replaceable adapters, with MongoDB lifecycle persistence, Pino JSON logging to journald (systemd unit) and stderr (tmux-pane), Prometheus monitoring, Vitest verification, and systemd/Bash deployment to keep the daemon maintainable, observable, testable, and operationally deployable.'
+        
       ],
       outcomes: [
-        'Reduced repetitive manual job triage through staged ingestion and operator-assisted routing workflows',
-        'Established deterministic workflow tracking using lifecycle state transitions and immutable audit snapshots',
-        'Enabled real-time operator interaction through SSE broadcasts and TUI-based signal handling',
-        'Validated end-to-end ingestion and enrichment flows in controlled local and staging environments',
+        'Automated the job-ingestion → extraction → job-IR → ATS-PDF workflow, with automated browser processing and manual fallback for cases requiring intervention.'
       ],
       status: 'Functional (active development and operational refinement)',
       evidences: {
@@ -364,7 +354,6 @@ export const profileSource: ProfileSource = {
           testing: [testingCapability.unit_testing, testingCapability.integration_testing],
           architecture: [
             architectureCapability.service_decomposition,
-            architectureCapability.integration_design,
             architectureCapability.data_flow_design,
             architectureCapability.boundary_definition,
             architectureCapability.module_design,
@@ -397,12 +386,12 @@ export const profileSource: ProfileSource = {
           protocol: [protocolTech.websocket, protocolTech.rpc],
           language: [languageTech.go],
           infrastructure: [
-            infrastructureTech.ubuntu,
+            infrastructureTech.linux,
             'Whisper.cpp',
             infrastructureTech.git,
             infrastructureTech.docker,
           ],
-          testing: [testingTech.gotesting],
+          testing: [testingTech.go_test],
         },
       },
       key_contributions: [
@@ -412,7 +401,7 @@ export const profileSource: ProfileSource = {
         'Designed CLI audio capture (arecord) and Go RPC for local Whisper.cpp STT inference',
       ],
       outcomes: [
-        'End-to-end streaming flow validated in local environment',
+        'End-to-end streaming flow validated in local Docker environment',
         'Achieved real-time transcription via streaming pipeline with local STT inference',
       ],
       status: 'Prototype (local environment; under active development)',
@@ -441,10 +430,11 @@ export const profileSource: ProfileSource = {
       outcomes: ['Demonstrated zero-copy packet capture and processing via mmap-based pipeline.'],
       anchors: {
         cap: {
-          backend: [backendCapability.service_integration, backendCapability.event_processing],
+          backend: [backendCapability.service_integration, backendCapability.event_processing, backendCapability.concurrent_processing],
           communication: [
             communicationCapability.request_response_communication,
             communicationCapability.streaming_communication,
+            communicationCapability.event_based_communication,
           ],
           infrastructure: [
             infrastructureCapability.containerized_deployment,
@@ -459,7 +449,7 @@ export const profileSource: ProfileSource = {
             foundationCapability.sdlc,
           ],
           testing: [testingCapability.unit_testing, testingCapability.integration_testing],
-          architecture: [architectureCapability.service_decomposition],
+          architecture: [architectureCapability.service_decomposition, architectureCapability.data_flow_design, architectureCapability.integration_design, architectureCapability.module_design],
           security: [securityCapability.input_validation],
         },
 
@@ -474,16 +464,16 @@ export const profileSource: ProfileSource = {
         },
 
         tech: {
-          protocol: [protocolTech.grpc, protocolTech.abi_interface],
+          protocol: [protocolTech.grpc, protocolTech.abi],
           language: [languageTech.go, languageTech.c],
           backend_framework: [],
           infrastructure: [
-            infrastructureTech.ubuntu,
+            infrastructureTech.linux,
             infrastructureTech.git,
             infrastructureTech.docker,
           ],
           database: [],
-          testing: [testingTech.gotesting, testingTech.ctesting],
+          testing: [testingTech.go_test, testingTech.c_test],
         },
       },
       status: 'Prototype under active exploration',
@@ -523,10 +513,11 @@ export const profileSource: ProfileSource = {
           communication: [
             communicationCapability.request_response_communication,
             communicationCapability.streaming_communication,
+            communicationCapability.event_based_communication,
           ],
           security: [
-            securityCapability.authentication_implementation,
-            securityCapability.authorization_control,
+            securityCapability.authentication,
+            securityCapability.authorization,
             securityCapability.input_validation,
           ],
           database: [
@@ -535,6 +526,7 @@ export const profileSource: ProfileSource = {
             databaseCapability.data_modeling,
             databaseCapability.database_indexing,
             databaseCapability.data_consistency,
+            databaseCapability.schema_migration,
           ],
           foundation: [
             foundationCapability.data_structures,
@@ -560,7 +552,8 @@ export const profileSource: ProfileSource = {
         tech: {
           language: [languageTech.typescript, languageTech.php],
           backend_framework: [backendFrameworkTech.laravel],
-          infrastructure: [infrastructureTech.ubuntu, infrastructureTech.git],
+          infrastructure: [infrastructureTech.linux, infrastructureTech.git],
+          protocol: [protocolTech.restful_api, protocolTech.websocket],
           database: [databaseTech.postgresql],
           security: [securityTech.oauth],
         },
@@ -581,7 +574,7 @@ export const profileSource: ProfileSource = {
       startDate: '2024-10',
       endDate: '2025-01',
       responsibilities: [
-        'Designed relational schemas and backend services for 2 production product modules.',
+        'Designed relational schemas and backend services for 2 production foundation product modules.',
         'Implemented REST APIs with structured validation and error handling.',
         'Maintained API contracts enabling stable frontend-backend integration.',
         'Applied Git-based collaborative development workflows in agile environments.',
@@ -601,8 +594,8 @@ export const profileSource: ProfileSource = {
           architecture: [architectureCapability.service_decomposition],
           security: [
             securityCapability.input_validation,
-            securityCapability.authentication_implementation,
-            securityCapability.authorization_control,
+            securityCapability.authentication,
+            securityCapability.authorization,
           ],
           database: [
             databaseCapability.query_optimization,
@@ -629,6 +622,7 @@ export const profileSource: ProfileSource = {
             collaborationCompetency.agile_collaboration,
             collaborationCompetency.code_review_participation,
             collaborationCompetency.sprint_planning_participation,
+            collaborationCompetency.cross_functional_collaboration,
           ],
         },
 
@@ -640,7 +634,7 @@ export const profileSource: ProfileSource = {
         tech: {
           language: [languageTech.typescript],
           backend_framework: [backendFrameworkTech.nodejs, backendFrameworkTech.nuxtjs],
-          infrastructure: [infrastructureTech.ubuntu, infrastructureTech.git],
+          infrastructure: [infrastructureTech.linux, infrastructureTech.git],
           database: [databaseTech.postgresql, databaseTech.supabase],
           security: [securityTech.oauth],
         },

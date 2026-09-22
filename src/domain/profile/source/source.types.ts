@@ -1,4 +1,5 @@
 import { AnchorKind } from '../types/retrieval.types.js';
+import type { TechAliases } from './relations.source.js';
 
 export type RecruiterSurfaces = {
   en: string[];
@@ -9,6 +10,7 @@ export interface RelationNode {
   adjacent: string[];
   recruiter_surfaces: RecruiterSurfaces;
   retrieval_associations: string[];
+  approved_aliases?: TechAliases;
 }
 
 export type RelationCategory = Record<string, RelationNode>;
